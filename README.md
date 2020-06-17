@@ -21,9 +21,7 @@ a slightly modified version of pykeops below. If you had previously installed py
 2. Install pytorch 1.4
 3. Clone the FALKON repository
     ```bash
-    git clone https://github.com/alessandro-rudi/FALKON.git
-    cd FALKON
-    git submodule update --init --recursive
+    git clone --recurse-submodules https://github.com/FalkonML/falkon.git
     ```
 4. Install pykeops
     ```bash
