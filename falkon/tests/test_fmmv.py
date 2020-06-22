@@ -1,14 +1,16 @@
+import dataclasses
 from typing import Tuple
 
 import numpy as np
 import pytest
 import torch
+from falkon.options import FalkonOptions
 from pytest import mark
 
 from falkon.kernels import GaussianKernel, LinearKernel, PolynomialKernel
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.tests.conftest import memory_checker, fix_mat
-from falkon.tests.helpers import gen_random, gen_sparse_matrix
+from falkon.tests.gen_random import gen_random, gen_sparse_matrix
 from falkon.utils import decide_cuda
 
 n32 = np.float32
@@ -127,10 +129,7 @@ def kernel(request):
 
 @pytest.fixture(scope="module")
 def gram(kernel, A, B):
-    opt = {
-        'use_cpu': True,
-        'compute_arch_speed': False,
-    }
+    opt = FalkonOptions(use_cpu=True, compute_arch_speed=False)
     return kernel(A, B, opt=opt)
 
 
@@ -161,14 +160,10 @@ def e_dfmmv(request):
 
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
-    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda({}), reason="No GPU found.")])
+    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ], ids=["cpu", "gpu"])
 class TestDense:
-    basic_options = {
-        'debug': True,
-        'compute_arch_speed': False,
-        'no_keops': True,
-    }
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, no_keops=True)
 
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt", [
         ("F", np.float32, "F", np.float32, "F", np.float32),
@@ -187,10 +182,7 @@ class TestDense:
         B = getB(order=Bo, dtype=Bdt)
         v = getv(order=vo, dtype=vdt)
 
-        opt = dict(self.basic_options)
-        opt['use_cpu'] = cpu
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
         rtol = choose_on_dtype(A.dtype)
 
         # Test normal
@@ -227,10 +219,7 @@ class TestDense:
         v = getv(order=vo, dtype=vdt)
         w = getw(order=wo, dtype=wdt)
 
-        opt = dict(self.basic_options)
-        opt['use_cpu'] = cpu
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
         rtol = choose_on_dtype(A.dtype)
 
         # Test normal
@@ -268,10 +257,7 @@ def s_B(m, s_d, s_density):
 
 @pytest.fixture(scope="module")
 def s_gram(kernel, s_A, s_B):
-    opt = {
-        'use_cpu': True,
-        'compute_arch_speed': False,
-    }
+    opt = FalkonOptions(use_cpu=True, compute_arch_speed=False)
     return kernel(s_A[1], s_B[1], opt=opt)
 
 
@@ -302,13 +288,10 @@ def s_e_dfmmv(request):
 
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
-    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda({}), reason="No GPU found.")])
+    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ], ids=["cpu", "gpu"])
 class TestSparse:
-    basic_options = {
-        'debug': True,
-        'compute_arch_speed': False,
-    }
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False)
 
     @pytest.mark.parametrize("Adt,Bdt,vo,vdt", [
         (np.float32, np.float32, "F", np.float32),
@@ -323,10 +306,7 @@ class TestSparse:
         B = getB(dtype=Bdt, sparse=True)
         v = getv(order=vo, dtype=vdt)
 
-        opt = dict(self.basic_options)
-        opt['use_cpu'] = cpu
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
         rtol = choose_on_dtype(A.dtype)
 
         # Test normal
@@ -364,10 +344,7 @@ class TestSparse:
         v = getv(order=vo, dtype=vdt)
         w = getw(order=wo, dtype=wdt)
 
-        opt = dict(self.basic_options)
-        opt['use_cpu'] = cpu
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
         rtol = choose_on_dtype(A.dtype)
 
         # Test normal

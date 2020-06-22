@@ -46,6 +46,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> spspmm(
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("addspmm", &addspmm, "Sparse*Sparse -> Dense matrix multiplication"); // TODO: This may be deleted?
   m.def("norm_sq", &norm_sq, "Squared row-wise norm of a sparse CPU matrix", py::call_guard<py::gil_scoped_release>());
+  m.def("norm_", &norm, "Row-wise norm of a sparse CPU matrix", py::call_guard<py::gil_scoped_release>());
   m.def("spspmm", &spspmm, "Sparse*Sparse -> Sparse matrix multiplication (CUDA tensors)", py::call_guard<py::gil_scoped_release>());
   m.def("csr2dense", &csr2dense, "Convert CSR matrix to dense matrix (CUDA tensors)", py::call_guard<py::gil_scoped_release>());
 }

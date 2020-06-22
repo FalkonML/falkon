@@ -26,19 +26,19 @@ class SparseTensor():
     It does **not** define any mathematical function on sparse matrices, which are
     instead defined in the `sparse_ops.py` file.
 
-    Arguments:
+    Parameters
     ----------
-     - indexptr : torch.Tensor
+    indexptr : torch.Tensor
         Array of row (or column for CSC data) pointers into the
         `index` and `data` arrays. Should be either of type long or int.
-     - index : torch.Tensor
+    index : torch.Tensor
         Array of column (or row for CSC data) indices for non-zero elements.
         Should be either of type long or int.
-     - data : torch.Tensor
+    data : torch.Tensor
         Array of the non-zero elements for the sparse matrix.
-     - size : Tuple[int, int]
+    size : Tuple[int, int]
         Shape of the 2D tensor (rows, columns).
-     - sparse_type: str or SparseType
+    sparse_type: str or SparseType
         Whether the matrix should be interpreted as CSR or CSC format.
     """
     def __init__(self,
@@ -114,18 +114,19 @@ class SparseTensor():
         If this is a CSC sparse matrix, instead of taking contiguous rows we take contiguous
         columns.
 
-        Arguments:
+        Parameters
         ----------
-         - start: int or None
+        start: int or None
             The index of the first row to select. If None will be assumed to be 0.
-         - length: int or None
+        length: int or None
             The number of rows to select. If None will be assumed to be all rows after `start`.
-        Returns:
+
+        Returns
         --------
         SparseTensor
             A new `SparseTensor` object with `length` rows.
 
-        Notes:
+        Notes
         ------
         The output matrix will share storage with the original matrix whenever possible.
         """

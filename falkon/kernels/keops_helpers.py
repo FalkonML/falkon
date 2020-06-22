@@ -1,6 +1,8 @@
-import torch
+from typing import Optional, List
 
-from falkon.utils.helpers import decide_keops
+import torch
+from falkon.options import FalkonOptions
+from falkon.utils.switches import decide_keops
 
 try:
     from falkon.mmv_ops.keops import run_keops_mmv
@@ -11,7 +13,15 @@ except ModuleNotFoundError:
 
 
 class KeopsKernelMixin():
-    def keops_mmv(self, X1, X2, v, out, formula, aliases, other_vars, opt):
+    def keops_mmv(self,
+                  X1: torch.Tensor,
+                  X2: torch.Tensor,
+                  v: torch.Tensor,
+                  out: Optional[torch.Tensor],
+                  formula: str,
+                  aliases: List[str],
+                  other_vars: List[torch.Tensor],
+                  opt: FalkonOptions):
         if not _has_keops:
             raise ModuleNotFoundError("Module 'pykeops' is not properly installed. "
                                       "Please install 'pykeops' before running 'keops_mmv'.")
@@ -25,15 +35,15 @@ class KeopsKernelMixin():
         """
         performs fnc(X1*X2', X1, X2)' * ( fnc(X1*X2', X1, X2) * v  +  w )
 
-        Parameters:
+        Parameters
         -----------
-         - X1 : Tensor N x D
-         - X2 : Tensor M x D
-         - v  : Tensor M x T
-         - w  : Tensor N x T
-         - out : Tensor M x T or None
+        X1 : Tensor N x D
+        X2 : Tensor M x D
+        v  : Tensor M x T
+        w  : Tensor N x T
+        out : Tensor M x T or None
 
-        Notes:
+        Notes
         ------
         The double MMV is implemented as two separate calls to the user-supplied
         `mmv_fn`. The first one calculates the inner part of the formula (NxT)
@@ -54,7 +64,6 @@ class KeopsKernelMixin():
         return False
 
     def keops_can_handle_mmv(self, X1, X2, v, opt):
-        opt.setdefault('no_keops', False)
         # No handling of sparse tensors
         if not isinstance(X1, torch.Tensor) or not isinstance(X2, torch.Tensor) \
                 or X1.is_sparse or X2.is_sparse:

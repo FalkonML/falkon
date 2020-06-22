@@ -261,19 +261,19 @@ class Mkl():
         The returned object needs to be manually freed using the :meth:`Mkl.mkl_sparse_destroy`
         method when it is not needed anymore.
 
-        Parameters:
+        Parameters
         -----------
-         - mat : SparseTensor
+        mat : SparseTensor
             The input sparse tensor (can be in CSR or CSC format). This method only supports
             floating-point tensors (i.e. of types torch.float32 or torch.float64) which reside
             on the CPU.
 
-        Returns:
+        Returns
         --------
         mkl_sparse_matrix
             The Mkl object representing the input tensor.
 
-        Notes:
+        Notes
         ------
         Depending on the version of MKL  which is linked, the integer indices (i.e. two of the
         three arrays used in CSR/CSC sparse representations) may be copied and cast to the
@@ -316,19 +316,19 @@ class Mkl():
         The returned object needs to be manually freed using the :meth:`Mkl.mkl_sparse_destroy`
         method when it is not needed anymore.
 
-        Parameters:
+        Parameters
         -----------
-         - mat : scipy.sparse.spmatrix
+        matrix : scipy.sparse.spmatrix
             The input sparse matrix which can be either in CSR or in CSC format. If any other
             format is used this method will throw an error. This method only supports
             floating-point tensors (i.e. of types torch.float32 or torch.float64).
 
-        Returns:
+        Returns
         --------
         mkl_sparse_matrix
             The Mkl object representing the input tensor.
 
-        Notes:
+        Notes
         ------
         Depending on the version of MKL  which is linked, the integer indices (i.e. two of the
         three arrays used in CSR/CSC sparse representations) may be copied and cast to the
@@ -405,24 +405,24 @@ class Mkl():
         indexing is used, or for non floating-point types), but those created with
         :meth:`mkl_create_sparse_from_scipy` and :meth:`mkl_create_sparse` are.
 
-        Parameters:
+        Parameters
         -----------
-         - mkl_mat
+        mkl_mat
             The MKL sparse matrix holder
-         - dtype
+        dtype
             The data-type of the matrix. This must match the data-type of the data stored in
             the MKL matrix (no type conversion is performed), otherwise garbage data or memory
             corruption could occur.
-         - output_type
+        output_type
             Whether the matrix should be interpreted as CSR (pass ``"csr"``) or CSC
             (pass ``"csc"``). This should match the MKL matrix, otherwise a transposed output
             may be produced.
 
-        Returns:
+        Returns
         --------
         The :class:`SparseTensor` object, sharing the same data arrays as the MKL matrix.
 
-        Notes:
+        Notes
         ------
         Depending on the integer type of the linked MKL version, the indices of the matrix may
         be copied. In any case the output tensor will use :class:`torch.int64` indices.
@@ -495,7 +495,7 @@ class Mkl():
     def mkl_convert_csr(self, mkl_mat: sparse_matrix_t, destroy_original=False) -> sparse_matrix_t:
         """Convert a MKL matrix from CSC format to CSR format.
 
-        Parameters:
+        Parameters
         ----------
         mkl_mat
             The input, CSC format, MKL matrix.
@@ -503,7 +503,7 @@ class Mkl():
             Whether the input matrix will be freed (by calling :meth:`mkl_sparse_destroy`)
             after conversion.
 
-        Returns:
+        Returns
         --------
         csr_mat
             Converted CSR MKL matrix.
@@ -532,7 +532,7 @@ class Mkl():
         Note that this does not free the memory allocated to keep the data of the matrix itself,
         but only the sparse-matrix datastructure.
 
-        Parameters:
+        Parameters
         -----------
         ref_handle
             The MKL sparse matrix handle
@@ -555,7 +555,7 @@ class Mkl():
         Both `A` and `B` must be in the same (CSR or CSC) sparse format, otherwise MKL will
         complain.
 
-        Parameters:
+        Parameters
         -----------
         A
             Input (left hand side) MKL sparse matrix.
@@ -568,9 +568,10 @@ class Mkl():
         transposeA
             Whether the left hand side matrix should be transposed.
 
-        Examples:
+        Examples
         ---------
         Multiply two 2x2 sparse matrices
+
         >>> A = SparseTensor(torch.LongTensor([0, 2, 2]), torch.LongTensor([0, 1]),
         ...                  torch.Tensor([9.2, 6.3]), size=(2, 2), sparse_type="csr")
         >>> B = SparseTensor(torch.LongTensor([0, 1, 2]), torch.LongTensor([0, 1]),

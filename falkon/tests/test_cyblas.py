@@ -6,7 +6,7 @@ import pytest
 from falkon.utils.cyblas import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang
 
 from falkon.tests.conftest import fix_mat
-from falkon.tests.helpers import gen_random_pd, gen_random
+from falkon.tests.gen_random import gen_random, gen_random_pd
 
 
 class TestCopyTriang:

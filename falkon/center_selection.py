@@ -1,24 +1,18 @@
-from typing import Union, Tuple
-from abc import ABC, abstractmethod
 import warnings
+from abc import ABC, abstractmethod
+from typing import Union, Tuple
 
-import torch
 import numpy as np
+import torch
+
 from falkon.sparse.sparse_tensor import SparseTensor
-
 from falkon.utils.tensor_helpers import is_f_contig
-from falkon.utils import CompOpt
-
 
 _tensor_type = Union[torch.Tensor, SparseTensor]
 
 
 class NySel(ABC):
-    def __init__(self, random_gen, opt=None):
-        if opt is not None:
-            self.params = CompOpt(opt)
-        else:
-            self.params = CompOpt()
+    def __init__(self, random_gen):
         self.random_gen = random_gen
 
     @abstractmethod
@@ -27,8 +21,8 @@ class NySel(ABC):
 
 
 class UniformSel(NySel):
-    def __init__(self, random_gen, opt=None):
-        super().__init__(random_gen, opt)
+    def __init__(self, random_gen):
+        super().__init__(random_gen)
 
     def select(self,
                X: _tensor_type,

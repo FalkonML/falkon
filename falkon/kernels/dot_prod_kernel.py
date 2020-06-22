@@ -7,9 +7,11 @@ Created on Tue Oct 24 21:49:21 2017
 """
 import functools
 from abc import ABC
+from typing import Optional
 
 import torch
 
+from falkon.options import FalkonOptions
 from falkon.sparse.sparse_ops import sparse_matmul
 from falkon.sparse.sparse_tensor import SparseTensor
 from . import Kernel, KeopsKernelMixin
@@ -39,16 +41,14 @@ class DotProdKernel(Kernel, ABC):
 
     This class supports sparse data.
 
-    Arguments:
+    Parameters
     ----------
-     - name : str
+    name : str
         Descriptive name of the specialized kernel
-     - opt : CompOpt or dict or None
+    opt : CompOpt or dict or None
         Options which will be passed to the kernel operations
-     - **kwargs
-         Additional options which will be passed to operations involving this kernel.
 
-    Notes:
+    Notes
     ------
     Classes which inherit from this one should implement the `_transform` method to modify
     the output of the dot-product (e.g. scale it).
@@ -56,8 +56,8 @@ class DotProdKernel(Kernel, ABC):
 
     kernel_type = "dot-product"
 
-    def __init__(self, name, opt=None, **kw):
-        super().__init__(name, self.kernel_type, opt, **kw)
+    def __init__(self, name, opt: Optional[FalkonOptions] = None):
+        super().__init__(name, self.kernel_type, opt)
 
     def _prepare(self, X1, X2):
         return None
@@ -79,27 +79,25 @@ class LinearKernel(DotProdKernel, KeopsKernelMixin):
     input space (i.e. `X @ X.T`) with optional parameters to translate
     and scale the kernel: `beta + 1/(sigma**2) * X @ X.T`
 
-    Parameters:
+    Parameters
     -----------
-     - beta : float (optional, default 0.0)
+    beta : float (optional, default 0.0)
         Additive constant for the kernel
-     - sigma : float (optional, default 1.0)
+    sigma : float (optional, default 1.0)
         Multiplicative constant for the kernel. The kernel will
         be multiplied by the inverse of sigma squared.
-     - opt : Union(Dict, CompOpt)
+    opt : Union(Dict, CompOpt)
         Options dictionary.
-     - kw : dict
-        Additional options passed through keywords (see the `opt` argument
-        for a description of available options).
     """
-    def __init__(self, beta=0, sigma=1, opt=None, **kw):
-        super().__init__("Linear", opt, **kw)
+    def __init__(self, beta=0, sigma=1, opt: Optional[FalkonOptions] = None):
+        super().__init__("Linear", opt)
 
         self.beta = torch.tensor(extract_float(beta), dtype=torch.float64)
         self.sigma = torch.tensor(extract_float(sigma), dtype=torch.float64)
         if self.sigma == 0:
             self.gamma: torch.Tensor = torch.tensor(0.0, dtype=torch.float64)
         else:
+            # noinspection PyTypeChecker
             self.gamma: torch.Tensor = 1 / self.sigma**2
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
@@ -158,8 +156,8 @@ class LinearKernel(DotProdKernel, KeopsKernelMixin):
 
 
 class PolynomialKernel(DotProdKernel, KeopsKernelMixin):
-    def __init__(self, alpha, beta, degree, opt=None, **kw):
-        super().__init__("Polynomial", opt, **kw)
+    def __init__(self, alpha, beta, degree, opt: Optional[FalkonOptions] = None):
+        super().__init__("Polynomial", opt)
 
         self.alpha = torch.tensor(extract_float(alpha), dtype=torch.float64)
         self.beta = torch.tensor(extract_float(beta), dtype=torch.float64)
@@ -217,8 +215,8 @@ class PolynomialKernel(DotProdKernel, KeopsKernelMixin):
 
 
 class ExponentialKernel(DotProdKernel, KeopsKernelMixin):
-    def __init__(self, alpha, opt=None, **kw):
-        super().__init__("Exponential", opt, **kw)
+    def __init__(self, alpha, opt: Optional[FalkonOptions] = None):
+        super().__init__("Exponential", opt)
         self.alpha = torch.tensor(extract_float(alpha), dtype=torch.float64)
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt):

@@ -1,7 +1,7 @@
-from .helpers import decide_cuda, CompOpt
+from .switches import decide_cuda
 from .tictoc import TicToc
 from .threading import PropagatingThread
 
-__all__ = ("CompOpt", "PropagatingThread", "TicToc")
+__all__ = ("PropagatingThread", "TicToc", "decide_cuda")
 
 

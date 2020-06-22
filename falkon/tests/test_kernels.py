@@ -1,18 +1,17 @@
 import abc
+import dataclasses
 
 import numpy as np
 import pytest
 import torch
 
-from falkon.kernels import GaussianKernel, LinearKernel, ExponentialKernel, PolynomialKernel
+from falkon.kernels import *
+from falkon.options import FalkonOptions
 from falkon.tests.conftest import memory_checker
-from falkon.tests.helpers import (
-    gen_random, naive_gaussian_kernel, naive_linear_kernel,
-    naive_exponential_kernel,
-    naive_polynomial_kernel
-)
-from falkon.utils import CompOpt, decide_cuda
-from falkon.utils.helpers import decide_keops
+from falkon.tests.naive_kernels import *
+from falkon.tests.gen_random import gen_random
+from falkon.utils import decide_cuda
+from falkon.utils.switches import decide_keops
 
 
 def numpy_to_torch_type(dt):
@@ -22,13 +21,6 @@ def numpy_to_torch_type(dt):
         return torch.float64
     else:
         raise TypeError("Invalid numpy type %s" % (dt,))
-
-
-def choose_on_dtype(dtype):
-    if dtype == np.float64 or dtype == torch.float64:
-        return 1e-12
-    else:
-        return 1e-5
 
 
 def _run_test(fn, exp, tensors, out, rtol, opt):
@@ -84,13 +76,14 @@ def w(n, t) -> torch.Tensor:
 
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
-    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda({}), reason="No GPU found.")])
+    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ], ids=["cpu", "gpu"])
 @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
 class AbstractKernelTester(abc.ABC):
-    basic_options = {
-        'debug': True,
-        'compute_arch_speed': False,
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False)
+    _RTOL = {
+        torch.float32: 1e-5,
+        torch.float64: 1e-12
     }
 
     @pytest.fixture(scope="class")
@@ -110,59 +103,44 @@ class AbstractKernelTester(abc.ABC):
         return exp_k.T @ (exp_k @ v.numpy() + w.numpy())
 
     def test_kernel(self, kernel, A, B, exp_k, cpu, max_mem):
-        opt = dict(self.basic_options)
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
-        opt['use_cpu'] = cpu
-        _run_test(kernel, exp_k, (A, B), out=None, rtol=choose_on_dtype(A.dtype), opt=opt)
+        opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu)
+        _run_test(kernel, exp_k, (A, B), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
-        pytest.param(True, marks=pytest.mark.skipif(not decide_keops({}), reason="no KeOps found.")),
+        pytest.param(True, marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
         False
     ], ids=["KeOps", "No KeOps"])
     def test_mmv(self, kernel, keops, A, B, v, exp_v, cpu, max_mem):
-        opt = dict(self.basic_options)
-        opt['no_keops'] = not keops
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
-        opt['use_cpu'] = cpu
-        _run_test(kernel.mmv, exp_v, (A, B, v), out=None, rtol=choose_on_dtype(A.dtype), opt=opt)
+        opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu,
+                                  no_keops=not keops)
+        _run_test(kernel.mmv, exp_v, (A, B, v), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
-        pytest.param(True, marks=pytest.mark.skipif(not decide_keops({}), reason="no KeOps found.")),
+        pytest.param(True, marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
         False
     ], ids=["KeOps", "No KeOps"])
     def test_dv(self, kernel, keops, A, B, v, exp_dv, cpu, max_mem):
-        opt = dict(self.basic_options)
-        opt['no_keops'] = not keops
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
-        opt['use_cpu'] = cpu
-        _run_test(kernel.dmmv, exp_dv, (A, B, v, None), out=None, rtol=choose_on_dtype(A.dtype), opt=opt)
+        opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu,
+                                  no_keops=not keops)
+        _run_test(kernel.dmmv, exp_dv, (A, B, v, None), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
-        pytest.param(True, marks=pytest.mark.skipif(not decide_keops({}), reason="no KeOps found.")),
+        pytest.param(True, marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
         False
     ], ids=["KeOps", "No KeOps"])
     def test_dw(self, kernel, keops, A, B, w, exp_dw, cpu, max_mem):
-        opt = dict(self.basic_options)
-        opt['no_keops'] = not keops
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
-        opt['use_cpu'] = cpu
-        _run_test(kernel.dmmv, exp_dw, (A, B, None, w), out=None, rtol=choose_on_dtype(A.dtype), opt=opt)
+        opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu,
+                                  no_keops=not keops)
+        _run_test(kernel.dmmv, exp_dw, (A, B, None, w), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
-        pytest.param(True, marks=pytest.mark.skipif(not decide_keops({}), reason="no KeOps found.")),
+        pytest.param(True, marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
         False
     ], ids=["KeOps", "No KeOps"])
     def test_dvw(self, kernel, keops, A, B, v, w, exp_dvw, cpu, max_mem):
-        opt = dict(self.basic_options)
-        opt['no_keops'] = not keops
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
-        opt['use_cpu'] = cpu
-        _run_test(kernel.dmmv, exp_dvw, (A, B, v, w), out=None, rtol=choose_on_dtype(A.dtype), opt=opt)
+        opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu,
+                                  no_keops=not keops)
+        _run_test(kernel.dmmv, exp_dvw, (A, B, v, w), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
 
 class TestGaussianKernel(AbstractKernelTester):
@@ -196,23 +174,41 @@ class TestGaussianKernel(AbstractKernelTester):
         elif request.param == 4:
             return GaussianKernel(mat_sigma)
 
+    def test_wrong_sigma_dims(self, d, A, B, cpu, max_mem):
+        sigmas = torch.tensor([2.0] * (d-1), dtype=torch.float64)
+        kernel = GaussianKernel(sigma=sigmas)
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
+        with pytest.raises(RuntimeError, match=r".*size mismatch.*"):
+            _run_test(kernel, None, (A, B), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
-@pytest.mark.skipif(not decide_cuda({}), reason="No GPU found.")
+
+@pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 def test_gaussian_pd():
     X = gen_random(10000, 2, 'float32', F=True, seed=12)
     Xt = torch.from_numpy(X)
     sigma = 10.0
-    opt = CompOpt({
-        'compute_arch_speed': False,
-        'max_gpu_mem': 1 * 2 ** 30,
-        'use_cpu': False,
-        'no_single_kernel': False,
-    })
+    opt = FalkonOptions(compute_arch_speed=False, max_gpu_mem=1*2**30, use_cpu=False,
+                        no_single_kernel=False)
     k = GaussianKernel(sigma, opt=opt)
     actual = k(Xt, Xt, opt=opt)
     actual += torch.eye(Xt.shape[0]) * (1e-7 * Xt.shape[0])
     # Test positive definite
     np.linalg.cholesky(actual)
+
+
+class TestLaplacianKernel(AbstractKernelTester):
+    _RTOL = {
+        torch.float32: 1e-5,
+        torch.float64: 3e-8
+    }
+
+    @pytest.fixture(scope="class")
+    def kernel(self) -> LaplacianKernel:
+        return LaplacianKernel(sigma=2)
+
+    @pytest.fixture(scope="class")
+    def exp_k(self, A: torch.Tensor, B: torch.Tensor, kernel: LaplacianKernel) -> np.ndarray:
+        return naive_laplacian_kernel(A.numpy(), B.numpy(), sigma=kernel.sigma)
 
 
 class TestLinearKernel(AbstractKernelTester):

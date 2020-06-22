@@ -1,13 +1,14 @@
+import dataclasses
+
 import numpy as np
 import pytest
 import torch
+from falkon.options import FalkonOptions
 
 from falkon.kernels import GaussianKernel, LinearKernel, PolynomialKernel
 from falkon.tests.conftest import memory_checker
-from falkon.tests.helpers import (
-    gen_random, gen_sparse_matrix,
-    naive_gaussian_kernel, naive_linear_kernel, naive_polynomial_kernel,
-)
+from falkon.tests.naive_kernels import naive_gaussian_kernel, naive_linear_kernel, naive_polynomial_kernel
+from falkon.tests.gen_random import gen_random, gen_sparse_matrix
 from falkon.utils import decide_cuda
 
 
@@ -156,14 +157,10 @@ def B(request):
 ], indirect=True)
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
-    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda({}), reason="No GPU found.")])
+    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ], ids=["cpu", "gpu"])
 class TestDenseFmm:
-    basic_options = {
-        'debug': True,
-        'compute_arch_speed': False,
-        'no_single_kernel': False,  # Allow f32 kernels to be computed in f32
-    }
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, no_single_kernel=False)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("A,B", [
@@ -173,11 +170,7 @@ class TestDenseFmm:
     ], indirect=True)
     def test(self, A, B, k_class, k_exp, dtype, cpu):
         max_mem = 2 * 2 ** 20
-
-        opt = dict(self.basic_options)
-        opt['use_cpu'] = cpu
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
 
         rtol = choose_on_dtype(dtype)
         _run_fmm_test(k_class, k_exp, A, B, out=None, dtype=dtype, opt=opt, rtol=rtol)
@@ -186,10 +179,7 @@ class TestDenseFmm:
     def test_with_out(self, Ac: torch.Tensor, Bc: torch.Tensor, k_class, k_exp, dtype, cpu):
         out = np.empty((Ac.shape[0], Bc.shape[0]), dtype=Ac.dtype)
         max_mem = 2 * 2 ** 20
-        opt = dict(self.basic_options)
-        opt['use_cpu'] = cpu
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
         rtol = choose_on_dtype(dtype)
         _run_fmm_test(k_class, k_exp, Ac, Bc, out=out, dtype=dtype, opt=opt, rtol=rtol)
 
@@ -199,11 +189,8 @@ class TestDenseFmm:
     ], indirect=True)
     def test_precise_kernel(self, A, B, k_class, k_exp, cpu):
         max_mem = 2 * 2 ** 20
-        opt = dict(self.basic_options)
-        opt['use_cpu'] = cpu
-        opt['max_cpu_mem'] = max_mem
-        opt['max_gpu_mem'] = max_mem
-        opt['no_single_kernel'] = True
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem,
+                                  no_single_kernel=True)
         expected_rtol = 1e-6
         out = np.empty((A.shape[0], B.shape[0]), dtype=A.dtype)
         _run_fmm_test(k_class, k_exp, A, B, out=out, dtype=np.float32, opt=opt, rtol=expected_rtol)
@@ -216,21 +203,15 @@ class TestDenseFmm:
 ], indirect=True)
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
-    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda({}), reason="No GPU found.")])
+    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ])
 class TestSparseFmm:
-    basic_opt = {
-        'debug': True,
-        'compute_arch_speed': False,
-        'no_single_kernel': True,
-    }
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, no_single_kernel=True)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_sparse(self, k_class, k_exp, s_A, s_B, dtype, cpu):
-        opt = dict(self.basic_opt)
-        opt['max_gpu_mem'] = 50 * 2 ** 20
-        opt['max_cpu_mem'] = 50 * 2 ** 20
-        opt['use_cpu'] = cpu
+        max_mem = 50 * 2**20
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
 
         A_sparse = s_A[0].to(dtype=numpy_to_torch_type(dtype))
         B_sparse = s_B[0].to(dtype=numpy_to_torch_type(dtype))

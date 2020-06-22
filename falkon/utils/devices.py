@@ -1,13 +1,14 @@
 import os
+import resource
 from dataclasses import dataclass
-from typing import Dict, Union
+from typing import Dict
 
 import psutil
-import resource
 import torch
 import torch.cuda as tcd
+from falkon.options import BaseOptions
 
-from . import CompOpt, TicToc
+from . import TicToc
 
 __all__ = ("get_device_info", "DeviceInfo", "num_gpus")
 
@@ -49,7 +50,7 @@ class DeviceInfo:
             used_memory=self.used_memory, free_memory=self.free_memory))
 
 
-def _get_cpu_device_info(opt: CompOpt, data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
+def _get_cpu_device_info(opt: BaseOptions, data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
     cpu_free_mem = _cpu_available_mem()
     cpu_used_mem = _cpu_used_mem()
     if -1 in data_dict:
@@ -69,7 +70,7 @@ def _get_cpu_device_info(opt: CompOpt, data_dict: Dict[int, DeviceInfo]) -> Dict
     return data_dict
 
 
-def _get_gpu_device_info(opt: CompOpt,
+def _get_gpu_device_info(opt: BaseOptions,
                          g: int,
                          data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
     try:
@@ -80,6 +81,7 @@ def _get_gpu_device_info(opt: CompOpt,
 
     mem_free, mem_total = cuda_meminfo(g)
     mem_used = mem_total - mem_free
+    # noinspection PyUnresolvedReferences
     cached_free_mem = tcd.memory_reserved(g) - tcd.memory_allocated(g)
 
     if g in data_dict:
@@ -158,7 +160,7 @@ def _cpu_used_mem(uss=True) -> int:
         return process.memory_info().rss  # in bytes
 
 
-def get_device_info(opt: Union[None, Dict, CompOpt]) -> Dict[int, DeviceInfo]:
+def get_device_info(opt: BaseOptions) -> Dict[int, DeviceInfo]:
     """Retrieve speed and memory information about CPU and GPU devices on the system
 
     The behaviour of this function is influenced by the `opt` parameter:
@@ -169,24 +171,17 @@ def get_device_info(opt: Union[None, Dict, CompOpt]) -> Dict[int, DeviceInfo]:
        but disable for benchmarking and when a single GPU is present.
        The speed of a device is cached in between calls to the function.
 
-    Parameters:
+    Parameters
     -----------
     opt :
         Options for fetching device information. Supported options are described above.
 
-    Returns:
+    Returns
     --------
     device_info : Dict[int, DeviceInfo]
         A dictionary mapping device IDs to their DeviceInfo object (which contains information
         about available memory and speed). The IDs of CPU devices are negative.
     """
-    if opt is None:
-        opt = CompOpt()
-    else:
-        opt = CompOpt(opt)
-    opt.setdefault('use_cpu', False)
-    opt.setdefault('compute_arch_speed', False)
-
     global __COMP_DATA
     # List all devices.
     # If they are already cached we can update memory characteristics
@@ -205,7 +200,7 @@ def get_device_info(opt: Union[None, Dict, CompOpt]) -> Dict[int, DeviceInfo]:
     return __COMP_DATA
 
 
-def num_gpus(opt: Union[None, Dict, CompOpt]) -> int:
+def num_gpus(opt: BaseOptions) -> int:
     global __COMP_DATA
     if len(__COMP_DATA) == 0:
         get_device_info(opt)

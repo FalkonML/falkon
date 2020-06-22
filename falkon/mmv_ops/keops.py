@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
-import numpy as np
 import torch
-from pykeops.torch import Genred
 
-from falkon.utils import decide_cuda, CompOpt, devices
-from falkon.utils.helpers import sizeof_dtype, _calc_gpu_block_sizes, setup_multi_gpu
+from falkon.options import FalkonOptions, BaseOptions
+from falkon.utils import decide_cuda, devices
+from falkon.utils.helpers import sizeof_dtype, calc_gpu_block_sizes
+from pykeops.torch import Genred
 from .utils import _start_wait_processes
 
 
@@ -36,10 +36,8 @@ def _keops_dtype(dtype: torch.dtype) -> str:
         raise NotImplementedError("Data type %s not recognized." % (dtype))
 
 
-def _decide_backend(opt, num_dim: int) -> str:
+def _decide_backend(opt: BaseOptions, num_dim: int) -> str:
     """Switch between CPU and GPU backend for KeOps
-
-    TODO: Need to verify the behaviour of the CPU backend.
     """
     if not decide_cuda(opt):
         return 'CPU'
@@ -64,7 +62,7 @@ def _estimate_split(N, M, D, T, R, ds):
     so that we can compute the kernel-vector product between such blocks
     and still fit in GPU memory.
 
-    Parameters:
+    Parameters
     -----------
      - N : int
         The first dimension of the kernel matrix
@@ -80,7 +78,7 @@ def _estimate_split(N, M, D, T, R, ds):
         The size in bytes of each element in the data matrices
         (e.g. 4 if the data is in single precision).
 
-    Returns:
+    Returns
     --------
      - n : int
         The block size to be used along the first dimension
@@ -88,14 +86,14 @@ def _estimate_split(N, M, D, T, R, ds):
         The block size along the second dimension of the kernel
         matrix
 
-    Raises:
+    Raises
     -------
     RuntimeError
         If the available memory `R` is insufficient to store even the smallest
         possible input matrices. This may happen if `D` is very large since we
         do not perform any splitting along `D`.
 
-    Notes:
+    Notes
     ------
     We find 'good' values of M, N such that
     N*(D+T) + M*(D+T) <= R/ds
@@ -169,12 +167,18 @@ def _single_gpu_method(proc_idx, queue, device_id):
     return oout
 
 
-def run_keops_mmv(X1, X2, v, other_vars, out, formula, aliases, axis, reduction='Sum', opt=None):
-    opt = CompOpt(opt)
-    opt.setdefault('keops_acc_dtype', 'auto')
-    opt.setdefault('keops_sum_scheme', 'auto')
-    opt.setdefault('max_gpu_mem', np.inf)
-
+def run_keops_mmv(X1: torch.Tensor,
+                  X2: torch.Tensor,
+                  v: torch.Tensor,
+                  other_vars: List[torch.Tensor],
+                  out: Optional[torch.Tensor],
+                  formula: str,
+                  aliases: List[str],
+                  axis: int,
+                  reduction: str = 'Sum',
+                  opt: Optional[FalkonOptions] = None) -> torch.Tensor:
+    if opt is None:
+        opt = FalkonOptions()
     # Choose backend
     N, D = X1.shape
     M = X2.shape[0]
@@ -188,16 +192,6 @@ def run_keops_mmv(X1, X2, v, other_vars, out, formula, aliases, axis, reduction=
                 dtype=dtype, dtype_acc=opt.keops_acc_dtype,
                 sum_scheme=opt.keops_sum_scheme)
 
-    # Info about GPUs
-    if backend.startswith("GPU"):
-        ram_slack = 0.7  # slack is high due to imprecise memory usage estimates
-        gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
-        gpu_ram = [
-            min((g.free_memory - 300 * 2 ** 20) * ram_slack, opt.max_gpu_mem * ram_slack)
-            for g in gpu_info
-        ]
-        block_sizes = _calc_gpu_block_sizes(gpu_info, N)
-
     # Compile on a small data subset
     small_data_variables = [X1[:100], X2[:10], v[:10]] + other_vars
     small_data_out = torch.empty((100, T), dtype=X1.dtype, device=X1.device)
@@ -205,12 +199,18 @@ def run_keops_mmv(X1, X2, v, other_vars, out, formula, aliases, axis, reduction=
 
     # Create output matrix
     if out is None:
-        out = torch.empty((N, T), dtype=X1.dtype, device='cpu', pin_memory=backend != 'CPU')
+        # noinspection PyArgumentList
+        out = torch.empty(N, T, dtype=X1.dtype, device='cpu', pin_memory=backend != 'CPU')
 
     if backend.startswith("GPU"):
-        # Setup multiGPU: need a way to start processes and
-        # a queue to send input matrices
-        setup_multi_gpu(False, [X1, X2, v] + other_vars)
+        # Info about GPUs
+        ram_slack = 0.7  # slack is high due to imprecise memory usage estimates
+        gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
+        gpu_ram = [
+            min((g.free_memory - 300 * 2 ** 20) * ram_slack, opt.max_gpu_mem * ram_slack)
+            for g in gpu_info
+        ]
+        block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
         # Create queues
         args = []  # Arguments passed to each subprocess

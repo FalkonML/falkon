@@ -1,6 +1,5 @@
 #include <ATen/Parallel.h>
 #include<ATen/ParallelOpenMP.h>
-//#include<ATen/ParallelNative.h>
 #include <torch/extension.h>
 
 #define INDEX(A, i, j, si, sj) ( A[i * si + j * sj] )

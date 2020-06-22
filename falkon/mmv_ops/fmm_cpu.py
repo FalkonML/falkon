@@ -3,9 +3,9 @@ from typing import Optional
 
 import numpy as np
 import torch
+from falkon.options import BaseOptions
 
 import falkon
-#from falkon.mmv_ops.sparse import transpose_csr, narrow_sparse_row, copy_sparse_to_dense
 from falkon.mmv_ops.utils import _setup_opt, _get_cpu_ram
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.helpers import sizeof_dtype
@@ -22,7 +22,7 @@ def blockwise_fmm_cpu(
     """
     The data-types of X1, X2 and out must be the same
 
-    Parameters:
+    Parameters
     -----------
      - X1 : tensor[N, D]
      - X2 : tensor[M, D]
@@ -90,7 +90,7 @@ def blockwise_fmm_cpu_sparse(
     """
     The data-types of X1, X2 and out must be the same
 
-    Parameters:
+    Parameters
     -----------
      - X1 : tensor[N, D]
      - X2 : tensor[M, D]
@@ -155,10 +155,10 @@ def fmm_cpu(
         X2: torch.Tensor,
         kernel: 'falkon.kernels.Kernel',
         out: Optional[torch.Tensor],
-        opt) -> torch.Tensor:
+        opt: BaseOptions) -> torch.Tensor:
     """Compute kernel value on matrices X1 and X2: `out = kernel(X1, X2)`
 
-    Parameters:
+    Parameters
     -----------
     X1 : [N, D] array
     X2 : [M, D] array
@@ -172,7 +172,7 @@ def fmm_cpu(
             data-type clashes with the setting of 'final_type', the out matrix will not be
             modified.
 
-    Returns:
+    Returns
     --------
     out : [N, M] array
         The kernel between X1 and X2.
@@ -205,7 +205,7 @@ def fmm_cpu_sparse(
         X2: SparseTensor,
         kernel: 'falkon.kernels.Kernel',
         out: Optional[torch.Tensor],
-        opt) -> torch.Tensor:
+        opt: BaseOptions) -> torch.Tensor:
     opt = _setup_opt(opt, is_cpu=True)
     ntot, dtot = X1.size()
     mtot = X2.size(0)

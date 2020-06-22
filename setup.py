@@ -19,6 +19,12 @@ else:
     WITH_CYTHON = True
 
 
+def get_version(root_dir):
+    with open(os.path.join(root_dir, 'VERSION')) as version_file:
+        version = version_file.read().strip()
+    return version
+
+
 def get_extensions():
     extensions = []
 
@@ -97,7 +103,7 @@ install_requires = [
 
 setup(
     name="falkon",
-    version="0.4.dev1",
+    version=get_version("."),
     description="FALKON",
     python_requires='~=3.6',
     setup_requires=[

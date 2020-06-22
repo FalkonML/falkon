@@ -1,12 +1,12 @@
 from typing import Optional
 
 import torch
-from falkon.sparse.sparse_helpers import norm_sq
+from falkon.sparse.sparse_helpers import norm_sq, norm_
 
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.helpers import check_same_dtype
 
-__all__ = ("sparse_matmul", )
+__all__ = ("sparse_matmul", "sparse_square_norm", "sparse_norm")
 
 
 def _sparse_matmul_cpu(A, B, out):
@@ -38,10 +38,12 @@ def _sparse_matmul_cpu(A, B, out):
         return out
     finally:
         try:
+            # noinspection PyUnboundLocalVariable
             mkl.mkl_sparse_destroy(mkl_sp_1)
         except:
             pass
         try:
+            # noinspection PyUnboundLocalVariable
             mkl.mkl_sparse_destroy(mkl_sp_2)
         except:
             pass
@@ -49,13 +51,15 @@ def _sparse_matmul_cpu(A, B, out):
 
 def _sparse_matmul_cuda(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
     """
-    Inputs:
-     - A : N x D, CSR matrix
-     - B : D x M, CSR matrix
     Typically D is very large, and we will need to convert B to CSR format
     so memory usage will be high.
 
-    Notes:
+    Parameters
+    ----------
+    A : N x D, CSR matrix
+    B : D x M, CSR matrix
+
+    Notes
     ------
     This function runs in two steps:
     sparse*sparse->sparse multiplication and conversion of the output
@@ -83,11 +87,11 @@ def sparse_matmul(A: SparseTensor, B: SparseTensor, out: torch.Tensor) -> torch.
     be consistently on the same device). Note that the CUDA matrix multiplication
     is
 
-    Arguments:
-    ---------
-     - A : SparseTensor
+    Parameters
+    ----------
+    A : SparseTensor
         N x D, sparse matrix.
-     - B : SparseTensor
+    B : SparseTensor
         D x M, sparse matrix
 
     """
@@ -100,7 +104,18 @@ def sparse_matmul(A: SparseTensor, B: SparseTensor, out: torch.Tensor) -> torch.
         return _sparse_matmul_cpu(A, B, out)
 
 
-def square_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
+def sparse_square_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
+    if not A.is_csr:
+        raise RuntimeError("Squared norm can only be applied on CSR tensors")
+    if not check_same_dtype(A, out):
+        raise ValueError("All data-types must match")
+    if A.shape[0] != out.shape[0]:
+        raise ValueError("Dimension 0 of A must match the length of tensor 'out'")
+
+    return norm_sq(A.indexptr, A.data, out)
+
+
+def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
     if not A.is_csr:
         raise RuntimeError("Norm can only be applied on CSR tensors")
     if not check_same_dtype(A, out):
@@ -108,4 +123,4 @@ def square_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
     if A.shape[0] != out.shape[0]:
         raise ValueError("Dimension 0 of A must match the length of tensor 'out'")
 
-    return norm_sq(A.indexptr, A.data, out)
+    return norm_(A.indexptr, A.data, out)

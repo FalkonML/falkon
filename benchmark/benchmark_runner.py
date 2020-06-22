@@ -277,7 +277,8 @@ def run_falkon(dset: Dataset,
                kfold: int,
                seed: int):
     import torch
-    from falkon import kernels, falkon
+    from falkon import kernels
+    from models import falkon
     from falkon.utils import TicToc
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -365,7 +366,8 @@ def run_logistic_falkon(dset: Dataset,
                         kernel: str,
                         seed: int):
     import torch
-    from falkon import kernels, logistic_falkon
+    from falkon import kernels
+    from models import logistic_falkon
     from falkon.gsc_losses import LogisticLoss
     from falkon.utils import TicToc
     torch.manual_seed(seed)

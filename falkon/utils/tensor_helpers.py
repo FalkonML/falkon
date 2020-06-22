@@ -58,7 +58,7 @@ def create_fortran(size: Union[Tuple[int, int], Tuple[int]],
                    pin_memory: bool = False) -> torch.Tensor:
     """Allocates an empty, column-contiguous 1 or 2-dimensional tensor
 
-    Parameters:
+    Parameters
     -----------
     size : tuple of integers
         Must be a tuple of length 1 or 2 indicating the shape of the
@@ -71,7 +71,7 @@ def create_fortran(size: Union[Tuple[int, int], Tuple[int]],
         Whether a CPU tensor should be allocated in pinned memory or
         not. If allocating a GPU tensor this flag has no effect.
 
-    Returns:
+    Returns
     --------
     t : torch.Tensor
         The allocated tensor
@@ -92,7 +92,7 @@ def create_C(size: Union[Tuple[int, int], Tuple[int]],
              pin_memory: bool = False) -> torch.Tensor:
     """Allocates an empty, row-contiguous 1 or 2-dimensional tensor
 
-    Parameters:
+    Parameters
     -----------
     size : tuple of integers
         Must be a tuple of length 1 or 2 indicating the shape of the
@@ -105,7 +105,7 @@ def create_C(size: Union[Tuple[int, int], Tuple[int]],
         Whether a CPU tensor should be allocated in pinned memory or
         not. If allocating a GPU tensor this flag has no effect.
 
-    Returns:
+    Returns
     --------
     t : torch.Tensor
         The allocated tensor
@@ -127,7 +127,7 @@ def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
     a 2D tensor) must be equal to 1.
     In case of 1D tensors we just check contiguity
 
-    Parameters:
+    Parameters
     -----------
     tensor : torch.Tensor
         1 or 2-dimensional tensor whose stride should be checked.
@@ -137,7 +137,7 @@ def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
         treated like 1D arrays (`strict=False`) or like 2D arrays
         (`strict=True`).
 
-    Returns:
+    Returns
     --------
     fortran : bool
         Whether the input tensor is column-contiguous

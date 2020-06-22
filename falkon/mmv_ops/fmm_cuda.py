@@ -9,15 +9,15 @@ from dataclasses import dataclass
 from typing import Optional, Union
 
 import torch
-from falkon.sparse.sparse_tensor import SparseTensor
 
 import falkon
 from falkon.mmv_ops.utils import *
+from falkon.options import BaseOptions
+from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.cuda_helpers import copy_to_host_noorder
 from falkon.utils.helpers import (
-    _select_dim_fMM, _calc_gpu_block_sizes, setup_multi_gpu,
-    sizeof_dtype,
-    _sel_dim_overM
+    select_dim_fMM, calc_gpu_block_sizes, sizeof_dtype,
+    select_dim_over_m
 )
 from falkon.utils.tensor_helpers import create_same_stride, cast_tensor, create_fortran
 
@@ -51,7 +51,7 @@ def _sparse_fmm(proc_idx, queue, device_id):
     # X2_chunk : dtot + 2 * D * mtot * density (because is transposed)
     # sparse_out : ntot + 2 * ntot * mtot * density (assume density=1 here)
     # ker_gpu  : mtot * ntot
-    n, m = _sel_dim_overM(
+    n, m = select_dim_over_m(
         maxN=ntot, maxM=mtot, tot=avail_mem,
         coef_nm=3, coef_m=2*dtot*X2.density, coef_n=2+2*dtot*X1.density, rest=dtot)
 
@@ -112,7 +112,7 @@ def _generic_fmm(proc_idx, queue, device_id):
     # - g_ssX1  : n x d
     # - g_sX2   : m x d
     # total : n*d + m*d + n*m
-    n, d, m = _select_dim_fMM(avail_mem, ntot, dtot, mtot)
+    n, d, m = select_dim_fMM(avail_mem, ntot, dtot, mtot)
 
     tc_device = torch.device('cuda:%d' % (int(device_id)))
     with torch.cuda.device(tc_device):
@@ -162,7 +162,7 @@ def fmm_cuda(X1: torch.Tensor,
              X2: torch.Tensor,
              kernel: 'falkon.kernels.Kernel',
              out: Optional[torch.Tensor] = None,
-             opt=None) -> torch.Tensor:
+             opt: Optional[BaseOptions] = None) -> torch.Tensor:
     """
     performs fnc(X1*X2', X1, X2) in blocks on multiple GPUs
     """
@@ -174,7 +174,7 @@ def fmm_cuda(X1: torch.Tensor,
     if out is None:
         out = create_same_stride((N, M), X1, X1.dtype, 'cpu', pin_memory=True)
     gpu_info = _get_gpu_info(opt, slack=0.9)
-    block_sizes = _calc_gpu_block_sizes(gpu_info, N)
+    block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
     # If float32 we need to upcast to float64 to avoid numerical precision errors
     # in the kernel
@@ -199,7 +199,7 @@ def fmm_cuda_sparse(X1: SparseTensor,
                     X2: SparseTensor,
                     kernel: 'falkon.kernels.Kernel',
                     out: Optional[torch.Tensor] = None,
-                    opt=None) -> torch.Tensor:
+                    opt: Optional[BaseOptions] = None) -> torch.Tensor:
     opt = _setup_opt(opt)
     _check_contiguity((out, 'out'))
     N = X1.size(0)
@@ -207,7 +207,7 @@ def fmm_cuda_sparse(X1: SparseTensor,
     if out is None:
         out = create_fortran((N, M), X1.dtype, 'cpu', pin_memory=True)
     gpu_info = _get_gpu_info(opt, slack=0.9)
-    block_sizes = _calc_gpu_block_sizes(gpu_info, N)
+    block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
     # If float32 we need to upcast to float64 to avoid numerical precision errors
     # in the kernel

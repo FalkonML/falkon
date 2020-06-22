@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
+import dataclasses
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from falkon.mmv_ops.fmm_cpu import fmm_cpu_sparse, fmm_cpu
 from falkon.mmv_ops.fmmv_cpu import fdmmv_cpu_sparse, fmmv_cpu_sparse, fmmv_cpu, fdmmv_cpu
-from falkon.utils import CompOpt
-from falkon.utils.helpers import check_same_dtype, decide_cuda, check_sparse
+from falkon.utils.helpers import check_same_dtype, check_sparse
+from falkon.utils import decide_cuda
+from falkon.options import FalkonOptions
 
 
 class Kernel(ABC):
-    def __init__(self, name, kernel_type, opt=None, **kw):
+    def __init__(self, name, kernel_type, opt: Optional[FalkonOptions]):
         self.name = name
         self.kernel_type = kernel_type
-        self.params = CompOpt(opt, **kw)
+        if opt is None:
+            opt = FalkonOptions()
+        self.params: FalkonOptions = opt
 
     @staticmethod
     def _check_dmmv_dimensions(X1, X2, v, w, out):
@@ -100,16 +105,15 @@ class Kernel(ABC):
 
         return X1, X2, out
 
-    def __call__(self, X1, X2, out=None, opt=None, **kw):
+    def __call__(self, X1, X2, out=None, opt: Optional[FalkonOptions] = None):
         X1, X2, out = self._check_mm_dimensions(X1, X2, out)
-        new_opt = self.params.copy()
+        params = self.params
         if opt is not None:
-            new_opt.update(opt)
-        new_opt.update(kw)
-        mm_impl = self._decide_mm_impl(X1, X2, new_opt)
-        return mm_impl(X1, X2, self, out, new_opt)
+            params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
+        mm_impl = self._decide_mm_impl(X1, X2, params)
+        return mm_impl(X1, X2, self, out, params)
 
-    def _decide_mm_impl(self, X1, X2, opt):
+    def _decide_mm_impl(self, X1, X2, opt: FalkonOptions):
         use_cuda = decide_cuda(opt)
         sparsity = check_sparse(X1, X2)
         if not all(sparsity) and any(sparsity):
@@ -128,16 +132,15 @@ class Kernel(ABC):
                 return fmm_cpu
 
     # Kernel(X1, X2)*v
-    def mmv(self, X1, X2, v, out=None, opt=None, **kw):
+    def mmv(self, X1, X2, v, out=None, opt: Optional[FalkonOptions] = None):
         X1, X2, v, out = self._check_mmv_dimensions(X1, X2, v, out)
-        new_opt = self.params.copy()
+        params = self.params
         if opt is not None:
-            new_opt.update(opt)
-        new_opt.update(kw)
-        mmv_impl = self._decide_mmv_impl(X1, X2, v, new_opt)
-        return mmv_impl(X1, X2, v, self, out, new_opt)
+            params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
+        mmv_impl = self._decide_mmv_impl(X1, X2, v, params)
+        return mmv_impl(X1, X2, v, self, out, params)
 
-    def _decide_mmv_impl(self, X1, X2, v, opt):
+    def _decide_mmv_impl(self, X1, X2, v, opt: FalkonOptions):
         use_cuda = decide_cuda(opt)
         sparsity = check_sparse(X1, X2)
         if not all(sparsity) and any(sparsity):
@@ -156,16 +159,15 @@ class Kernel(ABC):
                 return fmmv_cpu
 
     # Kernel(X1, X2)'*(Kernel(X1, X2)*v + w)
-    def dmmv(self, X1, X2, v, w, out=None, opt=None, **kw):
+    def dmmv(self, X1, X2, v, w, out=None, opt: Optional[FalkonOptions] = None):
         X1, X2, v, w, out = self._check_dmmv_dimensions(X1, X2, v, w, out)
-        new_opt = self.params.copy()
+        params = self.params
         if opt is not None:
-            new_opt.update(opt)
-        new_opt.update(kw)
-        dmmv_impl = self._decide_dmmv_impl(X1, X2, v, w, new_opt)
-        return dmmv_impl(X1, X2, v, w, self, out, new_opt)
+            params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
+        dmmv_impl = self._decide_dmmv_impl(X1, X2, v, w, params)
+        return dmmv_impl(X1, X2, v, w, self, out, params)
 
-    def _decide_dmmv_impl(self, X1, X2, v, w, opt):
+    def _decide_dmmv_impl(self, X1, X2, v, w, opt: FalkonOptions):
         use_cuda = decide_cuda(opt)
         sparsity = check_sparse(X1, X2)
         if not all(sparsity) and any(sparsity):

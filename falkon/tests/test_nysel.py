@@ -3,7 +3,7 @@ import pytest
 import torch
 
 from falkon.center_selection import UniformSel
-from falkon.tests.helpers import gen_random, gen_sparse_matrix
+from falkon.tests.gen_random import gen_random, gen_sparse_matrix
 
 M = 500
 D = 20

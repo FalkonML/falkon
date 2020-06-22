@@ -1,86 +1,92 @@
-import unittest
-
 import numpy as np
+import pytest
 import torch
 
-from falkon.precond import FalkonPreconditioner
-from falkon.kernels import GaussianKernel
 from falkon.center_selection import UniformSel
+from falkon.kernels import GaussianKernel
 from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
-from falkon.tests.helpers import gen_random, gen_random_pd
+from falkon.options import FalkonOptions
+from falkon.preconditioner import FalkonPreconditioner
+from falkon.tests.gen_random import gen_random, gen_random_pd
 
 
-class TestConjugateGradient(unittest.TestCase):
-    def test_one_rhs(self):
-        t = 200
-        A = torch.from_numpy(gen_random_pd(t, 'float64', F=False, seed=9))
-        b = torch.from_numpy(gen_random(t, 1, 'float64', F=False, seed=10))
-        # Solve Ax = b for x
-        opt = ConjugateGradient()
-        x = opt.solve(X0=None, B=b, mmv=lambda x: A@x, max_iter=10, callback=None)
+class TestConjugateGradient():
+    t = 200
 
-        self.assertEqual((200, 1), x.shape)
-        expected = np.linalg.solve(A.numpy(), b.numpy())
-        np.testing.assert_allclose(expected, x)
+    @pytest.fixture()
+    def mat(self):
+        return torch.from_numpy(gen_random_pd(self.t, 'float64', F=False, seed=9))
 
-    def test_multi_rhs(self):
-        t = 200
-        A = torch.from_numpy(gen_random_pd(t, 'float64', F=False, seed=10))
-        b = torch.from_numpy(gen_random(t, 10, 'float64', F=False, seed=14))
-        # Solve Ax = b for x
-        opt = ConjugateGradient()
-        x = opt.solve(X0=None, B=b, mmv=lambda x: A@x, max_iter=200, callback=None)
+    @pytest.fixture()
+    def conjgrad(self):
+        return ConjugateGradient()
 
-        self.assertEqual((t, 10), x.shape)
-        expected = np.linalg.solve(A.numpy(), b.numpy())
-        np.testing.assert_allclose(expected, x)
+    @pytest.fixture(params=[1, 10], ids=["1-rhs", "10-rhs"])
+    def vec_rhs(self, request):
+        return torch.from_numpy(gen_random(self.t, request.param, 'float64', F=False, seed=9))
 
-    def test_fortran(self):
-        t = 200
-        opt = {
-            'no_keops': True,  # Cannot use keops with Fortran-contiguous
-        }
-        A = torch.from_numpy(gen_random_pd(t, 'float64', F=True, seed=10))
-        b = torch.from_numpy(gen_random(t, 10, 'float64', F=True, seed=14))
-        # Solve Ax = b for x
-        opt = ConjugateGradient(opt=opt)
-        x = opt.solve(X0=None, B=b, mmv=lambda x: A@x, max_iter=200, callback=None)
+    @pytest.mark.parametrize("order", ["F", "C"])
+    def test_one_rhs(self, mat, vec_rhs, conjgrad, order):
+        if order == "F":
+            mat = torch.from_numpy(np.asfortranarray(mat.numpy()))
+            vec_rhs = torch.from_numpy(np.asfortranarray(vec_rhs.numpy()))
 
-        self.assertEqual((t, 10), x.shape)
-        expected = np.linalg.solve(A.numpy(), b.numpy())
-        np.testing.assert_allclose(expected, x)
+        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x: mat@x, max_iter=10, callback=None)
+
+        assert x.shape == (self.t, vec_rhs.shape[1])
+        expected = np.linalg.solve(mat.numpy(), vec_rhs.numpy())
+        np.testing.assert_allclose(expected, x, rtol=1e-6)
 
 
-class TestFalkonConjugateGradient(unittest.TestCase):
-    def setUp(self):
-        self.M = 10
-        self.N = 500
-        self.kernel = GaussianKernel(100.0)
-        self.opt = {'compute_arch_speed': False,
-                    'final_type': torch.float64,
-                    'inter_type': torch.float64,
-                    'use_cpu': True}
-        self.X = torch.from_numpy(gen_random(self.N, 10, 'float64', F=True, seed=10))
+# TODO: KeOps fails if data is F-contig. Check if this occurs also in `test_falkon`.
+#       if so we need to fix in the falkon fn.
+class TestFalkonConjugateGradient:
+    basic_opt = FalkonOptions(use_cpu=True)
+    N = 500
+    M = 10
+    D = 10
+    penalty = 10
+
+    @pytest.fixture()
+    def kernel(self):
+        return GaussianKernel(100.0)
+
+    @pytest.fixture()
+    def data(self):
+        return torch.from_numpy(gen_random(self.N, self.D, 'float64', F=False, seed=10))
+
+    @pytest.fixture(params=[1, 10], ids=["1-rhs", "10-rhs"])
+    def vec_rhs(self, request):
+        return torch.from_numpy(gen_random(self.N, request.param, 'float64', F=False, seed=9))
+
+    @pytest.fixture()
+    def centers(self, data):
         cs = UniformSel(np.random.default_rng(2))
-        self.centers = cs.select(self.X, self.M, )
-        self.knm = self.kernel(self.X, self.centers, opt=self.opt)
-        self.kmm = self.kernel(self.centers, self.centers, opt=self.opt)
+        return cs.select(data, None, self.M)
 
-        self.la = 10
-        self.prec = FalkonPreconditioner(self.la, self.kernel, self.opt)
-        self.prec.init(self.centers)
+    @pytest.fixture()
+    def knm(self, kernel, data, centers):
+        return kernel(data, centers, opt=self.basic_opt)
 
-    def test_one_rhs(self):
-        b = torch.from_numpy(gen_random(self.N, 1, 'float64', F=True, seed=10))
-        opt = FalkonConjugateGradient(self.kernel, self.prec, opt=self.opt)
+    @pytest.fixture()
+    def kmm(self, kernel, centers):
+        return kernel(centers, centers, opt=self.basic_opt)
+
+    @pytest.fixture()
+    def preconditioner(self, kernel, centers):
+        prec = FalkonPreconditioner(self.penalty, kernel, self.basic_opt)
+        prec.init(centers)
+        return prec
+
+    def test_flk_cg(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs):
+        opt = FalkonConjugateGradient(kernel, preconditioner, opt=self.basic_opt)
 
         # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
-        rhs = self.knm.T @ b
-        lhs = self.knm.T @ self.knm + self.la * self.N * self.kmm
+        rhs = knm.T @ vec_rhs
+        lhs = knm.T @ knm + self.penalty * self.N * kmm
         expected = np.linalg.solve(lhs.numpy(), rhs.numpy())
 
-        beta = opt.solve(self.X, self.centers, b, self.la, None, 20)
-        alpha = self.prec.apply(beta)
+        beta = opt.solve(data, centers, vec_rhs, self.penalty, None, 200)
+        alpha = preconditioner.apply(beta)
 
-        np.testing.assert_allclose(expected, alpha, rtol=1e-6)
-
+        np.testing.assert_allclose(expected, alpha, rtol=1e-5)

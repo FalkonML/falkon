@@ -2,11 +2,11 @@ import functools
 
 import numpy as np
 import torch
-from falkon.utils.cyblas import potrf
-from scipy.linalg import blas as sclb
-from scipy.linalg import lapack as scll
+from scipy.linalg import blas as sclb, lapack as scll
 
-from falkon.utils.helpers import choose_fn, CompOpt
+from falkon.options import FalkonOptions
+from falkon.utils.cyblas import potrf
+from falkon.utils.helpers import choose_fn
 
 __all__ = ("check_init", "trsm", "inplace_set_diag", "inplace_add_diag", "lauum_wrapper",
            "potrf_wrapper",)
@@ -59,7 +59,7 @@ def inplace_add_diag(A, k):
     return A
 
 
-def lauum_wrapper(A: np.ndarray, upper: bool, use_cuda: bool, opt: CompOpt):
+def lauum_wrapper(A: np.ndarray, upper: bool, use_cuda: bool, opt: FalkonOptions) -> np.ndarray:
     if use_cuda:
         from falkon.ooc_ops.ooc_lauum import gpu_lauum
         return gpu_lauum(A, upper=upper, write_opposite=True, overwrite=True, opt=opt)
@@ -71,7 +71,7 @@ def lauum_wrapper(A: np.ndarray, upper: bool, use_cuda: bool, opt: CompOpt):
         return sol
 
 
-def potrf_wrapper(A: np.ndarray, clean: bool, upper: bool, use_cuda: bool, opt: CompOpt) -> np.ndarray:
+def potrf_wrapper(A: np.ndarray, clean: bool, upper: bool, use_cuda: bool, opt: FalkonOptions) -> np.ndarray:
     if use_cuda:
         from falkon.ooc_ops.ooc_potrf import gpu_cholesky
         return gpu_cholesky(torch.from_numpy(A), upper=upper, clean=clean, overwrite=True, opt=opt).numpy()

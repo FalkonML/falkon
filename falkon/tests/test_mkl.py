@@ -6,9 +6,7 @@ import torch
 
 from falkon.mkl_bindings.mkl_bind import mkl_lib
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.tests.helpers import (
-    gen_sparse_matrix
-)
+from falkon.tests.gen_random import gen_sparse_matrix
 
 _RTOL = {torch.float32: 1e-6, torch.float64: 1e-13}
 

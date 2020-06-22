@@ -11,7 +11,6 @@ Baseline (equivalent to FALKON MATLAB):
 import argparse
 import functools
 import time
-from collections import defaultdict
 
 import numpy as np
 import torch
@@ -19,7 +18,8 @@ import torch
 from benchmark_utils import DataType, Dataset
 from datasets import get_load_fn
 from error_metrics import get_err_fns
-from falkon import kernels, falkon
+from falkon import kernels
+from models import falkon
 from falkon.ooc_ops.options import LauumOptions
 from falkon.cuda import initialization
 

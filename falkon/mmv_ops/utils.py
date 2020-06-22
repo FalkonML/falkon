@@ -1,28 +1,22 @@
-import threading
-from typing import Tuple, Optional, Union
+import dataclasses
+from typing import Tuple, Optional, List
 
-import numpy as np
 import torch
 
-from falkon.utils import CompOpt, devices, PropagatingThread
-from falkon.utils.helpers import FakeQueue
+from falkon.options import BaseOptions
+from falkon.utils import devices, PropagatingThread
+from falkon.utils.devices import DeviceInfo
+from falkon.utils.fake_queue import FakeQueue
 from falkon.utils.tensor_helpers import is_contig
 
 __all__ = ("_setup_opt", "_check_contiguity", "_get_gpu_info", "_get_cpu_ram",
            "_start_wait_processes", "_gpu_tns_same_memory")
 
 
-def _setup_opt(opt, is_cpu=False):
-    if opt is not None:
-        opt = CompOpt(opt)
-    else:
-        opt = CompOpt()
-    opt.setdefault('max_gpu_mem', np.inf)
-    opt.setdefault('max_cpu_mem', np.inf)
-    opt.setdefault('no_single_kernel', True)
-    if is_cpu:
-        opt['use_cpu'] = True
-    return opt
+def _setup_opt(opt: Optional[BaseOptions], is_cpu=False) -> BaseOptions:
+    if opt is None:
+        opt = BaseOptions()
+    return dataclasses.replace(opt, use_cpu=is_cpu)
 
 
 def _check_contiguity(*args: Tuple[Optional[torch.Tensor], str]) -> None:
@@ -31,16 +25,16 @@ def _check_contiguity(*args: Tuple[Optional[torch.Tensor], str]) -> None:
             raise ValueError(f"Tensor '{name}' must be memory contiguous")
 
 
-def _get_gpu_info(opt, slack=0.9):
+def _get_gpu_info(opt: BaseOptions, slack: float = 0.9) -> List[DeviceInfo]:
     # List available devices, get their relative speed and split
     # computations based on device relative speed.
-    gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
+    gpu_info = [v for k, v in devices.get_device_info(opt).items() if v.isGPU]
     for g in gpu_info:
         g.usable_ram = min(g.free_memory * slack, opt.max_gpu_mem * slack)
     return gpu_info
 
 
-def _get_cpu_ram(opt, slack=0.9):
+def _get_cpu_ram(opt: BaseOptions, slack: float = 0.9) -> float:
     cpu_info = devices.get_device_info(opt)[-1]
     avail_mem = min(cpu_info.free_memory, opt.max_cpu_mem - cpu_info.used_memory)
     return avail_mem * slack

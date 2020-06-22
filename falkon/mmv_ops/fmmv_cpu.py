@@ -2,11 +2,12 @@ import math
 from typing import Optional
 
 import torch
+from falkon.options import BaseOptions
 
 import falkon
 from falkon.mmv_ops.utils import _setup_opt, _get_cpu_ram
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.helpers import _sel_dim_overD, sizeof_dtype, _sel_dim_overM
+from falkon.utils.helpers import select_dim_over_d, sizeof_dtype, select_dim_over_m
 from falkon.utils.tensor_helpers import create_same_stride
 
 
@@ -14,7 +15,8 @@ def fmmv_cpu_sparse(X1: SparseTensor,
                     X2: SparseTensor,
                     v: torch.Tensor,
                     kernel: 'falkon.kernels.Kernel',
-                    out, opt):
+                    out: Optional[torch.Tensor],
+                    opt: BaseOptions):
     opt = _setup_opt(opt, is_cpu=True)
 
     dtype = X1.dtype
@@ -31,7 +33,7 @@ def fmmv_cpu_sparse(X1: SparseTensor,
     # Prepare - not computable, depends on kernel
     # ker_chunk : n*m
     # finalize : 0 (if can be implemented in place, kernel-dependent)
-    n, m = _sel_dim_overM(
+    n, m = select_dim_over_m(
         maxM=mtot, maxN=ntot,
         coef_nm=1, coef_n=1, coef_m=1, tot=avail_mem)
 
@@ -67,7 +69,7 @@ def fmmv_cpu(X1, X2, v, kernel, out, opt):
     Note that while the principle is that of matrix-vector product,
     `v` can have more than one column.
 
-    Parameters:
+    Parameters
     -----------
      - X1 : [N, D] array
      - X2 : [M, D] array
@@ -98,7 +100,7 @@ def fmmv_cpu(X1, X2, v, kernel, out, opt):
     avail_mem = _get_cpu_ram(opt, 0.95) / sizeof_dtype(dtype)
     # Only necessary memory allocation is that for the temporary kernel
     # `temp_out` of size n*M
-    n, d = _sel_dim_overD(
+    n, d = select_dim_over_d(
         maxD=dtot, maxN=ntot,
         coef_nd=0, coef_n=M, coef_d=0, rest=0, tot=avail_mem)
 
@@ -136,7 +138,7 @@ def fdmmv_cpu(X1, X2, v, w, kernel, out, opt):
     into smaller blocks so as to reduce the total memory consumption (the
     large N*M kernel matrix is never wholly stored in RAM.)
 
-    Parameters:
+    Parameters
     -----------
     X1 : [N, D] array
     X2 : [M, D] array
@@ -175,7 +177,7 @@ def fdmmv_cpu(X1, X2, v, w, kernel, out, opt):
     avail_mem = _get_cpu_ram(opt, 0.95) / sizeof_dtype(dtype)
     # The only necessary temporary matrices are: `temp_out` of size n*M and
     # temp_w_block of size n*T
-    n, d = _sel_dim_overD(
+    n, d = select_dim_over_d(
         maxD=dtot, maxN=ntot,
         coef_nd=0, coef_n=M + T, coef_d=0, rest=0, tot=avail_mem)
 
@@ -209,7 +211,7 @@ def fdmmv_cpu_sparse(X1: SparseTensor,
                      w: Optional[torch.Tensor],
                      kernel,
                      out: Optional[torch.Tensor] = None,
-                     opt=None):
+                     opt: Optional[BaseOptions] = None):
     opt = _setup_opt(opt, is_cpu=True)
 
     # Parameter validation

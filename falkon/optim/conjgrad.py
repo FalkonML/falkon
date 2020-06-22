@@ -2,7 +2,8 @@ import time
 
 import torch
 
-from ..utils import CompOpt, TicToc
+from falkon.options import ConjugateGradientOptions, FalkonOptions
+from ..utils import TicToc
 
 
 # function [x] = conjgrad(A, b, x)
@@ -25,27 +26,17 @@ from ..utils import CompOpt, TicToc
 # end
 
 class Optimizer(object):
-    def __init__(self, opt=None, **kw):
-        if opt is not None:
-            self.params = CompOpt(opt)
-        else:
-            self.params = CompOpt()
-        self.params.update(kw)
+    def __init__(self):
+        pass
 
 
 class ConjugateGradient(Optimizer):
-    def __init__(self, opt=None, **kw):
-        super().__init__(opt=opt, **kw)
-        self.params.setdefault('cg_epsilon', {torch.float32: 1e-7, torch.float64: 1e-15})
-        self.params.setdefault('cg_tolerance', 1e-10)
-        self.params.setdefault('debug', False)
-        self.params.setdefault('cg_full_gradient_every', 10)
+    def __init__(self, opt: ConjugateGradientOptions = ConjugateGradientOptions()):
+        super().__init__()
+        self.params = opt
 
-    def solve(self, X0, B, mmv, max_iter, callback=None, opt=None):
+    def solve(self, X0, B, mmv, max_iter, callback=None):
         t_start = time.time()
-        params = self.params.copy()
-        if opt is not None:
-            params = params.update(opt)
 
         if X0 is None:
             R = B.clone()
@@ -54,10 +45,7 @@ class ConjugateGradient(Optimizer):
             R = B - mmv(X0)
             X = X0
 
-        if isinstance(params.cg_epsilon, dict):
-            m_eps = params.cg_epsilon[X.dtype]
-        else:
-            m_eps = params.cg_epsilon
+        m_eps = self.params.cg_epsilon(X.dtype)
 
         P = R
         Rsold = torch.sum(R.pow(2), dim=0)
@@ -65,21 +53,20 @@ class ConjugateGradient(Optimizer):
         e_train = time.time() - t_start
 
         for i in range(max_iter):
-            with TicToc("Chol Iter", debug=params.debug):
+            with TicToc("Chol Iter", debug=False): #TODO: FIXME
                 t_start = time.time()
                 AP = mmv(P)
                 alpha = Rsold / (torch.sum(P * AP, dim=0) + m_eps)
                 X.addmm_(P, torch.diag(alpha))
 
-                if (i + 1) % params.cg_full_gradient_every == 0:
+                if (i + 1) % self.params.cg_full_gradient_every == 0:
                     R = B - mmv(X)
                 else:
                     R = R - torch.mm(AP, torch.diag(alpha))
                     #R.addmm_(mat1=AP, mat2=torch.diag(alpha), alpha=-1.0)
 
                 Rsnew = torch.sum(R.pow(2), dim=0)
-
-                if Rsnew.abs().max().sqrt() < params.cg_tolerance:
+                if Rsnew.abs().max().sqrt() < self.params.cg_tolerance:
                     print("Stopping conjugate gradient descent at "
                           "iteration %d. Solution has converged." % (i+1))
                     break
@@ -96,19 +83,17 @@ class ConjugateGradient(Optimizer):
         return X
 
 
-class FalkonConjugateGradient(ConjugateGradient):
-    def __init__(self, kernel, preconditioner, opt=None, **kw):
-        super().__init__(opt, **kw)
-        self.params.setdefault('debug', False)
+class FalkonConjugateGradient(Optimizer):
+    def __init__(self, kernel, preconditioner, opt: FalkonOptions):
+        super().__init__()
         self.kernel = kernel
         self.preconditioner = preconditioner
+        self.params = opt
+        self.optimizer = ConjugateGradient(opt.get_conjgrad_options())
 
-    def solve(self, X, M, Y, _lambda, initial_solution, max_iter, callback=None, opt=None):
+    def solve(self, X, M, Y, _lambda, initial_solution, max_iter, callback=None):
         n = X.size(0)
         prec = self.preconditioner
-        params = self.params.copy()
-        if opt is not None:
-            params = params.update(opt)
 
         with TicToc("ConjGrad preparation", False):# debug=params.debug):
             if M is None:
@@ -119,7 +104,7 @@ class FalkonConjugateGradient(ConjugateGradient):
             if Knm is not None:
                 B = Knm.T @ (Y/n)
             else:
-                B = self.kernel.dmmv(X, M, None, Y / n, opt=params.copy())
+                B = self.kernel.dmmv(X, M, None, Y / n, opt=self.params)
             B = prec.apply_t(B)
 
             # Define the Matrix-vector product iteration
@@ -129,9 +114,9 @@ class FalkonConjugateGradient(ConjugateGradient):
                     if Knm is not None:
                         cc = Knm.T @ (Knm @ prec.invT(v))
                     else:
-                        cc = self.kernel.dmmv(X, M, prec.invT(v), None, opt=params.copy())
+                        cc = self.kernel.dmmv(X, M, prec.invT(v), None, opt=self.params)
                     return prec.invAt(prec.invTt(cc / n) + _lambda * v)
 
         # Run the conjugate gradient solver
-        beta = super().solve(initial_solution, B, mmv, max_iter, callback)
+        beta = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
         return beta

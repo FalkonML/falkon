@@ -1,13 +1,15 @@
+import dataclasses
 import unittest
 
 import numpy as np
 import pytest
 import torch
+from falkon.options import FalkonOptions
 
 from falkon.kernels import GaussianKernel
-from falkon.precond import FalkonPreconditioner
+from falkon.preconditioner import FalkonPreconditioner
 from falkon.tests.conftest import fix_mat
-from falkon.tests.helpers import gen_random
+from falkon.tests.gen_random import gen_random
 from falkon.utils import decide_cuda
 
 
@@ -79,30 +81,25 @@ def mat():
 
 @pytest.fixture(scope="module")
 def gram(kernel, mat):
-    opt = dict(compute_arch_speed=False, no_single_kernel=True, use_cpu=True)
+    opt = FalkonOptions(compute_arch_speed=False, no_single_kernel=True, use_cpu=True)
     return kernel(torch.from_numpy(mat), torch.from_numpy(mat), opt=opt)
 
 
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
-    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda({}), reason="No GPU found.")])
+    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ], ids=["cpu", "gpu"])
 class TestFalkonPreconditioner:
     rtol = {
         np.float64: 1e-10,
         np.float32: 1e-2
     }
-    basic_opt = {
-        'compute_arch_speed': False,
-        'no_single_kernel': True,
-    }
+    basic_opt = FalkonOptions(compute_arch_speed=False, no_single_kernel=True)
 
     @pytest.mark.parametrize("order", ["C", "F"])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_simple(self, mat, kernel, gram, cpu, dtype, order):
-        opt = dict(self.basic_opt)
-        opt['use_cpu'] = cpu
-        opt['cpu_preconditioner'] = cpu
+        opt = dataclasses.replace(self.basic_opt, use_cpu=cpu, cpu_preconditioner=cpu)
         rtol = self.rtol[dtype]
 
         mat = fix_mat(mat, dtype=dtype, order=order, copy=True)
@@ -117,10 +114,7 @@ class TestFalkonPreconditioner:
         assert_invariant_on_prec(prec, N, gram, la, tol=rtol * 10)
 
     def test_zero_lambda(self, mat, kernel, gram, cpu):
-        opt = dict(self.basic_opt)
-        opt['use_cpu'] = cpu
-        opt['cpu_preconditioner'] = cpu
-
+        opt = dataclasses.replace(self.basic_opt, use_cpu=cpu, cpu_preconditioner=cpu)
         mat = fix_mat(mat, dtype=np.float64, order="K", copy=True)
         gram = fix_mat(gram, dtype=np.float64, order="K", copy=True)
 
@@ -133,18 +127,17 @@ class TestFalkonPreconditioner:
         assert_invariant_on_prec(prec, N, gram, la, tol=1e-9)
 
 
-@unittest.skipIf(not decide_cuda({}), "No GPU found.")
+@unittest.skipIf(not decide_cuda(), "No GPU found.")
 def test_cpu_gpu_equality(mat, kernel, gram):
     la = 12.3
 
     mat = fix_mat(mat, dtype=np.float64, order="F", copy=True)
 
-    opt = dict(compute_arch_speed=False, use_cpu=False, cpu_preconditioner=False)
+    opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, cpu_preconditioner=False)
     prec_gpu = FalkonPreconditioner(la, kernel, opt)
     prec_gpu.init(mat)
 
-    opt['use_cpu'] = True
-    opt['cpu_preconditioner'] = True
+    opt = dataclasses.replace(opt, use_cpu=True, cpu_preconditioner=True)
     prec_cpu = FalkonPreconditioner(la, kernel, opt)
     prec_cpu.init(mat)
 

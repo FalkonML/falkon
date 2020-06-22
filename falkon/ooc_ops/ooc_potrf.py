@@ -1,16 +1,16 @@
 import math
 
-import numpy as np
 import torch
+from falkon.options import CholeskyOptions
 
 from falkon.cuda import initialization
 from falkon.cuda.cusolver_gpu import *
 from falkon.utils import devices, cyblas
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
-from falkon.utils.helpers import CompOpt, choose_fn, sizeof_dtype
+from falkon.utils.helpers import choose_fn, sizeof_dtype
 from falkon.ooc_ops.multigpu_potrf import parallel_potrf
+from options import FalkonOptions
 from .ooc_utils import calc_block_sizes
-from .options import CholeskyOptions
 from ..utils.devices import DeviceInfo
 from ..utils.tensor_helpers import create_fortran, is_f_contig, copy_same_stride
 
@@ -57,6 +57,7 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
                                "POTRF Buffer size")
     potrf_fn = choose_fn(A.dtype, cusolverDnDpotrf, cusolverDnSpotrf, "POTRF")
 
+    # noinspection PyUnresolvedReferences
     with torch.cuda.device(tc_device):
         # Copy A to device memory
         if A.is_cuda:
@@ -84,55 +85,7 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
     return A
 
 
-def _chol_tile_size(block_size, avail_ram, dtype, round_pow2=False):
-    """Calculate the maximum tile size which fits in available memory for running OOC POTRF.
-
-    The algorithm needs to hold in device memory 2 t*t tiles and 2 b*t tiles. There is
-    further usage of the POTRF workspace buffer, which is typically small (e.g. 4 floats) so
-    we can ignore it.
-
-    Parameters:
-    -----------
-    block_size : int
-        The size of individual blocks (for use in OOC SYRK and GEMM subroutines)
-    avail_ram : float
-        The total RAM available in number of bytes.
-    dtype : Union[torch.dtype, np.dtype]
-        The data-type of matrices which will be used for factorisation.
-        This is used to determine the number of bytes used by each element of the matrices.
-        Each matrix is assumed to have the same data-type.
-    round_pow2 : bool
-        Whether to round the resulting maximum tile-size down to the nearest power
-        of two.
-
-    Returns:
-    --------
-    max_tile_size : int
-        The maximum tile size which allows the algorithm to run in GPU memory
-
-    Notes:
-    ------
-    The maximum tile size for a fixed block size is the solution to a 2nd degree equation:
-    if $t$ is the tile size, $b$ the block size and $R$ the maximum memory usage, we have
-    :math:`2*t^2 + 2*b*t - R < 0` which is solved by
-
-    math:: t < (-2*b + \sqrt(b^2 + 2*R)) / 2
-    """
-    dtype_size = sizeof_dtype(dtype)
-
-    avail_ram /= dtype_size
-    t = (-block_size + math.sqrt(block_size ** 2 + 2 * avail_ram)) / 2
-
-    # Round t to the nearest power of two that is lower than t.
-    if round_pow2:
-        t = 2 ** math.floor(math.log2(t))
-
-    return int(t)
-
-
-def _parallel_potrf_runner(A: torch.Tensor, opt: CompOpt, gpu_info) -> torch.Tensor:
-    chol_opt: CholeskyOptions = opt.cholesky_opt
-
+def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> torch.Tensor:
     num_gpus = len(gpu_info)
     N = A.shape[0]
     dt = A.dtype
@@ -151,7 +104,7 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CompOpt, gpu_info) -> torch.Ten
             "available memory of %.2fMB" % (avail_ram * dts / 2 ** 20))
 
     block_sizes = calc_block_sizes(
-        max_block_size, num_gpus, N, chol_opt.chol_par_blk_multiplier)
+        max_block_size, num_gpus, N, opt.chol_par_blk_multiplier)
     block_allocations = []
     cur_n = 0
     for i, bs in enumerate(block_sizes):
@@ -183,6 +136,7 @@ GPU Cholesky, we implement use cuSOLVER as a backend for POTRF.
 
 
 def can_do_ic(A: torch.Tensor, device: DeviceInfo):
+    # noinspection PyUnresolvedReferences
     avail_ram = device.actual_free_mem
     # The multiplier here is a bit tricky since setting it too high results
     # in hard-to-debug cuda errors
@@ -196,9 +150,9 @@ def can_do_ic(A: torch.Tensor, device: DeviceInfo):
     return avail_ram >= needed_ram
 
 
-def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt) -> torch.Tensor:
+def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt: FalkonOptions) -> torch.Tensor:
     """
-    Parameters:
+    Parameters
     -----------
     A : ndarray [N, N]
         2D positive-definite matrix that will be factorized as
@@ -214,21 +168,12 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
         Whether to overwrite matrix A or to output the result in a new
         buffer.
 
-    Notes:
+    Notes
     ------
     The factorization will always be the 'lower' version of the factorization
     which could however end up on the upper-triangular part of the matrix
     in case A is not Fortran contiguous to begin with.
     """
-    if opt is None:
-        opt = CompOpt()
-    else:
-        opt = CompOpt(opt)
-    opt.setdefault('max_gpu_mem', np.inf)
-    opt.setdefault('cholesky_opt', CholeskyOptions())
-    opt.setdefault('debug', False)
-    chol_opt: CholeskyOptions = opt.cholesky_opt
-
     # Handle 'overwrite' option immediately so that its usage is reflected in memory
     # availability (in case A is on GPU).
     if not overwrite:
@@ -253,8 +198,8 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
             raise RuntimeError("Device of matrix A (%s) is not recognized" % (A.device))
     else:
         device = max(gpu_info, key=lambda g: g.actual_free_mem)
-    ic = can_do_ic(A, device) and not chol_opt.chol_force_ooc
-    if chol_opt.chol_force_in_core and not ic:
+    ic = can_do_ic(A, device) and not opt.chol_force_ooc
+    if opt.chol_force_in_core and not ic:
         raise RuntimeError("Cannot run in-core POTRF but `chol_force_in_core` was specified.")
 
     f_order = is_f_contig(A)
@@ -272,7 +217,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
                              "triangle for C-ordered matrices)")
     if not ic and A.is_cuda:
         _msg = "Cannot run out-of-core POTRF on CUDA matrix 'A'."
-        if chol_opt.chol_force_ooc:
+        if opt.chol_force_ooc:
             _msg += " Set the `chol_force_ooc` option to False in to allow in-core POTRF."
         raise ValueError(_msg)
     if clean and A.is_cuda:

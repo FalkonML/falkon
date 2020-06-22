@@ -1,22 +1,22 @@
 import math
 import threading
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import torch
 
-from falkon.utils import devices, PropagatingThread
 from falkon.cuda import initialization
-from falkon.utils.helpers import CompOpt, sizeof_dtype
+from falkon.utils import devices, PropagatingThread
+from falkon.utils.helpers import sizeof_dtype
+from options import FalkonOptions, LauumOptions
 from .ooc_utils import calc_block_sizes2, prepare_matrix
-from .options import LauumOptions
 from .parallel_lauum import par_lauum_f_lower, par_lauum_c_lower, BlockAlloc
 from ..utils.tensor_helpers import is_f_contig, is_contig
 
 __all__ = ("gpu_lauum",)
 
 
-def _parallel_lauum_runner(A, write_opposite: bool, lauum_opt: LauumOptions, gpu_info):
+def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info):
     # Choose target:
     if is_f_contig(A):
         target = par_lauum_f_lower
@@ -41,7 +41,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, lauum_opt: LauumOptions, gpu
                 "available memory of %.2fMB" % (avail_ram * dts / 2**20))
 
     block_sizes = calc_block_sizes2(
-        max_block_size, num_gpus, N, lauum_opt.lauum_par_blk_multiplier)
+        max_block_size, num_gpus, N, opt.lauum_par_blk_multiplier)
     block_allocations: List[BlockAlloc] = []
     cur_n = 0
     for bs in block_sizes:
@@ -67,9 +67,9 @@ def _parallel_lauum_runner(A, write_opposite: bool, lauum_opt: LauumOptions, gpu
     return A
 
 
-def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt=None):
+def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[FalkonOptions] = None):
     """
-    Parameters:
+    Parameters
     -----------
     A : ndarray [N, N]
         2D positive-definite matrix that will be factorized as
@@ -79,20 +79,14 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt=None):
         Whether to overwrite matrix A or to output the result in a new
         buffer.
 
-    Notes:
+    Notes
     ------
     The factorization will always be the 'lower' version of the factorization
     which could however end up on the upper-triangular part of the matrix
     in case A is not Fortran contiguous to begin with.
     """
     if opt is None:
-        opt = CompOpt()
-    else:
-        opt = CompOpt(opt)
-    opt.setdefault('max_gpu_mem', np.inf)
-    opt.setdefault('debug', False)
-    opt.setdefault('lauum_opt', LauumOptions())
-
+        opt = FalkonOptions()
     gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
         g.actual_free_mem = min((g.free_memory - 300 * 2 ** 20) * 0.95,
@@ -120,7 +114,7 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt=None):
     if upper:
         At = At.T
     # The parallel runner chooses based on the contiguity pattern of the inputs.
-    _parallel_lauum_runner(At, write_opposite, opt.lauum_opt, gpu_info)
+    _parallel_lauum_runner(At, write_opposite, opt, gpu_info)
 
     if transposed:
         Anp = Anp.T

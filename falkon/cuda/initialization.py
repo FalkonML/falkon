@@ -1,14 +1,12 @@
 """ Handles various initialization routines for GPU """
 import torch
 
-from falkon.utils.devices import get_device_info
-from falkon.utils import CompOpt
 import falkon.cuda.cusolver_gpu as cusolver
 from falkon.cuda.cublas_gpu import cublasCreate, cublasDestroy
+from falkon.options import BaseOptions
+from falkon.utils.devices import get_device_info
 
-
-__all__ = ("init", "shutdown",
-           "cublas_handle", "cusolver_handle")
+__all__ = ("init", "shutdown", "cublas_handle", "cusolver_handle")
 
 
 def _normalize_device(device):
@@ -17,7 +15,7 @@ def _normalize_device(device):
         if device.type != 'cuda':
             raise RuntimeError(
                 "CuBLAS handle only exists on CUDA devices. Given CPU device %s" % (device))
-        device = device.id
+        device = device.index
     elif device is not None:
         device = int(device)
         if device < 0:
@@ -54,21 +52,12 @@ def cusolver_handle(device=None):
             "Device %d is not initialized properly. CuSOLVER handle missing." % (device))
 
 
-def init(opt=None):
-    if opt is None:
-        opt = CompOpt()
-    else:
-        opt = CompOpt(opt)
-    opt.setdefault('use_cpu', False)
-    opt.setdefault('compute_arch_speed', True)
-    opt.setdefault('use_display_gpu', False)
-
+def init(opt: BaseOptions):
     if opt.use_cpu:
         return
 
     device_ids = [k for k in get_device_info(opt).keys() if k >= 0]
 
-    global _cublas_context
     global _cublas_handles
     global _cusolver_handles
     for i in device_ids:

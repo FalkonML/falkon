@@ -3,9 +3,9 @@ import pytest
 import scipy.sparse
 import torch
 
-import falkon.precond.utils
+import falkon.preconditioner.pc_utils
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.tests.helpers import gen_random
+from falkon.tests.gen_random import gen_random
 from falkon.utils.helpers import check_same_dtype, sizeof_dtype, check_sparse
 
 
@@ -13,7 +13,7 @@ from falkon.utils.helpers import check_same_dtype, sizeof_dtype, check_sparse
 def test_add_diag(F):
     A = gen_random(1000, 1000, 'float64', F=F, seed=10)
     diag = 10**6
-    falkon.precond.utils.inplace_add_diag(A, diag)
+    falkon.preconditioner.pc_utils.inplace_add_diag(A, diag)
     assert np.all(A.diagonal() > 10**5)
 
 

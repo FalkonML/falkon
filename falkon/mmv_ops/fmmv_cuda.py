@@ -12,22 +12,21 @@ import numpy as np
 import torch
 import torch.cuda as tcd
 import torch.multiprocessing
-from falkon.sparse.sparse_tensor import SparseTensor
 
-from falkon.kernels import Kernel
+from falkon.kernels import Kernel, L2DistanceKernel
 from falkon.mmv_ops.utils import (
     _setup_opt, _check_contiguity, _get_gpu_info,
     _start_wait_processes
 )
+from falkon.options import BaseOptions
+from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.cuda_helpers import copy_to_device_noorder, copy_to_host_noorder
 from falkon.utils.helpers import (
-    _calc_gpu_block_sizes,
+    calc_gpu_block_sizes,
     sizeof_dtype,
-    setup_multi_gpu,
-    _sel_dim_overD,
-    _sel_dim_overM
+    select_dim_over_d,
+    select_dim_over_m
 )
-from falkon.utils import TicToc
 from falkon.utils.tensor_helpers import create_same_stride, create_fortran, create_C
 
 __all__ = ("fmmv_cuda", "fdmmv_cuda", "fmmv_cuda_sparse", "fdmmv_cuda_sparse")
@@ -74,7 +73,7 @@ def sparse_fmmv(proc_idx, queue, device_id):
     # mmv_gpu  : N*T
     # v_gpu    : M*T
     # Other: GPU buffer
-    n, m = _sel_dim_overM(
+    n, m = select_dim_over_m(
         maxM=mtot, maxN=ntot, tot=avail_mem,
         coef_nm=3, coef_n=2 + 2*dtot*X1.density + T, coef_m=2*dtot*X2.density + T, rest=dtot,
     )
@@ -141,7 +140,7 @@ def generic_fmmv(proc_idx, queue, device_id):
     # ----------
     # total : n*d + n*(M+T) + d*M + M*T
     avail_mem = max_mem / sizeof_dtype(dtype)
-    n, d = _sel_dim_overD(
+    n, d = select_dim_over_d(
         maxD=dtot, maxN=ntot,
         coef_nd=1, coef_n=M + T, coef_d=M, rest=M * T, tot=avail_mem)
 
@@ -281,7 +280,7 @@ def generic_fdmmv(proc_idx, queue, device_id):
     if sizeof_dtype(dtype) == 4:
         avail_mem /= 2
     rest_coef = 2 * M * T if v is not None else M * T
-    n, d = _sel_dim_overD(
+    n, d = select_dim_over_d(
         maxD=D, maxN=N,
         coef_nd=1, coef_n=M + T + 1, coef_d=M, rest=rest_coef + M, tot=avail_mem)
 
@@ -330,7 +329,8 @@ def generic_fdmmv(proc_idx, queue, device_id):
 def distk_fmmv(proc_idx, queue, device_id):
     a: ArgsFmmv = queue.get()
     X1, X2, v, out = a.X1, a.X2, a.v, a.out
-    kernel, max_mem = a.kernel, a.max_mem
+    kernel: L2DistanceKernel = a.kernel
+    max_mem = a.max_mem
 
     N, D = X1.shape
     M = X2.shape[0]
@@ -348,7 +348,7 @@ def distk_fmmv(proc_idx, queue, device_id):
     avail_mem = max_mem / sizeof_dtype(dtype)
     #if sizeof_dtype(dtype) == 4:
     #    avail_mem /= 2
-    n, m = _sel_dim_overM(
+    n, m = select_dim_over_m(
         maxM=M, maxN=N,
         coef_nm=1.0, coef_n=D + T, coef_m=D + T, tot=avail_mem)
 
@@ -394,7 +394,8 @@ def distk_fmmv(proc_idx, queue, device_id):
 def distk_fdmmv(proc_idx, queue, device_id):
     a: ArgsFdmmv = queue.get()
     X1, X2, v, w, out = a.X1, a.X2, a.v, a.w, a.out
-    kernel, max_mem = a.kernel, a.max_mem
+    kernel: L2DistanceKernel = a.kernel
+    max_mem = a.max_mem
     N, D = X1.size()
     M = X2.size(0)
     T = v.size(1) if v is not None else w.size(1)
@@ -415,16 +416,14 @@ def distk_fdmmv(proc_idx, queue, device_id):
     # FIXME: There seems to be a bug where if we let avail_mem like it is
     #        for 32-bit data-types some copy fails. In such case we need
     #        to free up some more memory and then everything runs fine.
-    #if sizeof_dtype(dtype) == 4:
-    #    avail_mem /= 2
     rest_coef = 2 * M * T if v is not None else M * T
-    n, d = _sel_dim_overD(
+    n, d = select_dim_over_d(
         maxD=D, maxN=N,
         coef_nd=1, coef_n=M + T + 1, coef_d=M, rest=rest_coef + M, tot=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = torch.cuda.Stream()
-    s2 = torch.cuda.Stream()
+    s1 = tcd.Stream()
+    s2 = tcd.Stream()
 
     with tcd.device(ddev), tcd.stream(s1):
         if v is not None:
@@ -492,7 +491,12 @@ def distk_fdmmv(proc_idx, queue, device_id):
     return out
 
 
-def fmmv_cuda(X1, X2, v, kernel, out=None, opt=None):
+def fmmv_cuda(X1: torch.Tensor,
+              X2: torch.Tensor,
+              v: torch.Tensor,
+              kernel,
+              out: Optional[torch.Tensor] = None,
+              opt: Optional[BaseOptions] = None) -> torch.Tensor:
     """
     X1 : N x D
     X2 : M x D
@@ -511,7 +515,7 @@ def fmmv_cuda(X1, X2, v, kernel, out=None, opt=None):
     out.fill_(0.0)
 
     gpu_info = _get_gpu_info(opt, slack=0.9)
-    block_sizes = _calc_gpu_block_sizes(gpu_info, N)
+    block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
     # Create queues
     args = []  # Arguments passed to each subprocess
@@ -537,8 +541,12 @@ def fmmv_cuda(X1, X2, v, kernel, out=None, opt=None):
     return out
 
 
-def fmmv_cuda_sparse(X1: SparseTensor, X2: SparseTensor, v: torch.Tensor,
-                     kernel, out=None, opt=None):
+def fmmv_cuda_sparse(X1: SparseTensor,
+                     X2: SparseTensor,
+                     v: torch.Tensor,
+                     kernel,
+                     out: Optional[torch.Tensor] = None,
+                     opt: Optional[BaseOptions] = None) -> torch.Tensor:
     opt = _setup_opt(opt)
     _check_contiguity((v, 'v'), (out, 'out'))
 
@@ -549,7 +557,7 @@ def fmmv_cuda_sparse(X1: SparseTensor, X2: SparseTensor, v: torch.Tensor,
     out.fill_(0.0)
 
     gpu_info = _get_gpu_info(opt, slack=0.9)
-    block_sizes = _calc_gpu_block_sizes(gpu_info, N)
+    block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
     # Create queues
     args = []  # Arguments passed to each subprocess
@@ -572,7 +580,7 @@ def fdmmv_cuda(X1: torch.Tensor,
                w: Optional[torch.Tensor],
                kernel,
                out: Optional[torch.Tensor] = None,
-               opt=None):
+               opt: Optional[BaseOptions] = None) -> torch.Tensor:
     """
     X1 : N x D
     X2 : M x D
@@ -594,7 +602,7 @@ def fdmmv_cuda(X1: torch.Tensor,
     N = X1.size(0)
 
     gpu_info = _get_gpu_info(opt, slack=0.9)
-    block_sizes = _calc_gpu_block_sizes(gpu_info, N)
+    block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
     if out is None:
         out = create_same_stride((M, T), X1, X1.dtype, 'cpu', pin_memory=True)
@@ -628,9 +636,10 @@ def fdmmv_cuda(X1: torch.Tensor,
     _start_wait_processes(target, args)
 
     if len(wrlk) > 1:
+        # noinspection PyTypeChecker
         fastest_device: int = np.argmax([d.speed for d in gpu_info])
         out.copy_(
-            torch.cuda.comm.reduce_add(
+            tcd.comm.reduce_add(
                 wrlk, destination=gpu_info[fastest_device].Id))
     else:
         out.copy_(wrlk[0])
@@ -643,7 +652,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
                       w: Optional[torch.Tensor],
                       kernel,
                       out: Optional[torch.Tensor] = None,
-                      opt=None):
+                      opt: Optional[BaseOptions] = None) -> torch.Tensor:
     opt = _setup_opt(opt)
     _check_contiguity((v, 'v'), (w, 'w'), (out, 'out'))
     if v is None and w is None:
@@ -654,7 +663,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
     N = X1.size(0)
 
     gpu_info = _get_gpu_info(opt, slack=0.95)
-    block_sizes = _calc_gpu_block_sizes(gpu_info, N)
+    block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
     if out is None:
         out = create_C((M, T), X1.dtype, 'cpu', pin_memory=True)
@@ -680,6 +689,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
     _start_wait_processes(sparse_fdmmv,  args)
 
     if len(wrlk) > 1:
+        # noinspection PyTypeChecker
         fastest_device: int = np.argmax([d.speed for d in gpu_info])
         out.copy_(
             torch.cuda.comm.reduce_add(
