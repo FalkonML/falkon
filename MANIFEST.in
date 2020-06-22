@@ -1,1 +1,5 @@
-include VERSION
+include falkon/VERSION
+recursive-include resources falkon/*
+global-exclude __pycache__
+global-exclude *.py[co]
+

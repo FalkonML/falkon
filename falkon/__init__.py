@@ -7,6 +7,6 @@ __all__ = ('Falkon', 'LogisticFalkon', 'kernels', 'optim', 'preconditioner', 'ce
 
 
 # Set __version__ attribute on the package
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../VERSION')) as version_file:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'VERSION')) as version_file:
     __version__ = version_file.read().strip()
 

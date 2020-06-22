@@ -30,7 +30,7 @@ def get_extensions():
 
     # Sparse
     extension_cls = CppExtension
-    sparse_ext_dir = osp.join(osp.dirname(osp.abspath(__file__)), 'falkon', 'sparse')
+    sparse_ext_dir = osp.join('.', 'falkon', 'sparse')
     sparse_files = ['sparse_extension.cpp', 'cpp/sparse_matmul.cpp', 'cpp/sparse_norm.cpp']
     sparse_compile_args = {'cxx': ['-fopenmp']}
     sparse_link_args = []
@@ -113,7 +113,7 @@ test_requires = [
 
 setup(
     name="falkon",
-    version=get_version("."),
+    version=get_version("./falkon"),
     description="FALKON",
     python_requires='~=3.6',
     setup_requires=[
@@ -122,11 +122,12 @@ setup(
         'numpy',  # This is handled in pyproject.toml (since we're importing it at top of this file)
         'scipy',
     ],
-    test_requires=test_requires,
+    #test_requires=test_requires,
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={
         'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=False)
     },
     install_requires=install_requires,
+    include_package_data=True,
 )

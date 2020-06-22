@@ -67,7 +67,7 @@ def get_version(root_dir):
     return version
 
 # The short X.Y version.
-version = get_version("..")
+version = get_version("../falkon")
 # The full version, including alpha/beta/rc tags.
 release = version
 
