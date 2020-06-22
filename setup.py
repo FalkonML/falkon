@@ -100,6 +100,16 @@ install_requires = [
     'psutil',
     'dataclasses;python_version<"3.7"',
 ]
+test_requires = [
+    'pytest',
+    'sphinx',
+    'nbsphinx',
+    'sphinx-rtd-theme',
+    'pandas',
+    'matplotlib',
+    'jupyter',
+    # TODO: I'm sure there is more
+]
 
 setup(
     name="falkon",
@@ -112,6 +122,7 @@ setup(
         'numpy',  # This is handled in pyproject.toml (since we're importing it at top of this file)
         'scipy',
     ],
+    test_requires=test_requires,
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={
