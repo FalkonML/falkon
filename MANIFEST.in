@@ -1,5 +1,8 @@
 include falkon/VERSION
-recursive-include resources falkon/*
+include LICENSE
+include pytest.ini
+include MANIFEST.in
+
 global-exclude __pycache__
 global-exclude *.py[co]
 

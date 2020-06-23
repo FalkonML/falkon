@@ -19,6 +19,8 @@ else:
     WITH_CYTHON = True
 
 
+CURRENT_DIR = "."#osp.dirname(__file__)
+
 def get_version(root_dir):
     with open(os.path.join(root_dir, 'VERSION')) as version_file:
         version = version_file.read().strip()
@@ -30,8 +32,12 @@ def get_extensions():
 
     # Sparse
     extension_cls = CppExtension
-    sparse_ext_dir = osp.join('.', 'falkon', 'sparse')
-    sparse_files = ['sparse_extension.cpp', 'cpp/sparse_matmul.cpp', 'cpp/sparse_norm.cpp']
+    sparse_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'sparse')
+    sparse_files = [
+            'sparse_extension.cpp', 
+            osp.join('cpp', 'sparse_matmul.cpp'), 
+            osp.join('cpp', 'sparse_norm.cpp')
+    ]
     sparse_compile_args = {'cxx': ['-fopenmp']}
     sparse_link_args = []
     sparse_macros = []
@@ -56,8 +62,7 @@ def get_extensions():
 
     # Parallel OOC
     if WITH_CUDA:
-        ooc_ext_dir = osp.join(
-            osp.dirname(osp.abspath(__file__)), 'falkon', 'ooc_ops', 'multigpu')
+        ooc_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'ooc_ops', 'multigpu')
         ooc_files = ['multigpu_potrf_bind.cpp', 'cuda/multigpu_potrf.cu']
         ooc_macros = [('WITH_CUDA', None)]
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
@@ -82,7 +87,7 @@ def get_extensions():
     cyblas_compile_args = [
         '-shared', '-fPIC', '-fopenmp', '-O3', '-Wall']
     cyblas_ext = [Extension('falkon.utils.cyblas',
-                            sources=['falkon/utils/cyblas' + file_ext],
+                            sources=[osp.join('falkon', 'utils', 'cyblas' + file_ext)],
                             include_dirs=[numpy.get_include()],
                             extra_compile_args=cyblas_compile_args,
                             extra_link_args=['-fPIC', '-fopenmp', '-s'])]
@@ -113,7 +118,7 @@ test_requires = [
 
 setup(
     name="falkon",
-    version=get_version("./falkon"),
+    version=get_version("falkon"),
     description="FALKON",
     python_requires='~=3.6',
     setup_requires=[
