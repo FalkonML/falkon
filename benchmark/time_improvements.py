@@ -9,6 +9,7 @@ Baseline (equivalent to FALKON MATLAB):
 5. float32 + GPU Preconditioner + 2 GPU (keops)
 """
 import argparse
+import dataclasses
 import functools
 import time
 
@@ -18,9 +19,8 @@ import torch
 from benchmark_utils import DataType, Dataset
 from datasets import get_load_fn
 from error_metrics import get_err_fns
+import falkon
 from falkon import kernels
-from models import falkon
-from falkon.ooc_ops.options import LauumOptions
 from falkon.cuda import initialization
 
 RANDOM_SEED = 95
@@ -28,35 +28,33 @@ RANDOM_SEED = 95
 torch.manual_seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 
+
 def run(exp_num, dset, show_intermediate_errors: bool = False):
-    opt = {
+    opt = falkon.FalkonOptions(
+        lauum_par_blk_multiplier=16, debug=True,
+        pc_epsilon_32=1e-6, pc_epsilon_64=1e-13,
+        compute_arch_speed=False)
+    params = {
         'seed': 12,
         'kernel': kernels.GaussianKernel(3.8),
-        'lauum_opt': LauumOptions(lauum_par_blk_multiplier=16),
         'penalty': 1e-7,
         'M': 100_000,
         'maxiter': 10,
-        'debug': True,
     }
     if exp_num == 1:
-        opt['cpu_preconditioner'] = True
-        opt['no_keops'] = True
+        opt = dataclasses.replace(opt, cpu_preconditioner=True, no_keops=True)
         dtype = DataType.float64
     elif exp_num == 2:
-        opt['cpu_preconditioner'] = True
-        opt['no_keops'] = True
+        opt = dataclasses.replace(opt, cpu_preconditioner=True, no_keops=True)
         dtype = DataType.float32
     elif exp_num == 3:
-        opt['cpu_preconditioner'] = False
-        opt['no_keops'] = True
+        opt = dataclasses.replace(opt, cpu_preconditioner=False, no_keops=True)
         dtype = DataType.float32
     elif exp_num == 4:
-        opt['cpu_preconditioner'] = False
-        opt['no_keops'] = True
+        opt = dataclasses.replace(opt, cpu_preconditioner=False, no_keops=True)
         dtype = DataType.float32
     elif exp_num == 5:
-        opt['cpu_preconditioner'] = False
-        opt['no_keops'] = False
+        opt = dataclasses.replace(opt, cpu_preconditioner=False, no_keops=False)
         dtype = DataType.float32
     else:
         raise ValueError("exp num %d not valid" % (exp_num))
@@ -69,7 +67,7 @@ def run(exp_num, dset, show_intermediate_errors: bool = False):
     data[2] = data[2].pin_memory()
     data[3] = data[3].pin_memory()
     t_s = time.time()
-    flk = run_single(dset, data[0], data[1], data[2], data[3], data[4], show_intermediate_errors, **opt)
+    flk = run_single(dset, data[0], data[1], data[2], data[3], data[4], show_intermediate_errors, opt, params)
     t_e = time.time()
     print("Timing for Experiment %d: %s -- fit times %s" % (exp_num, t_e - t_s, flk.fit_times_))
 
@@ -79,7 +77,7 @@ def load_data(dset, data_type):
     return load_fn(dtype=data_type.to_numpy_dtype(), as_torch=True)
 
 
-def run_single(dset, Xtr, Ytr, Xts, Yts, kwargs, intermediate_errors, **opt):
+def run_single(dset, Xtr, Ytr, Xts, Yts, kwargs, intermediate_errors, opt, params):
     err_fns = get_err_fns(dset)
     err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
     error_every = 1 if intermediate_errors else None
@@ -87,10 +85,8 @@ def run_single(dset, Xtr, Ytr, Xts, Yts, kwargs, intermediate_errors, **opt):
     flk = falkon.Falkon(
         error_fn=err_fns[0],
         error_every=error_every,
-        compute_arch_speed=False,
-        no_single_kernel=True,
-        pc_epsilon={torch.float32: 1e-6, torch.float64: 1e-13},
-        **opt
+        options=opt,
+        **params
     )
     flk.fit(Xtr, Ytr, Xts, Yts)
     return flk

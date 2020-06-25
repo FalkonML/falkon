@@ -2,8 +2,10 @@ import os
 
 from . import kernels, optim, preconditioner, center_selection
 from .models import Falkon, LogisticFalkon
+from .options import FalkonOptions
 
-__all__ = ('Falkon', 'LogisticFalkon', 'kernels', 'optim', 'preconditioner', 'center_selection')
+__all__ = ('Falkon', 'LogisticFalkon', 'kernels', 'optim', 'preconditioner', 'center_selection',
+           'FalkonOptions')
 
 
 # Set __version__ attribute on the package

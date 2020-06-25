@@ -9,8 +9,8 @@ import torch
 import numpy as np
 from scipy.linalg.lapack import dpotrf, spotrf
 
+import falkon
 from falkon.ooc_ops.ooc_potrf import gpu_cholesky
-from falkon.ooc_ops.options import CholeskyOptions
 from falkon.utils.cyblas import add_symmetrize
 from falkon.utils import devices
 from falkon.cuda import initialization
@@ -57,12 +57,14 @@ def run_experiments(experiments):
 
 
 if __name__ == "__main__":
-    initialization.init({'compute_arch_speed': False})
-    gpu_info = [v for k, v in devices.get_device_info({'compute_arch_speed': False}).items() if k >= 0]
+    init_opt = falkon.FalkonOptions(compute_arch_speed=False)
+    initialization.init(init_opt)
+    gpu_info = [v for k, v in devices.get_device_info(init_opt).items() if k >= 0]
     num_gpu = len(gpu_info)
 
     defaultN32 = [10_000, 20_000, 30_000, 40_000, 50_000, 65_000, 80_000, 100_000, 120_000, 140_000]
     #defaultN64 = [10_000, 20_000, 30_000, 40_000, 50_000, 65_000, 80_000]
+    falkon.FalkonOptions(chol_force_ooc=True, chol_par_blk_multiplier=2, compute_arch_speed=False)
     experiments = [
         {
             'name': 'Parallel 32',
@@ -72,8 +74,7 @@ if __name__ == "__main__":
             'repetitions': 3,
             'torch': True,
             'fn': functools.partial(gpu_cholesky, upper=False, clean=False, overwrite=True,
-                opt={'cholesky_opt': CholeskyOptions(chol_force_parallel=True, chol_par_blk_multiplier=2),
-                     'compute_arch_speed': False}),
+                opt=falkon.FalkonOptions(chol_force_ooc=True, chol_par_blk_multiplier=2, compute_arch_speed=False)),
         },
         #{
         #    'name': 'Parallel 64',
@@ -83,33 +84,9 @@ if __name__ == "__main__":
         #    'repetitions': 3,
         #    'torch': True,
         #    'fn': functools.partial(gpu_cholesky, upper=False, clean=False, overwrite=True,
-        #        opt={'chol_force_in_core': False, 'chol_force_ooc': False, 'chol_force_parallel': True,
-        #             'chol_par_blk_multiplier': 2,}),
+        #        opt=falkon.FalkonOptions(chol_force_ooc=True, chol_par_blk_multiplier=2, compute_arch_speed=False)),
         #},
     ]
-    if False:
-      experiments.extend([
-            {
-                'name': 'OOC 32',
-                'N': defaultN32,
-                'dt': np.float32,
-                'timings': [],
-                'repetitions': 3,
-                'torch': True,
-                'fn': functools.partial(gpu_cholesky, upper=False, clean=False, overwrite=True,
-                    opt={'chol_force_in_core': False, 'chol_force_ooc': True, 'chol_force_parallel': False,}),
-            },
-            {
-                'name': 'OOC 64',
-                'N': defaultN64,
-                'dt': np.float64,
-                'timings': [],
-                'repetitions': 2,
-                'torch': True,
-                'fn': functools.partial(gpu_cholesky, upper=False, clean=False, overwrite=True,
-                    opt={'chol_force_in_core': False, 'chol_force_ooc': True, 'chol_force_parallel': False,}),
-            }
-        ])
     if False:
         experiments.extend([
             {

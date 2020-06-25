@@ -295,20 +295,16 @@ def run_falkon(dset: Dataset,
         k = kernels.LinearKernel(beta=1.0, sigma=kernel_sigma)
     else:
         raise ValueError("Kernel %s not understood for algorithm %s" % (kernel, algorithm))
-    opt = {
-        'kernel': k,
-        'penalty': penalty,
-        'M': num_centers,
-        'maxiter': num_iter,
-        'seed': seed,
-        'error_fn': None,
-        'error_every': 1,
-        'compute_arch_speed': False,
-        'no_single_kernel': True,
-        'pc_epsilon': {torch.float32: 1e-6, torch.float64: 1e-13},
-        'debug': True,
-    }
-    flk = falkon.Falkon(**opt)
+
+    opt = falkon.FalkonOptions(
+        compute_arch_speed=False,
+        no_single_kernel=True,
+        pc_epsilon_32=1e-6,
+        pc_epsilon_64=1e-13,
+        debug=True
+    )
+    flk = falkon.Falkon(kernel=k, penalty=penalty, M=num_centers, maxiter=num_iter,
+                        seed=seed, error_fn=None, error_every=1, options=opt)
 
     # Error metrics
     err_fns = get_err_fns(dset)
@@ -366,6 +362,7 @@ def run_logistic_falkon(dset: Dataset,
                         kernel: str,
                         seed: int):
     import torch
+    import falkon
     from falkon import kernels
     from models import logistic_falkon
     from falkon.gsc_losses import LogisticLoss
@@ -385,22 +382,16 @@ def run_logistic_falkon(dset: Dataset,
         k = kernels.LinearKernel(beta=1.0, sigma=kernel_sigma)
     else:
         raise ValueError("Kernel %s not understood for algorithm %s" % (kernel, algorithm))
-    opt = {
-        'penalty_list': penalty_list,
-        'M': num_centers,
-        'iter_list': iter_list,
-        'seed': seed,
-        'error_fn': None,
-        'error_every': 1,
-        'compute_arch_speed': False,
-        'no_single_kernel': True,
-        'pc_epsilon': {torch.float32: 1e-6, torch.float64: 1e-13},
-        'debug': True,
-    }
-    loss = LogisticLoss(kernel=k, **opt)
-    opt['loss'] = loss
-    opt['kernel'] = k
-    flk = logistic_falkon.LogisticFalkon(**opt)
+    opt = falkon.FalkonOptions(
+        compute_arch_speed=False,
+        no_single_kernel=True,
+        pc_epsilon_32=1e-6,
+        pc_epsilon_64=1e-13,
+        debug=True)
+    loss = LogisticLoss(kernel=k)
+    flk = logistic_falkon.LogisticFalkon(kernel=k, loss=loss, penalty_list=penalty_list,
+                                         iter_list=iter_list, M=num_centers, seed=seed,
+                                         error_fn=None, error_every=1, options=opt)
 
     # Error metrics
     err_fns = get_err_fns(dset)

@@ -9,8 +9,8 @@ import torch
 import numpy as np
 from scipy.linalg.lapack import slauum, dlauum
 
+import falkon
 from falkon.ooc_ops.ooc_lauum import gpu_lauum
-from falkon.ooc_ops.options import LauumOptions
 from falkon.utils import devices
 from falkon.cuda import initialization
 
@@ -49,13 +49,15 @@ def run_experiments(experiments):
 
 
 if __name__ == "__main__":
-    initialization.init({'compute_arch_speed': False})
-    gpu_info = [v for k, v in devices.get_device_info({'compute_arch_speed': False}).items() if k >= 0]
+    init_opt = falkon.FalkonOptions(compute_arch_speed=False)
+    initialization.init(init_opt)
+    gpu_info = [v for k, v in devices.get_device_info(init_opt).items() if k >= 0]
     num_gpu = len(gpu_info)
     RUN_CPU = False
 
     defaultN32 = [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000, 120_000, 140_000]
     #defaultN64 = [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000]
+
     experiments = [
         {
             'name': 'OOC 32',
@@ -65,8 +67,7 @@ if __name__ == "__main__":
             'repetitions': 5,
             'torch': True,
             'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-                opt={'lauum_opt': LauumOptions(lauum_par_blk_multiplier=2),
-                     'compute_arch_speed': False,}),
+                opt=falkon.FalkonOptions(lauum_par_blk_multiplier=2, compute_arch_speed=False)),
         },
         {
             'name': 'OOC 32',
@@ -76,8 +77,7 @@ if __name__ == "__main__":
             'repetitions': 5,
             'torch': True,
             'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-                opt={'lauum_opt': LauumOptions(lauum_par_blk_multiplier=2),
-                     'compute_arch_speed': False,}),
+                opt=falkon.FalkonOptions(lauum_par_blk_multiplier=2, compute_arch_speed=False)),
         },
         {
             'name': 'OOC 32',
@@ -87,8 +87,7 @@ if __name__ == "__main__":
             'repetitions': 3,
             'torch': True,
             'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-                opt={'lauum_opt': LauumOptions(lauum_par_blk_multiplier=2),
-                     'compute_arch_speed': False,}),
+                opt=falkon.FalkonOptions(lauum_par_blk_multiplier=2, compute_arch_speed=False)),
         },
     ]
     #    {
@@ -98,8 +97,8 @@ if __name__ == "__main__":
     #        'timings': [],
     #        'repetitions': 5,
     #        'torch': True,
-    #        'fn': functools.partial(gpu_lauum, upper=False, overwrite=True,
-    #            opt={'lauum_par_blk_multiplier': 2,}),
+    #        'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
+    #            opt=falkon.FalkonOptions(lauum_par_blk_multiplier=2, compute_arch_speed=False)),
     #    },
     #]
     if RUN_CPU:
