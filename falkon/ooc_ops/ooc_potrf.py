@@ -9,7 +9,7 @@ from falkon.utils import devices, cyblas
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 from falkon.ooc_ops.multigpu_potrf import parallel_potrf
-from options import FalkonOptions
+from falkon.options import FalkonOptions
 from .ooc_utils import calc_block_sizes
 from ..utils.devices import DeviceInfo
 from ..utils.tensor_helpers import create_fortran, is_f_contig, copy_same_stride

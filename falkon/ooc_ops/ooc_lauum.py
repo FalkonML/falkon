@@ -8,7 +8,7 @@ import torch
 from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
 from falkon.utils.helpers import sizeof_dtype
-from options import FalkonOptions, LauumOptions
+from falkon.options import FalkonOptions, LauumOptions
 from .ooc_utils import calc_block_sizes2, prepare_matrix
 from .parallel_lauum import par_lauum_f_lower, par_lauum_c_lower, BlockAlloc
 from ..utils.tensor_helpers import is_f_contig, is_contig
