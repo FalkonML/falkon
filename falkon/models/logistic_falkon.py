@@ -14,6 +14,7 @@ from .falkon import check_random_generator
 
 __all__ = ("LogisticFalkon", )
 
+
 class LogisticFalkon(base.BaseEstimator):
     def __init__(self,
                  kernel: falkon.kernels.Kernel,

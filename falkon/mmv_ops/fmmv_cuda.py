@@ -533,7 +533,7 @@ def fmmv_cuda(X1: torch.Tensor,
     # This is due to passing in a CUDA tensor to the queue
     # https://pytorch.org/docs/stable/multiprocessing.html#sharing-cuda-tensors
     # Thus we cannot run the first task on the current process.
-    if kernel.kernel_type == "l2distance":
+    if kernel.kernel_type == "l2distance" and kernel.name == "gaussian":
         target = distk_fmmv
     else:
         target = generic_fmmv
@@ -629,7 +629,7 @@ def fdmmv_cuda(X1: torch.Tensor,
     # This is due to passing in a CUDA tensor to the queue
     # https://pytorch.org/docs/stable/multiprocessing.html#sharing-cuda-tensors
     # Thus we cannot run the first task on the current process.
-    if kernel.kernel_type == "l2distance":
+    if kernel.kernel_type == "l2distance" and kernel.name == "gaussian":
         target = distk_fdmmv
     else:
         target = generic_fdmmv
