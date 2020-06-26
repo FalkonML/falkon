@@ -24,7 +24,7 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
 
     Parameters:
     -----------
-    A : [n, n] CPU array (column-contiguous)
+    A : [n, n] CPU or GPU array (column-contiguous)
         The (positive definite) matrix which should be factorized
     upper : bool
         Whether we need to factorize the upper of lower portion of `A`. The other side
@@ -37,7 +37,7 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
 
     Returns:
     --------
-    A : [n, n] CPU array (column-contiguous)
+    A : [n, n] CPU or GPU array (column-contiguous)
         The factorization of A which overwrites the upper (or lower) triangular part
         of the matrix A. This is not a copy of the original matrix.
     """

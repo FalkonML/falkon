@@ -210,7 +210,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=1)
@@ -233,7 +233,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=0)
@@ -256,7 +256,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dT)
         return trsm(v, self.fC, alpha=1.0, lower=0, transpose=0)
@@ -279,7 +279,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dT)
         return trsm(v, self.fC, alpha=1.0, lower=0, transpose=1)
@@ -302,7 +302,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         return self.invT(self.invA(v))
 
@@ -324,7 +324,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         return self.invAt(self.invTt(v))
 

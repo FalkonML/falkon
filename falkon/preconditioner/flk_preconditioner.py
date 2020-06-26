@@ -19,7 +19,7 @@ class FalkonPreconditioner(prec.Preconditioner):
     via two Cholesky decompositions is performed.
 
     Starting with :math:`K_{MM}` we obtain :math:`T = \\mathrm{chol}(K_{MM})`.
-    Then we can obtain :math:`A = \\mathrm{chol}(1/M T T^\\top + \\lambda)` via another Cholesky
+    Then we can obtain :math:`A = \\mathrm{chol}(\\frac{1}{M} T T^\\top + \\lambda)` via another Cholesky
     decomposition. Both `T` and `A` are upper triangular: the first gets stored in the upper
     triangle of the :math:`K_{MM}` matrix (called `fC` in the code), while the second is stored
     in the lower triangle.
@@ -139,7 +139,7 @@ class FalkonPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=1)
@@ -162,7 +162,7 @@ class FalkonPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=0)
@@ -185,7 +185,7 @@ class FalkonPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dT)
         return trsm(v, self.fC, alpha=1.0, lower=0, transpose=0)
@@ -208,7 +208,7 @@ class FalkonPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dT)
         return trsm(v, self.fC, alpha=1.0, lower=0, transpose=1)
@@ -231,7 +231,7 @@ class FalkonPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         return self.invT(self.invA(v))
 
@@ -253,7 +253,7 @@ class FalkonPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         return self.invAt(self.invTt(v))
 
