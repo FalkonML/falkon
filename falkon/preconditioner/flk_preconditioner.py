@@ -1,5 +1,6 @@
 from typing import Union
 
+import numpy as np
 import torch
 
 from falkon.sparse.sparse_tensor import SparseTensor
@@ -75,20 +76,24 @@ class FalkonPreconditioner(prec.Preconditioner):
             The matrix of Nystroem centers
         """
         dtype = X.dtype
+        dev = X.device
+        if X.is_cuda and not self._use_cuda:
+            raise RuntimeError("use_cuda is set to False, but data is CUDA tensor. "
+                               "Check your options.")
         eps = self.params.pc_epsilon(X.dtype)
 
         M = X.size(0)
 
         with TicToc("Kernel", debug=self.params.debug):
             if isinstance(X, torch.Tensor):
-                C = create_same_stride((M, M), X, dtype=dtype, device='cpu',
+                C = create_same_stride((M, M), X, dtype=dtype, device=dev,
                                        pin_memory=self._use_cuda)
             else:  # If sparse tensor we need fortran for kernel calculation
-                C = create_fortran((M, M), dtype=dtype, device='cpu', pin_memory=self._use_cuda)
+                C = create_fortran((M, M), dtype=dtype, device=dev, pin_memory=self._use_cuda)
             self.kernel(X, X, out=C, opt=self.params)
-        self.fC = C.numpy()
+        self.fC: np.ndarray = C.numpy()
         if not is_f_contig(C):
-            self.fC = self.fC.T
+            self.fC: np.ndarray = self.fC.T
 
         with TicToc("Cholesky 1", debug=self.params.debug):
             # Compute T: lower(fC) = T.T

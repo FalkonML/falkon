@@ -31,8 +31,11 @@ def decide_cuda(opt: BaseOptions = BaseOptions()):
 
 
 def decide_keops(opt: KeopsOptions = KeopsOptions()):
-    if opt.no_keops:
+    if opt.keops_active.lower() == "no":
         return False
+    if opt.keops_active.lower() == "force":
+        return True
+    # If not 'no' or 'force' we can choose depending on whether keops works.
     if not hasattr(decide_keops, 'keops_works'):
         try:
             import pykeops

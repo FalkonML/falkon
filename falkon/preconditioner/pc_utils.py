@@ -59,21 +59,22 @@ def inplace_add_diag(A, k):
     return A
 
 
-def lauum_wrapper(A: np.ndarray, upper: bool, use_cuda: bool, opt: FalkonOptions) -> np.ndarray:
+def lauum_wrapper(A: torch.Tensor, upper: bool, use_cuda: bool, opt: FalkonOptions) -> torch.Tensor:
     if use_cuda:
         from falkon.ooc_ops.ooc_lauum import gpu_lauum
         return gpu_lauum(A, upper=upper, write_opposite=True, overwrite=True, opt=opt)
     else:
-        lauum = choose_fn(A.dtype, scll.dlauum, scll.slauum, "LAUUM")
-        sol, info = lauum(A, lower=int(not upper), overwrite_c=1)
+        Anp = A.numpy()
+        lauum = choose_fn(Anp.dtype, scll.dlauum, scll.slauum, "LAUUM")
+        sol, info = lauum(Anp, lower=int(not upper), overwrite_c=1)
         if info != 0:
             raise RuntimeError(f"Lapack LAUUM failed with error code {info}.")
-        return sol
+        return torch.from_numpy(sol)
 
 
-def potrf_wrapper(A: np.ndarray, clean: bool, upper: bool, use_cuda: bool, opt: FalkonOptions) -> np.ndarray:
+def potrf_wrapper(A: torch.Tensor, clean: bool, upper: bool, use_cuda: bool, opt: FalkonOptions) -> torch.Tensor:
     if use_cuda:
         from falkon.ooc_ops.ooc_potrf import gpu_cholesky
-        return gpu_cholesky(torch.from_numpy(A), upper=upper, clean=clean, overwrite=True, opt=opt).numpy()
+        return gpu_cholesky(A, upper=upper, clean=clean, overwrite=True, opt=opt)
     else:
-        return potrf(A, upper=upper, clean=clean, overwrite=True)
+        return torch.from_numpy(potrf(A.numpy(), upper=upper, clean=clean, overwrite=True))

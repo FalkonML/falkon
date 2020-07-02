@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.tensor_helpers import is_f_contig
+from falkon.utils.tensor_helpers import create_same_stride
 
 _tensor_type = Union[torch.Tensor, SparseTensor]
 
@@ -30,7 +30,7 @@ class UniformSel(NySel):
                M: int) -> Union[_tensor_type, Tuple[_tensor_type, torch.Tensor]]:
         """Select M rows from 2D array `X`, preserving the memory order of `X`.
         """
-        N = X.size(0)
+        N = X.shape[0]
         if M > N:
             warnings.warn("Number of centers M greater than the "
                           "number of data-points. Setting M to %d" % (N))
@@ -42,21 +42,13 @@ class UniformSel(NySel):
             centers = X[idx, :].copy()
             Xc = SparseTensor.from_scipy(centers)
         else:
-            Xnp = X.numpy()  # work on np array
-            if is_f_contig(X):
-                order = 'F'
-            else:
-                order = 'C'
-            Xc_np = np.empty((M, Xnp.shape[1]), dtype=Xnp.dtype, order=order)
-            Xc = torch.from_numpy(np.take(Xnp, idx, axis=0, out=Xc_np, mode='wrap'))
+            Xc = create_same_stride((M, X.shape[1]), other=X, dtype=X.dtype, device=X.device,
+                                    pin_memory=False)
+            torch.index_select(X, dim=0, index=torch.from_numpy(idx.astype(np.long)), out=Xc)
 
         if Y is not None:
-            Ynp = Y.numpy()  # work on np array
-            if is_f_contig(X):
-                order = 'F'
-            else:
-                order = 'C'
-            Yc_np = np.empty((M, Ynp.shape[1]), dtype=Ynp.dtype, order=order)
-            Yc = torch.from_numpy(np.take(Ynp, idx, axis=0, out=Yc_np, mode='wrap'))
+            Yc = create_same_stride((M, Y.shape[1]), other=Y, dtype=Y.dtype, device=Y.device,
+                                    pin_memory=False)
+            torch.index_select(Y, dim=0, index=torch.from_numpy(idx.astype(np.long)), out=Yc)
             return Xc, Yc
         return Xc

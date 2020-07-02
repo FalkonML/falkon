@@ -107,39 +107,39 @@ class AbstractKernelTester(abc.ABC):
         _run_test(kernel, exp_k, (A, B), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
-        pytest.param(True, marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
-        False
+        pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
+        "no"
     ], ids=["KeOps", "No KeOps"])
     def test_mmv(self, kernel, keops, A, B, v, exp_v, cpu, max_mem):
         opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu,
-                                  no_keops=not keops)
+                                  keops_active=keops)
         _run_test(kernel.mmv, exp_v, (A, B, v), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
-        pytest.param(True, marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
-        False
+        pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
+        "no"
     ], ids=["KeOps", "No KeOps"])
     def test_dv(self, kernel, keops, A, B, v, exp_dv, cpu, max_mem):
         opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu,
-                                  no_keops=not keops)
+                                  keops_active=keops)
         _run_test(kernel.dmmv, exp_dv, (A, B, v, None), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
-        pytest.param(True, marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
-        False
+        pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
+        "no"
     ], ids=["KeOps", "No KeOps"])
     def test_dw(self, kernel, keops, A, B, w, exp_dw, cpu, max_mem):
         opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu,
-                                  no_keops=not keops)
+                                  keops_active=keops)
         _run_test(kernel.dmmv, exp_dw, (A, B, None, w), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
-        pytest.param(True, marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
-        False
+        pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
+        "no"
     ], ids=["KeOps", "No KeOps"])
     def test_dvw(self, kernel, keops, A, B, v, w, exp_dvw, cpu, max_mem):
         opt = dataclasses.replace(self.basic_options, max_cpu_mem=max_mem, max_gpu_mem=max_mem, use_cpu=cpu,
-                                  no_keops=not keops)
+                                  keops_active=keops)
         _run_test(kernel.dmmv, exp_dvw, (A, B, v, w), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
 

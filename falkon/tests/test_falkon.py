@@ -42,7 +42,7 @@ class TestFalkon:
         def error_fn(t, p):
             return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
 
-        opt = FalkonOptions(use_cpu=True, no_keops=True, debug=True)
+        opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
 
         flk = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,
@@ -62,7 +62,7 @@ class TestFalkon:
             p = torch.argmax(p, dim=1)
             return torch.mean((t.reshape(-1, ) != p.reshape(-1, )).to(torch.float64)), "multic-err"
 
-        opt = FalkonOptions(use_cpu=True, no_keops=True, debug=True)
+        opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
 
         flk = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,
@@ -80,7 +80,7 @@ class TestFalkon:
         def error_fn(t, p):
             return torch.sqrt(torch.mean((t - p) ** 2)), "RMSE"
 
-        opt = FalkonOptions(use_cpu=True, no_keops=True, debug=True)
+        opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
 
         flk = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,

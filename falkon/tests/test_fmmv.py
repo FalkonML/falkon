@@ -38,7 +38,7 @@ def _run_fmmv_test(fn, exp, tensors, out, rtol, opt):
         actual = fn(*tensors, out=out, opt=new_opt)
 
     # Check 1. Accuracy
-    np.testing.assert_allclose(exp, actual, rtol=rtol)
+    np.testing.assert_allclose(exp, actual.cpu(), rtol=rtol)
     # Check 2. Output pointers
     if out is not None:
         assert out.data_ptr() == actual.data_ptr(), "Output data tensor was not used"
@@ -163,7 +163,7 @@ def e_dfmmv(request):
     pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ], ids=["cpu", "gpu"])
 class TestDense:
-    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, no_keops=True)
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, keops_active="no")
 
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt", [
         ("F", np.float32, "F", np.float32, "F", np.float32),
@@ -227,6 +227,101 @@ class TestDense:
         # Test with out
         out = torch.empty(m, t, dtype=A.dtype)
         _run_fmmv_test(kernel.dmmv, e_dfmmv, (A, B, v, w), out=out, rtol=rtol, opt=opt)
+
+
+@pytest.mark.parametrize("cpu", [
+    pytest.param(True),
+    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
+], ids=["cpu", "gpu"])
+class TestKeops:
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, keops_active="force")
+
+    @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt", [
+        ("C", np.float32, "C", np.float32, "C", np.float32),
+        ("C", np.float64, "C", np.float64, "C", np.float64),
+        pytest.param("F", np.float32, "F", np.float32, "F", np.float32, marks=[pytest.mark.xfail(reason="KeOps only C")]),
+        pytest.param("F", np.float32, "C", np.float32, "C", np.float32, marks=[pytest.mark.xfail(reason="KeOps only C")]),
+    ], ids=["AC32-BC32-vC32", "AC64-BC64-vC64", "AF32-BF32-vF32", "AF32-BC32-vC32"])
+    @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
+    def test_fmmv(self, getA, getB, getv, Ao, Adt, Bo, Bdt, vo, vdt, kernel,
+                  expected_fmmv, max_mem, cpu):
+        A = getA(order=Ao, dtype=Adt)
+        B = getB(order=Bo, dtype=Bdt)
+        v = getv(order=vo, dtype=vdt)
+
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+        rtol = choose_on_dtype(A.dtype)
+
+        # Test normal
+        _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
+        # Test with out
+        out = torch.empty(A.shape[0], v.shape[1], dtype=A.dtype)
+        _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=out, rtol=rtol, opt=opt)
+
+    def test_gpu_inputs(self, getA, getB, getv, kernel, expected_fmmv, cpu):
+        if cpu:  # No point in testing GPU inputs without GPU
+            return True
+        A = getA(order="C", dtype=n32).cuda()
+        B = getB(order="C", dtype=n32).cuda()
+        v = getv(order="C", dtype=n32).cuda()
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
+        rtol = choose_on_dtype(A.dtype)
+        # Test normal
+        _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
+        # Test with out
+        out = torch.empty(A.shape[0], v.shape[1], dtype=A.dtype).cuda()
+        _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=out, rtol=rtol, opt=opt)
+
+    def test_gpu_inputs_fail(self, getA, getB, getv, kernel, expected_fmmv, cpu):
+        if cpu:  # No point in testing GPU inputs without GPU
+            return True
+        A = getA(order="C", dtype=n32).cuda()
+        B = getB(order="C", dtype=n32).cuda()
+        v = getv(order="C", dtype=n32)
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
+        rtol = choose_on_dtype(A.dtype)
+        # Test normal
+        with pytest.raises(RuntimeError):
+            _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
+
+    # @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt,wo,wdt,e_dfmmv", [
+    #     pytest.param("F", n32, "F", n32, "F", n32, "F", n32, "e_dfmmv1", marks=mark.usefixtures("e_dfmmv1")),
+    #     pytest.param("C", n32, "C", n32, "C", n32, "C", n32, "e_dfmmv1", marks=mark.usefixtures("e_dfmmv1")),
+    #     pytest.param("F", n64, "F", n64, "F", n64, "F", n64, "e_dfmmv1", marks=mark.usefixtures("e_dfmmv1")),
+    #     pytest.param("C", n64, "C", n64, "C", n64, "C", n64, "e_dfmmv1", marks=mark.usefixtures("e_dfmmv1")),
+    #     pytest.param("F", n32, "F", n32, "F", n32, None, None, "e_dfmmv2", marks=mark.usefixtures("e_dfmmv2")),
+    #     pytest.param("C", n32, "C", n32, "C", n32, None, None, "e_dfmmv2", marks=mark.usefixtures("e_dfmmv2")),
+    #     pytest.param("F", n64, "F", n64, "F", n64, None, None, "e_dfmmv2", marks=mark.usefixtures("e_dfmmv2")),
+    #     pytest.param("C", n64, "C", n64, "C", n64, None, None, "e_dfmmv2", marks=mark.usefixtures("e_dfmmv2")),
+    #     pytest.param("F", n32, "F", n32, None, None, "F", n32, "e_dfmmv3", marks=mark.usefixtures("e_dfmmv3")),
+    #     pytest.param("C", n32, "C", n32, None, None, "C", n32, "e_dfmmv3", marks=mark.usefixtures("e_dfmmv3")),
+    #     pytest.param("F", n64, "F", n64, None, None, "F", n64, "e_dfmmv3", marks=mark.usefixtures("e_dfmmv3")),
+    #     pytest.param("C", n64, "C", n64, None, None, "C", n64, "e_dfmmv3", marks=mark.usefixtures("e_dfmmv3")),
+    #     # A few mixed-contiguity examples
+    #     pytest.param("F", n32, "C", n32, "C", n32, "F", n32, "e_dfmmv1", marks=mark.usefixtures("e_dfmmv1")),
+    # ], ids=["F32-F32-vF32-wF32", "C32-C32-vC32-wC32", "F64-F64-vF64-wF64", "C64-C64-vC64-wC64",
+    #         "F32-F32-vF32", "C32-C32-vC32", "F64-F64-vF64", "C64-C64-vC64",
+    #         "F32-F32-wF32", "C32-C32-wC32", "F64-F64-wF64", "C64-C64-wC64",
+    #         "F32-C32-vC32-wF32"],
+    #    indirect=["e_dfmmv"])
+    # @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
+    # def test_dfmmv(self, getA, getB, getv, getw, Ao, Adt, Bo, Bdt, vo, vdt, wo, wdt, kernel,
+    #                e_dfmmv, max_mem, cpu, m, t):
+    #     A = getA(order=Ao, dtype=Adt)
+    #     B = getB(order=Bo, dtype=Bdt)
+    #     v = getv(order=vo, dtype=vdt)
+    #     w = getw(order=wo, dtype=wdt)
+    #
+    #     opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+    #     rtol = choose_on_dtype(A.dtype)
+    #
+    #     # Test normal
+    #     _run_fmmv_test(kernel.dmmv, e_dfmmv, (A, B, v, w), out=None, rtol=rtol, opt=opt)
+    #     # Test with out
+    #     out = torch.empty(m, t, dtype=A.dtype)
+    #     _run_fmmv_test(kernel.dmmv, e_dfmmv, (A, B, v, w), out=out, rtol=rtol, opt=opt)
+
+
 
 ###################
 ### Sparse Test ###

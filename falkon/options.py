@@ -44,8 +44,11 @@ keops_acc_dtype (default "auto")
 keops_sum_scheme (default "auto")
     Accumulation scheme for KeOps. For more information refer to the
     `KeOps documentation <https://www.kernel-operations.io/keops/python/api/pytorch/Genred_torch.html?highlight=genred#pykeops.torch.Genred>`_
-no_keops : (default False)
-    When set to `True` KeOps will not be used.
+keops_active : (default "auto")
+    Whether to use or not to use KeOps. Three settings are allowed, specified by strings:
+    'auto' (the default setting) means that KeOps will be used if it is installed correctly,
+    'no' means keops will not be used, nor will it be imported, and 'force' means that if KeOps is
+    not installed an error will be raised.
     """,
     "cg":
     """
@@ -121,12 +124,12 @@ class KeopsOptions():
     """
     keops_acc_dtype: str = "auto"
     keops_sum_scheme: str = "auto"
-    no_keops: bool = False
+    keops_active: str = "auto"
 
     def get_keops_options(self):
         return KeopsOptions(keops_acc_dtype=self.keops_acc_dtype,
                             keops_sum_scheme=self.keops_sum_scheme,
-                            no_keops=self.no_keops)
+                            keops_active=self.keops_active)
 
 
 @dataclass

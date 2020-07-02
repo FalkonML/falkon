@@ -27,7 +27,7 @@ class TestLogisticFalkon:
         def error_fn(t, p):
             return 100 * torch.sum(t*p <= 0) / t.shape[0], "c-err"
 
-        opt = FalkonOptions(use_cpu=True, no_keops=True, debug=True)
+        opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
 
         logflk = LogisticFalkon(
             kernel=kernel, loss=loss, penalty_list=[1e-1, 1e-3, 1e-5, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8],

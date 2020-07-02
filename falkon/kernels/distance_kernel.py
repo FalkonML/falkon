@@ -120,7 +120,7 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
     Creating a Gaussian kernel with a single length-scale. Operations on this kernel will not
     use KeOps.
 
-    >>> K = GaussianKernel(sigma=3.0, opt=FalkonOptions(no_keops=True))
+    >>> K = GaussianKernel(sigma=3.0, opt=FalkonOptions(keops_active="no"))
 
     Creating a Gaussian kernel with a different length-scale per dimension
 

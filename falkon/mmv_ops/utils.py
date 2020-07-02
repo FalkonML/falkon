@@ -60,3 +60,4 @@ def _gpu_tns_same_memory(A: torch.Tensor, B: torch.Tensor) -> bool:
            (A.shape == B.shape) and \
            (A.data_ptr() == B.data_ptr()) and \
            (A.stride() == B.stride())
+
