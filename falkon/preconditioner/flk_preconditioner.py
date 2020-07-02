@@ -91,40 +91,43 @@ class FalkonPreconditioner(prec.Preconditioner):
             else:  # If sparse tensor we need fortran for kernel calculation
                 C = create_fortran((M, M), dtype=dtype, device=dev, pin_memory=self._use_cuda)
             self.kernel(X, X, out=C, opt=self.params)
-        self.fC: np.ndarray = C.numpy()
+        #self.fC: np.ndarray = C.numpy()
         if not is_f_contig(C):
-            self.fC: np.ndarray = self.fC.T
+            #self.fC: np.ndarray = self.fC.T
+            C = C.T
 
         with TicToc("Cholesky 1", debug=self.params.debug):
             # Compute T: lower(fC) = T.T
-            inplace_add_diag(self.fC, eps * M)
-            self.fC = potrf_wrapper(self.fC, clean=False, upper=False,
+            inplace_add_diag_th(C, eps * M)
+            C = potrf_wrapper(C, clean=False, upper=False,
                                     use_cuda=self._use_cuda, opt=self.params)
             # Save the diagonal which will be overwritten when computing A
             self.dT = C.diag()
 
         with TicToc("Copy triangular", debug=self.params.debug):
             # Copy lower(fC) to upper(fC):  upper(fC) = T.
-            copy_triang(self.fC, upper=False)
+            copy_triang(C.numpy(), upper=False)
 
         if self._use_cuda:
             with TicToc("LAUUM", debug=self.params.debug):
                 # Product upper(fC) @ upper(fC).T : lower(fC) = T @ T.T
-                self.fC = lauum_wrapper(self.fC, upper=True, use_cuda=self._use_cuda, opt=self.params)
+                C = lauum_wrapper(C, upper=True, use_cuda=self._use_cuda, opt=self.params)
         else:
             with TicToc("LAUUM", debug=self.params.debug):
                 # Product lower(fC).T @ lower(fC) : lower(fC) = T @ T.T
-                self.fC = lauum_wrapper(self.fC, upper=False, use_cuda=self._use_cuda, opt=self.params)
+                C = lauum_wrapper(C, upper=False, use_cuda=self._use_cuda, opt=self.params)
 
         with TicToc("Cholesky 2", debug=self.params.debug):
             # lower(fC) = 1/M * T@T.T
-            self.fC = mul_triang(self.fC, upper=False, preserve_diag=False, multiplier=1 / M)
+            mul_triang(C.numpy(), upper=False, preserve_diag=False, multiplier=1 / M)
             # lower(fC) = 1/M * T@T.T + lambda * I
-            inplace_add_diag(self.fC, self._lambda)
+            inplace_add_diag_th(C, self._lambda)
             # Cholesky on lower(fC) : lower(fC) = A.T
-            self.fC = potrf_wrapper(self.fC, clean=False, upper=False,
+            C = potrf_wrapper(C, clean=False, upper=False,
                                     use_cuda=self._use_cuda, opt=self.params)
             self.dA = C.diag()
+
+        self.fC = C.numpy()
 
     @check_init("fC", "dT", "dA")
     def invA(self, v: torch.Tensor) -> torch.Tensor:

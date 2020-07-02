@@ -3,7 +3,7 @@ from typing import Optional, List, Union
 import torch
 from falkon.options import FalkonOptions
 from falkon.utils.switches import decide_keops
-from sparse import SparseTensor
+from falkon.sparse import SparseTensor
 
 try:
     from falkon.mmv_ops.keops import run_keops_mmv

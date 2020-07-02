@@ -110,8 +110,8 @@ class LinearKernel(DotProdKernel, KeopsKernelMixin):
             'beta = Pm(1)'
         ]
         other_vars = [
-            torch.tensor([self.gamma]).to(dtype=X1.dtype),
-            torch.tensor([self.beta]).to(dtype=X1.dtype)
+            torch.tensor([self.gamma]).to(dtype=X1.dtype, device=X1.device),
+            torch.tensor([self.beta]).to(dtype=X1.dtype, device=X1.device)
         ]
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
@@ -172,8 +172,8 @@ class PolynomialKernel(DotProdKernel, KeopsKernelMixin):
             'beta = Pm(1)'
         ]
         other_vars = [
-            torch.tensor([self.alpha]).to(dtype=X1.dtype),
-            torch.tensor([self.beta]).to(dtype=X1.dtype)
+            torch.tensor([self.alpha]).to(dtype=X1.dtype, device=X1.device),
+            torch.tensor([self.beta]).to(dtype=X1.dtype, device=X1.device)
         ]
 
         is_int_pow = self.degree == self.degree.to(dtype=torch.int32)
@@ -182,7 +182,7 @@ class PolynomialKernel(DotProdKernel, KeopsKernelMixin):
         else:
             formula = f'Powf((alpha * (X | Y) + beta), degree) * v'
             aliases.append('degree = Pm(1)')
-            other_vars.append(torch.tensor([self.degree]).to(dtype=X1.dtype))
+            other_vars.append(torch.tensor([self.degree]).to(dtype=X1.dtype, device=X1.device))
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
@@ -227,7 +227,7 @@ class ExponentialKernel(DotProdKernel, KeopsKernelMixin):
             'v = Vj(%d)' % (v.shape[1]),
             'alpha = Pm(1)',
         ]
-        other_vars = [torch.tensor([self.alpha]).to(dtype=X1.dtype)]
+        other_vars = [torch.tensor([self.alpha]).to(dtype=X1.dtype, device=X1.device)]
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 

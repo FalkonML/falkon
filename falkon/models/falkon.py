@@ -16,18 +16,18 @@ from falkon.utils.helpers import sizeof_dtype, check_same_dtype
 __all__ = ("Falkon",)
 
 
-def get_min_cuda_preconditioner_size(dt):
+def get_min_cuda_preconditioner_size(dt, opt: FalkonOptions) -> int:
     if dt == torch.float32:
-        return 10_000
+        return opt.min_cuda_pc_size_32
     else:
-        return 30_000
+        return opt.min_cuda_pc_size_64
 
 
-def get_min_cuda_mmv_size(dt):
+def get_min_cuda_mmv_size(dt, opt: FalkonOptions) -> int:
     if dt == torch.float32:
-        return 10_000 * 10 * 3_000
+        return opt.min_cuda_iter_size_32
     else:
-        return 30_000 * 10 * 3_000
+        return opt.min_cuda_iter_size_64
 
 
 def check_random_generator(seed):
@@ -229,11 +229,11 @@ class Falkon(base.BaseEstimator):
         _use_cuda_preconditioner = (
                 self.use_cuda_ and
                 (not self.options.cpu_preconditioner) and
-                self.M >= get_min_cuda_preconditioner_size(dtype)
+                self.M >= get_min_cuda_preconditioner_size(dtype, self.options)
         )
         _use_cuda_mmv = (
                 self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype)
+                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
         )
 
         self.fit_times_ = []
@@ -344,7 +344,7 @@ class Falkon(base.BaseEstimator):
             return X @ alpha
         _use_cuda_mmv = (
                 self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(X.dtype)
+                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(X.dtype, self.options)
         )
         mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
         return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
@@ -370,6 +370,11 @@ class Falkon(base.BaseEstimator):
                 "Falkon has not been trained. `predict` must be called after `fit`.")
 
         return self._predict(X, self.ny_points_, self.alpha_)
+
+    def to(self, device):
+        self.alpha_ = self.alpha_.to(device)
+        self.ny_points_ = self.ny_points_.to(device)
+        return self
 
     def __repr__(self, **kwargs):
         return super().__repr__(N_CHAR_MAX=5000)

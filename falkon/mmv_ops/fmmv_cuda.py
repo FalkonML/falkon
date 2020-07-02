@@ -166,7 +166,7 @@ def generic_fmmv(proc_idx, queue, device_id):
                 kc = min(d, dtot - k)
                 if cuda_inputs:
                     c_g_X1s = X1[i:i+ic, k:k+kc]
-                    c_g_X2s = X2[:, k+k+kc]
+                    c_g_X2s = X2[:, k:k+kc]
                 else:
                     c_g_X1s = copy_to_device_noorder(ic, kc, X1, i, k, X1s_gpu, 0, 0)
                     c_g_X2s = copy_to_device_noorder(M, kc, X2, 0, k, X2s_gpu, 0, 0)
@@ -191,7 +191,6 @@ def sparse_fdmmv(proc_idx, queue, device_id):
     v, w, out = a.v, a.w, a.out
     kernel, max_mem = a.kernel, a.max_mem
     dtype = X1.dtype
-    cuda_inputs = X1.is_cuda
     N, D = X1.shape
     M = X2.size(0)
     if v is None:
@@ -220,13 +219,13 @@ def sparse_fdmmv(proc_idx, queue, device_id):
     ddev = torch.device('cuda:%d' % int(device_id))
     with tcd.device(ddev):
         # Initialize GPU data
-        if cuda_inputs:
+        if out.is_cuda:
             out_gpu = out
         else:
-            w_gpu = create_same_stride((n, T), out, dtype, ddev)
             out_gpu = create_same_stride((M, T), out, dtype, ddev)
         out_gpu.fill_(0.0)
         ker_gpu = create_fortran((n, M), dtype, ddev)
+        w_gpu = create_same_stride((n, T), out, dtype, ddev)
         if v is not None:
             v_gpu = v.to(device=ddev, copy=False)  # M x T
 
@@ -249,10 +248,7 @@ def sparse_fdmmv(proc_idx, queue, device_id):
             ker_chunk = kernel._finalize(ker_chunk, ddd)
 
             if w is not None:
-                if cuda_inputs:
-                    c_g_w = w[i:i+ic, :]
-                else:
-                    c_g_w = copy_to_device_noorder(ic, T, w, i, 0, w_gpu, 0, 0)
+                c_g_w = copy_to_device_noorder(ic, T, w, i, 0, w_gpu, 0, 0)
             else:
                 c_g_w = w_gpu.narrow(0, 0, ic)
                 c_g_w.fill_(0.0)
@@ -262,7 +258,7 @@ def sparse_fdmmv(proc_idx, queue, device_id):
             out_gpu.addmm_(ker_chunk.T, c_g_w)
             del ddd, X1_chunk, X1_chunk_d
 
-        if not cuda_inputs:
+        if not out.is_cuda:
             copy_to_device_noorder(M, T, out_gpu, 0, 0, out, 0, 0)
     return out
 
@@ -306,12 +302,12 @@ def generic_fdmmv(proc_idx, queue, device_id):
     with tcd.device(ddev):
         # Initialize GPU data
         ker_gpu = create_same_stride((n, M), out, dtype=dtype, device=ddev)
+        w_gpu = create_same_stride((n, T), ker_gpu, dtype, ddev)
         if cuda_inputs:
             out_gpu = out
         else:
             X1s_gpu = create_same_stride((n, d), X1, dtype, ddev)
             X2s_gpu = create_same_stride((M, d), X2, dtype, ddev)
-            w_gpu = create_same_stride((n, T), ker_gpu, dtype, ddev)
             out_gpu = create_same_stride((M, T), out, dtype, ddev)
         out_gpu.fill_(0.0)
         if v is not None:
@@ -335,10 +331,7 @@ def generic_fdmmv(proc_idx, queue, device_id):
             kernel._finalize(c_g_ker, ddd)
 
             if w is not None:
-                if cuda_inputs:
-                    c_g_w = w[i:ic, :]
-                else:
-                    c_g_w = copy_to_device_noorder(ic, T, w, i, 0, w_gpu, 0, 0)
+                c_g_w = copy_to_device_noorder(ic, T, w, i, 0, w_gpu, 0, 0)
             else:
                 c_g_w = w_gpu.narrow(0, 0, ic)
                 c_g_w.fill_(0.0)
@@ -448,9 +441,6 @@ def distk_fdmmv(proc_idx, queue, device_id):
     # ------------
     # total : n*d + M*d + n*(M + T + 1) + 2*M*T + M
     avail_mem = max_mem / sizeof_dtype(dtype)
-    # FIXME: There seems to be a bug where if we let avail_mem like it is
-    #        for 32-bit data-types some copy fails. In such case we need
-    #        to free up some more memory and then everything runs fine.
     rest_coef = 2 * M * T if v is not None else M * T
     n, d = select_dim_over_d(
         maxD=D, maxN=N,
@@ -462,19 +452,21 @@ def distk_fdmmv(proc_idx, queue, device_id):
 
     with tcd.device(ddev), tcd.stream(s1):
         if v is not None:
-            if cuda_inputs:
+            if not cuda_inputs:
                 v_gpu = create_same_stride((M, T), v, dtype, ddev)
                 copy_to_device_noorder(M, T, v, 0, 0, v_gpu, 0, 0)
             else:
                 v_gpu = v
         K_gpu = create_same_stride((n, M), X1, dtype, ddev)
         Kv_gpu = create_same_stride((n, T), X1, dtype, ddev)
-        if cuda_inputs:
+
+        if out.is_cuda:
             out_gpu = out
         else:
+            out_gpu = create_same_stride((M, T), out, dtype, ddev)
+        if not cuda_inputs:
             X1ss_gpu = create_same_stride((n, d), X1, dtype, ddev)
             X2s_gpu = create_same_stride((M, d), X2, dtype, ddev)
-            out_gpu = create_same_stride((M, T), out, dtype, ddev)
         out_gpu.fill_(0.0)
         sq1_gpu = create_same_stride((n,), X1, dtype, ddev)
         sq2_gpu = create_same_stride((M,), X1, dtype, ddev)
@@ -510,11 +502,7 @@ def distk_fdmmv(proc_idx, queue, device_id):
             cur_K_gpu = kernel._transform(cur_K_gpu)
 
             if w is not None:
-                if cuda_inputs:
-                    cur_Kv_gpu = w[i:i+nb, :]
-                else:
-                    # Copy split w to GPU into cur_Kv_gpu,
-                    cur_Kv_gpu = copy_to_device_noorder(nb, T, w, i, 0, Kv_gpu, 0, 0, s=s1)  # n x T
+                cur_Kv_gpu = copy_to_device_noorder(nb, T, w, i, 0, Kv_gpu, 0, 0, s=s1)  # n x T
                 if v is not None:
                     cur_Kv_gpu.addmm_(cur_K_gpu, v_gpu)
             else:
@@ -527,7 +515,7 @@ def distk_fdmmv(proc_idx, queue, device_id):
             s1.synchronize()
         s1.synchronize()
 
-        if not cuda_inputs:
+        if not out.is_cuda:
             copy_to_host_noorder(M, T, out_gpu, 0, 0, out, 0, 0)
     return out
 

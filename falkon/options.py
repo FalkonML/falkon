@@ -34,6 +34,40 @@ no_single_kernel (default True)
     If set to `False`, kernel evaluations will be faster but less precise (note that this
     referes only to calculations involving the full kernel matrix, not to kernel-vector
     products).
+min_cuda_pc_size_32 (default 10000)
+    If M (the number of Nystroem centers) is lower than `min_cuda_pc_size_32`, falkon will
+    run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try 
+    to run the preconditioner on the GPU. This setting is valid for data in single 
+    (float32) precision.
+    Along with the `min_cuda_iter_size_32` setting, this determines a cutoff for running
+    Falkon on the CPU or the GPU. Such cutoff is useful since for small-data problems
+    running on the CPU may be faster than running on the GPU. If your data is close to the
+    cutoff, it may be worth experimenting with running on the CPU and on the GPU to check
+    which side is faster. This will depend on the exact hardware.
+min_cuda_pc_size_64 (default 30000)
+    If M (the number of Nystroem centers) is lower than `min_cuda_pc_size_64`, falkon will
+    run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try 
+    to run the preconditioner on the GPU. This setting is valid for data in double 
+    (float64) precision.
+    Along with the `min_cuda_iter_size_64` setting, this determines a cutoff for running
+    Falkon on the CPU or the GPU. Such cutoff is useful since for small-data problems
+    running on the CPU may be faster than running on the GPU. If your data is close to the
+    cutoff, it may be worth experimenting with running on the CPU and on the GPU to check
+    which side is faster. This will depend on the exact hardware.
+min_cuda_iter_size_32 (default 300_000_000)
+    If the data size (measured as the product of M, and the dimensions of X) is lower than
+    `min_cuda_iter_size_32`, falkon will run the conjugate gradient iterations on the CPU.
+    For example, with the default setting, the CPU-GPU threshold is set at a dataset
+    with 10k points, 10 dimensions, and 3k Nystroem centers. A larger dataset, or the use
+    of more centers, will cause the conjugate gradient iterations to run on the GPU.
+    This setting is valid for data in single (float32) precision.
+min_cuda_iter_size_64 (default 900_000_000)
+    If the data size (measured as the product of M, and the dimensions of X) is lower than
+    `min_cuda_iter_size_64`, falkon will run the conjugate gradient iterations on the CPU.
+    For example, with the default setting, the CPU-GPU threshold is set at a dataset
+    with 30k points, 10 dimensions, and 3k Nystroem centers. A larger dataset, or the use
+    of more centers, will cause the conjugate gradient iterations to run on the GPU.
+    This setting is valid for data in double (float64) precision.
     """,
     "keops":
     """
@@ -108,6 +142,10 @@ class BaseOptions():
     max_cpu_mem: float = np.inf
     compute_arch_speed: bool = False
     no_single_kernel: bool = True
+    min_cuda_pc_size_32: int = 10000
+    min_cuda_pc_size_64: int = 30000
+    min_cuda_iter_size_32: int = 10_000 * 10 * 3_000
+    min_cuda_iter_size_64: int = 30_000 * 10 * 3_000
 
     def get_base_options(self):
         return BaseOptions(debug=self.debug,
@@ -115,7 +153,11 @@ class BaseOptions():
                            max_gpu_mem=self.max_gpu_mem,
                            max_cpu_mem=self.max_cpu_mem,
                            no_single_kernel=self.no_single_kernel,
-                           compute_arch_speed=self.compute_arch_speed)
+                           compute_arch_speed=self.compute_arch_speed,
+                           min_cuda_pc_size_32=self.min_cuda_pc_size_32,
+                           min_cuda_pc_size_64=self.min_cuda_pc_size_64,
+                           min_cuda_iter_size_32=self.min_cuda_iter_size_32,
+                           min_cuda_iter_size_64=self.min_cuda_iter_size_64)
 
 
 @dataclass

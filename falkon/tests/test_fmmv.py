@@ -267,7 +267,6 @@ class TestDense:
         out = torch.empty(m, t, dtype=A.dtype)
         _run_fmmv_test(kernel.dmmv, e_dfmmv, (A, B, v, w), out=out, rtol=rtol, opt=opt)
 
-    @pytest.mark.parametrize("cuda_inputs", [True, False], ids=["CUDA inputs", "CPU inputs"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt,wo,wdt,e_dfmmv", [
         pytest.param("F", n32, "F", n32, "F", n32, "F", n32, "e_dfmmv1", marks=mark.usefixtures("e_dfmmv1")),
@@ -275,6 +274,7 @@ class TestDense:
         pytest.param("F", n32, "F", n32, None, None, "F", n32, "e_dfmmv3", marks=mark.usefixtures("e_dfmmv3"))
     ], ids=["F32-F32-vF32-wF32", "F32-F32-vF32","F32-F32-wF32"],
        indirect=["e_dfmmv"])
+    @pytest.mark.parametrize("cuda_inputs", [True, False], ids=["CUDA inputs", "CPU inputs"])
     def test_dfmmv_input_device(
             self, getA, getB, getv, getw, Ao, Adt, Bo, Bdt, vo, vdt, wo, wdt, kernel,
             e_dfmmv, max_mem, cpu, m, t, cuda_inputs):
@@ -461,7 +461,9 @@ class TestSparse:
     @pytest.mark.parametrize("Adt,Bdt,vo,vdt", [(np.float32, np.float32, "F", np.float32)],
                              ids=["A32-B32-vF32"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
-    @pytest.mark.parametrize("cuda_inputs", [True, False], ids=["CUDA inputs", "CPU inputs"])
+    @pytest.mark.parametrize("cuda_inputs", [
+        pytest.param(True, marks=[pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]), 
+        False], ids=["CUDA inputs", "CPU inputs"])
     def test_fmmv_input_device(
             self, getA, getB, getv, Adt, Bdt, vo, vdt, kernel,
             s_expected_fmmv, max_mem, cpu, cuda_inputs):
@@ -525,7 +527,9 @@ class TestSparse:
         pytest.param(n32, n32, None, None, "F", n32, "s_e_dfmmv3", marks=mark.usefixtures("s_e_dfmmv3")),
     ], ids=["32-32-vF32-wF32", "32-32-vF32", "32-32-wF32"], indirect=["s_e_dfmmv"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
-    @pytest.mark.parametrize("cuda_inputs", [True, False], ids=["CUDA inputs", "CPU inputs"])
+    @pytest.mark.parametrize("cuda_inputs", [
+        pytest.param(True, marks=[pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]), 
+        False], ids=["CUDA inputs", "CPU inputs"])
     def test_dfmmv_input_devices(
             self, getA, getB, getv, getw, Adt, Bdt, vo, vdt, wo, wdt, kernel,
             s_e_dfmmv, max_mem, cpu, m, t, cuda_inputs):

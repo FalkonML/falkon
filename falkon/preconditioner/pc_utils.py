@@ -8,8 +8,8 @@ from falkon.options import FalkonOptions
 from falkon.utils.cyblas import potrf
 from falkon.utils.helpers import choose_fn
 
-__all__ = ("check_init", "trsm", "inplace_set_diag", "inplace_add_diag", "lauum_wrapper",
-           "potrf_wrapper",)
+__all__ = ("check_init", "trsm", "inplace_set_diag", "inplace_add_diag", "inplace_add_diag_th", 
+           "lauum_wrapper", "potrf_wrapper",)
 
 
 def check_init(*none_check):
@@ -56,6 +56,14 @@ def inplace_add_diag(A, k):
     # Look at np.fill_diagonal
     step = A.shape[1] + 1
     A.flat[::step] += k
+    return A
+
+
+def inplace_add_diag_th(A: torch.Tensor, k) -> torch.Tensor:
+    # Assumes M is square (or wide also works).
+    # Need to use .diagonal() as .diag() makes a copy
+    d = A.diagonal()
+    d += k
     return A
 
 

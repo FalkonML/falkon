@@ -209,7 +209,7 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
                 'v = Vj(%d)' % (v.shape[1]),
                 'g = Pm(1)'
             ]
-            other_vars = [torch.tensor([self.gamma]).to(dtype=X1.dtype)]
+            other_vars = [torch.tensor([self.gamma]).to(device=X1.device, dtype=X1.dtype)]
         else:
             dim = self.gamma.shape[0]
             formula = (
@@ -223,7 +223,7 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
                 'v = Vj(%d)' % (v.shape[1]),
                 'g = Pm(%d)' % (dim ** 2)
             ]
-            other_vars = [self.gamma.reshape(-1).to(dtype=X1.dtype)]
+            other_vars = [self.gamma.reshape(-1).to(device=X1.device, dtype=X1.dtype)]
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
@@ -337,7 +337,7 @@ class LaplacianKernel(GaussianKernel):
             'v = Vj(%d)' % (v.shape[1]),
             'g = Pm(1)'
         ]
-        other_vars = [torch.tensor([self.gamma]).to(dtype=X1.dtype)]
+        other_vars = [torch.tensor([self.gamma]).to(device=X1.device, dtype=X1.dtype)]
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 

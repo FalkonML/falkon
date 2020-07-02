@@ -5,6 +5,7 @@ from sklearn import datasets
 
 from falkon import Falkon, kernels
 from falkon.options import FalkonOptions
+from falkon.utils import decide_cuda
 
 
 @pytest.fixture
@@ -93,3 +94,28 @@ class TestFalkon:
         tr_err = error_fn(flk.predict(Xtr), Ytr)[0]
         assert tr_err < ts_err
         assert ts_err < 2.5
+
+    @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
+    def test_cuda_predict(self, reg_data):
+        Xtr, Ytr, Xts, Yts = reg_data
+        kernel = kernels.GaussianKernel(20.0)
+
+        def error_fn(t, p):
+            return torch.sqrt(torch.mean((t - p) ** 2)), "RMSE"
+
+        opt = FalkonOptions(use_cpu=False, keops_active="no", debug=True,
+                min_cuda_pc_size_64=1, min_cuda_iter_size_64=1)
+
+        flk = Falkon(
+            kernel=kernel, penalty=1e-6, M=500, seed=10,
+            options=opt,
+            error_fn=error_fn)
+        flk.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
+        flk.to("cuda:0")
+
+        assert flk.predict(Xts.to('cuda:0')).shape == (Yts.shape[0], 1)
+        ts_err = error_fn(flk.predict(Xts.to('cuda:0')).cpu(), Yts)[0]
+        tr_err = error_fn(flk.predict(Xtr.to('cuda:0')).cpu(), Ytr)[0]
+        assert tr_err < ts_err
+        assert ts_err < 2.5
+

@@ -44,11 +44,13 @@ class UniformSel(NySel):
         else:
             Xc = create_same_stride((M, X.shape[1]), other=X, dtype=X.dtype, device=X.device,
                                     pin_memory=False)
-            torch.index_select(X, dim=0, index=torch.from_numpy(idx.astype(np.long)), out=Xc)
+            th_idx = torch.from_numpy(idx.astype(np.long)).to(X.device)
+            torch.index_select(X, dim=0, index=th_idx, out=Xc)
 
         if Y is not None:
             Yc = create_same_stride((M, Y.shape[1]), other=Y, dtype=Y.dtype, device=Y.device,
                                     pin_memory=False)
-            torch.index_select(Y, dim=0, index=torch.from_numpy(idx.astype(np.long)), out=Yc)
+            th_idx = torch.from_numpy(idx.astype(np.long)).to(Y.device)
+            torch.index_select(Y, dim=0, index=th_idx, out=Yc)
             return Xc, Yc
         return Xc
