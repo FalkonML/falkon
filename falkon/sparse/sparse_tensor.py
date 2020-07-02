@@ -174,6 +174,14 @@ class SparseTensor():
             indexptr=new_indexptr, index=new_index, data=new_data, 
             size=self.shape, sparse_type=self.sparse_type)
 
+    def cuda(self) -> 'SparseTensor':
+        return SparseTensor(
+            indexptr=self.indexptr.cuda(),
+            index=self.index.cuda(),
+            data=self.data.cuda(),
+            size=self.shape, sparse_type=self.sparse_type
+        )
+
     def index_to_int_(self):
         self.indexptr = self.indexptr.to(dtype=torch.int32)
         self.index = self.index.to(dtype=torch.int32)
