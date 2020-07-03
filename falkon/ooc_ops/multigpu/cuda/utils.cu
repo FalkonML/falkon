@@ -5,46 +5,141 @@
 #include <torch/extension.h>
 
 
+const int TILE_DIM = 32;
+const int BLOCK_ROWS = 8;
+
+
+#define NB 64
+
+
+/*
+  Matrix is size * size (no support for different size than stride).
+  Columns are contiguous.
+  The size * size grid is subdivided into NB * size blocks (of rows).
+  Each block has NB threads, so each thread copies one row into one
+  column (transpose).
+  Not a particularly efficient implementation!
+*/
 template <typename scalar_t>
-__global__ void transposeCoalesced(scalar_t *data)
+__global__ void copy_simple_kernel_lower(scalar_t *data, int size)
 {
-    // https://github.com/NVIDIA-developer-blog/code-samples/blob/master/series/cuda-cpp/transpose/transpose.cu
-    // blockDim.x == TILE_DIM
-    // blockDim.y == BLOCK_ROWS
-    // Copy idata into shared memory (transposing)
-    // Padding + 1 to avoid share-memory-bank conflicts
-    __shared__ scalar_t tile[blockDim.x][blockDim.x + 1];
+	int i = blockIdx.x * NB + threadIdx.x;
+	// data iterates across row i, dataT across column i.
+	scalar_t *dataT = data;
 
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.x + threadIdx.y;
-    int width = gridDim.x * blockDim.x;
+	if (i < size) {
+		data += i;  // Positioned at row i, col 0
+		dataT += i * size;  // Positioned at row 0, col i
+		scalar_t *row_end = data + i * size;  // row i, col size
+		while (data < row_end) {
+			*dataT = (scalar_t)*data;
+			data += size;
+			dataT += 1;
+		}
+	}
+}
 
-    for (int j = 0; j < blockDim.x; j += blockDim.y) {
-        tile[threadIdx.y+j][threadIdx.x] = data[(y+j)*width + x];
-    }
+// Same as the _lower version, but we copy dataT to data instead!
+template <typename scalar_t>
+__global__ void copy_simple_kernel_upper(scalar_t *data, int size)
+{
+	int i = blockIdx.x * NB + threadIdx.x;
+	// data iterates across row i, dataT across column i.
+	scalar_t *dataT = data;
 
-    __syncthreads();
+	if (i < size) {
+		data += i;  // Positioned at row i, col 0
+		dataT += i * size;  // Positioned at row 0, col i
+		scalar_t *row_end = data + i * size;  // row i, col size
+		while (data < row_end) {
+			*data = (scalar_t)*dataT;
+			data += size;
+			dataT += 1;
+		}
+	}
+}
 
-    x = blockIdx.y * blockDim.x + threadIdx.x;  // transpose block offset
-    y = blockIdx.x * blockDim.x + threadIdx.y;
 
-    for (int j = 0; j < blockDim.x; j += blockDim.y) {
-        if ((y + j)*width < x) {
-            data[(y+j)*width + x] = tile[threadIdx.x][threadIdx.y + j];
-        }
-    }
+template <typename scalar_t>
+__global__ void mul_upper_diag(scalar_t *data, int size, scalar_t mul)
+{
+	int i = blockIdx.x * NB + threadIdx.x;
+
+	if (i < size) {
+		data += i * size;
+		scalar_t *diag_stop = data + i;
+		while (data <= diag_stop) {
+			*data *= mul;
+			data++;
+		}
+	}
+}
+
+
+template <typename scalar_t>
+__global__ void mul_upper(scalar_t *data, int size, scalar_t mul)
+{
+	int i = blockIdx.x * NB + threadIdx.x;
+
+	if (i < size) {
+		data += i * size;
+		scalar_t *diag_stop = data + i;
+		while (data < diag_stop) {
+			*data *= mul;
+			data++;
+		}
+	}
+}
+
+
+template <typename scalar_t>
+__global__ void mul_lower_diag(scalar_t *data, int size, scalar_t mul)
+{
+	int i = blockIdx.x * NB + threadIdx.x;
+
+	if (i < size) {
+		data += i * size + i;
+		scalar_t *diag_stop = data + size - i;
+		while (data <= diag_stop) {
+			*data *= mul;
+			data++;
+		}
+	}
+}
+
+template <typename scalar_t>
+__global__ void mul_lower(scalar_t *data, int size, scalar_t mul)
+{
+	int i = blockIdx.x * NB + threadIdx.x;
+
+	if (i < size) {
+		data += i * size + i;
+		scalar_t *diag_stop = data + size - i;
+		while (data < diag_stop) {
+			*data *= mul;
+			data++;
+		}
+	}
+}
+
+
+int ceildiv(int dividend, int divisor) {
+	int res = dividend / divisor;
+	if (dividend % divisor != 0)
+		res++;
+	return res;
 }
 
 
 torch::Tensor cuda_copy_triang(torch::Tensor &A, bool upper) {
-    if (!A.is_cuda) {
+    if (!A.is_cuda()) {
         AT_ERROR("Input A must be a CUDA tensor.");
     }
 
     bool needs_transpose = false;
     if (A.stride(0) != 1) {
         // Not F-contig (assume C-contig)
-        A = A.transpose();
+        A = torch::transpose(A, 0, 1);
         upper = !upper;
         needs_transpose = true;
     }
@@ -53,24 +148,51 @@ torch::Tensor cuda_copy_triang(torch::Tensor &A, bool upper) {
     const int ny = A.size(1);
     const auto scalar_type = A.scalar_type();
 
-    const int tile_dim = 32;
-    const int block_rows = 8;
 
-    dim3 dimGrid(nx/tile_dim, ny/tile_dim, 1);
-    dim3 dimBlock(tile_dim, block_rows, 1);
+    dim3 dimGrid(ceildiv(nx, NB));
+    dim3 dimBlock(NB);
 
     /* Run CUDA kernel */
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
         scalar_t *data = A.data_ptr<scalar_t>();
-        transposeCoalesced<<<dimGrid, dimBlock>>>(data);
-    }
+	if (upper) {
+		copy_simple_kernel_upper<scalar_t><<<dimGrid, dimBlock>>>(data, nx);
+	} else {
+		copy_simple_kernel_lower<scalar_t><<<dimGrid, dimBlock>>>(data, nx);
+	}
+    });
 
     if (needs_transpose) {
-        A = A.transpose();
+	A = torch::transpose(A, 0, 1);
     }
     return A;
 }
 
-torch::Tensor mul_triang(torch::Tensor &A, bool upper, bool preserve_diag, torch::Tensor &multiplier) {
+torch::Tensor mul_triang(torch::Tensor &A, bool upper, bool preserve_diag, double multiplier) {
+    if (!A.is_cuda()) {
+        AT_ERROR("Input A must be a CUDA tensor.");
+    }
+    if (A.stride(0) != 1) {
+	upper = !upper;
+    }
 
+    const int nx = A.size(0);
+    const auto scalar_type = A.scalar_type();
+    dim3 dimGrid(ceildiv(nx, NB));
+    dim3 dimBlock(NB);
+
+    AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
+	scalar_t mul = (scalar_t)multiplier;
+	scalar_t *data = A.data_ptr<scalar_t>();
+	if (upper && preserve_diag) {
+		mul_upper<scalar_t><<<dimGrid, dimBlock>>>(data, nx, mul);
+	} else if (upper) {
+		mul_upper_diag<scalar_t><<<dimGrid, dimBlock>>>(data, nx, mul);
+	} else if (!upper && preserve_diag) {
+		mul_lower<scalar_t><<<dimGrid, dimBlock>>>(data, nx, mul);
+	} else if (!upper) {
+		mul_lower_diag<scalar_t><<<dimGrid, dimBlock>>>(data, nx, mul);
+	}
+    });
+    return A;
 }
