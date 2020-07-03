@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from falkon.center_selection import UniformSel
+from falkon.center_selection import UniformSelector
 from falkon.tests.gen_random import gen_random, gen_sparse_matrix
 from falkon.utils import decide_cuda
 
@@ -21,8 +21,8 @@ def colmaj_arr() -> torch.Tensor:
 
 
 @pytest.fixture
-def uniform_sel() -> UniformSel:
-    return UniformSel(np.random.default_rng(0))
+def uniform_sel() -> UniformSelector:
+    return UniformSelector(np.random.default_rng(0))
 
 
 @pytest.mark.parametrize("device", [

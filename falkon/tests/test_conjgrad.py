@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from falkon.center_selection import UniformSel
+from falkon.center_selection import UniformSelector
 from falkon.kernels import GaussianKernel
 from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
 from falkon.options import FalkonOptions
@@ -61,7 +61,7 @@ class TestFalkonConjugateGradient:
 
     @pytest.fixture()
     def centers(self, data):
-        cs = UniformSel(np.random.default_rng(2))
+        cs = UniformSelector(np.random.default_rng(2))
         return cs.select(data, None, self.M)
 
     @pytest.fixture()

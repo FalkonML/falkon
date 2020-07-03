@@ -7,7 +7,6 @@ Created on Tue Oct 24 21:49:21 2017
 """
 import collections
 import functools
-import math
 from abc import ABC, abstractmethod
 from typing import Optional, Union
 

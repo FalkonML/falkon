@@ -8,8 +8,8 @@ from falkon.options import FalkonOptions
 from falkon.utils.cyblas import potrf
 from falkon.utils.helpers import choose_fn
 
-__all__ = ("check_init", "trsm", "inplace_set_diag", "inplace_add_diag", "inplace_add_diag_th", 
-           "lauum_wrapper", "potrf_wrapper",)
+__all__ = ("check_init", "trsm", "inplace_set_diag_th", "inplace_add_diag_th",
+           "lauum_wrapper", "potrf_wrapper")
 
 
 def check_init(*none_check):
@@ -31,39 +31,31 @@ def check_init(*none_check):
     return _checker
 
 
-def trsm(v, A, alpha, lower=0, transpose=0):
+def trsm(v: torch.Tensor,
+         A: torch.Tensor,
+         alpha: float,
+         lower: int = 0,
+         transpose: int = 0) -> torch.Tensor:
     """Solve triangular system Ax = v
     """
     trsm_fn = choose_fn(A.dtype, sclb.dtrsm, sclb.strsm, "TRSM")
     vF = np.copy(v.numpy(), order='F')
-    trsm_fn(alpha, A, vF,
+    trsm_fn(alpha, A.numpy(), vF,
             side=0, lower=lower, trans_a=transpose, overwrite_b=1)
     if not v.numpy().flags.f_contiguous:
         vF = np.copy(vF, order='C')
     return torch.from_numpy(vF)
 
 
-def inplace_set_diag(A, k):
-    # Assumes M is square (or wide also works).
-    # Look at np.fill_diagonal
-    step = A.shape[1] + 1
-    A.flat[::step] = k
+def inplace_set_diag_th(A: torch.Tensor, k: torch.Tensor) -> torch.Tensor:
+    A.diagonal().copy_(k)
     return A
 
 
-def inplace_add_diag(A, k):
-    # Assumes M is square (or wide also works).
-    # Look at np.fill_diagonal
-    step = A.shape[1] + 1
-    A.flat[::step] += k
-    return A
-
-
-def inplace_add_diag_th(A: torch.Tensor, k) -> torch.Tensor:
+def inplace_add_diag_th(A: torch.Tensor, k: float) -> torch.Tensor:
     # Assumes M is square (or wide also works).
     # Need to use .diagonal() as .diag() makes a copy
-    d = A.diagonal()
-    d += k
+    A.diagonal().add_(k)
     return A
 
 

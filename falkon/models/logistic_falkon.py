@@ -22,7 +22,7 @@ class LogisticFalkon(base.BaseEstimator):
                  iter_list: List[int],
                  loss: Loss,
                  M: int,
-                 center_selection: Union[str, falkon.center_selection.NySel] = 'uniform',
+                 center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  seed: Optional[int] = None,
                  error_fn: Optional[callable] = None,
                  error_every: Optional[int] = 1,
@@ -60,7 +60,7 @@ class LogisticFalkon(base.BaseEstimator):
 
         if isinstance(center_selection, str):
             if center_selection.lower() == 'uniform':
-                self.center_selection = falkon.center_selection.UniformSel(
+                self.center_selection = falkon.center_selection.UniformSelector(
                     self.random_state_)
             else:
                 raise ValueError(f'Center selection "{center_selection}" is not valid.')

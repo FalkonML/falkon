@@ -1,6 +1,7 @@
 import dataclasses
 import numbers
 import time
+import warnings
 from typing import Union, Optional
 
 import numpy as np
@@ -12,6 +13,8 @@ from falkon.options import *
 from falkon.utils import TicToc, devices, decide_cuda
 from falkon.utils.devices import get_device_info
 from falkon.utils.helpers import sizeof_dtype, check_same_dtype
+from falkon.utils.switches import decide_keops
+from falkon.utils.tensor_helpers import is_f_contig
 
 __all__ = ("Falkon",)
 
@@ -51,6 +54,23 @@ def check_random_generator(seed):
                      ' instance' % seed)
 
 
+def to_c_contig(tensor: Optional[torch.Tensor],
+                name: str = "",
+                warn: bool = False) -> Optional[torch.Tensor]:
+    warning_text = (
+        "Input '%s' is F-contiguous; to ensure KeOps compatibility, C-contiguous inputs "
+        "are necessary. The data will be copied to change its order. To avoid this "
+        "unnecessary copy, either disable KeOps (passing `keops_active='no'`) or make "
+        "the input tensors C-contiguous."
+    )
+    if tensor is not None and is_f_contig(tensor):
+        if warn:
+            warnings.warn(warning_text % name)
+        orig_device = tensor.device
+        return torch.from_numpy(np.array(tensor.cpu().numpy(), order="C")).to(device=orig_device)
+    return tensor
+
+
 class Falkon(base.BaseEstimator):
     """Falkon Kernel Ridge Regression solver.
 
@@ -73,7 +93,7 @@ class Falkon(base.BaseEstimator):
         and lower than the total number of training points. A larger
         `M` will typically lead to better accuracy but will use more
         computational resources.
-    center_selection : str or falkon.center_selection.NySel
+    center_selection : str or falkon.center_selection.CenterSelector
         The center selection algorithm. Implemented is only 'uniform'
         selection which can choose each training sample with the same
         probability.
@@ -124,7 +144,7 @@ class Falkon(base.BaseEstimator):
                  kernel: falkon.kernels.Kernel,
                  penalty: float,
                  M: int,
-                 center_selection: Union[str, falkon.center_selection.NySel] = 'uniform',
+                 center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  maxiter: int = 20,
                  seed: Optional[int] = None,
                  error_fn: Optional[callable] = None,
@@ -158,7 +178,7 @@ class Falkon(base.BaseEstimator):
 
         if isinstance(center_selection, str):
             if center_selection.lower() == 'uniform':
-                self.center_selection = falkon.center_selection.UniformSel(
+                self.center_selection = falkon.center_selection.UniformSelector(
                     self.random_state_)
             else:
                 raise ValueError(f'Center selection "{center_selection}" is not valid.')
@@ -225,6 +245,13 @@ class Falkon(base.BaseEstimator):
             raise TypeError("X and Y must have the same data-type.")
 
         dtype = X.dtype
+        # If KeOps is used, data must be C-contiguous.
+        if decide_keops(self.options):
+            X = to_c_contig(X, "X", True)
+            Y = to_c_contig(Y, "Y", True)
+            Xts = to_c_contig(Xts, "Xts", True)
+            Yts = to_c_contig(Yts, "Yts", True)
+
         # Decide whether to use CUDA for preconditioning based on M
         _use_cuda_preconditioner = (
                 self.use_cuda_ and
@@ -233,7 +260,8 @@ class Falkon(base.BaseEstimator):
         )
         _use_cuda_mmv = (
                 self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
+                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype,
+                                                                                          self.options)
         )
 
         self.fit_times_ = []
@@ -344,7 +372,8 @@ class Falkon(base.BaseEstimator):
             return X @ alpha
         _use_cuda_mmv = (
                 self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(X.dtype, self.options)
+                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(
+                    X.dtype, self.options)
         )
         mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
         return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
@@ -368,6 +397,8 @@ class Falkon(base.BaseEstimator):
         if self.alpha_ is None or self.ny_points_ is None:
             raise RuntimeError(
                 "Falkon has not been trained. `predict` must be called after `fit`.")
+        if decide_keops(self.options):
+            X = to_c_contig(X, "X", True)
 
         return self._predict(X, self.ny_points_, self.alpha_)
 
