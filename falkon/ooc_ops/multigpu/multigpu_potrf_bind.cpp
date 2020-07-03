@@ -6,6 +6,7 @@
 #include <cusolverDn.h>
 
 #include "cuda/multigpu_potrf.cuh"
+#include "cuda/utils.cuh"
 
 
 static void* ctypes_void_ptr(const py::object& object) {
@@ -16,7 +17,7 @@ static void* ctypes_void_ptr(const py::object& object) {
     PyObject *ptr_as_int = PyObject_GetAttr(p_ptr, PyUnicode_FromString("value"));
     if (ptr_as_int == Py_None) {
         return nullptr;
-        }
+       }
     void *ptr = PyLong_AsVoidPtr(ptr_as_int);
     return ptr;
 }
@@ -59,4 +60,5 @@ torch::Tensor parallel_potrf(
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("parallel_potrf", &parallel_potrf, "GPU-Parallel Cholesky Factorization");
+  m.def("cuda_copy_triang", &cuda_copy_triang);
 }

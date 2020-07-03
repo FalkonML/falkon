@@ -9,6 +9,34 @@ from falkon.tests.conftest import fix_mat
 from falkon.tests.gen_random import gen_random, gen_random_pd
 
 
+
+class TestCudaCopyTriang:
+    t = 10
+
+    @pytest.fixture(scope="class")
+    def mat(self):
+        return np.random.random((self.t, self.t))
+
+    @pytest.mark.parametrize("order", ["F", "C"])
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_low(self, mat, order, dtype):
+        from falkon.ooc_ops.multigpu_potrf import cuda_copy_triang
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=True)
+        mat_low = mat.copy(order="K")
+        # Upper triangle of mat_low is 0
+        mat_low[np.triu_indices(self.t, 1)] = 0
+        print("ORIGINAL")
+        print(mat_low)
+        cuda_copy_triang(mat_low, upper=False)
+        print("OUTPUT")
+        print(mat_low)
+
+        assert np.sum(mat_low == 0) == 0
+        np.testing.assert_array_equal(np.tril(mat), np.tril(mat_low))
+        np.testing.assert_array_equal(np.triu(mat_low), np.tril(mat_low).T)
+        np.testing.assert_array_equal(np.diag(mat), np.diag(mat_low))
+
+
 class TestCopyTriang:
     t = 50
 
