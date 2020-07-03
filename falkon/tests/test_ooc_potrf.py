@@ -58,9 +58,9 @@ class TestInCorePyTest:
     basic_options = FalkonOptions(debug=True, chol_force_in_core=True)
 
     @pytest.mark.parametrize("clean,order,start_cuda", [
-        pytest.param(True, "F", True, marks=[pytest.mark.xfail(strict=True), ]),  # Cannot clean with CUDA input
+        pytest.param(True, "F", True),
         pytest.param(True, "F", False),
-        pytest.param(True, "C", True, marks=[pytest.mark.xfail(strict=True), ]),  # Cannot clean with CUDA input
+        pytest.param(True, "C", True),
         pytest.param(True, "C", False),
         pytest.param(False, "F", True),
         pytest.param(False, "F", False),

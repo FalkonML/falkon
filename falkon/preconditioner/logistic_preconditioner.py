@@ -6,15 +6,15 @@ import torch
 
 from falkon.options import FalkonOptions
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.cyblas import copy_triang, vec_mul_triang, mul_triang
+from falkon.la_helpers import copy_triang, vec_mul_triang, mul_triang, trsm
 from falkon.utils.helpers import (choose_fn)
-from . import preconditioner as prec
+from .preconditioner import Preconditioner
 from .pc_utils import *
 from falkon.utils import TicToc, decide_cuda
 from falkon.utils.tensor_helpers import create_same_stride, is_f_contig, create_fortran
 
 
-class LogisticPreconditioner(prec.Preconditioner):
+class LogisticPreconditioner(Preconditioner):
     """Approximate Cholesky Preconditioner for Logistic-FALKON.
 
     The preconditioner is based on the K_MM kernel between the
@@ -147,14 +147,14 @@ class LogisticPreconditioner(prec.Preconditioner):
                 self.dT = C.diag()
             with TicToc("Copy triangular", debug=self.params.debug):
                 # Copy lower(fC) to upper(fC):  upper(fC) = T.
-                copy_triang(C.numpy(), upper=False)
+                copy_triang(C, upper=False)
         else:
             C = torch.from_numpy(self.fC)
             if not self._use_cuda:
                 # Copy non-necessary for cuda since LAUUM will do the copying
                 with TicToc("Copy triangular", debug=self.params.debug):
                     # Copy upper(fC) to lower(fC): lower(fC) = T.T
-                    copy_triang(C.numpy(), upper=True)  # does not copy the diagonal
+                    copy_triang(C, upper=True)  # does not copy the diagonal
             # Setting diagonal necessary for trmm
             C.diagonal().copy_(self.dT)
 
@@ -166,7 +166,7 @@ class LogisticPreconditioner(prec.Preconditioner):
             W = self.loss.ddf(Y, alpha)
         with TicToc("W-Multiply", debug=self.params.debug):
             W.sqrt_()
-            vec_mul_triang(C.numpy(), W.numpy().reshape(-1), side=0, upper=False)
+            vec_mul_triang(C, W.numpy().reshape(-1), side=0, upper=False)
 
         # LAUUM side depends on CUDA or CPU version because the matrix is initially symmetric and
         # the CUDA version will write the result on the opposite side (i.e. `write_opposite=True`)
@@ -181,7 +181,7 @@ class LogisticPreconditioner(prec.Preconditioner):
                 C = lauum_wrapper(C, upper=False, use_cuda=self._use_cuda, opt=self.params)
 
         # NOTE: Here the multiplier is 1/N instead of the more common 1/M!
-        mul_triang(C.numpy(), upper=False, preserve_diag=False, multiplier=1 / N)
+        mul_triang(C, upper=False, preserve_diag=False, multiplier=1 / N)
 
         with TicToc("Add diag", debug=self.params.debug):
             # lower(fC) = 1/N * T@T.T + lambda * I

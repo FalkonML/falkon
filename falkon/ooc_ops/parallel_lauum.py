@@ -5,13 +5,13 @@ from typing import List
 
 import scipy.linalg.lapack as scll
 import torch
-from falkon.utils.cyblas import zero_triang, copy_triang
 
 from falkon.cuda.cublas_gpu import *
 from falkon.cuda.cudart_gpu import cuda_memcpy2d_async
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 from falkon.utils.tensor_helpers import create_fortran
+from falkon.la_helpers import zero_triang, copy_triang
 
 __all__ = ("par_lauum_c_lower", "par_lauum_f_lower", "BlockAlloc")
 

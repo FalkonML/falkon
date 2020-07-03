@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse
 
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.cyblas import copy_triang
+from falkon.la_helpers.cyblas import copy_triang
 
 
 def gen_random(a, b, dtype, F=False, seed=0):

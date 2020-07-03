@@ -5,7 +5,7 @@ import torch
 from falkon.options import FalkonOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils import TicToc, decide_cuda
-from falkon.utils.cyblas import mul_triang, copy_triang
+from falkon.la_helpers import mul_triang, copy_triang, trsm
 from falkon.utils.tensor_helpers import create_same_stride, is_f_contig, create_fortran
 from .preconditioner import Preconditioner
 from .pc_utils import *
@@ -103,7 +103,7 @@ class FalkonPreconditioner(Preconditioner):
 
         with TicToc("Copy triangular", debug=self.params.debug):
             # Copy lower(fC) to upper(fC):  upper(fC) = T.
-            copy_triang(C.numpy(), upper=False)
+            copy_triang(C, upper=False)
 
         if self._use_cuda:
             with TicToc("LAUUM", debug=self.params.debug):
@@ -116,7 +116,7 @@ class FalkonPreconditioner(Preconditioner):
 
         with TicToc("Cholesky 2", debug=self.params.debug):
             # lower(fC) = 1/M * T@T.T
-            mul_triang(C.numpy(), upper=False, preserve_diag=False, multiplier=1 / M)
+            mul_triang(C, upper=False, preserve_diag=False, multiplier=1 / M)
             # lower(fC) = 1/M * T@T.T + lambda * I
             inplace_add_diag_th(C, self._lambda)
             # Cholesky on lower(fC) : lower(fC) = A.T

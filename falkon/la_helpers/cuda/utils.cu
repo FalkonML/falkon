@@ -168,7 +168,7 @@ torch::Tensor cuda_copy_triang(torch::Tensor &A, bool upper) {
     return A;
 }
 
-torch::Tensor mul_triang(torch::Tensor &A, bool upper, bool preserve_diag, double multiplier) {
+torch::Tensor cuda_mul_triang(torch::Tensor &A, bool upper, bool preserve_diag, double multiplier) {
     if (!A.is_cuda()) {
         AT_ERROR("Input A must be a CUDA tensor.");
     }

@@ -1,14 +1,13 @@
 import functools
 
-import numpy as np
 import torch
-from scipy.linalg import blas as sclb, lapack as scll
+from scipy.linalg import lapack as scll
 
+from falkon.la_helpers import potrf
 from falkon.options import FalkonOptions
-from falkon.utils.cyblas import potrf
 from falkon.utils.helpers import choose_fn
 
-__all__ = ("check_init", "trsm", "inplace_set_diag_th", "inplace_add_diag_th",
+__all__ = ("check_init", "inplace_set_diag_th", "inplace_add_diag_th",
            "lauum_wrapper", "potrf_wrapper")
 
 
@@ -29,22 +28,6 @@ def check_init(*none_check):
             return fun(self, *args, **kwargs)
         return wrapper
     return _checker
-
-
-def trsm(v: torch.Tensor,
-         A: torch.Tensor,
-         alpha: float,
-         lower: int = 0,
-         transpose: int = 0) -> torch.Tensor:
-    """Solve triangular system Ax = v
-    """
-    trsm_fn = choose_fn(A.dtype, sclb.dtrsm, sclb.strsm, "TRSM")
-    vF = np.copy(v.numpy(), order='F')
-    trsm_fn(alpha, A.numpy(), vF,
-            side=0, lower=lower, trans_a=transpose, overwrite_b=1)
-    if not v.numpy().flags.f_contiguous:
-        vF = np.copy(vF, order='C')
-    return torch.from_numpy(vF)
 
 
 def inplace_set_diag_th(A: torch.Tensor, k: torch.Tensor) -> torch.Tensor:
@@ -77,4 +60,4 @@ def potrf_wrapper(A: torch.Tensor, clean: bool, upper: bool, use_cuda: bool, opt
         from falkon.ooc_ops.ooc_potrf import gpu_cholesky
         return gpu_cholesky(A, upper=upper, clean=clean, overwrite=True, opt=opt)
     else:
-        return torch.from_numpy(potrf(A.numpy(), upper=upper, clean=clean, overwrite=True))
+        return torch.from_numpy(potrf(A, upper=upper, clean=clean, overwrite=True, cuda=False))
