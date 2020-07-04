@@ -75,14 +75,14 @@ class LogisticPreconditioner(Preconditioner):
         self.dT: Optional[torch.Tensor] = None
         self.dA: Optional[torch.Tensor] = None
 
-    def _trmm(self, alpha: torch.Tensor) -> torch.Tensor:
+    def _trmm(self, C: torch.Tensor, alpha: torch.Tensor) -> torch.Tensor:
         alpha_np = alpha.numpy()
         if not alpha_np.flags.f_contiguous:
             # This never happens since alpha is always 1D
             alpha_np = np.copy(alpha_np, order="F")
 
-        trmm = choose_fn(self.fC.dtype, sclb.dtrmm, sclb.strmm, "TRMM")
-        out = trmm(alpha=1.0, a=self.fC, b=alpha_np, side=0, lower=0, trans_a=1, diag=0,
+        trmm = choose_fn(C.dtype, sclb.dtrmm, sclb.strmm, "TRMM")
+        out = trmm(alpha=1.0, a=C.numpy(), b=alpha_np, side=0, lower=0, trans_a=1, diag=0,
                    overwrite_b=1)
         return torch.from_numpy(out)
 
@@ -149,7 +149,7 @@ class LogisticPreconditioner(Preconditioner):
                 # Copy lower(fC) to upper(fC):  upper(fC) = T.
                 copy_triang(C, upper=False)
         else:
-            C = torch.from_numpy(self.fC)
+            C = self.fC
             if not self._use_cuda:
                 # Copy non-necessary for cuda since LAUUM will do the copying
                 with TicToc("Copy triangular", debug=self.params.debug):
@@ -161,7 +161,7 @@ class LogisticPreconditioner(Preconditioner):
         # Compute W
         with TicToc("TRMM", debug=self.params.debug):
             # T is on upper(fC). Compute T.T @ alpha
-            alpha = self._trmm(alpha.clone())
+            alpha = self._trmm(C, alpha.clone())
         with TicToc("W (ddf)", debug=self.params.debug):
             W = self.loss.ddf(Y, alpha)
         with TicToc("W-Multiply", debug=self.params.debug):

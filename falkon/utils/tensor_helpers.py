@@ -7,7 +7,7 @@ import torch
 __all__ = (
     "create_same_stride", "copy_same_stride",
     "create_fortran", "create_C", "is_f_contig", "is_contig",
-    "cast_tensor"
+    "cast_tensor", "move_tensor",
 )
 
 
@@ -193,3 +193,13 @@ def cast_tensor(tensor: torch.Tensor, dtype: torch.dtype, warn: bool = True) -> 
     out_np = tensor.numpy().astype(
         np_dtype, order='K', casting='unsafe', copy=True)
     return torch.from_numpy(out_np)
+
+
+def move_tensor(tensor: torch.Tensor, device: Union[torch.device, str]) -> torch.Tensor:
+    if str(device) == str(tensor.device):
+        return tensor
+
+    new_tensor = create_same_stride(tensor.size(), tensor, tensor.dtype, device)
+    new_tensor.copy_(tensor)
+    return new_tensor
+
