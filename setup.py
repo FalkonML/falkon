@@ -63,7 +63,7 @@ def get_extensions():
     # Parallel OOC
     if WITH_CUDA:
         ooc_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'ooc_ops', 'multigpu')
-        ooc_files = ['multigpu_potrf_bind.cpp', 'cuda/multigpu_potrf.cu', 'cuda/utils.cu']
+        ooc_files = ['multigpu_potrf_bind.cpp', 'cuda/multigpu_potrf.cu']
         ooc_macros = [('WITH_CUDA', None)]
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')

@@ -60,4 +60,4 @@ def potrf_wrapper(A: torch.Tensor, clean: bool, upper: bool, use_cuda: bool, opt
         from falkon.ooc_ops.ooc_potrf import gpu_cholesky
         return gpu_cholesky(A, upper=upper, clean=clean, overwrite=True, opt=opt)
     else:
-        return torch.from_numpy(potrf(A, upper=upper, clean=clean, overwrite=True, cuda=False))
+        return potrf(A, upper=upper, clean=clean, overwrite=True, cuda=False)

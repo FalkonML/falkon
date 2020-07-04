@@ -1,15 +1,12 @@
 #include <thread>
 #include <stdio.h>
 
+#include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/Exceptions.h>
 #include <torch/extension.h>
 
 
-const int TILE_DIM = 32;
-const int BLOCK_ROWS = 8;
-
-
-#define NB 64
+#define NB 4
 
 
 /*
@@ -21,40 +18,28 @@ const int BLOCK_ROWS = 8;
   Not a particularly efficient implementation!
 */
 template <typename scalar_t>
-__global__ void copy_simple_kernel_lower(scalar_t *data, int size)
+__global__ void copy_simple_kernel_lower(scalar_t *data, const size_t size)
 {
-	int i = blockIdx.x * NB + threadIdx.x;
-	// data iterates across row i, dataT across column i.
-	scalar_t *dataT = data;
-
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < size) {
-		data += i;  // Positioned at row i, col 0
-		dataT += i * size;  // Positioned at row 0, col i
-		scalar_t *row_end = data + i * size;  // row i, col size
-		while (data < row_end) {
-			*dataT = (scalar_t)*data;
-			data += size;
-			dataT += 1;
+		int col_pos = i * size;
+		for (int row_pos = i; row_pos < i + i * size; row_pos += size) {
+			data[col_pos] = data[row_pos];
+			col_pos++;
 		}
 	}
 }
 
 // Same as the _lower version, but we copy dataT to data instead!
 template <typename scalar_t>
-__global__ void copy_simple_kernel_upper(scalar_t *data, int size)
+__global__ void copy_simple_kernel_upper(scalar_t *data, const size_t size)
 {
-	int i = blockIdx.x * NB + threadIdx.x;
-	// data iterates across row i, dataT across column i.
-	scalar_t *dataT = data;
-
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < size) {
-		data += i;  // Positioned at row i, col 0
-		dataT += i * size;  // Positioned at row 0, col i
-		scalar_t *row_end = data + i * size;  // row i, col size
-		while (data < row_end) {
-			*data = (scalar_t)*dataT;
-			data += size;
-			dataT += 1;
+		int col_pos = i * size;
+		for (int row_pos = i; row_pos < i + i * size; row_pos += size) {
+			data[row_pos] = data[col_pos];
+			col_pos++;
 		}
 	}
 }
@@ -144,8 +129,8 @@ torch::Tensor cuda_copy_triang(torch::Tensor &A, bool upper) {
         needs_transpose = true;
     }
 
-    const int nx = A.size(0);
-    const int ny = A.size(1);
+    const auto nx = A.size(0);
+    const auto ny = A.size(1);
     const auto scalar_type = A.scalar_type();
 
 
@@ -155,11 +140,14 @@ torch::Tensor cuda_copy_triang(torch::Tensor &A, bool upper) {
     /* Run CUDA kernel */
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
         scalar_t *data = A.data_ptr<scalar_t>();
+	at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
 	if (upper) {
-		copy_simple_kernel_upper<scalar_t><<<dimGrid, dimBlock>>>(data, nx);
+		copy_simple_kernel_upper<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx);
 	} else {
-		copy_simple_kernel_lower<scalar_t><<<dimGrid, dimBlock>>>(data, nx);
+		copy_simple_kernel_lower<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx);
 	}
+	//AT_CUDA_CHECK(cudaStreamSynchronize(stream));
+	//AT_CUDA_CHECK(cudaDeviceSynchronize());
     });
 
     if (needs_transpose) {

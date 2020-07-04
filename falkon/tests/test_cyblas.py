@@ -2,43 +2,18 @@ import time
 from functools import partial
 
 import numpy as np
+import torch
 import pytest
 
-from falkon.la_helpers.cyblas import copy_triang, potrf, mul_triang, vec_mul_triang
+from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang
+from falkon.utils import decide_cuda
+from falkon.utils.tensor_helpers import create_same_stride, create_fortran
 from falkon.tests.conftest import fix_mat
 from falkon.tests.gen_random import gen_random, gen_random_pd
 
 
-
-class TestCudaCopyTriang:
-    t = 10
-
-    @pytest.fixture(scope="class")
-    def mat(self):
-        return np.random.random((self.t, self.t))
-
-    @pytest.mark.parametrize("order", ["F", "C"])
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    def test_low(self, mat, order, dtype):
-        from falkon.ooc_ops.multigpu_potrf import cuda_copy_triang
-        mat = fix_mat(mat, order=order, dtype=dtype, numpy=True)
-        mat_low = mat.copy(order="K")
-        # Upper triangle of mat_low is 0
-        mat_low[np.triu_indices(self.t, 1)] = 0
-        print("ORIGINAL")
-        print(mat_low)
-        cuda_copy_triang(mat_low, upper=False)
-        print("OUTPUT")
-        print(mat_low)
-
-        assert np.sum(mat_low == 0) == 0
-        np.testing.assert_array_equal(np.tril(mat), np.tril(mat_low))
-        np.testing.assert_array_equal(np.triu(mat_low), np.tril(mat_low).T)
-        np.testing.assert_array_equal(np.diag(mat), np.diag(mat_low))
-
-
 class TestCopyTriang:
-    t = 50
+    t = 5
 
     @pytest.fixture(scope="class")
     def mat(self):
@@ -46,13 +21,24 @@ class TestCopyTriang:
 
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    def test_low(self, mat, order, dtype):
+    @pytest.mark.parametrize("device", [
+        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+    def test_low(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=True)
         mat_low = mat.copy(order="K")
         # Upper triangle of mat_low is 0
         mat_low[np.triu_indices(self.t, 1)] = 0
-        copy_triang(mat_low, upper=False)
 
+        # Create device matrix
+        mat_low = torch.from_numpy(mat_low)
+        mat_low_dev = create_same_stride(mat_low.size(), mat_low, mat_low.dtype, device)
+        mat_low_dev.copy_(mat_low)
+
+        # Run copy
+        copy_triang(mat_low_dev, upper=False)
+
+        # Make checks on CPU
+        mat_low = mat_low_dev.cpu().numpy()
         assert np.sum(mat_low == 0) == 0
         np.testing.assert_array_equal(np.tril(mat), np.tril(mat_low))
         np.testing.assert_array_equal(np.triu(mat_low), np.tril(mat_low).T)
@@ -60,17 +46,29 @@ class TestCopyTriang:
 
         # Reset and try with `upper=True`
         mat_low[np.triu_indices(self.t, 1)] = 0
-        copy_triang(mat_low, upper=True)  # Only the diagonal will be set.
+        mat_low_dev.copy_(torch.from_numpy(mat_low))
+
+        copy_triang(mat_low_dev, upper=True)  # Only the diagonal will be set
+
+        mat_low = mat_low_dev.cpu().numpy()
         np.testing.assert_array_equal(np.diag(mat), np.diag(mat_low))
 
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    def test_up(self, mat, order, dtype):
+    @pytest.mark.parametrize("device", [
+        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+    def test_up(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=True)
         mat_up = mat.copy(order="K")
-        # Upper triangle of mat_low is 0
+        # Lower triangle of mat_up is 0
         mat_up[np.tril_indices(self.t, -1)] = 0
-        copy_triang(mat_up, upper=True)
+        # Create device matrix
+        mat_up = torch.from_numpy(mat_up)
+        mat_up_dev = create_same_stride(mat_up.size(), mat_up, mat_up.dtype, device)
+        mat_up_dev.copy_(mat_up)
+        
+        copy_triang(mat_up_dev, upper=True)
+        mat_up = mat_up_dev.cpu().numpy()
 
         assert np.sum(mat_up == 0) == 0
         np.testing.assert_array_equal(np.triu(mat), np.triu(mat_up))
@@ -79,7 +77,11 @@ class TestCopyTriang:
 
         # Reset and try with `upper=False`
         mat_up[np.tril_indices(self.t, -1)] = 0
-        copy_triang(mat_up, upper=False)  # Only the diagonal will be set.
+        mat_up_dev.copy_(torch.from_numpy(mat_up))
+
+        copy_triang(mat_up_dev, upper=False)  # Only the diagonal will be set.
+
+        mat_up = mat_up_dev.cpu().numpy()
         np.testing.assert_array_equal(np.diag(mat), np.diag(mat_up))
 
 
