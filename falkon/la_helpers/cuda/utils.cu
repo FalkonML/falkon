@@ -46,13 +46,13 @@ __global__ void copy_simple_kernel_upper(scalar_t *data, const size_t size)
 
 
 template <typename scalar_t>
-__global__ void mul_upper_diag(scalar_t *data, int size, scalar_t mul)
+__global__ void mul_upper_diag(scalar_t *data, const size_t size, const scalar_t mul)
 {
-	int i = blockIdx.x * NB + threadIdx.x;
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (i < size) {
 		data += i * size;
-		scalar_t *diag_stop = data + i;
+		const scalar_t *diag_stop = data + i;
 		while (data <= diag_stop) {
 			*data *= mul;
 			data++;
@@ -62,13 +62,13 @@ __global__ void mul_upper_diag(scalar_t *data, int size, scalar_t mul)
 
 
 template <typename scalar_t>
-__global__ void mul_upper(scalar_t *data, int size, scalar_t mul)
+__global__ void mul_upper(scalar_t *data, const size_t size, const scalar_t mul)
 {
-	int i = blockIdx.x * NB + threadIdx.x;
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (i < size) {
 		data += i * size;
-		scalar_t *diag_stop = data + i;
+		const scalar_t *diag_stop = data + i;
 		while (data < diag_stop) {
 			*data *= mul;
 			data++;
@@ -78,14 +78,14 @@ __global__ void mul_upper(scalar_t *data, int size, scalar_t mul)
 
 
 template <typename scalar_t>
-__global__ void mul_lower_diag(scalar_t *data, int size, scalar_t mul)
+__global__ void mul_lower_diag(scalar_t *data, const size_t size, const scalar_t mul)
 {
-	int i = blockIdx.x * NB + threadIdx.x;
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (i < size) {
 		data += i * size + i;
-		scalar_t *diag_stop = data + size - i;
-		while (data <= diag_stop) {
+		const scalar_t *diag_stop = data + size - i;
+		while (data < diag_stop) {
 			*data *= mul;
 			data++;
 		}
@@ -93,13 +93,14 @@ __global__ void mul_lower_diag(scalar_t *data, int size, scalar_t mul)
 }
 
 template <typename scalar_t>
-__global__ void mul_lower(scalar_t *data, int size, scalar_t mul)
+__global__ void mul_lower(scalar_t *data, const size_t size, const scalar_t mul)
 {
-	int i = blockIdx.x * NB + threadIdx.x;
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (i < size) {
 		data += i * size + i;
-		scalar_t *diag_stop = data + size - i;
+		const scalar_t *diag_stop = data + size - i;
+		data++; // Avoid touching the diagonal
 		while (data < diag_stop) {
 			*data *= mul;
 			data++;
@@ -133,21 +134,17 @@ torch::Tensor cuda_copy_triang(torch::Tensor &A, bool upper) {
     const auto ny = A.size(1);
     const auto scalar_type = A.scalar_type();
 
-
-    dim3 dimGrid(ceildiv(nx, NB));
-    dim3 dimBlock(NB);
+    const dim3 dimGrid(ceildiv(nx, NB));
+    const dim3 dimBlock(NB);
 
     /* Run CUDA kernel */
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
-        scalar_t *data = A.data_ptr<scalar_t>();
 	at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
 	if (upper) {
 		copy_simple_kernel_upper<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx);
 	} else {
 		copy_simple_kernel_lower<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx);
 	}
-	//AT_CUDA_CHECK(cudaStreamSynchronize(stream));
-	//AT_CUDA_CHECK(cudaDeviceSynchronize());
     });
 
     if (needs_transpose) {
@@ -156,7 +153,7 @@ torch::Tensor cuda_copy_triang(torch::Tensor &A, bool upper) {
     return A;
 }
 
-torch::Tensor cuda_mul_triang(torch::Tensor &A, bool upper, bool preserve_diag, double multiplier) {
+torch::Tensor cuda_mul_triang(torch::Tensor &A, bool upper, const bool preserve_diag, const double multiplier) {
     if (!A.is_cuda()) {
         AT_ERROR("Input A must be a CUDA tensor.");
     }
@@ -164,22 +161,21 @@ torch::Tensor cuda_mul_triang(torch::Tensor &A, bool upper, bool preserve_diag, 
 	upper = !upper;
     }
 
-    const int nx = A.size(0);
+    const auto nx = A.size(0);
     const auto scalar_type = A.scalar_type();
-    dim3 dimGrid(ceildiv(nx, NB));
-    dim3 dimBlock(NB);
+    const dim3 dimGrid(ceildiv(nx, NB));
+    const dim3 dimBlock(NB);
 
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
-	scalar_t mul = (scalar_t)multiplier;
-	scalar_t *data = A.data_ptr<scalar_t>();
-	if (upper && preserve_diag) {
-		mul_upper<scalar_t><<<dimGrid, dimBlock>>>(data, nx, mul);
-	} else if (upper) {
-		mul_upper_diag<scalar_t><<<dimGrid, dimBlock>>>(data, nx, mul);
-	} else if (!upper && preserve_diag) {
-		mul_lower<scalar_t><<<dimGrid, dimBlock>>>(data, nx, mul);
-	} else if (!upper) {
-		mul_lower_diag<scalar_t><<<dimGrid, dimBlock>>>(data, nx, mul);
+	const scalar_t mul = (scalar_t)multiplier;
+	if (upper && preserve_diag) {  // U, preserve
+		mul_upper<scalar_t><<<dimGrid, dimBlock>>>(A.data_ptr<scalar_t>(), nx, mul);
+	} else if (upper) {            // U, no-preserve
+		mul_upper_diag<scalar_t><<<dimGrid, dimBlock>>>(A.data_ptr<scalar_t>(), nx, mul);
+	} else if (preserve_diag) {    // L, preserve
+		mul_lower<scalar_t><<<dimGrid, dimBlock>>>(A.data_ptr<scalar_t>(), nx, mul);
+	} else {                       // L, no-preserve
+		mul_lower_diag<scalar_t><<<dimGrid, dimBlock>>>(A.data_ptr<scalar_t>(), nx, mul);
 	}
     });
     return A;

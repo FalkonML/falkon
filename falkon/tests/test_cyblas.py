@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import pytest
 
-from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang
+from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang
 from falkon.utils import decide_cuda
 from falkon.utils.tensor_helpers import create_same_stride, create_fortran
 from falkon.tests.conftest import fix_mat
@@ -112,7 +112,7 @@ class TestPotrf:
         mat = fix_mat(mat, order=order, dtype=dtype, copy=False, numpy=True)
         inpt = mat.copy(order="K")
 
-        our_chol = potrf(inpt, upper=True, clean=clean, overwrite=overwrite)
+        our_chol = potrf(inpt, upper=True, clean=clean, overwrite=overwrite, cuda=False)
         if overwrite:
             assert inpt.ctypes.data == our_chol.ctypes.data, "Overwriting failed"
 
@@ -127,7 +127,7 @@ class TestPotrf:
         mat = fix_mat(mat, order=order, dtype=dtype, copy=False, numpy=True)
         inpt = mat.copy(order="K")
 
-        our_chol = potrf(inpt, upper=False, clean=clean, overwrite=overwrite)
+        our_chol = potrf(inpt, upper=False, clean=clean, overwrite=overwrite, cuda=False)
         if overwrite:
             assert inpt.ctypes.data == our_chol.ctypes.data, "Overwriting failed"
 
@@ -156,7 +156,7 @@ def test_potrf_speed():
 
 
 class TestMulTriang:
-    t = 500
+    t = 5
 
     @pytest.fixture(scope="class")
     def mat(self):
@@ -165,7 +165,9 @@ class TestMulTriang:
     @pytest.mark.parametrize("preserve_diag", [True, False], ids=["preserve", "no-preserve"])
     @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
     @pytest.mark.parametrize("order", ["F", "C"])
-    def test_zero(self, mat, upper, preserve_diag, order):
+    @pytest.mark.parametrize("device", [
+        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+    def test_zero(self, mat, upper, preserve_diag, order, device):
         inpt1 = fix_mat(mat, dtype=mat.dtype, order=order, copy=True, numpy=True)
         inpt2 = inpt1.copy(order="K")
 
@@ -175,12 +177,46 @@ class TestMulTriang:
         else:
             tri_fn = partial(np.tril, k=-k)
 
-        mul_triang(inpt1, upper=upper, preserve_diag=preserve_diag, multiplier=0)
+        inpt1 = torch.from_numpy(inpt1)
+        inpt1_dev = create_same_stride(inpt1.shape, inpt1, inpt1.dtype, device)
+        inpt1_dev.copy_(inpt1)
+        mul_triang(inpt1_dev, upper=upper, preserve_diag=preserve_diag, multiplier=0)
+        inpt1 = inpt1_dev.cpu().numpy()
+
         assert np.sum(tri_fn(inpt1)) == 0
 
-        # if preserve_diag:
-        #     zero_triang(inpt2, upper=upper)
-        #     np.testing.assert_allclose(inpt1, inpt2)
+        if preserve_diag:
+            inpt2_dev = inpt1_dev
+            inpt2_dev.copy_(torch.from_numpy(inpt2))
+            zero_triang(inpt2_dev, upper=upper)
+            inpt2 = inpt2_dev.cpu().numpy()
+            np.testing.assert_allclose(inpt1, inpt2)
+
+    @pytest.mark.parametrize("preserve_diag", [True, False], ids=["preserve", "no-preserve"])
+    @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
+    @pytest.mark.parametrize("order", ["F", "C"])
+    @pytest.mark.parametrize("device", [
+        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+    def test_mul(self, mat, upper, preserve_diag, order, device):
+        inpt1 = fix_mat(mat, dtype=mat.dtype, order=order, copy=True, numpy=True)
+        inpt2 = inpt1.copy(order="K")
+
+        k = 1 if preserve_diag else 0
+        if upper:
+            tri_fn = partial(np.triu, k=k)
+            other_tri_fn = partial(np.tril, k=k-1)
+        else:
+            tri_fn = partial(np.tril, k=-k)
+            other_tri_fn = partial(np.triu, k=-k+1)
+
+        inpt1 = torch.from_numpy(inpt1)
+        inpt1_dev = create_same_stride(inpt1.shape, inpt1, inpt1.dtype, device)
+        inpt1_dev.copy_(inpt1)
+        mul_triang(inpt1_dev, upper=upper, preserve_diag=preserve_diag, multiplier=10**6)
+        inpt1 = inpt1_dev.cpu().numpy()
+
+        assert np.mean(tri_fn(inpt1)) > 10**5
+        assert np.mean(other_tri_fn(inpt1)) < 1
 
 
 class TestVecMulTriang:
@@ -198,12 +234,12 @@ class TestVecMulTriang:
     def test_lower(self, mat, vec, order):
         mat = fix_mat(mat, order=order, dtype=mat.dtype, numpy=True, copy=True)
 
-        out = vec_mul_triang(mat.copy(order="K"), upper=False, side=0, multiplier=vec)
+        out = vec_mul_triang(mat.copy(order="K"), upper=False, side=0, multipliers=vec)
         exp = np.array([[0, 1, 1], [2, 2, 4], [3, 3, 4]], dtype=np.float32)
         np.testing.assert_allclose(exp, out)
         assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
 
-        out = vec_mul_triang(mat.copy(order="K"), upper=False, side=1, multiplier=vec)
+        out = vec_mul_triang(mat.copy(order="K"), upper=False, side=1, multipliers=vec)
         exp = np.array([[0, 1, 1], [0, 2, 4], [0, 6, 4]], dtype=np.float32)
         np.testing.assert_allclose(exp, out)
         assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
@@ -212,12 +248,12 @@ class TestVecMulTriang:
     def test_upper(self, mat, vec, order):
         mat = fix_mat(mat, order=order, dtype=mat.dtype, numpy=True, copy=True)
 
-        out = vec_mul_triang(mat.copy(order="K"), upper=True, side=0, multiplier=vec)
+        out = vec_mul_triang(mat.copy(order="K"), upper=True, side=0, multipliers=vec)
         exp = np.array([[0, 0, 0], [2, 2, 4], [6, 6, 4]], dtype=np.float32)
         np.testing.assert_allclose(exp, out)
         assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
 
-        out = vec_mul_triang(mat.copy(order="K"), upper=True, side=1, multiplier=vec)
+        out = vec_mul_triang(mat.copy(order="K"), upper=True, side=1, multipliers=vec)
         exp = np.array([[0, 1, 0.5], [2, 2, 2], [6, 6, 4]], dtype=np.float32)
         np.testing.assert_allclose(exp, out)
         assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
