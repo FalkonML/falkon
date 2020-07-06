@@ -31,6 +31,7 @@ def zero_triang(mat: arr_type, upper: bool) -> arr_type:
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
+            print("cuda_mul_triang(", mat.size(), "upper", upper)
             return cuda_mul_triang(mat, upper=upper, preserve_diag=True, multiplier=0.0)
         else:
             out_torch_convert = True

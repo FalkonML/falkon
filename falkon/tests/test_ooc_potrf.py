@@ -9,6 +9,7 @@ from falkon.tests.conftest import memory_checker
 from falkon.tests.gen_random import gen_random_pd
 from falkon.utils import decide_cuda
 from falkon.utils.helpers import sizeof_dtype
+from falkon.utils.tensor_helpers import move_tensor
 from falkon.options import FalkonOptions
 
 if decide_cuda():
@@ -30,17 +31,19 @@ def choose_on_dtype(dtype):
 
 def run_potrf_test(np_data, dtype, order, opt, start_cuda, upper, clean, overwrite):
     # Convert pd_data to the appropriate form
-    data = np.copy(np_data, order=order).astype(dtype, copy=False)
+    data = np.array(np_data, order=order, dtype=dtype, copy=True)
     lapack_fn, rtol = choose_on_dtype(dtype)
     A = torch.from_numpy(data.copy(order="K"))
     if start_cuda:
-        A = A.cuda()
+        A = move_tensor(A, "cuda:0")
+    print("Starting test", flush=True)
 
     orig_stride = A.stride()
     orig_ptr = A.data_ptr()
 
     with memory_checker(opt) as new_opt:
         C_gpu = gpu_cholesky(A, upper=upper, clean=clean, overwrite=overwrite, opt=new_opt)
+        print("GPU CHOL ENDED", flush=True)
 
     assert orig_stride == C_gpu.stride(), "gpu_potrf modified matrix stride."
     if overwrite:
@@ -107,10 +110,10 @@ class TestInCorePyTest:
 class TestOutOfCorePyTest():
     basic_options = FalkonOptions(debug=True, chol_force_ooc=True)
 
-    @pytest.mark.xfail(raises=ValueError, strict=True)
     def test_start_cuda_fail(self, pd_data, dtype, overwrite):
-        run_potrf_test(pd_data, dtype=dtype, order="F", upper=False, clean=False,
-                       overwrite=overwrite, start_cuda=True, opt=self.basic_options)
+        with pytest.raises(ValueError):
+            run_potrf_test(pd_data, dtype=dtype, order="F", upper=False, clean=False,
+                           overwrite=overwrite, start_cuda=True, opt=self.basic_options)
 
     @pytest.mark.parametrize("clean,order,upper", [
         pytest.param(True, "F", True, marks=[pytest.mark.xfail(strict=True), ]),  # Upper-F not possible
