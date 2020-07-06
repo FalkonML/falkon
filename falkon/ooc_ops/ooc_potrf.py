@@ -120,9 +120,6 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
             (0.0, initialization.cusolver_handle(g), g)
         )
 
-    # Must empty cache since in parallel_potrf we handle allocations
-    # ourselves
-    torch.cuda.empty_cache()
     parallel_potrf(device_info, block_allocations, A)
     return A
 

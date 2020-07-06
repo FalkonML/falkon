@@ -1,9 +1,12 @@
-#include <thread>
 #include <stdio.h>
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+#include <torch/extension.h>
+#include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/Exceptions.h>
-#include <torch/extension.h>
 
 
 #define NB 4
@@ -140,6 +143,7 @@ torch::Tensor cuda_copy_triang(torch::Tensor &A, bool upper) {
     /* Run CUDA kernel */
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
 	at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
+	at::DeviceGuard g(A.device());
 	if (upper) {
 		copy_simple_kernel_upper<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx);
 	} else {
@@ -168,14 +172,16 @@ torch::Tensor cuda_mul_triang(torch::Tensor &A, bool upper, const bool preserve_
 
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
 	const scalar_t mul = (scalar_t)multiplier;
+	at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
+	at::DeviceGuard g(A.device());
 	if (upper && preserve_diag) {  // U, preserve
-		mul_upper<scalar_t><<<dimGrid, dimBlock>>>(A.data_ptr<scalar_t>(), nx, mul);
+		mul_upper<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx, mul);
 	} else if (upper) {            // U, no-preserve
-		mul_upper_diag<scalar_t><<<dimGrid, dimBlock>>>(A.data_ptr<scalar_t>(), nx, mul);
+		mul_upper_diag<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx, mul);
 	} else if (preserve_diag) {    // L, preserve
-		mul_lower<scalar_t><<<dimGrid, dimBlock>>>(A.data_ptr<scalar_t>(), nx, mul);
+		mul_lower<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx, mul);
 	} else {                       // L, no-preserve
-		mul_lower_diag<scalar_t><<<dimGrid, dimBlock>>>(A.data_ptr<scalar_t>(), nx, mul);
+		mul_lower_diag<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(A.data_ptr<scalar_t>(), nx, mul);
 	}
     });
     return A;

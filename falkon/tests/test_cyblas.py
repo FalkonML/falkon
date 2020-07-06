@@ -160,7 +160,7 @@ class TestMulTriang:
 
     @pytest.fixture(scope="class")
     def mat(self):
-        return gen_random(self.t, self.t, np.float64, F=False, seed=123)
+        return gen_random(self.t, self.t, np.float32, F=False, seed=123)
 
     @pytest.mark.parametrize("preserve_diag", [True, False], ids=["preserve", "no-preserve"])
     @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
