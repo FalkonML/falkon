@@ -2,14 +2,15 @@ import time
 from functools import partial
 
 import numpy as np
-import torch
 import pytest
+import scipy
+import torch
 
-from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang
-from falkon.utils import decide_cuda
-from falkon.utils.tensor_helpers import create_same_stride, create_fortran
+from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang, trsm
 from falkon.tests.conftest import fix_mat
 from falkon.tests.gen_random import gen_random, gen_random_pd
+from falkon.utils import decide_cuda
+from falkon.utils.tensor_helpers import create_same_stride, move_tensor
 
 
 class TestCopyTriang:
@@ -66,7 +67,7 @@ class TestCopyTriang:
         mat_up = torch.from_numpy(mat_up)
         mat_up_dev = create_same_stride(mat_up.size(), mat_up, mat_up.dtype, device)
         mat_up_dev.copy_(mat_up)
-        
+
         copy_triang(mat_up_dev, upper=True)
         mat_up = mat_up_dev.cpu().numpy()
 
@@ -144,7 +145,7 @@ def test_potrf_speed():
     t = 5000
     mat = gen_random_pd(t, np.float32, F=False, seed=12345)
     t_s = time.time()
-    our_chol = potrf(mat, upper=False, clean=True, overwrite=False)
+    our_chol = potrf(mat, upper=False, clean=True, overwrite=False, cuda=False)
     our_time = time.time() - t_s
 
     t_s = time.time()
@@ -199,7 +200,6 @@ class TestMulTriang:
         "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
     def test_mul(self, mat, upper, preserve_diag, order, device):
         inpt1 = fix_mat(mat, dtype=mat.dtype, order=order, copy=True, numpy=True)
-        inpt2 = inpt1.copy(order="K")
 
         k = 1 if preserve_diag else 0
         if upper:
@@ -217,6 +217,55 @@ class TestMulTriang:
 
         assert np.mean(tri_fn(inpt1)) > 10**5
         assert np.mean(other_tri_fn(inpt1)) < 1
+
+
+class TestTrsm:
+    t = 50
+    r = 20
+    rtol = {
+        np.float32: 1e-4,
+        np.float64: 1e-13,
+    }
+
+    @pytest.fixture(scope="class")
+    def alpha(self):
+        return 1.0
+
+    @pytest.fixture(scope="class")
+    def mat(self):
+        return gen_random(self.t, self.t, np.float64, F=True, seed=123)
+
+    @pytest.fixture(scope="class")
+    def vec(self):
+        return gen_random(self.t, self.r, np.float64, F=True, seed=124)
+
+    @pytest.fixture(scope="class", params=[
+        (True, True), (True, False), (False, True), (False, False)], ids=[
+        "lower-trans", "lower-no", "upper-trans", "upper-no"
+    ])
+    def solution(self, mat, vec, request):
+        lower, trans = request.param
+        return (scipy.linalg.solve_triangular(
+            mat, vec, trans=int(trans), lower=lower, unit_diagonal=False,
+            overwrite_b=False, debug=None, check_finite=True), lower, trans)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("order_v", ["C", "F"])
+    @pytest.mark.parametrize("order_A", ["C", "F"])
+    @pytest.mark.parametrize("device", [
+        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+    def test_trsm(self, mat, vec, solution, alpha, dtype, order_v, order_A, device):
+        mat = move_tensor(fix_mat(mat, dtype, order_A, copy=True, numpy=False), device=device)
+        vec = move_tensor(fix_mat(vec, dtype, order_v, copy=True, numpy=False), device=device)
+
+        sol_vec, lower, trans = solution
+        out = trsm(vec, mat, alpha, lower=int(lower), transpose=int(trans))
+
+        assert out.data_ptr() != vec.data_ptr(), "Vec was overwritten."
+        assert out.device == vec.device, "Output device is incorrect."
+        assert out.stride() == vec.stride(), "Stride was modified."
+        assert out.dtype == vec.dtype, "Dtype was modified."
+        np.testing.assert_allclose(sol_vec, out.cpu().numpy(), rtol=self.rtol[dtype])
 
 
 class TestVecMulTriang:

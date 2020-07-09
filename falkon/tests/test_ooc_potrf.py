@@ -36,7 +36,6 @@ def run_potrf_test(np_data, dtype, order, opt, start_cuda, upper, clean, overwri
     A = torch.from_numpy(data.copy(order="K"))
     if start_cuda:
         A = move_tensor(A, "cuda:0")
-    print("Starting test", flush=True)
 
     orig_stride = A.stride()
     orig_ptr = A.data_ptr()
