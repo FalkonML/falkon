@@ -146,10 +146,9 @@ setup(
     setup_requires=[
         # Setuptools 18.0 properly handles Cython extensions.
         'setuptools>=18.0',
-        'numpy',  # This is handled in pyproject.toml (since we're importing it at top of this file)
-        'scipy',
+        'numpy',
     ],
-    #test_requires=test_requires,
+    tests_require=test_requires,
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={
