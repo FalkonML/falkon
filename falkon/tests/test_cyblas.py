@@ -13,6 +13,51 @@ from falkon.utils import decide_cuda
 from falkon.utils.tensor_helpers import create_same_stride, move_tensor
 
 
+@pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
+@pytest.mark.parametrize("order", ["F", "C"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+class TestCudaTranspose:
+    t = 600
+
+    @pytest.fixture(scope="class")
+    def mat(self):
+        return gen_random(self.t, self.t, np.float64, F=True, seed=12345)
+
+    @pytest.fixture(scope="class")
+    def rect(self):
+        return gen_random(self.t, self.t*2-1, np.float64, F=True, seed=12345)
+
+    def test_square(self, mat, order, dtype):
+        from falkon.la_helpers.cuda_la_helpers import cuda_transpose
+        mat = fix_mat(mat, order=order, dtype=dtype, copy=True, numpy=True)
+        mat_out = np.copy(mat, order="K")
+        exp_mat_out = np.copy(mat.T, order=order)
+
+        mat = move_tensor(torch.from_numpy(mat), "cuda:0")
+        mat_out = move_tensor(torch.from_numpy(mat_out), "cuda:0")
+
+        cuda_transpose(input=mat, output=mat_out)
+
+        mat_out = move_tensor(mat_out, "cpu").numpy()
+        assert mat_out.strides == exp_mat_out.strides
+        np.testing.assert_allclose(exp_mat_out, mat_out)
+        
+    def test_rect(self, rect, order, dtype):
+        from falkon.la_helpers.cuda_la_helpers import cuda_transpose
+        mat = fix_mat(rect, order=order, dtype=dtype, copy=True, numpy=True)
+        exp_mat_out = np.copy(mat.T, order=order)
+
+        mat = move_tensor(torch.from_numpy(mat), "cuda:0")
+        mat_out = move_tensor(torch.from_numpy(exp_mat_out), "cuda:0")
+        mat_out.fill_(0.0)
+
+        cuda_transpose(input=mat, output=mat_out)
+
+        mat_out = move_tensor(mat_out, "cpu").numpy()
+        assert mat_out.strides == exp_mat_out.strides
+        np.testing.assert_allclose(exp_mat_out, mat_out)
+        
+
 class TestCopyTriang:
     t = 5
 
@@ -221,10 +266,10 @@ class TestMulTriang:
 
 class TestTrsm:
     t = 50
-    r = 20
+    r = 10
     rtol = {
         np.float32: 1e-4,
-        np.float64: 1e-13,
+        np.float64: 1e-12,
     }
 
     @pytest.fixture(scope="class")
@@ -251,9 +296,11 @@ class TestTrsm:
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("order_v", ["C", "F"])
-    @pytest.mark.parametrize("order_A", ["C", "F"])
-    @pytest.mark.parametrize("device", [
-        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+    @pytest.mark.parametrize("order_A,device", [
+        ("C", "cpu"), ("F", "cpu"),
+        pytest.param("C", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found."),
+                                           pytest.mark.xfail(reason="cuda TRSM expects F-contiguous A")]),
+        pytest.param("F", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
     def test_trsm(self, mat, vec, solution, alpha, dtype, order_v, order_A, device):
         mat = move_tensor(fix_mat(mat, dtype, order_A, copy=True, numpy=False), device=device)
         vec = move_tensor(fix_mat(vec, dtype, order_v, copy=True, numpy=False), device=device)

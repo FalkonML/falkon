@@ -11,6 +11,7 @@
 
 #define NB 64
 #define TILE_DIM 32
+#define BLOCK_ROWS 8
 
 
 /*
@@ -115,35 +116,77 @@ __global__ void mul_lower(scalar_t *data, const size_t size, const scalar_t mul)
 
 template<typename scalar_t>
 __global__
-void matrix_transpose(scalar_t * out, const scalar_t * in, const unsigned dim0, const unsigned dim1)
+void matrix_transpose_f(scalar_t * out, const scalar_t * in, const unsigned dim0, const unsigned dim1)
 {
+    // https://developer.nvidia.com/blog/efficient-matrix-transpose-cuda-cc/
+    // https://arrayfire.com/cuda-optimization-tips-for-matrix-transpose-in-real-world-applications/
     __shared__ scalar_t shrdMem[TILE_DIM][TILE_DIM+1];
 
     unsigned lx = threadIdx.x;
     unsigned ly = threadIdx.y;
 
-    unsigned gx = lx + blockDim.x * blockIdx.x;
-    unsigned gy = ly + TILE_DIM   * blockIdx.y;
+    unsigned gx = lx + TILE_DIM * blockIdx.x;
+    unsigned gy = ly + TILE_DIM * blockIdx.y;
 
 #pragma unroll
     for (unsigned repeat = 0; repeat < TILE_DIM; repeat += blockDim.y) {
         unsigned gy_ = gy + repeat;
-        if (gx < dim0 && gy_ < dim1)
+        if (gx < dim0 && gy_ < dim1) {
             shrdMem[ly + repeat][lx] = in[gy_ * dim0 + gx];
+	}
     }
     __syncthreads();
 
-    gx = lx + blockDim.x * blockIdx.y;
-    gy = ly + TILE_DIM   * blockIdx.x;
+    gx = lx + TILE_DIM * blockIdx.y;
+    gy = ly + TILE_DIM * blockIdx.x;
 
 #pragma unroll
     for (unsigned repeat = 0; repeat < TILE_DIM; repeat += blockDim.y) {
         unsigned gy_ = gy + repeat;
         if (gx < dim1 && gy_ < dim0)
-            out[gy_ * dim0 + gx] = shrdMem[lx][ly + repeat];
+            out[gy_ * dim1 + gx] = shrdMem[lx][ly + repeat];
     }
 }
 
+
+template<typename scalar_t>
+__global__
+void matrix_transpose_c(scalar_t * out, const scalar_t * in, const unsigned dim0, const unsigned dim1)
+{
+    // https://developer.nvidia.com/blog/efficient-matrix-transpose-cuda-cc/
+    // https://arrayfire.com/cuda-optimization-tips-for-matrix-transpose-in-real-world-applications/
+    __shared__ scalar_t shrdMem[TILE_DIM][TILE_DIM+1];
+
+    unsigned lx = threadIdx.x;
+    unsigned ly = threadIdx.y;
+
+    unsigned gx = lx + TILE_DIM * blockIdx.x;
+    unsigned gy = ly + TILE_DIM * blockIdx.y;
+
+#pragma unroll
+    for (unsigned repeat = 0; repeat < TILE_DIM; repeat += blockDim.x) {
+	unsigned gx_ = gx + repeat;
+        //unsigned gy_ = gy + repeat;
+        if (gx_ < dim0 && gy < dim1) {
+	    shrdMem[lx + repeat][ly] = in[gx_ * dim1 + gy];
+            //shrdMem[ly + repeat][lx] = in[gy_ * dim0 + gx];
+	}
+    }
+    __syncthreads();
+
+    gx = lx + TILE_DIM * blockIdx.y;
+    gy = ly + TILE_DIM * blockIdx.x;
+
+#pragma unroll
+    for (unsigned repeat = 0; repeat < TILE_DIM; repeat += blockDim.x) {
+	unsigned gx_ = gx + repeat;
+        //unsigned gy_ = gy + repeat;
+        if (gx_ < dim1 && gy < dim0) {
+            out[gx_ * dim0 + gy] = shrdMem[ly][lx + repeat];
+            //out[gy_ * dim1 + gx] = shrdMem[lx][ly + repeat];
+	}
+    }
+}
 
 int ceildiv(int dividend, int divisor) {
     int res = dividend / divisor;
@@ -225,21 +268,34 @@ torch::Tensor cuda_transpose(torch::Tensor &input, torch::Tensor &output) {
         AT_ERROR("Input A must be a CUDA tensor.");
     if (!output.is_cuda())
         AT_ERROR("Input A must be a CUDA tensor.");
-    if (input.size() != output.size())
+    if (input.size(0) != output.size(1) || input.size(1) != output.size(0))
         AT_ERROR("Input and output matrices must be of the same size.");
+    // TODO: Check strides are consistent
 
-    const auto nx = A.size(0);
-    const auto ny = A.size(1);
-    const auto scalar_type = A.scalar_type();
+    const auto nx = input.size(0);
+    const auto ny = input.size(1);
+    const auto scalar_type = input.scalar_type();
+    bool fortran_contig = false;
+    if (input.stride(0) == 1) {
+        fortran_contig = true;
+    }
 
     const dim3 dimGrid(ceildiv(nx, TILE_DIM), ceildiv(ny, TILE_DIM), 1);
-    const dim3 dimBlock(TILE_DIM, BLOCK_ROWS, 1);
 
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
+
     at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
-    at::DeviceGuard g(A.device());
-    matrix_transpose<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(
-        output.data_ptr<scalar_t>(), input.data_ptr<scalar_t>(), nx, ny);
+    at::DeviceGuard g(input.device());
+    if (fortran_contig) {
+        const dim3 dimBlock(TILE_DIM, BLOCK_ROWS, 1);
+        matrix_transpose_f<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(
+            output.data_ptr<scalar_t>(), input.data_ptr<scalar_t>(), nx, ny);
+    } else {
+        const dim3 dimBlock(BLOCK_ROWS, TILE_DIM, 1);
+        matrix_transpose_c<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(
+            output.data_ptr<scalar_t>(), input.data_ptr<scalar_t>(), nx, ny);
+    }
+
     });
     return output;
 }

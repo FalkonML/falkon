@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.linalg import blas as sclb
 
-from utils.helpers import choose_fn
+from falkon.utils.helpers import choose_fn
 
 
 def cpu_trsm(A: np.ndarray, v: np.ndarray, alpha: float, lower: int, transpose: int) -> np.ndarray:
