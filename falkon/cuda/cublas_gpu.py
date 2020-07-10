@@ -76,7 +76,7 @@ class CublasError(Exception):
             self.message = CUBLAS_EXCEPTIONS[status_code]
         except KeyError:
             self.message = "Unknown CuBLAS error %d" % (status_code)
-        super.__init__(self.message)
+        super().__init__(self.message)
 
 
 def cublas_check_status(status):
