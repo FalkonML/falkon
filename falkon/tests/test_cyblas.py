@@ -58,6 +58,10 @@ class TestCudaTranspose:
         np.testing.assert_allclose(exp_mat_out, mat_out)
         
 
+@pytest.mark.parametrize("order", ["F", "C"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("device", [
+    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestCopyTriang:
     t = 5
 
@@ -65,10 +69,6 @@ class TestCopyTriang:
     def mat(self):
         return np.random.random((self.t, self.t))
 
-    @pytest.mark.parametrize("order", ["F", "C"])
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    @pytest.mark.parametrize("device", [
-        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
     def test_low(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=True)
         mat_low = mat.copy(order="K")
@@ -77,8 +77,7 @@ class TestCopyTriang:
 
         # Create device matrix
         mat_low = torch.from_numpy(mat_low)
-        mat_low_dev = create_same_stride(mat_low.size(), mat_low, mat_low.dtype, device)
-        mat_low_dev.copy_(mat_low)
+        mat_low_dev = move_tensor(mat_low, device)
 
         # Run copy
         copy_triang(mat_low_dev, upper=False)
@@ -99,10 +98,6 @@ class TestCopyTriang:
         mat_low = mat_low_dev.cpu().numpy()
         np.testing.assert_array_equal(np.diag(mat), np.diag(mat_low))
 
-    @pytest.mark.parametrize("order", ["F", "C"])
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    @pytest.mark.parametrize("device", [
-        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
     def test_up(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=True)
         mat_up = mat.copy(order="K")
@@ -110,8 +105,7 @@ class TestCopyTriang:
         mat_up[np.tril_indices(self.t, -1)] = 0
         # Create device matrix
         mat_up = torch.from_numpy(mat_up)
-        mat_up_dev = create_same_stride(mat_up.size(), mat_up, mat_up.dtype, device)
-        mat_up_dev.copy_(mat_up)
+        mat_up_dev = move_tensor(mat_up, device)
 
         copy_triang(mat_up_dev, upper=True)
         mat_up = mat_up_dev.cpu().numpy()
@@ -201,6 +195,11 @@ def test_potrf_speed():
     print("Time for cholesky(%d): Numpy %.2fs - Our %.2fs" % (t, np_time, our_time))
 
 
+@pytest.mark.parametrize("preserve_diag", [True, False], ids=["preserve", "no-preserve"])
+@pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
+@pytest.mark.parametrize("order", ["F", "C"])
+@pytest.mark.parametrize("device", [
+    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestMulTriang:
     t = 5
 
@@ -208,11 +207,6 @@ class TestMulTriang:
     def mat(self):
         return gen_random(self.t, self.t, np.float32, F=False, seed=123)
 
-    @pytest.mark.parametrize("preserve_diag", [True, False], ids=["preserve", "no-preserve"])
-    @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
-    @pytest.mark.parametrize("order", ["F", "C"])
-    @pytest.mark.parametrize("device", [
-        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
     def test_zero(self, mat, upper, preserve_diag, order, device):
         inpt1 = fix_mat(mat, dtype=mat.dtype, order=order, copy=True, numpy=True)
         inpt2 = inpt1.copy(order="K")
@@ -238,11 +232,6 @@ class TestMulTriang:
             inpt2 = inpt2_dev.cpu().numpy()
             np.testing.assert_allclose(inpt1, inpt2)
 
-    @pytest.mark.parametrize("preserve_diag", [True, False], ids=["preserve", "no-preserve"])
-    @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
-    @pytest.mark.parametrize("order", ["F", "C"])
-    @pytest.mark.parametrize("device", [
-        "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
     def test_mul(self, mat, upper, preserve_diag, order, device):
         inpt1 = fix_mat(mat, dtype=mat.dtype, order=order, copy=True, numpy=True)
 
@@ -264,6 +253,13 @@ class TestMulTriang:
         assert np.mean(other_tri_fn(inpt1)) < 1
 
 
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("order_v", ["C", "F"])
+@pytest.mark.parametrize("order_A,device", [
+    ("C", "cpu"), ("F", "cpu"),
+    pytest.param("C", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found."),
+                                       pytest.mark.xfail(reason="cuda TRSM expects F-contiguous A")]),
+    pytest.param("F", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
 class TestTrsm:
     t = 50
     r = 10
@@ -294,13 +290,6 @@ class TestTrsm:
             mat, vec, trans=int(trans), lower=lower, unit_diagonal=False,
             overwrite_b=False, debug=None, check_finite=True), lower, trans)
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    @pytest.mark.parametrize("order_v", ["C", "F"])
-    @pytest.mark.parametrize("order_A,device", [
-        ("C", "cpu"), ("F", "cpu"),
-        pytest.param("C", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found."),
-                                           pytest.mark.xfail(reason="cuda TRSM expects F-contiguous A")]),
-        pytest.param("F", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
     def test_trsm(self, mat, vec, solution, alpha, dtype, order_v, order_A, device):
         mat = move_tensor(fix_mat(mat, dtype, order_A, copy=True, numpy=False), device=device)
         vec = move_tensor(fix_mat(vec, dtype, order_v, copy=True, numpy=False), device=device)
