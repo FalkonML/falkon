@@ -1,0 +1,7 @@
+setuptools>=18.0
+torch>=1.4
+numpy
+scipy
+scikit-learn>=0.23
+psutil
+dataclasses;python_version<"3.7"

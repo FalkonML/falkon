@@ -1,0 +1,92 @@
+version: 2.1
+jobs:
+  build_docs:
+    docker:
+      - image: circleci/python:3.8.1-buster
+        environment:
+          OPENBLAS_NUM_THREADS: 4
+          DISPLAY: :99
+          PANDOC_INSTALL_URL: https://github.com/jgm/pandoc/releases/download/2.10/pandoc-2.10-linux-amd64.tar.gz
+          PANDOC_TGZ: pandoc-2.10-linux-amd64.tar.gz
+          PANDOC_DEST: /usr/local/
+    steps:
+      - checkout
+      - run:
+          name: setup bash environment
+          command: |
+            echo "set -e" >> $BASH_ENV
+            echo "BASH_ENV:"
+            cat $BASH_ENV
+      - run:
+          name: pull submodules
+          command: |
+            echo $(git log -1 --pretty=%B) | tee gitlog.txt
+            git submodule update --init --recursive
+      - run:
+          name: Spin up Xvfb
+          command: |
+            /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      - restore_cache:
+          keys:
+            - pip-cache
+      - run:
+          name: Install python dependencies
+          command: |
+            python -m pip install --user --upgrade --progress-bar off -r requirements.txt;
+            python -m pip install --user --upgrade --progress-bar off -r doc/doc-requirements.txt;
+            python -m pip install --user -e ./keops/;
+            python -m pip install --user -e .;
+      - save_cache:
+          key: pip-cache
+          paths:
+            - ~/.cache/pip
+      - restore_cache:
+          keys:
+            - pandoc-2.10
+      - run:
+          name: Install pandoc
+          command: |
+            if [ ! -f "~/$PANDOC_TGZ" ]; then
+              wget $PANDOC_INSTALL_URL -O ~/$PANDOC_TGZ
+            fi
+            sudo tar xvzf ~/$PANDOC_TGZ --strip-components 1 -C $PANDOC_DEST
+      - save_cache:
+          key: pandoc-2.10
+          paths:
+            - ~/$PANDOC_TGZ
+      # Look at what we have and fail early if there is some library conflict
+      - run:
+          name: Installation check
+          command: |
+            python -c "import falkon"
+      - run:  # Build docs
+          name: make html
+          no_output_timeout: 30m
+          command: |
+            cd doc;
+            make clean;
+            make html;
+            cd ..;
+      - run:  # Deploy docs (with ghp-import)
+          name: deploy
+          command: |
+            if [[ ${CIRCLE_BRANCH} == "master" ]]; then
+              mkdir -p ~/.ssh
+              echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
+              chmod og= ~/.ssh/config
+              cd doc;
+              make install
+            fi
+      - store_artifacts:  # Save the outputs
+          path: doc/_build/html/
+          destination: dev
+workflows:
+  version: 2
+  default:
+    jobs:
+      - build_docs:
+          filters:
+            branches:
+              only:
+                - master
+                - ci
