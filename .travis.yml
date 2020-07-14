@@ -16,7 +16,9 @@ install:
   - python --version
   - conda install -y numpy scipy pytorch cython>=0.26
   - conda install -y pytest pytest-cov coverage numpydoc
-  - conda install -y flake8 check-manifest codecov
+  - conda install -y flake8 codecov
+  # check manifest needs conda-forge:
+  - conda install -y -c conda-forge check-manifest
   - pip install -e .
 script:
   - pytest -lv --cov-report term-missing falkon --cov=falkon --cov-config .coveragerc
