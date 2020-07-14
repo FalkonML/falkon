@@ -13,7 +13,7 @@ before_install:
   - conda update --yes --quiet conda
 install:
   - conda create -n falkon-env python=${PYTHON_VERSION} -y
-  - conda activate falkon-env
+  - python --version
   - pip install pytest pytest-cov coverage numpydoc
   - pip install flake8 check-manifest codecov
   - pip install -e .
