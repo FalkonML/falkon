@@ -1,8 +1,8 @@
 language: python
 
 env:
-  - PYTHON_VERSION=3.6
-  - PYTHON_VERSION=3.7
+  # - PYTHON_VERSION=3.6
+  # - PYTHON_VERSION=3.7
   - PYTHON_VERSION=3.8
 
 before_install:
@@ -14,7 +14,7 @@ before_install:
 install:
   - conda create -n falkon-env python=${PYTHON_VERSION} -y
   - python --version
-  - pip install numpy torch cython>=0.26
+  - pip install numpy scipy torch cython>=0.26
   - pip install pytest pytest-cov coverage numpydoc
   - pip install flake8 check-manifest codecov
   - pip install -e .
