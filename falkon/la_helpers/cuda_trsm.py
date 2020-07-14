@@ -16,7 +16,7 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
     if not A.is_cuda:
         raise ValueError("A and v must be CUDA tensors!")
 
-    with torch.cuda.device(A.device): # TODO: It's possible we should set a stream..
+    with torch.cuda.device(A.device):  # TODO: It's possible we should set a stream.
         # Deal with copying v, which may not be F-contiguous.
         vF = create_fortran(v.size(), v.dtype, v.device)
         if is_f_contig(v, strict=False):
