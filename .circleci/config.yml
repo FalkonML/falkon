@@ -72,9 +72,6 @@ jobs:
     environment:
       OPENBLAS_NUM_THREADS: 4
       DISPLAY: :99
-      PANDOC_INSTALL_URL: https://github.com/jgm/pandoc/releases/download/2.10/pandoc-2.10-linux-amd64.tar.gz
-      PANDOC_TGZ: pandoc-2.10-linux-amd64.tar.gz
-      PANDOC_DEST: /usr/local/
     steps:
       - full_checkout
       - attach_workspace:
@@ -116,7 +113,6 @@ jobs:
           root: .
           paths:
             - doc/_build
-
   deploy_docs:
     executor: falkon_exec
     steps:
@@ -140,6 +136,7 @@ jobs:
               cd doc;
               make install
             fi
+
 
 workflows:
   version: 2
