@@ -32,7 +32,7 @@ commands:
             if [ ! -f "~/pandoc.tar.gz" ]; then
               wget << parameters.pandoc_url >> -O ~/pandoc.tar.gz
             fi
-            sudo tar xvzf ~/$PANDOC_TGZ --strip-components 1 -C << parameters.pandoc_dest >>
+            sudo tar xvzf "~/pandoc.tar.gz" --strip-components 1 -C << parameters.pandoc_dest >>
       - save_cache:
           key: pandoc-download
           paths:
