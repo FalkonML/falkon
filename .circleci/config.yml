@@ -1,27 +1,84 @@
 version: 2.1
-jobs:
-  build_docs:
-    docker:
-      - image: circleci/python:3.8.1-buster
-        environment:
-          OPENBLAS_NUM_THREADS: 4
-          DISPLAY: :99
-          PANDOC_INSTALL_URL: https://github.com/jgm/pandoc/releases/download/2.10/pandoc-2.10-linux-amd64.tar.gz
-          PANDOC_TGZ: pandoc-2.10-linux-amd64.tar.gz
-          PANDOC_DEST: /usr/local/
+commands:
+  full_checkout:
+    description: "Pull the latest version of the repository and all submodules"
     steps:
       - checkout
-      - run:
-          name: setup bash environment
-          command: |
-            echo "set -e" >> $BASH_ENV
-            echo "BASH_ENV:"
-            cat $BASH_ENV
       - run:
           name: pull submodules
           command: |
             echo $(git log -1 --pretty=%B) | tee gitlog.txt
             git submodule update --init --recursive
+  check_install:
+    description: "Check whether the falkon installation is working"
+    steps:
+      - run:
+          name: Installation check
+          command: python -c "import falkon"
+  install_pandoc:
+    description: "Install pandoc"
+    parameters:
+      pandoc_url:
+        type: string
+      pandoc_dest:
+        type: string
+    steps:
+      - restore_cache:
+          keys:
+            - pandoc-download
+      - run:
+          name: Install pandoc
+          command: |
+            if [ ! -f "~/pandoc.tar.gz" ]; then
+              wget << parameters.pandoc_url >> -O ~/pandoc.tar.gz
+            fi
+            sudo tar xvzf ~/$PANDOC_TGZ --strip-components 1 -C << parameters.pandoc_dest >>
+      - save_cache:
+          key: pandoc-download
+          paths:
+            - ~/pandoc.tar.gz
+
+executors:
+  falkon_exec:
+    docker:
+      - image: circleci/python:3.8.1-buster
+
+jobs:
+  build:
+    executor: falkon_exec
+    steps:
+      - full_checkout
+      - restore_cache:
+          keys:
+            - pip-cache
+      - run:
+          name: Install python dependencies
+          command: |
+            python -m pip install --user --upgrade --progress-bar off -r requirements.txt;
+            python -m pip install --user -e ./keops/;
+            python -m pip install --user -e .;
+      - save_cache:
+          key: pip-cache
+          paths:
+            - ~/.cache/pip
+      - check_install
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+            - falkon.egg-info
+  build_docs:
+    executor: falkon_exec
+    environment:
+      OPENBLAS_NUM_THREADS: 4
+      DISPLAY: :99
+      PANDOC_INSTALL_URL: https://github.com/jgm/pandoc/releases/download/2.10/pandoc-2.10-linux-amd64.tar.gz
+      PANDOC_TGZ: pandoc-2.10-linux-amd64.tar.gz
+      PANDOC_DEST: /usr/local/
+    steps:
+      - full_checkout
+      - attach_workspace:
+          at: .
       - run:
           name: Spin up Xvfb
           command: |
@@ -40,25 +97,10 @@ jobs:
           key: pip-cache
           paths:
             - ~/.cache/pip
-      - restore_cache:
-          keys:
-            - pandoc-2.10
-      - run:
-          name: Install pandoc
-          command: |
-            if [ ! -f "~/$PANDOC_TGZ" ]; then
-              wget $PANDOC_INSTALL_URL -O ~/$PANDOC_TGZ
-            fi
-            sudo tar xvzf ~/$PANDOC_TGZ --strip-components 1 -C $PANDOC_DEST
-      - save_cache:
-          key: pandoc-2.10
-          paths:
-            - ~/$PANDOC_TGZ
-      # Look at what we have and fail early if there is some library conflict
-      - run:
-          name: Installation check
-          command: |
-            python -c "import falkon"
+      - check_install
+      - install_pandoc:
+          pandoc_url: "https://github.com/jgm/pandoc/releases/download/2.10/pandoc-2.10-linux-amd64.tar.gz"
+          pandoc_dest: "/usr/local/"
       - run:  # Build docs
           name: make html
           no_output_timeout: 30m
@@ -67,6 +109,27 @@ jobs:
             make clean;
             make html;
             cd ..;
+      - store_artifacts:  # Save the outputs
+          path: doc/_build/html/
+          destination: dev
+      - persist_to_workspace:  # Now save the outputs to the workspace for 'deploy_docs' job
+          root: .
+          paths:
+            - doc/_build
+
+  deploy_docs:
+    executor: falkon_exec
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "e0:06:e8:69:1c:39:24:2e:43:86:e2:88:2d:01:5a:0d"
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: install_ghp_import
+          command: |
+            python -m pip install --user --upgrade --progress-bar off ghp-import;
       - run:  # Deploy docs (with ghp-import)
           name: deploy
           command: |
@@ -77,14 +140,28 @@ jobs:
               cd doc;
               make install
             fi
-      - store_artifacts:  # Save the outputs
-          path: doc/_build/html/
-          destination: dev
+
 workflows:
   version: 2
-  default:
+  documentation:
     jobs:
+      - build:
+          filters:
+            branches:
+              only:
+                - master
+                - ci
       - build_docs:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
+                - ci
+      - deploy_docs:
+          requires:
+            - build_docs
           filters:
             branches:
               only:
