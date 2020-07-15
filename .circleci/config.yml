@@ -82,7 +82,7 @@ jobs:
             /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       - restore_cache:
           keys:
-            - pip-cache
+            - pip-cache-doc
       - run:
           name: Install python dependencies
           command: |
@@ -91,7 +91,7 @@ jobs:
             python -m pip install --user -e ./keops/;
             python -m pip install --user -e .;
       - save_cache:
-          key: pip-cache
+          key: pip-cache-doc
           paths:
             - ~/.cache/pip
       - check_install
@@ -129,13 +129,11 @@ jobs:
       - run:  # Deploy docs (with ghp-import)
           name: deploy
           command: |
-            if [[ ${CIRCLE_BRANCH} == "master" ]]; then
-              mkdir -p ~/.ssh
-              echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
-              chmod og= ~/.ssh/config
-              cd doc;
-              make install
-            fi
+            mkdir -p ~/.ssh
+            echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
+            chmod og= ~/.ssh/config
+            cd doc;
+            make install
 
 
 workflows:
