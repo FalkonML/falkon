@@ -148,8 +148,8 @@ workflows:
             branches:
               only:
                 - master
-                - /ci-*/
-                - /doc-*/
+                - /ci-.*/
+                - /doc-.*/
       - build_docs:
           requires:
             - build
@@ -157,8 +157,8 @@ workflows:
             branches:
               only:
                 - master
-                - /ci-*/
-                - /doc-*/
+                - /ci-.*/
+                - /doc-.*/
       - deploy_docs:
           requires:
             - build_docs
@@ -166,5 +166,5 @@ workflows:
             branches:
               only:
                 - master
-                - /ci-*/
-                - /doc-*/
+                - /ci-.*/
+                - /doc-.*/
