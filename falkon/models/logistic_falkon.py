@@ -176,14 +176,14 @@ class LogisticFalkon(base.BaseEstimator):
 
         Parameters
         -----------
-         - X : torch.Tensor (2D)
+        X : torch.Tensor (2D)
             Tensor of test data points, of shape [num_samples, num_dimensions].
             If X is in Fortran order (i.e. column-contiguous) then we can avoid
             an extra copy of the data.
 
         Returns
         --------
-         - predictions : torch.Tensor (2D)
+        predictions : torch.Tensor (2D)
             Prediction tensor of shape [num_samples, num_outputs] for all
             data points.
         """
