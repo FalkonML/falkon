@@ -24,6 +24,6 @@ help:
 
 install:
 	touch $(OUTPUTDIR)/.nojekyll
-	ghp-import -m "Update documentation" -b $(GITHUB_PAGES_BRANCH) $(OUTPUTDIR)
+	ghp-import -m "[skip ci] Update documentation" -b $(GITHUB_PAGES_BRANCH) $(OUTPUTDIR)
 	git push origin $(GITHUB_PAGES_BRANCH)
 

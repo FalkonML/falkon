@@ -5,4 +5,3 @@ sphinx-rtd-theme
 pandas
 matplotlib
 jupyter
-ghp-import

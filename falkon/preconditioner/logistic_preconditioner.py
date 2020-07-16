@@ -21,16 +21,20 @@ class LogisticPreconditioner(prec.Preconditioner):
     inducing points. A two step approximation of the inverse matrix
     via two cholesky decompositions is performed.
 
+    ```
     T = chol(K_MM)    => T.T @ T = K_MM
     A = chol(1/M * (T @ (T.T @ W)) + lambda)
-    So T and A are both upper triangular.
-    W is a diagonal matrix of weights derived from the 2nd derivative of the loss function.
+    ```
 
-    Here we store T in the upper triangular part of the `fC` matrix,
-    and A in the upper triangular part of the matrix.
+    So `T` and `A` are both upper triangular.
+    `W` is a diagonal matrix of weights derived from the 2nd derivative of the loss function.
+
+    Here we store `T` in the upper triangular part of the `fC` matrix,
+    and `A` in the upper triangular part of the matrix.
     Whenever we need to use one or the other we need to reset the
     diagonal of `fC` since it is shared between the two matrices.
-    W is of size `M` and is the only difference from the normal FALKON preconditioner.
+    `W` is of size `M` and is the only difference with respect to the normal FALKON preconditioner
+    (:cls:`falkon.preconditioner.FalkonPreconditioner`).
 
     Parameters
     -----------
@@ -59,8 +63,8 @@ class LogisticPreconditioner(prec.Preconditioner):
     --------
     :class:`falkon.gsc_losses.LogisticLoss` :
         for an example of loss function used for kernel reweighting.
-    :class:`falkon.LogisticFalkon` :
-        for the estimator which uses this preconditioner.
+    :class:`falkon.models.LogisticFalkon` :
+        for the logistic kernel estimator which uses this preconditioner.
     """
 
     def __init__(self, kernel, loss, opt: FalkonOptions):
