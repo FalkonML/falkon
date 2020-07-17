@@ -1,0 +1,26 @@
+language: python
+
+env:
+  - PYTHON_VERSION=3.8
+
+before_install:
+  - wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b -p /home/travis/miniconda
+  - export PATH=/home/travis/miniconda/bin:$PATH
+  - conda update --yes --quiet conda
+install:
+  - conda create -n falkon-env python=${PYTHON_VERSION} -y
+  - python --version
+  - pwd
+  - conda install -y numpy scipy pytorch
+  - conda install -y pytest pytest-cov coverage numpydoc
+  - conda install -y flake8 codecov
+  # check manifest needs conda-forge:
+  - conda install -y -c conda-forge check-manifest
+  - pip install -e .
+script:
+  - pytest -lv --cov-report term-missing falkon --cov=falkon --cov-config .coveragerc
+  # - flake8 --count falkon
+after_success:
+  - codecov

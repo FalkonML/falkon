@@ -13,14 +13,14 @@ _RTOL = {torch.float32: 1e-6, torch.float64: 1e-13}
 
 @pytest.fixture(scope="module")
 def sparse1():
-    A = gen_sparse_matrix(50, 10_000_000, np.float64, 1e-6)
+    A = gen_sparse_matrix(50, 1_000_000, np.float64, 1e-6)
     Ad = torch.from_numpy(A.to_scipy().todense())
     return A, Ad
 
 
 @pytest.fixture(scope="module")
 def sparse2():
-    B = gen_sparse_matrix(10_000_000, 50, np.float64, 1e-6)
+    B = gen_sparse_matrix(1_000_000, 50, np.float64, 1e-6)
     Bd = torch.from_numpy(B.to_scipy().todense())
     return B, Bd
 
@@ -90,9 +90,11 @@ def test_csc_creation(sparse1: Tuple[SparseTensor, torch.Tensor], mkl):
 def test_spmmd(mkl, sparse1, sparse2, dtype):
     # sparse1 @ sparse2
     smat1, dmat1 = sparse1
-    smat1 = smat1.to(dtype=dtype); dmat1 = dmat1.to(dtype=dtype)
+    smat1 = smat1.to(dtype=dtype)
+    dmat1 = dmat1.to(dtype=dtype)
     smat2, dmat2 = sparse2
-    smat2 = smat2.to(dtype=dtype); dmat2 = dmat2.to(dtype=dtype)
+    smat2 = smat2.to(dtype=dtype)
+    dmat2 = dmat2.to(dtype=dtype)
     dt = torch.float32
 
     outC = torch.zeros(smat1.shape[0], smat2.shape[1], dtype=dt)
