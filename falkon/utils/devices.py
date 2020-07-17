@@ -156,7 +156,7 @@ def _cpu_used_mem(uss=True) -> int:
     try:
         # http://grodola.blogspot.com/2016/02/psutil-4-real-process-memory-and-environ.html
         return process.memory_full_info().uss  # Unique set size
-    except:  # Typically a permission error
+    except:  # noqa 722
         return process.memory_info().rss  # in bytes
 
 

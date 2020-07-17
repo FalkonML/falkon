@@ -34,11 +34,11 @@ def load_cusolver_library():
         # Fix for GOMP weirdness with CUDA 8.0 on Fedora (#171):
         try:
             ctypes.CDLL('libgomp.so.1', mode=ctypes.RTLD_GLOBAL)
-        except:
+        except:  # noqa E722
             pass
         try:
             ctypes.CDLL('libgomp.so', mode=ctypes.RTLD_GLOBAL)
-        except:
+        except:  # noqa E722
             pass
     elif sys.platform == 'darwin':
         _libcusolver_libname_list = ['libcusolver.dylib']
