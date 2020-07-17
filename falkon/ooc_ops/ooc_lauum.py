@@ -28,17 +28,17 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     num_gpus = len(gpu_info)
     if num_gpus < 1:
         raise ValueError(
-                "Parallel LAUUM should only be run when some GPU is available.")
+            "Parallel LAUUM should only be run when some GPU is available.")
     N = A.shape[0]
     dt = A.dtype
     dts = sizeof_dtype(dt)
     avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
     # Each GPU should be able to hold in memory 2 block columns
-    max_block_size = int(math.floor(avail_ram / (2*N)))
+    max_block_size = int(math.floor(avail_ram / (2 * N)))
     if max_block_size < 1:
         raise RuntimeError(
-                "Cannot run parallel LAUUM with minimum "
-                "available memory of %.2fMB" % (avail_ram * dts / 2**20))
+            "Cannot run parallel LAUUM with minimum "
+            "available memory of %.2fMB" % (avail_ram * dts / 2**20))
 
     block_sizes = calc_block_sizes2(
         max_block_size, num_gpus, N, opt.lauum_par_blk_multiplier)

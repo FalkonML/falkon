@@ -89,6 +89,7 @@ class LinearKernel(DotProdKernel, KeopsKernelMixin):
     opt : Union(Dict, CompOpt)
         Options dictionary.
     """
+
     def __init__(self, beta=0, sigma=1, opt: Optional[FalkonOptions] = None):
         super().__init__("Linear", opt)
 
@@ -180,7 +181,7 @@ class PolynomialKernel(DotProdKernel, KeopsKernelMixin):
         if is_int_pow:
             formula = f'Pow((alpha * (X | Y) + beta), {int(self.degree.item())}) * v'
         else:
-            formula = f'Powf((alpha * (X | Y) + beta), degree) * v'
+            formula = 'Powf((alpha * (X | Y) + beta), degree) * v'
             aliases.append('degree = Pm(1)')
             other_vars.append(torch.tensor([self.degree]).to(dtype=X1.dtype))
 
@@ -220,7 +221,7 @@ class ExponentialKernel(DotProdKernel, KeopsKernelMixin):
         self.alpha = torch.tensor(extract_float(alpha), dtype=torch.float64)
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
-        formula = f'Exp(alpha * (X | Y)) * v'
+        formula = 'Exp(alpha * (X | Y)) * v'
         aliases = [
             'X = Vi(%d)' % (X1.shape[1]),
             'Y = Vj(%d)' % (X2.shape[1]),

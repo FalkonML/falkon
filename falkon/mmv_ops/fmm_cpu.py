@@ -47,7 +47,7 @@ def blockwise_fmm_cpu(
     # - batch_size * batch_size (chunk of distance matrix)
     # Hence x² + 2*D*x = M, where x=batch_size, M=max_mem
     max_mem /= 8
-    tmp = 2*D
+    tmp = 2 * D
     batch_size = (-tmp + np.sqrt(tmp ** 2 + 4 * max_mem)) / 2
     batch_size = int(math.floor(batch_size))
     if batch_size < 1:
@@ -66,7 +66,7 @@ def blockwise_fmm_cpu(
             if X1 is X2 and j < i:
                 # when X1 is X2 the distance matrix is symmetric so we only need
                 # to compute half of it.
-                out[i:i+len_i, j:j+len_j].copy_(out[j:j+len_j, i:i+len_i].T)
+                out[i:i + len_i, j:j + len_j].copy_(out[j:j + len_j, i:i + len_i].T)
             else:
                 cur_out_chunk = out_chunk.narrow(0, 0, len_i).narrow(1, 0, len_j)
                 cur_out_chunk.fill_(0.0)
@@ -77,7 +77,7 @@ def blockwise_fmm_cpu(
                 kernel._finalize(cur_out_chunk, ddd)
 
                 # Copy back cur_out_chunk -> out
-                out[i:i+len_i, j:j+len_j].copy_(cur_out_chunk.to(dtype=out.dtype))
+                out[i:i + len_i, j:j + len_j].copy_(cur_out_chunk.to(dtype=out.dtype))
     return out
 
 
@@ -136,7 +136,7 @@ def blockwise_fmm_cpu_sparse(
             if X1 is X2 and j < i:
                 # when X1 is X2 the distance matrix is symmetric so we only need
                 # to compute half of it.
-                out[i:i+len_i, j:j+len_j].copy_(out[j:j+len_j, i:i+len_i].T)
+                out[i:i + len_i, j:j + len_j].copy_(out[j:j + len_j, i:i + len_i].T)
             else:
                 cur_out_chunk = out_chunk[:len_i, :len_j]
                 cur_out_chunk.fill_(0.0)
@@ -146,7 +146,7 @@ def blockwise_fmm_cpu_sparse(
                 kernel._apply_sparse(X1_chunk, X2_chunk.transpose_csc(), cur_out_chunk)
                 kernel._finalize(cur_out_chunk, ddd)
                 # Copy back cur_out_chunk -> out
-                out[i:i+len_i, j:j+len_j].copy_(cur_out_chunk.to(dtype=out.dtype))
+                out[i:i + len_i, j:j + len_j].copy_(cur_out_chunk.to(dtype=out.dtype))
     return out
 
 

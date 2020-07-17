@@ -25,11 +25,11 @@ def copy_to_device(rows, cols, H, Hi, Hj, D, Di, Dj, s=None, check=False):
 
     Hptr = H[Hi, Hj].data_ptr()
     ldh = H.stride(1)
-    if H.shape[1] == 1: # col-vector
-        ldh = H.shape[0] # doesn't matter, needs to be >= than rows
+    if H.shape[1] == 1:  # col-vector
+        ldh = H.shape[0]  # doesn't matter, needs to be >= than rows
 
     Dptr = D[Di, Dj].data_ptr()
-    ldd  = D.stride(1)
+    ldd = D.stride(1)
 
     dtype_size = sizeof_dtype(H.dtype)
 
@@ -85,7 +85,7 @@ def copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, s=None, check=False):
     ldh = H.stride(1)
 
     Dptr = D[Di, Dj].data_ptr()
-    ldd  = D.stride(1)
+    ldd = D.stride(1)
 
     dtype_size = sizeof_dtype(H.dtype)
 
@@ -119,7 +119,7 @@ def copy_to_host_noorder(rows: int, cols: int,
             restr_cpu_buf = copy_to_host(rows, cols, D, Di, Dj, cpu_buf, 0, 0, s=s, check=False)
             if s is not None:
                 s.synchronize()
-            H[Hi:Hi+rows, Hj:Hj+cols].copy_(restr_cpu_buf)
+            H[Hi:Hi + rows, Hj:Hj + cols].copy_(restr_cpu_buf)
         else:
             copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, s=s)
     elif is_contig(D):
@@ -127,7 +127,7 @@ def copy_to_host_noorder(rows: int, cols: int,
             restr_cpu_buf = copy_to_host(cols, rows, D.T, Dj, Di, cpu_buf.T, 0, 0, s=s, check=False)
             if s is not None:
                 s.synchronize()
-            H[Hi:Hi+rows, Hj:Hj+cols].copy_(restr_cpu_buf.T)
+            H[Hi:Hi + rows, Hj:Hj + cols].copy_(restr_cpu_buf.T)
         else:
             copy_to_host(cols, rows, D.T, Dj, Di, H.T, Hj, Hi, s=s)
     else:

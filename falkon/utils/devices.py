@@ -46,8 +46,8 @@ class DeviceInfo:
     def __repr__(self):
         return ("DeviceInfo(Id={Id}, speed={speed}, total_memory={total_memory}, "
                 "used_memory={used_memory}, free_memory={free_memory})".format(
-            Id=self.Id, speed=self.speed, total_memory=self.total_memory,
-            used_memory=self.used_memory, free_memory=self.free_memory))
+                    Id=self.Id, speed=self.speed, total_memory=self.total_memory,
+                    used_memory=self.used_memory, free_memory=self.free_memory))
 
 
 def _get_cpu_device_info(opt: BaseOptions, data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
@@ -156,7 +156,7 @@ def _cpu_used_mem(uss=True) -> int:
     try:
         # http://grodola.blogspot.com/2016/02/psutil-4-real-process-memory-and-environ.html
         return process.memory_full_info().uss  # Unique set size
-    except:  # Typically a permission error
+    except:  # noqa 722
         return process.memory_info().rss  # in bytes
 
 

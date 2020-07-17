@@ -126,6 +126,8 @@ _libcudart = load_cudart_library()
 # Error Checking
 _libcudart.cudaGetErrorString.restype = ctypes.c_char_p
 _libcudart.cudaGetErrorString.argtypes = [ctypes.c_int]
+
+
 def cudaGetErrorString(e):
     """
     Retrieve CUDA error string.
@@ -185,6 +187,8 @@ def __device_index(device):
 
 _libcudart.cudaSetDevice.restype = int
 _libcudart.cudaSetDevice.argtypes = [ctypes.c_int]
+
+
 def cudaSetDevice(dev):
     """
     Set current CUDA device.
@@ -201,6 +205,8 @@ def cudaSetDevice(dev):
 
 _libcudart.cudaMemGetInfo.restype = int
 _libcudart.cudaMemGetInfo.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+
 def cudaMemGetInfo():
     """
     Return the amount of free and total device memory.
@@ -217,7 +223,6 @@ def cudaMemGetInfo():
     status = _libcudart.cudaMemGetInfo(ctypes.byref(free), ctypes.byref(total))
     cuda_check_status(status)
     return free.value, total.value
-
 
 
 def cuda_meminfo(device=None):
@@ -240,6 +245,8 @@ class CudaDeviceAttributes(Enum):
 
 _libcudart.cudaDeviceGetAttribute.restype = c_int
 _libcudart.cudaDeviceGetAttribute.argtypes = [c_void_p, c_int, c_int]
+
+
 def cuda_device_get_attribute(device, attr):
     out_val = c_int()
     device_num = __device_index(device)
@@ -259,6 +266,8 @@ def is_gpu_execution_limited(device):
 # Peer copies
 _libcudart.cudaDeviceCanAccessPeer.restype = c_int
 _libcudart.cudaDeviceCanAccessPeer.argtypes = [c_void_p, c_int, c_int]
+
+
 def cuda_device_can_access_peer(device, peer_device):
     out_val = c_int()
     device = __device_index(device)
@@ -271,6 +280,8 @@ def cuda_device_can_access_peer(device, peer_device):
 
 _libcudart.cudaDeviceEnablePeerAccess.restype = c_int
 _libcudart.cudaDeviceEnablePeerAccess.argtypes = [c_int, ctypes.c_uint]
+
+
 def cuda_device_enable_peer_access(device):
     device = __device_index(device)
     flags = ctypes.c_uint(0)
@@ -281,6 +292,8 @@ def cuda_device_enable_peer_access(device):
 
 _libcudart.cudaMemcpyPeer.restype = c_int
 _libcudart.cudaMemcpyPeer.argtypes = [c_void_p, c_int, c_void_p, c_int, c_size_t]
+
+
 def cuda_memcpy_peer(dst, dst_device, src, src_device, count):
     src_device = __device_index(src_device)
     dst_device = __device_index(dst_device)
@@ -292,6 +305,8 @@ def cuda_memcpy_peer(dst, dst_device, src, src_device, count):
 
 _libcudart.cudaMemcpyPeerAsync.restype = c_int
 _libcudart.cudaMemcpyPeerAsync.argtypes = [c_void_p, c_int, c_void_p, c_int, c_size_t, c_void_p]
+
+
 def cuda_memcpy_peer_async(dst, dst_device, src, src_device, count, stream):
     src_device = __device_index(src_device)
     dst_device = __device_index(dst_device)
@@ -304,6 +319,8 @@ def cuda_memcpy_peer_async(dst, dst_device, src, src_device, count, stream):
 _libcudart.cudaMemcpy2D.restype = c_int
 _libcudart.cudaMemcpy2D.argtypes = [c_void_p, c_size_t, c_void_p, c_size_t, c_size_t, c_size_t,
                                     c_int]
+
+
 def cuda_memcpy2d(dst, dpitch, src, spitch, width, height):
     # Here 4 is cudaMemcpyDefault
     status = _libcudart.cudaMemcpy2D(dst, c_size_t(dpitch), src,
@@ -315,6 +332,8 @@ def cuda_memcpy2d(dst, dpitch, src, spitch, width, height):
 _libcudart.cudaMemcpy2DAsync.restype = c_int
 _libcudart.cudaMemcpy2DAsync.argtypes = [c_void_p, c_size_t, c_void_p, c_size_t, c_size_t, c_size_t,
                                          c_int, c_void_p]
+
+
 def cuda_memcpy2d_async(dst, dpitch, src, spitch, width, height, stream):
     # Here 4 is cudaMemcpyDefault https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html#group__CUDART__TYPES_1g18fa99055ee694244a270e4d5101e95b
     status = _libcudart.cudaMemcpy2DAsync(dst, c_size_t(dpitch), src,

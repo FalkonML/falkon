@@ -254,7 +254,7 @@ class Mkl():
                 self.mkl_sparse_destroy(csc_ref)
         return True
 
-    def mkl_create_sparse(self, mat: SparseTensor) -> sparse_matrix_t:
+    def mkl_create_sparse(self, mat: SparseTensor) -> sparse_matrix_t:  # noqa 821
         """Create a MKL sparse matrix from a SparseTensor object
 
         The object created is an opaque container which can be passed to sparse MKL operations.
@@ -309,7 +309,7 @@ class Mkl():
         Mkl.mkl_check_return_val(ret_val, fn)
         return ref
 
-    def mkl_create_sparse_from_scipy(self, matrix: _scipy_sparse_type) -> sparse_matrix_t:
+    def mkl_create_sparse_from_scipy(self, matrix: _scipy_sparse_type) -> sparse_matrix_t:  # noqa 821
         """Create a MKL sparse matrix from a scipy sparse matrix.
 
         The object created is an opaque container which can be passed to sparse MKL operations.
@@ -492,7 +492,8 @@ class Mkl():
                             size=(nrows, ncols),
                             sparse_type=output_type.lower())
 
-    def mkl_convert_csr(self, mkl_mat: sparse_matrix_t, destroy_original=False) -> sparse_matrix_t:
+    def mkl_convert_csr(self, mkl_mat: sparse_matrix_t,
+            destroy_original=False) -> sparse_matrix_t:  # noqa 821
         """Convert a MKL matrix from CSC format to CSR format.
 
         Parameters

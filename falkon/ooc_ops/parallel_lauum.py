@@ -250,7 +250,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                         dst=whole_col_r.data_ptr(), dpitch=max_block_size * dts,
                         src=A[br.start, br.start].data_ptr(), spitch=A.shape[1] * dts,
                         width=br.length * dts, height=N - br.start, stream=s1_cuda)
-                    #s1.synchronize()
+                    # s1.synchronize()
                     # Restrict column b to only the last 'r' rows
                     ccb = whole_col_b[(br.start - b_start) * max_block_size:]
 

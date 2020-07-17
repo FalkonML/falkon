@@ -40,12 +40,12 @@ def _sparse_matmul_cpu(A, B, out):
         try:
             # noinspection PyUnboundLocalVariable
             mkl.mkl_sparse_destroy(mkl_sp_1)
-        except:
+        except:  # noqa E722
             pass
         try:
             # noinspection PyUnboundLocalVariable
             mkl.mkl_sparse_destroy(mkl_sp_2)
-        except:
+        except:  # noqa E722
             pass
 
 

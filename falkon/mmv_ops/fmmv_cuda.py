@@ -75,7 +75,7 @@ def sparse_fmmv(proc_idx, queue, device_id):
     # Other: GPU buffer
     n, m = select_dim_over_m(
         maxM=mtot, maxN=ntot, tot=avail_mem,
-        coef_nm=3, coef_n=2 + 2*dtot*X1.density + T, coef_m=2*dtot*X2.density + T, rest=dtot,
+        coef_nm=3, coef_n=2 + 2 * dtot * X1.density + T, coef_m=2 * dtot * X2.density + T, rest=dtot,
     )
 
     ddev = torch.device('cuda:%d' % int(device_id))
@@ -194,10 +194,10 @@ def sparse_fdmmv(proc_idx, queue, device_id):
     # v_gpu    : M * T
     # out_gpu  : M * T
     avail_mem = max_mem / sizeof_dtype(dtype)
-    den = 2*D*X1.density + 2 + 3*M + T
-    sub = D + 2*D*M*X2.density + M*T
+    den = 2 * D * X1.density + 2 + 3 * M + T
+    sub = D + 2 * D * M * X2.density + M * T
     if v is not None:
-        sub += M*T
+        sub += M * T
     n = (avail_mem - sub) / den
     n = min(int(n), N)
     if n < 1:
@@ -346,7 +346,7 @@ def distk_fmmv(proc_idx, queue, device_id):
     # -----------
     # total: n*m + n * (D + T) + m * (D + T) = R
     avail_mem = max_mem / sizeof_dtype(dtype)
-    #if sizeof_dtype(dtype) == 4:
+    # if sizeof_dtype(dtype) == 4:
     #    avail_mem /= 2
     n, m = select_dim_over_m(
         maxM=M, maxN=N,
@@ -371,7 +371,7 @@ def distk_fmmv(proc_idx, queue, device_id):
                 mb = min(m, M - j)
                 cur_X2s_gpu = copy_to_device_noorder(mb, D, X2, j, 0, X2s_gpu, 0, 0)
                 cur_vs_gpu = copy_to_device_noorder(mb, T, v, j, 0, vs_gpu, 0, 0)  # m x T
-                cur_nm_gpu = nm_gpu[:nb,:mb]  # n x m
+                cur_nm_gpu = nm_gpu[:nb, :mb]  # n x m
 
                 sq2 = torch.norm(cur_X2s_gpu, p=2, dim=1, keepdim=True).pow_(2)
                 torch.mm(cur_X1s_gpu, cur_X2s_gpu.T, out=cur_nm_gpu)
@@ -441,7 +441,7 @@ def distk_fdmmv(proc_idx, queue, device_id):
         sq1_gpu = create_same_stride((n,), X1, dtype, ddev)
         sq2_gpu = create_same_stride((M,), X1, dtype, ddev)
 
-        #if (d == D):
+        # if (d == D):
         #    with torch.cuda.stream(s2):
         #        cur_X2s_gpu = copy_to_device_noorder(M, d, X2, 0, 0, X2s_gpu, 0, 0, s=s2)
         #        torch.norm(cur_X2s_gpu, p=2, dim=1, keepdim=True, out=sq2_gpu).pow_(2)
@@ -455,7 +455,7 @@ def distk_fdmmv(proc_idx, queue, device_id):
             for j in range(0, D, d):
                 db = min(D - j, d)
                 # Parallelize two matrix transfers (probably pointless)
-                #if d < D:
+                # if d < D:
                 with torch.cuda.stream(s2):
                     cur_X2s_gpu = copy_to_device_noorder(M, db, X2, 0, j, X2s_gpu, 0, 0, s=s2)
                     torch.norm(cur_X2s_gpu, p=2, dim=1, keepdim=True, out=sq2_gpu).pow_(2)
@@ -521,7 +521,8 @@ def fmmv_cuda(X1: torch.Tensor,
     args = []  # Arguments passed to each subprocess
     for i, g in enumerate(gpu_info):
         bwidth = block_sizes[i + 1] - block_sizes[i]
-        if bwidth <= 0: continue
+        if bwidth <= 0:
+            continue
         args.append((ArgsFmmv(
             X1=X1.narrow(0, block_sizes[i], bwidth),
             X2=X2, v=v,
@@ -563,12 +564,13 @@ def fmmv_cuda_sparse(X1: SparseTensor,
     args = []  # Arguments passed to each subprocess
     for i, g in enumerate(gpu_info):
         bwidth = block_sizes[i + 1] - block_sizes[i]
-        if bwidth <= 0: continue
+        if bwidth <= 0:
+            continue
         args.append((ArgsFmmv(
-                X1=X1.narrow_rows(block_sizes[i], bwidth),
-                X2=X2, v=v,
-                out=out.narrow(0, block_sizes[i], bwidth),
-                kernel=kernel, max_mem=g.usable_ram), g.Id))
+            X1=X1.narrow_rows(block_sizes[i], bwidth),
+            X2=X2, v=v,
+            out=out.narrow(0, block_sizes[i], bwidth),
+            kernel=kernel, max_mem=g.usable_ram), g.Id))
 
     _start_wait_processes(sparse_fmmv, args)
     return out
@@ -686,7 +688,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
             X2=X2, v=v, w=cur_w, out=cur_out_gpu,
             kernel=kernel, max_mem=g.usable_ram), g.Id))
 
-    _start_wait_processes(sparse_fdmmv,  args)
+    _start_wait_processes(sparse_fdmmv, args)
 
     if len(wrlk) > 1:
         # noinspection PyTypeChecker

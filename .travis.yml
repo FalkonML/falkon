@@ -12,7 +12,6 @@ before_install:
 install:
   - conda create -n falkon-env python=${PYTHON_VERSION} -y
   - python --version
-  - pwd
   - conda install -y numpy scipy pytorch
   - conda install -y pytest pytest-cov coverage numpydoc
   - conda install -y flake8 codecov
@@ -21,6 +20,6 @@ install:
   - pip install -e .
 script:
   - pytest -lv --cov-report term-missing falkon --cov=falkon --cov-config .coveragerc
-  # - flake8 --count falkon
+  - flake8 --count falkon
 after_success:
   - codecov

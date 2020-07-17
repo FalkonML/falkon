@@ -38,6 +38,7 @@ class Loss(ABC):
     --------
     :class:`LogisticLoss` : a concrete implementation of this class for the logistic loss.
     """
+
     def __init__(self,
                  name: str,
                  kernel: falkon.kernels.Kernel,
@@ -78,7 +79,7 @@ class Loss(ABC):
         return out, func_val
 
     def knmp_hess(self, X, Xc, Y, f, u, opt=None):
-        """Compute a kernel-vector product with a rescaling with the second derivative
+        r"""Compute a kernel-vector product with a rescaling with the second derivative
 
         Given kernel function :math:`K`, the loss represented by this class :math:`\mathcal{l}`,
         number of samples :math:`n`, this function follows equation
@@ -131,6 +132,7 @@ class LogisticLoss(Loss):
     >>> estimator = falkon.LogisticFalkon(k, [1e-4, 1e-4, 1e-4], [3, 3, 3], loss=log_loss, M=100)
 
     """
+
     def __init__(self, kernel: falkon.kernels.Kernel, opt: FalkonOptions = FalkonOptions()):
         super().__init__(name="LogisticLoss", kernel=kernel, opt=opt)
 

@@ -181,7 +181,7 @@ def run_keops_mmv(X1: torch.Tensor,
         opt = FalkonOptions()
     # Choose backend
     N, D = X1.shape
-    M = X2.shape[0]
+    # M = X2.shape[0]
     T = v.shape[1]
     backend = _decide_backend(opt, D)
     dtype = _keops_dtype(X1.dtype)
@@ -221,15 +221,15 @@ def run_keops_mmv(X1: torch.Tensor,
                 continue
 
             args.append((ArgsFmmv(
-                    X1=X1.narrow(0, block_sizes[i], bwidth),
-                    X2=X2,
-                    v=v,
-                    out=out.narrow(0, block_sizes[i], bwidth),
-                    other_vars=other_vars,
-                    function=fn,
-                    backend=backend,
-                    gpu_ram=gpu_ram[i]
-                ), gpu_info[i].Id))
+                X1=X1.narrow(0, block_sizes[i], bwidth),
+                X2=X2,
+                v=v,
+                out=out.narrow(0, block_sizes[i], bwidth),
+                other_vars=other_vars,
+                function=fn,
+                backend=backend,
+                gpu_ram=gpu_ram[i]
+            ), gpu_info[i].Id))
         _start_wait_processes(_single_gpu_method, args)
     else:  # Run on CPU
         variables = [X1, X2, v] + other_vars
