@@ -181,7 +181,7 @@ def run_keops_mmv(X1: torch.Tensor,
         opt = FalkonOptions()
     # Choose backend
     N, D = X1.shape
-    M = X2.shape[0]
+    # M = X2.shape[0]
     T = v.shape[1]
     backend = _decide_backend(opt, D)
     dtype = _keops_dtype(X1.dtype)

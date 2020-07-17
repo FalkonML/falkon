@@ -63,7 +63,7 @@ class ConjugateGradient(Optimizer):
                     R = B - mmv(X)
                 else:
                     R = R - torch.mm(AP, torch.diag(alpha))
-                    #R.addmm_(mat1=AP, mat2=torch.diag(alpha), alpha=-1.0)
+                    # R.addmm_(mat1=AP, mat2=torch.diag(alpha), alpha=-1.0)
 
                 Rsnew = torch.sum(R.pow(2), dim=0)
                 if Rsnew.abs().max().sqrt() < self.params.cg_tolerance:

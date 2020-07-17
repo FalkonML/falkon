@@ -79,7 +79,7 @@ class Loss(ABC):
         return out, func_val
 
     def knmp_hess(self, X, Xc, Y, f, u, opt=None):
-        """Compute a kernel-vector product with a rescaling with the second derivative
+        r"""Compute a kernel-vector product with a rescaling with the second derivative
 
         Given kernel function :math:`K`, the loss represented by this class :math:`\mathcal{l}`,
         number of samples :math:`n`, this function follows equation

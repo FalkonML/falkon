@@ -54,7 +54,7 @@ def load_cusolver_library():
             pass
         else:
             break
-    if _libcusolver == None:
+    if _libcusolver is None:
         raise OSError('cusolver library not found')
 
     return _libcusolver

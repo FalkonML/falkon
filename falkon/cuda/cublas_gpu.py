@@ -270,7 +270,7 @@ def cublasGetMatrixAsync(rows, cols, elem_size, A, lda, B, ldb, stream):
     cublas_check_status(status)
 
 
-## DSYRK, SSYRK
+# DSYRK, SSYRK
 _libcublas.cublasDsyrk_v2.restype = int
 _libcublas.cublasDsyrk_v2.argtypes = [ctypes.c_void_p,
                                       ctypes.c_int,
@@ -321,7 +321,7 @@ def cublasSsyrk(handle, uplo, trans, n, k, alpha, A, lda, beta, C, ldc):
     cublas_check_status(status)
 
 
-## DGEMM, SGEMM
+# DGEMM, SGEMM
 _libcublas.cublasDgemm_v2.restype = int
 _libcublas.cublasDgemm_v2.argtypes = [ctypes.c_void_p,
                                       ctypes.c_int,
@@ -392,7 +392,7 @@ def cublasSgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C,
     cublas_check_status(status)
 
 
-## DTRSM, STRSM
+# DTRSM, STRSM
 _libcublas.cublasDtrsm_v2.restype = int
 _libcublas.cublasDtrsm_v2.argtypes = [ctypes.c_void_p,
                                       ctypes.c_int,
@@ -513,7 +513,7 @@ def cublasStrsmBatched(handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, 
     cublas_check_status(status)
 
 
-## DTRMM, STRMM
+# DTRMM, STRMM
 _libcublas.cublasStrmm_v2.restype = int
 _libcublas.cublasStrmm_v2.argtypes = [ctypes.c_void_p,  # handle
                                       ctypes.c_int,  # side
