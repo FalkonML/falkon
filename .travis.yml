@@ -23,5 +23,5 @@ install:
 script:
   - pytest -lv --cov-report term-missing falkon --cov=falkon --cov-config .coveragerc
   # - flake8 --count falkon
-# after_success:
-#   - codecov
+after_success:
+  - codecov
