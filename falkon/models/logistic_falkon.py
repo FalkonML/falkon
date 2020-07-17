@@ -124,7 +124,7 @@ class LogisticFalkon(base.BaseEstimator):
                     loss = torch.mean(self.loss(Y, pred)).item()
                 err_name = "error"
                 if isinstance(err, tuple) and len(err) == 2:
-                   err, err_name = err
+                    err, err_name = err
                 print(f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - "
                       f"{err_str} loss {loss:.4f} - "
                       f"{err_str} {err_name} {err:.4f} ", flush=True)
@@ -195,4 +195,3 @@ class LogisticFalkon(base.BaseEstimator):
 
     def __repr__(self, **kwargs):
         return super().__repr__(N_CHAR_MAX=5000)
-

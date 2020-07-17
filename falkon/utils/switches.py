@@ -36,8 +36,8 @@ def decide_keops(opt: KeopsOptions = KeopsOptions()):
     if not hasattr(decide_keops, 'keops_works'):
         try:
             import pykeops
-            #pykeops.clean_pykeops()          # just in case old build files are still present
-            #pykeops.test_torch_bindings()
+            # pykeops.clean_pykeops()          # just in case old build files are still present
+            # pykeops.test_torch_bindings()
             decide_keops.keops_works = True
         except (ImportError, ModuleNotFoundError):
             warnings.warn("Failed to import PyKeops library; this might lead to "

@@ -93,6 +93,8 @@ def cusolver_check_status(status):
 
 _libcusolver.cusolverDnCreate.restype = int
 _libcusolver.cusolverDnCreate.argtypes = [ctypes.c_void_p]
+
+
 def cusolverDnCreate():
     """
     Create cuSolverDn context.
@@ -115,6 +117,8 @@ def cusolverDnCreate():
 
 _libcusolver.cusolverDnDestroy.restype = int
 _libcusolver.cusolverDnDestroy.argtypes = [ctypes.c_void_p]
+
+
 def cusolverDnDestroy(handle):
     """
     Destroy cuSolverDn context.
@@ -135,6 +139,8 @@ def cusolverDnDestroy(handle):
 
 _libcusolver.cusolverDnSetStream.restype = int
 _libcusolver.cusolverDnSetStream.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+
 def cusolverDnSetStream(handle, stream):
     """
     Set stream used by cuSolverDN library.
@@ -157,6 +163,8 @@ def cusolverDnSetStream(handle, stream):
 
 _libcusolver.cusolverDnGetStream.restype = int
 _libcusolver.cusolverDnGetStream.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+
 def cusolverDnGetStream(handle):
     """
     Get stream used by cuSolverDN library.
@@ -189,6 +197,8 @@ _libcusolver.cusolverDnSpotrf_bufferSize.argtypes = [ctypes.c_void_p,
                                                      ctypes.c_void_p,
                                                      ctypes.c_int,
                                                      ctypes.c_void_p]
+
+
 def cusolverDnSpotrf_bufferSize(handle, uplo, n, A, lda):
     """
     Calculate size of work buffer used by cusolverDnSpotrf.
@@ -212,6 +222,8 @@ _libcusolver.cusolverDnDpotrf_bufferSize.argtypes = [ctypes.c_void_p,
                                                      ctypes.c_void_p,
                                                      ctypes.c_int,
                                                      ctypes.c_void_p]
+
+
 def cusolverDnDpotrf_bufferSize(handle, uplo, n, A, lda):
     """
     Calculate size of work buffer used by cusolverDnDpotrf.
@@ -237,6 +249,8 @@ _libcusolver.cusolverDnSpotrf.argtypes = [ctypes.c_void_p,
                                           ctypes.c_void_p,
                                           ctypes.c_int,
                                           ctypes.c_void_p]
+
+
 def cusolverDnSpotrf(handle, uplo, n, A, lda, workspace, Lwork, devInfo):
     """
     Compute Cholesky factorization of a real single precision Hermitian positive-definite matrix.
@@ -264,6 +278,8 @@ _libcusolver.cusolverDnDpotrf.argtypes = [ctypes.c_void_p,
                                           ctypes.c_void_p,
                                           ctypes.c_int,
                                           ctypes.c_void_p]
+
+
 def cusolverDnDpotrf(handle, uplo, n, A, lda, workspace, Lwork, devInfo):
     """
     Compute Cholesky factorization of a real double precision Hermitian positive-definite matrix.

@@ -127,6 +127,8 @@ _libcublas = load_cublas_library()
 # Context Creation/Destruction
 _libcublas.cublasCreate_v2.restype = int
 _libcublas.cublasCreate_v2.argtypes = [c_void_p]
+
+
 def cublasCreate():
     """
     Initialize CUBLAS.
@@ -149,6 +151,8 @@ def cublasCreate():
 
 _libcublas.cublasDestroy_v2.restype = int
 _libcublas.cublasDestroy_v2.argtypes = [c_void_p]
+
+
 def cublasDestroy(handle):
     """
     Release CUBLAS resources.
@@ -170,6 +174,8 @@ def cublasDestroy(handle):
 _libcublas.cublasSetStream_v2.restype = c_int
 _libcublas.cublasSetStream_v2.argtypes = [ctypes.c_void_p,
                                           ctypes.c_void_p]
+
+
 def cublasSetStream(handle, id):
     """
     Set current CUBLAS library stream.
@@ -191,6 +197,8 @@ def cublasSetStream(handle, id):
 _libcublas.cublasGetStream_v2.restype = c_int
 _libcublas.cublasGetStream_v2.argtypes = [ctypes.c_void_p,
                                           ctypes.c_void_p]
+
+
 def cublasGetStream(handle):
     """
     Get current CUBLAS library stream.
@@ -218,6 +226,8 @@ _libcublas.cublasSetMatrix.restype = c_int
 _libcublas.cublasSetMatrix.argtypes = [
     c_int, c_int, c_int, c_void_p, c_int, c_void_p, c_int
 ]
+
+
 def cublasSetMatrix(rows, cols, elem_size, A, lda, B, ldb):
     status = _libcublas.cublasSetMatrix(
         rows, cols, elem_size, A, int(lda), B, int(ldb))
@@ -228,6 +238,8 @@ _libcublas.cublasSetMatrixAsync.restype = c_int
 _libcublas.cublasSetMatrixAsync.argtypes = [
     c_int, c_int, c_int, c_void_p, c_int, c_void_p, c_int, c_void_p
 ]
+
+
 def cublasSetMatrixAsync(rows, cols, elem_size, A, lda, B, ldb, stream):
     status = _libcublas.cublasSetMatrixAsync(
         rows, cols, elem_size, A, int(lda), B, int(ldb), stream)
@@ -238,6 +250,8 @@ _libcublas.cublasGetMatrix.restype = c_int
 _libcublas.cublasGetMatrix.argtypes = [
     c_int, c_int, c_int, c_void_p, c_int, c_void_p, c_int
 ]
+
+
 def cublasGetMatrix(rows, cols, elem_size, A, lda, B, ldb):
     status = _libcublas.cublasGetMatrix(
         rows, cols, elem_size, A, int(lda), B, int(ldb))
@@ -248,6 +262,8 @@ _libcublas.cublasGetMatrixAsync.restype = c_int
 _libcublas.cublasGetMatrixAsync.argtypes = [
     c_int, c_int, c_int, c_void_p, c_int, c_void_p, c_int, c_void_p
 ]
+
+
 def cublasGetMatrixAsync(rows, cols, elem_size, A, lda, B, ldb, stream):
     status = _libcublas.cublasGetMatrixAsync(
         rows, cols, elem_size, A, int(lda), B, int(ldb), stream)
@@ -267,6 +283,8 @@ _libcublas.cublasDsyrk_v2.argtypes = [ctypes.c_void_p,
                                       ctypes.c_void_p,
                                       ctypes.c_void_p,
                                       ctypes.c_int]
+
+
 def cublasDsyrk(handle, uplo, trans, n, k, alpha, A, lda, beta, C, ldc):
     status = _libcublas.cublasDsyrk_v2(handle,
                                        CUBLAS_FILL_MODE[uplo],

@@ -53,7 +53,7 @@ class ConjugateGradient(Optimizer):
         e_train = time.time() - t_start
 
         for i in range(max_iter):
-            with TicToc("Chol Iter", debug=False): #TODO: FIXME
+            with TicToc("Chol Iter", debug=False):  # TODO: FIXME
                 t_start = time.time()
                 AP = mmv(P)
                 alpha = Rsold / (torch.sum(P * AP, dim=0) + m_eps)
@@ -68,7 +68,7 @@ class ConjugateGradient(Optimizer):
                 Rsnew = torch.sum(R.pow(2), dim=0)
                 if Rsnew.abs().max().sqrt() < self.params.cg_tolerance:
                     print("Stopping conjugate gradient descent at "
-                          "iteration %d. Solution has converged." % (i+1))
+                          "iteration %d. Solution has converged." % (i + 1))
                     break
 
                 P = R + torch.mm(P, torch.diag(Rsnew / (Rsold + m_eps)))
@@ -76,7 +76,7 @@ class ConjugateGradient(Optimizer):
 
                 e_iter = time.time() - t_start
                 e_train += e_iter
-            with TicToc("Chol callback", debug=False):#params.debug):
+            with TicToc("Chol callback", debug=False):  # params.debug):
                 if callback is not None:
                     callback(i + 1, X, e_train)
 
@@ -95,21 +95,21 @@ class FalkonConjugateGradient(Optimizer):
         n = X.size(0)
         prec = self.preconditioner
 
-        with TicToc("ConjGrad preparation", False):# debug=params.debug):
+        with TicToc("ConjGrad preparation", False):  # debug=params.debug):
             if M is None:
                 Knm = X
             else:
                 Knm = None
             # Compute the right hand side
             if Knm is not None:
-                B = Knm.T @ (Y/n)
+                B = Knm.T @ (Y / n)
             else:
                 B = self.kernel.dmmv(X, M, None, Y / n, opt=self.params)
             B = prec.apply_t(B)
 
             # Define the Matrix-vector product iteration
             def mmv(sol):
-                with TicToc("MMV", False):#debug=params.debug):
+                with TicToc("MMV", False):  # debug=params.debug):
                     v = prec.invA(sol)
                     if Knm is not None:
                         cc = Knm.T @ (Knm @ prec.invT(v))

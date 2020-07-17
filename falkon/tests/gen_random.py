@@ -21,7 +21,7 @@ def gen_random_pd(t, dtype, F=False, seed=0):
     #A += 20
     A *= 1
     A += 2
-    A.flat[::t + 1] += t*4
+    A.flat[::t + 1] += t * 4
     return A
 
 

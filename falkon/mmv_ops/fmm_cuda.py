@@ -53,7 +53,7 @@ def _sparse_fmm(proc_idx, queue, device_id):
     # ker_gpu  : mtot * ntot
     n, m = select_dim_over_m(
         maxN=ntot, maxM=mtot, tot=avail_mem,
-        coef_nm=3, coef_m=2*dtot*X2.density, coef_n=2+2*dtot*X1.density, rest=dtot)
+        coef_nm=3, coef_m=2 * dtot * X2.density, coef_n=2 + 2 * dtot * X1.density, rest=dtot)
 
     tc_device = torch.device('cuda:%d' % (int(device_id)))
     with torch.cuda.device(tc_device):
@@ -104,7 +104,7 @@ def _generic_fmm(proc_idx, queue, device_id):
     # of the processed blocks slightly. Especially when doing
     # a cold run since pinned-memory allocation is extremely slow.
     # We don't want to do it if we're memory constrained though.
-    if max_mem > 4*2**30:
+    if max_mem > 4 * 2**30:
         max_mem /= 4
     avail_mem = max_mem / sizeof_dtype(gpu_dtype)
     # Memory usage:
@@ -186,7 +186,8 @@ def fmm_cuda(X1: torch.Tensor,
     args = []
     for i, g in enumerate(gpu_info):
         bwidth = block_sizes[i + 1] - block_sizes[i]
-        if bwidth <= 0: continue
+        if bwidth <= 0:
+            continue
         args.append((ArgsFmm(X1=X1.narrow(0, block_sizes[i], bwidth),
                              X2=X2, out=out.narrow(0, block_sizes[i], bwidth),
                              kernel=kernel, gpu_dtype=gpu_dtype, max_mem=g.usable_ram), g.Id))
@@ -219,7 +220,8 @@ def fmm_cuda_sparse(X1: SparseTensor,
     args = []
     for i, g in enumerate(gpu_info):
         bwidth = block_sizes[i + 1] - block_sizes[i]
-        if bwidth <= 0: continue
+        if bwidth <= 0:
+            continue
         args.append((ArgsFmm(
             X1=X1.narrow_rows(block_sizes[i], bwidth),
             X2=X2, out=out.narrow(0, block_sizes[i], bwidth),

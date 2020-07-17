@@ -46,8 +46,8 @@ class DeviceInfo:
     def __repr__(self):
         return ("DeviceInfo(Id={Id}, speed={speed}, total_memory={total_memory}, "
                 "used_memory={used_memory}, free_memory={free_memory})".format(
-            Id=self.Id, speed=self.speed, total_memory=self.total_memory,
-            used_memory=self.used_memory, free_memory=self.free_memory))
+                    Id=self.Id, speed=self.speed, total_memory=self.total_memory,
+                    used_memory=self.used_memory, free_memory=self.free_memory))
 
 
 def _get_cpu_device_info(opt: BaseOptions, data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
