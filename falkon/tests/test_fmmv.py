@@ -231,6 +231,7 @@ class TestDense:
         out = torch.empty(m, t, dtype=A.dtype)
         _run_fmmv_test(kernel.dmmv, e_dfmmv, (A, B, v, w), out=out, rtol=rtol, opt=opt)
 
+
 ###############
 # Sparse Test #
 ###############

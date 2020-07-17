@@ -31,7 +31,7 @@ class TestConjugateGradient():
             mat = torch.from_numpy(np.asfortranarray(mat.numpy()))
             vec_rhs = torch.from_numpy(np.asfortranarray(vec_rhs.numpy()))
 
-        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x: mat@x, max_iter=10, callback=None)
+        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x: mat @ x, max_iter=10, callback=None)
 
         assert x.shape == (self.t, vec_rhs.shape[1])
         expected = np.linalg.solve(mat.numpy(), vec_rhs.numpy())
