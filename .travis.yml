@@ -13,7 +13,7 @@ install:
   - conda create -n falkon-env python=${PYTHON_VERSION} -y
   - python --version
   - pwd
-  - conda install -y requirements.txt
+  - conda install -y  --file requirements.txt
   - conda install -y pytest pytest-cov coverage numpydoc
   - conda install -y flake8 codecov
   # check manifest needs conda-forge:
