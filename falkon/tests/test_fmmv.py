@@ -4,6 +4,8 @@ from typing import Tuple
 import numpy as np
 import pytest
 import torch
+from falkon.utils.tensor_helpers import move_tensor
+
 from falkon.options import FalkonOptions
 from pytest import mark
 
@@ -74,7 +76,11 @@ def getA(A, s_A: Tuple[SparseTensor, torch.Tensor]):
         else:
             out = fix_mat(A, dtype=dtype, order=order)
         if out is not None and cuda:
-            return out.cuda()
+            if not sparse:
+                # noinspection PyTypeChecker
+                return move_tensor(out, "cuda:0")
+            else:
+                return out.cuda()
         return out
 
     return convert
@@ -93,7 +99,11 @@ def getB(B, s_B: Tuple[SparseTensor, torch.Tensor]):
         else:
             out = fix_mat(B, dtype=dtype, order=order)
         if out is not None and cuda:
-            return out.cuda()
+            if not sparse:
+                # noinspection PyTypeChecker
+                return move_tensor(out, "cuda:0")
+            else:
+                return out.cuda()
         return out
 
     return convert
@@ -109,7 +119,8 @@ def getv(v):
     def convert(dtype, order, cuda=False):
         out = fix_mat(v, dtype=dtype, order=order)
         if out is not None and cuda:
-            return out.cuda()
+            # noinspection PyTypeChecker
+            return move_tensor(out, "cuda:0")
         return out
 
     return convert
@@ -125,7 +136,8 @@ def getw(w):
     def convert(dtype, order, cuda=False):
         out = fix_mat(w, dtype=dtype, order=order)
         if out is not None and cuda:
-            return out.cuda()
+            # noinspection PyTypeChecker
+            return move_tensor(out, "cuda:0")
         return out
 
     return convert

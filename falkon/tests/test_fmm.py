@@ -3,6 +3,8 @@ import dataclasses
 import numpy as np
 import pytest
 import torch
+from falkon.utils.tensor_helpers import move_tensor
+
 from falkon.options import FalkonOptions
 
 from falkon.kernels import GaussianKernel, LinearKernel, PolynomialKernel
@@ -39,7 +41,7 @@ def _run_fmm_test(k_class, k_exp, A, B, out, dtype, rtol, opt):
     with memory_checker(opt) as new_opt:
         actual = k_class(A, B, out=out, opt=new_opt)
 
-    np.testing.assert_allclose(k_exp, actual, rtol=rtol)
+    np.testing.assert_allclose(k_exp, actual.cpu().numpy(), rtol=rtol)
     if out is not None:
         # Check output pointers
         assert out.data_ptr() == actual.data_ptr(), "Output data tensor was not used"
@@ -159,6 +161,9 @@ def B(request):
     pytest.param(True),
     pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ], ids=["cpu", "gpu"])
+@pytest.mark.parametrize("input_device", [
+    pytest.param("cpu"),
+    pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
 class TestDenseFmm:
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False, no_single_kernel=False)
 
@@ -168,18 +173,28 @@ class TestDenseFmm:
         pytest.param('Af', 'Bf', marks=pytest.mark.usefixtures('Af', 'Bf')),
         pytest.param('Ac', 'Bf', marks=pytest.mark.usefixtures('Ac', 'Bf')),
     ], indirect=True)
-    def test(self, A, B, k_class, k_exp, dtype, cpu):
+    def test(self, A, B, k_class, k_exp, dtype, cpu, input_device):
+        if cpu and input_device.startswith("cuda"):
+            return True
         max_mem = 2 * 2 ** 20
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+        A = move_tensor(torch.from_numpy(A), input_device)
+        B = move_tensor(torch.from_numpy(B), input_device)
 
         rtol = choose_on_dtype(dtype)
         _run_fmm_test(k_class, k_exp, A, B, out=None, dtype=dtype, opt=opt, rtol=rtol)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    def test_with_out(self, Ac: torch.Tensor, Bc: torch.Tensor, k_class, k_exp, dtype, cpu):
+    def test_with_out(self, Ac: torch.Tensor, Bc: torch.Tensor, k_class, k_exp, dtype, cpu, input_device):
+        if cpu and input_device.startswith("cuda"):
+            return True
         out = np.empty((Ac.shape[0], Bc.shape[0]), dtype=Ac.dtype)
         max_mem = 2 * 2 ** 20
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+
+        Ac = move_tensor(torch.from_numpy(Ac), input_device)
+        Bc = move_tensor(torch.from_numpy(Bc), input_device)
+
         rtol = choose_on_dtype(dtype)
         _run_fmm_test(k_class, k_exp, Ac, Bc, out=out, dtype=dtype, opt=opt, rtol=rtol)
 
@@ -187,12 +202,19 @@ class TestDenseFmm:
         pytest.param('Af', 'Bf', marks=pytest.mark.usefixtures('Af', 'Bf')),
         pytest.param('Ac', 'Bf', marks=pytest.mark.usefixtures('Ac', 'Bf')),
     ], indirect=True)
-    def test_precise_kernel(self, A, B, k_class, k_exp, cpu):
+    def test_precise_kernel(self, A, B, k_class, k_exp, cpu, input_device):
+        if cpu and input_device.startswith("cuda"):
+            return True
         max_mem = 2 * 2 ** 20
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem,
                                   no_single_kernel=True)
         expected_rtol = 1e-6
         out = np.empty((A.shape[0], B.shape[0]), dtype=A.dtype)
+
+        A = move_tensor(torch.from_numpy(A), input_device)
+        B = move_tensor(torch.from_numpy(B), input_device)
+        out = move_tensor(torch.from_numpy(out), input_device)
+
         _run_fmm_test(k_class, k_exp, A, B, out=out, dtype=np.float32, opt=opt, rtol=expected_rtol)
 
 

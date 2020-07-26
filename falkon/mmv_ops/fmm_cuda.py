@@ -114,7 +114,11 @@ def _generic_fmm(proc_idx, queue, device_id):
     # - g_ssX1  : n x d
     # - g_sX2   : m x d
     # total : n*d + m*d + n*m
-    n, d, m = select_dim_fMM(avail_mem, ntot, dtot, mtot)
+    if cuda_inputs and not change_dtype:
+        # No allocation will be performed, so no need to split at all!
+        n, d, m = ntot, dtot, mtot
+    else:
+        n, d, m = select_dim_fMM(avail_mem, ntot, dtot, mtot)
 
     tc_device = torch.device('cuda:%d' % (int(device_id)))
     with torch.cuda.device(tc_device):
