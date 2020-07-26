@@ -4,13 +4,55 @@ import numpy as np
 import pytest
 import scipy.linalg.lapack as scll
 import torch
-from falkon.options import FalkonOptions
 
+from falkon.ooc_ops.ooc_utils import calc_block_sizes3
+from falkon.options import FalkonOptions
 from falkon.tests.conftest import memory_checker, fix_mat
 from falkon.utils import decide_cuda
 
 if decide_cuda():
     from falkon.ooc_ops.ooc_lauum import gpu_lauum
+
+
+class TestBlockSizeCalculator:
+    def test_small_edge(self):
+        assert calc_block_sizes3(
+            max_block_size=1, num_devices=4, num_rows=3) == [1, 1, 1]
+        assert calc_block_sizes3(
+            max_block_size=1, num_devices=5, num_rows=1) == [1]
+
+    def test_small(self):
+        assert calc_block_sizes3(
+            max_block_size=10000, num_devices=2, num_rows=100) == [100]
+        assert calc_block_sizes3(
+            max_block_size=5, num_devices=2, num_rows=10) == [5, 5]
+        assert calc_block_sizes3(
+            max_block_size=6, num_devices=3, num_rows=10) == [4, 3, 3]
+
+    def test_edge_preferred(self):
+        assert calc_block_sizes3(
+            max_block_size=10000, num_devices=2, num_rows=3068) == [1534, 1534]
+        assert calc_block_sizes3(
+            max_block_size=10000, num_devices=1, num_rows=7000) == [7000]
+        assert calc_block_sizes3(
+            max_block_size=10000, num_devices=1, num_rows=7001) == [3501, 3500]
+
+    def test_max_block_size(self):
+        assert calc_block_sizes3(
+            max_block_size=50, num_devices=1, num_rows=101) == [34, 34, 33]
+        assert calc_block_sizes3(
+            max_block_size=50, num_devices=2, num_rows=101) == [26, 25, 25, 25]
+        assert calc_block_sizes3(
+            max_block_size=10000, num_devices=1, num_rows=10000) == [5000, 5000]
+
+    def test_large(self):
+        assert calc_block_sizes3(
+            max_block_size=50000, num_devices=1, num_rows=50000) == [6250, 6250, 6250, 6250, 6250,
+                                                                     6250, 6250, 6250]
+        assert calc_block_sizes3(
+            max_block_size=50000, num_devices=6, num_rows=50000) == [4167, 4167, 4167, 4167, 4167,
+                                                                     4167, 4167, 4167, 4166, 4166,
+                                                                     4166, 4166]
 
 
 N = 4000
@@ -26,6 +68,7 @@ def matrix():
 def get_mat(matrix):
     def getter(order, dtype):
         return fix_mat(matrix, dtype=dtype, order=order)
+
     return getter
 
 
@@ -45,7 +88,7 @@ class TestOOCLauum:
         np.float64: 1e-12,
         np.float32: 1e-5
     }
-    basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2*2**20,
+    basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2 ** 20,
                               lauum_par_blk_multiplier=6)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -81,14 +124,18 @@ class TestOOCLauum:
         mat = torch.from_numpy(omat.copy(order="K"))
         with memory_checker(self.basic_opt) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=True, write_opposite=True, opt=new_opt)
-        np.testing.assert_allclose(np.triu(omat, k=1), np.triu(act_up.numpy(), k=1), rtol=self.rtol[dtype])
-        np.testing.assert_allclose(np.tril(act_up.numpy()), np.triu(expected_upper).T, rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.triu(omat, k=1), np.triu(act_up.numpy(), k=1),
+                                   rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.tril(act_up.numpy()), np.triu(expected_upper).T,
+                                   rtol=self.rtol[dtype])
 
         mat = torch.from_numpy(omat.copy(order="K"))
         with memory_checker(self.basic_opt) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=True, write_opposite=True, opt=new_opt)
-        np.testing.assert_allclose(np.tril(omat, k=-1), np.tril(act_lo.numpy(), k=-1), rtol=self.rtol[dtype])
-        np.testing.assert_allclose(np.triu(act_lo.numpy()), np.tril(expected_lower).T, rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.tril(omat, k=-1), np.tril(act_lo.numpy(), k=-1),
+                                   rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.triu(act_lo.numpy()), np.tril(expected_lower).T,
+                                   rtol=self.rtol[dtype])
 
     def test_no_blk_mul(self, get_mat, expected_lower):
         dtype = np.float32

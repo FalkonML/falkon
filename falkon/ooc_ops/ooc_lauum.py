@@ -9,7 +9,7 @@ from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
 from falkon.utils.helpers import sizeof_dtype
 from falkon.options import FalkonOptions, LauumOptions
-from .ooc_utils import calc_block_sizes2, prepare_matrix
+from .ooc_utils import calc_block_sizes3, prepare_matrix
 from .parallel_lauum import par_lauum_f_lower, par_lauum_c_lower, BlockAlloc
 from ..utils.tensor_helpers import is_f_contig, is_contig
 
@@ -40,7 +40,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
                 "Cannot run parallel LAUUM with minimum "
                 "available memory of %.2fMB" % (avail_ram * dts / 2**20))
 
-    block_sizes = calc_block_sizes2(
+    block_sizes = calc_block_sizes3(
         max_block_size, num_gpus, N, opt.lauum_par_blk_multiplier)
     block_allocations: List[BlockAlloc] = []
     cur_n = 0
