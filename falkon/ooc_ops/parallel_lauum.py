@@ -42,6 +42,7 @@ def par_lauum_f_lower(A: torch.Tensor,
                       cublas_handle,
                       independent_output: bool):
     N = A.shape[0]
+    is_cuda = A.device.type == "cuda"
 
     lauum_fn = choose_fn(A.dtype, scll.dlauum, scll.slauum, "Lapack LAUUM")
     trmm_fn = choose_fn(A.dtype, cublasDtrmm, cublasStrmm, "cuBlas TRMM")
@@ -70,52 +71,66 @@ def par_lauum_f_lower(A: torch.Tensor,
             try:
                 min_row = min([r for r in my_rows if r >= b])
                 b_start = block_allocs[min_row].start
-                col_b = copy_to_device(N - b_start, bb.length, A, b_start, bb.start, whole_col_b, 0,
-                                       0, s1)
+                if is_cuda:
+                    col_b = A[b_start:N, bb.start:bb.end]
+                else:
+                    col_b = copy_to_device(N - b_start, bb.length, A, b_start, bb.start,
+                                           whole_col_b, 0, 0, s1)
             except ValueError:
                 pass  # No column here
             if not independent_output:
                 barrier.wait()
 
             for r in my_rows:
-                if r < b:
-                    continue
                 if r == b:
                     # SYRK on g_b[bb.length:, :] with output replacing g_b[:bb.length, :]
                     # C = beta*C + alpha * op(A) @ op(A).T
                     if b_start + bb.length < N:
-                        syrk_fn(cublas_handle,
-                                uplo='L', trans='T',
+                        syrk_fn(cublas_handle, uplo='L', trans='T',
                                 n=bb.length, k=col_b.shape[0] - bb.length,
                                 alpha=1.0, A=col_b[bb.length:, :].data_ptr(), lda=col_b.stride(1),
                                 beta=0.0, C=col_b.data_ptr(), ldc=col_b.stride(1))
                     # CPU LAUUM on A[bb.start:bb.end, bb.start:bb.end]. This is a bit messy, should do cleanup.
                     Abb = A[bb.start:bb.end, bb.start:bb.end]  # L\U
-                    if independent_output:
-                        Abb_np = Abb.numpy().copy(order="F")
-                        # Make symmetric: L\L
-                        copy_triang(Abb_np, upper=False)
-                        uu, info = lauum_fn(Abb_np, lower=1, overwrite_c=True)  # LAU\L
-                        Abb.copy_(torch.from_numpy(uu.T))  # L\LAU
-                    else:
-                        uu, info = lauum_fn(Abb.numpy(), lower=1, overwrite_c=False)  # LAU\L
-                        if b_start + bb.length < N:
-                            zero_triang(uu, upper=True)
-                        Abb.copy_(torch.from_numpy(uu))
-                    if b_start + bb.length < N:
-                        # It is IMPORTANT to do the copy on s1 and then sync it.
-                        tbb = copy_to_host(bb.length, bb.length, col_b, 0, 0, temp_bb, 0, 0, s1)
+                    if is_cuda:
+                        # Need a CPU buffer in F-order
+                        __temp_cpu = _temp_cpu[:bb.length, :bb.length]
+                        __temp_cpu.copy_(Abb, non_blocking=True)
                         s1.synchronize()
+                        uu, info = lauum_fn(__temp_cpu.numpy(), lower=1, overwrite_c=True)
                         if independent_output:
-                            Abb.add_(torch.triu(tbb.T))
+                            Abb.copy_(torch.from_numpy(uu.T), non_blocking=True)
                         else:
-                            Abb.add_(tbb)
-                else:  # r > b
+                            Abb.copy_(torch.from_numpy(uu), non_blocking=True)
+                    else:
+                        if independent_output:
+                            Abb_np = Abb.numpy().copy(order="F")
+                            # Make symmetric: L\L
+                            copy_triang(Abb_np, upper=False)
+                            uu, info = lauum_fn(Abb_np, lower=1, overwrite_c=True)  # LAU\L
+                            Abb.copy_(torch.from_numpy(uu.T))  # L\LAU
+                        else:
+                            uu, info = lauum_fn(Abb.numpy(), lower=1, overwrite_c=False)  # LAU\L
+                            if b_start + bb.length < N:
+                                zero_triang(uu, upper=True)
+                            Abb.copy_(torch.from_numpy(uu))
+                        if b_start + bb.length < N:
+                            # It is IMPORTANT to do the copy on s1 and then sync it.
+                            tbb = copy_to_host(bb.length, bb.length, col_b, 0, 0, temp_bb, 0, 0, s1)
+                            s1.synchronize()
+                            if independent_output:
+                                Abb.add_(torch.triu(tbb.T))
+                            else:
+                                Abb.add_(tbb)
+                elif r > b:
                     br = block_allocs[r]
 
                     # Load column r. Since r > b this column will be shorter than column b
-                    col_r = copy_to_device(N - br.start, br.length, A, br.start, br.start,
-                                           whole_col_r, 0, 0, s1)
+                    if is_cuda:
+                        col_r = A[br.start:N, br.start:br.end]
+                    else:
+                        col_r = copy_to_device(N - br.start, br.length, A, br.start, br.start,
+                                               whole_col_r, 0, 0, s1)
                     # Restrict column b to only the last 'r' rows
                     ccb = col_b[br.start - b_start:, :]
 
@@ -144,10 +159,13 @@ def par_lauum_f_lower(A: torch.Tensor,
                                 beta=1.0, C=ccb.data_ptr(), ldc=ccb.stride(1))
                     # Copy back to A[r, b]
                     if independent_output:
-                        _temp_cpu = copy_to_host(br.length, bb.length, ccb, 0, 0, temp_bb, 0, 0, s1)
-                        s1.synchronize()
-                        A[bb.start:bb.end, br.start:br.end].copy_(_temp_cpu.T)
-                    else:
+                        if is_cuda:
+                            A[bb.start:bb.end, br.start:br.end].copy_(ccb[:br.length, :bb.length].T)
+                        else:
+                            _temp_cpu = copy_to_host(br.length, bb.length, ccb, 0, 0, temp_bb, 0, 0, s1)
+                            s1.synchronize()
+                            A[bb.start:bb.end, br.start:br.end].copy_(_temp_cpu.T)
+                    elif not is_cuda:
                         s1.synchronize()
                         copy_to_host(br.length, bb.length, ccb, 0, 0, A, br.start, bb.start, s2)
             s2.synchronize()

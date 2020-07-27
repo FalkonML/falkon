@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import scipy.linalg.lapack as scll
 import torch
+from falkon.utils.tensor_helpers import move_tensor
 
 from falkon.ooc_ops.ooc_utils import calc_block_sizes3
 from falkon.options import FalkonOptions
@@ -93,8 +94,10 @@ class TestOOCLauum:
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("order", ["F", "C"])
-    def test_no_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper):
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+    def test_no_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper, device):
         mat = get_mat(order=order, dtype=dtype)
+        mat = move_tensor(mat, device)
 
         with memory_checker(self.basic_opt) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=False, opt=new_opt)

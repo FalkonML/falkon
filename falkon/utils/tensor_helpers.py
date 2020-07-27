@@ -41,7 +41,7 @@ def create_same_stride(size: Union[Tuple[int, int], Tuple[int]],
 
 
 def copy_same_stride(tensor: torch.Tensor, pin_memory: bool = False) -> torch.Tensor:
-    size = tensor.size()
+    size = tensor.shape
     dtype = tensor.dtype
     device = tensor.device
     if is_f_contig(tensor, strict=True):

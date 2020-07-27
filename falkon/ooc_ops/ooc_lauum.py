@@ -2,14 +2,14 @@ import math
 import threading
 from typing import List, Optional
 
-import numpy as np
 import torch
 
 from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
+from falkon.utils.tensor_helpers import copy_same_stride
 from falkon.utils.helpers import sizeof_dtype
 from falkon.options import FalkonOptions, LauumOptions
-from .ooc_utils import calc_block_sizes3, prepare_matrix
+from .ooc_utils import calc_block_sizes3
 from .parallel_lauum import par_lauum_f_lower, par_lauum_c_lower, BlockAlloc
 from ..utils.tensor_helpers import is_f_contig, is_contig
 
@@ -25,29 +25,33 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     else:
         raise NotImplementedError("Parallel LAUUM is only implemented for contiguous matrices")
 
-    num_gpus = len(gpu_info)
-    if num_gpus < 1:
-        raise ValueError(
-                "Parallel LAUUM should only be run when some GPU is available.")
     N = A.shape[0]
     dt = A.dtype
     dts = sizeof_dtype(dt)
     avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
-    # Each GPU should be able to hold in memory 2 block columns
-    max_block_size = int(math.floor(avail_ram / (2*N)))
-    if max_block_size < 1:
-        raise RuntimeError(
-                "Cannot run parallel LAUUM with minimum "
-                "available memory of %.2fMB" % (avail_ram * dts / 2**20))
+    if A.is_cuda:
+        # No need for block allocations, all computations will occur on the same device where
+        # the data is stored (no support for multi-GPU for now)!
+        block_allocations = [BlockAlloc(0, N, N)]
+        gpu_info = [g for g in gpu_info if g.Id == A.device.index]
+    else:
+        # Each GPU should be able to hold in memory 2 block columns
+        max_block_size = int(math.floor(avail_ram / (2*N)))
+        if max_block_size < 1:
+            raise RuntimeError(
+                    "Cannot run parallel LAUUM with minimum "
+                    "available memory of %.2fMB" % (avail_ram * dts / 2**20))
 
-    block_sizes = calc_block_sizes3(
-        max_block_size, num_gpus, N, opt.lauum_par_blk_multiplier)
-    block_allocations: List[BlockAlloc] = []
-    cur_n = 0
-    for bs in block_sizes:
-        block_allocations.append(BlockAlloc(start=cur_n, end=cur_n + bs, length=bs))
-        cur_n += bs
+        block_sizes = calc_block_sizes3(max_block_size, len(gpu_info), N)
+        block_allocations: List[BlockAlloc] = []
+        cur_n = 0
+        for bs in block_sizes:
+            block_allocations.append(BlockAlloc(start=cur_n, end=cur_n + bs, length=bs))
+            cur_n += bs
 
+    num_gpus = len(gpu_info)
+    if num_gpus < 1:
+        raise ValueError("Parallel LAUUM can only run when a GPU is available.")
     barrier = threading.Barrier(num_gpus, timeout=1000)
     threads = []
     for g in gpu_info:
@@ -71,7 +75,7 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
     """
     Parameters
     -----------
-    A : ndarray [N, N]
+    A : torch.Tensor [N, N]
         2D positive-definite matrix that will be factorized as
         A = U.T @ U (if `upper` is True) or A = L @ L.T if `upper`
         is False.
@@ -91,35 +95,21 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
     for g in gpu_info:
         g.actual_free_mem = min((g.free_memory - 300 * 2 ** 20) * 0.95,
                                 opt.max_gpu_mem * 0.95)
-
-    # Start matrix preparations
-    if isinstance(A, np.ndarray):
-        Anp = A
-    elif isinstance(A, torch.Tensor):
-        Anp = A.numpy()
-    else:
-        raise TypeError("Unexpected type encountered for A: %s" % (A.dtype))
-
     if not overwrite:
-        Anp = np.copy(Anp, order='A')
+        A = copy_same_stride(A, pin_memory=True)
 
-    # Will give a fortran-contiguous numpy array. No copies are performed.
-    Anp, transposed = prepare_matrix(Anp)
-    if transposed:
-        upper = not upper
-
+    # Make A F-contiguous
+    transposed = False
+    if not is_f_contig(A):
+        A = A.T
+        transposed = True
     # Parallel can only do lower C or F-contiguous arrays
-    # But by transposing as necessary, it is able to run with every combination of inputs.
-    At = torch.from_numpy(Anp)
+    # By transposing as necessary, it is able to run with every combination of inputs.
     if upper:
-        At = At.T
+        A = A.T
     # The parallel runner chooses based on the contiguity pattern of the inputs.
-    _parallel_lauum_runner(At, write_opposite, opt, gpu_info)
+    _parallel_lauum_runner(A, write_opposite, opt, gpu_info)
 
     if transposed:
-        Anp = Anp.T
-
-    if isinstance(A, np.ndarray):
-        return Anp
-    else:
-        return torch.from_numpy(Anp)
+        A = A.T
+    return A
