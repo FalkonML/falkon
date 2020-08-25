@@ -9,7 +9,7 @@ from falkon.utils import devices
 from falkon import la_helpers
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
-from falkon.ooc_ops.multigpu_potrf import parallel_potrf
+from falkon.ooc_ops.cuda import parallel_potrf
 from falkon.options import FalkonOptions
 from .ooc_utils import calc_block_sizes
 from ..utils.devices import DeviceInfo
@@ -206,7 +206,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
         A = A.T
         upper = not upper
         transposed = True
-    # Now A is always in f_order. So we can only allow upper=False
+    # Now A is always in f_order. So we can only allow upper=False (ooc)
     if upper:
         # Can do only in-core!
         if not ic:

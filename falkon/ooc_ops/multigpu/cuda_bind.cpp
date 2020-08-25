@@ -6,7 +6,7 @@
 #include <cusolverDn.h>
 
 #include "cuda/multigpu_potrf.cuh"
-
+#include "cuda/lauum.cuh"
 
 static void* ctypes_void_ptr(const py::object& object) {
     PyObject *p_ptr = object.ptr();
@@ -59,4 +59,7 @@ torch::Tensor parallel_potrf(
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("parallel_potrf", &parallel_potrf, "GPU-Parallel Cholesky Factorization");
+
+  m.def("cuda_lauum_lower", &lauum_lower, "Compute lower-LAUUM",
+        py::arg("input"), py::arg("output"));
 }

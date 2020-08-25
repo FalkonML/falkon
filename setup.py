@@ -34,7 +34,7 @@ def get_extensions():
     extension_cls = CppExtension
     sparse_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'sparse')
     sparse_files = [
-            'sparse_extension.cpp', 
+            'sparse_extension.cpp',
             osp.join('cpp', 'sparse_matmul.cpp'), 
             osp.join('cpp', 'sparse_norm.cpp')
     ]
@@ -63,7 +63,7 @@ def get_extensions():
     # Parallel OOC
     if WITH_CUDA:
         ooc_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'ooc_ops', 'multigpu')
-        ooc_files = ['multigpu_potrf_bind.cpp', 'cuda/multigpu_potrf.cu']
+        ooc_files = ['cuda_bind.cpp', 'cuda/multigpu_potrf.cu', 'cuda/lauum.cu']
         ooc_macros = [('WITH_CUDA', None)]
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
@@ -72,7 +72,7 @@ def get_extensions():
         ooc_link_args = ['-lcublas', '-l', 'cublas', '-lcusolver', '-l', 'cusolver']
         extensions.append(
             CUDAExtension(
-                "falkon.ooc_ops.multigpu_potrf",
+                "falkon.ooc_ops.cuda",
                 sources=[osp.join(ooc_ext_dir, f) for f in ooc_files],
                 include_dirs=[ooc_ext_dir],
                 define_macros=ooc_macros,

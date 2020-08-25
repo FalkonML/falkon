@@ -12,6 +12,7 @@ from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 from falkon.utils.tensor_helpers import create_fortran
 from falkon.la_helpers import zero_triang, copy_triang
+from falkon.ooc_ops.cuda import cuda_lauum_lower
 
 __all__ = ("par_lauum_c_lower", "par_lauum_f_lower", "BlockAlloc")
 
@@ -44,7 +45,6 @@ def par_lauum_f_lower(A: torch.Tensor,
     N = A.shape[0]
     is_cuda = A.device.type == "cuda"
 
-    lauum_fn = choose_fn(A.dtype, scll.dlauum, scll.slauum, "Lapack LAUUM")
     trmm_fn = choose_fn(A.dtype, cublasDtrmm, cublasStrmm, "cuBlas TRMM")
     gemm_fn = choose_fn(A.dtype, cublasDgemm, cublasSgemm, "cuBlas GEMM")
     syrk_fn = choose_fn(A.dtype, cublasDsyrk, cublasSsyrk, "cuBlas SYRK")
@@ -61,6 +61,8 @@ def par_lauum_f_lower(A: torch.Tensor,
         # Preallocate 2 columns
         whole_col_b = create_fortran((A.shape[0], max_block_size), A.dtype, tc_device)
         whole_col_r = create_fortran((A.shape[0], max_block_size), A.dtype, tc_device)
+        syrk_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
+        lauum_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
         temp_bb = create_fortran((max_block_size, max_block_size), A.dtype, 'cpu', pin_memory=True)
 
         for b in range(len(block_allocs)):
@@ -72,10 +74,10 @@ def par_lauum_f_lower(A: torch.Tensor,
                 min_row = min([r for r in my_rows if r >= b])
                 b_start = block_allocs[min_row].start
                 if is_cuda:
-                    col_b = A[b_start:N, bb.start:bb.end]
+                    col_b: torch.Tensor = A[b_start:N, bb.start:bb.end]
                 else:
-                    col_b = copy_to_device(N - b_start, bb.length, A, b_start, bb.start,
-                                           whole_col_b, 0, 0, s1)
+                    col_b: torch.Tensor = copy_to_device(
+                        N - b_start, bb.length, A, b_start, bb.start, whole_col_b, 0, 0, s1)
             except ValueError:
                 pass  # No column here
             if not independent_output:
@@ -83,45 +85,31 @@ def par_lauum_f_lower(A: torch.Tensor,
 
             for r in my_rows:
                 if r == b:
-                    # SYRK on g_b[bb.length:, :] with output replacing g_b[:bb.length, :]
+                    # SYRK on col_b[bb.length:, :] with output into syrk_out[:bb.length, :bb.length]
                     # C = beta*C + alpha * op(A) @ op(A).T
                     if b_start + bb.length < N:
                         syrk_fn(cublas_handle, uplo='L', trans='T',
                                 n=bb.length, k=col_b.shape[0] - bb.length,
                                 alpha=1.0, A=col_b[bb.length:, :].data_ptr(), lda=col_b.stride(1),
-                                beta=0.0, C=col_b.data_ptr(), ldc=col_b.stride(1))
-                    # CPU LAUUM on A[bb.start:bb.end, bb.start:bb.end]. This is a bit messy, should do cleanup.
-                    Abb = A[bb.start:bb.end, bb.start:bb.end]  # L\U
-                    if is_cuda:
-                        # Need a CPU buffer in F-order
-                        __temp_cpu = _temp_cpu[:bb.length, :bb.length]
-                        __temp_cpu.copy_(Abb, non_blocking=True)
-                        s1.synchronize()
-                        uu, info = lauum_fn(__temp_cpu.numpy(), lower=1, overwrite_c=True)
-                        if independent_output:
-                            Abb.copy_(torch.from_numpy(uu.T), non_blocking=True)
-                        else:
-                            Abb.copy_(torch.from_numpy(uu), non_blocking=True)
+                                beta=0.0, C=syrk_out.data_ptr(), ldc=syrk_out.stride(1))
+
+                    # We need triu(col_b[:bb.length, :bb.length]) to be preserved in lauum_out.
+                    lauum_out.copy_(col_b[:lauum_out.shape[0], :lauum_out.shape[1]])
+                    # LAUUM on col_b[:bb.length, :bb.length], into lauum_out[:bb.length, :bb.length]
+                    cuda_lauum_lower(col_b[:bb.length, :bb.length],
+                                     lauum_out[:bb.length, :bb.length])
+
+                    # Add outputs of SYRK and LAUUM (only if SYRK was performed)
+                    if b_start + bb.length < N:
+                        lauum_out.add_(syrk_out)
+
+                    # Copy lauum_out into the original matrix, while preserving the other side
+                    # of the triangular matrix. This depends on the `independent_output` flag.
+                    Abb = A[bb.start:bb.end, bb.start:bb.end]
+                    if independent_output:
+                        Abb.copy_(lauum_out.T)
                     else:
-                        if independent_output:
-                            Abb_np = Abb.numpy().copy(order="F")
-                            # Make symmetric: L\L
-                            copy_triang(Abb_np, upper=False)
-                            uu, info = lauum_fn(Abb_np, lower=1, overwrite_c=True)  # LAU\L
-                            Abb.copy_(torch.from_numpy(uu.T))  # L\LAU
-                        else:
-                            uu, info = lauum_fn(Abb.numpy(), lower=1, overwrite_c=False)  # LAU\L
-                            if b_start + bb.length < N:
-                                zero_triang(uu, upper=True)
-                            Abb.copy_(torch.from_numpy(uu))
-                        if b_start + bb.length < N:
-                            # It is IMPORTANT to do the copy on s1 and then sync it.
-                            tbb = copy_to_host(bb.length, bb.length, col_b, 0, 0, temp_bb, 0, 0, s1)
-                            s1.synchronize()
-                            if independent_output:
-                                Abb.add_(torch.triu(tbb.T))
-                            else:
-                                Abb.add_(tbb)
+                        Abb.copy_(lauum_out)
                 elif r > b:
                     br = block_allocs[r]
 
@@ -180,6 +168,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                       independent_output: bool):
     N = A.shape[0]
     dts = sizeof_dtype(A.dtype)
+    is_cuda = A.device.type == "cuda"
 
     lauum_fn = choose_fn(A.dtype, scll.dlauum, scll.slauum, "Lapack LAUUM")
     trmm_fn = choose_fn(A.dtype, cublasDtrmm, cublasStrmm, "cuBlas TRMM")
@@ -197,10 +186,11 @@ def par_lauum_c_lower(A: torch.Tensor,
 
     with torch.cuda.device(tc_device), torch.cuda.stream(s1):
         # Preallocate 2 block-columns. The single block is a CPU buffer
-        whole_col_b = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
-        whole_col_r = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
-        temp_bb = create_fortran((max_block_size, max_block_size), A.dtype, 'cpu',
-                                 pin_memory=True).T
+        if not is_cuda:
+            whole_col_b = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
+            whole_col_r = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
+        temp_bb = create_fortran((max_block_size, max_block_size), A.dtype, 'cpu', pin_memory=True).T
+
         for b in range(len(block_allocs)):
             bb = block_allocs[b]
             # Load col b.
@@ -213,8 +203,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                     dst=whole_col_b.data_ptr(), dpitch=max_block_size * dts,
                     src=A[b_start, bb.start].data_ptr(), spitch=A.shape[1] * dts,
                     width=bb.length * dts, height=N - b_start, stream=s1_cuda)
-            except ValueError:
-                # all of `my_rows` are smaller than `b`.
+            except ValueError:  # all of `my_rows` are smaller than `b`.
                 pass
             if not independent_output:
                 barrier.wait()
