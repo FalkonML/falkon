@@ -172,7 +172,6 @@ def _generic_fmm(proc_idx, queue, device_id):
                 elif change_dtype:
                     out.narrow(0, i, ic).narrow(1, j, jc).copy_(cur_g_out)
                 del ddd
-        del g_out, g_X1d, g_X2d
     return out
 
 

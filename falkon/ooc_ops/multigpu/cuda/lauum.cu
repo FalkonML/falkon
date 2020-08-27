@@ -84,13 +84,13 @@ void lower_cuda_lauum_ker(const scalar_t* __restrict__ in,
     }
 }
 
-torch::Tensor lauum_lower(torch::Tensor &input, torch::Tensor &output) {
+torch::Tensor lauum_lower(const int n, const torch::Tensor &A, const int lda, torch::Tensor &B, const int ldb) {
     // TODO: Consistency checks
 
-    const auto scalar_type = input.scalar_type();
-    const auto size = input.size(0);
-    const auto in_stride = input.stride(1);
-    const auto out_stride = output.stride(1);
+    const auto scalar_type = A.scalar_type();
+    const auto size = n;
+    const auto in_stride = lda;
+    const auto out_stride = ldb;
 
     // Setup CUDA grid dimensions:
     // grid is 1D, so that we can only consider triangularly-appropriate tiles
@@ -102,11 +102,11 @@ torch::Tensor lauum_lower(torch::Tensor &input, torch::Tensor &output) {
 
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "cuda_lauum", [&] {
         at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
-        at::DeviceGuard g(input.device());
+        at::DeviceGuard g(A.device());
         lower_cuda_lauum_ker<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(
-            input.data_ptr<scalar_t>(), output.data_ptr<scalar_t>(), size, in_stride, out_stride, grid_height);
+            A.data_ptr<scalar_t>(), B.data_ptr<scalar_t>(), size, in_stride, out_stride, grid_height);
     });
-    return output;
+    return B;
 }
 
 
