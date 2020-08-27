@@ -58,7 +58,7 @@ class TestBlockSizeCalculator:
                                                                      4166, 4166]
 
 
-N = 7
+N = 4000
 
 
 @pytest.fixture(scope="module")
@@ -120,14 +120,8 @@ class TestOOCLauum:
     @pytest.mark.parametrize("order", ["F", "C"])
     def test_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper):
         mat = get_mat(order=order, dtype=dtype).numpy().copy(order="K")
-        print("INPUT")
-        print(torch.from_numpy(mat))
         with memory_checker(self.basic_opt) as new_opt:
             act_up = gpu_lauum(torch.from_numpy(mat), upper=True, overwrite=True, opt=new_opt)
-        print("EXPECTED")
-        print(torch.from_numpy(expected_upper))
-        print("ACTUAL")
-        print(act_up)
         np.testing.assert_allclose(expected_upper, act_up.numpy(), rtol=self.rtol[dtype])
 
         mat = get_mat(order=order, dtype=dtype).numpy().copy(order="K")

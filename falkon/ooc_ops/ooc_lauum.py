@@ -43,7 +43,6 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
         # Each GPU should be able to hold in memory 2 block columns
         # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0
         max_block_size = int(math.floor((-2*N + math.sqrt(4*N**2 + 8 * avail_ram)) / 4))
-        max_block_size = 3
         if max_block_size < 1:
             raise RuntimeError(
                     "Cannot run parallel LAUUM with minimum "
