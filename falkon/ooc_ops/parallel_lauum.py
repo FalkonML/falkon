@@ -180,7 +180,6 @@ def par_lauum_c_lower(A: torch.Tensor,
                       device_id: int,
                       cublas_handle,
                       independent_output: bool):
-    print("C-LOWER", flush=True)
     N = A.shape[0]
     dts = sizeof_dtype(A.dtype)
     is_cuda = A.device.type == "cuda"
@@ -202,9 +201,8 @@ def par_lauum_c_lower(A: torch.Tensor,
 
     with torch.cuda.device(tc_device), torch.cuda.stream(s1):
         # Preallocate 2 block-columns. The single block is a CPU buffer
-        if not is_cuda:
-            whole_col_b = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
-            whole_col_r = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
+        whole_col_b = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
+        whole_col_r = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
         syrk_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
         lauum_in = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
         temp_bb = create_fortran((max_block_size, max_block_size), A.dtype, 'cpu', pin_memory=True).T
@@ -217,13 +215,10 @@ def par_lauum_c_lower(A: torch.Tensor,
             try:
                 min_row = min([r for r in my_rows if r >= b])
                 b_start = block_allocs[min_row].start
-                if is_cuda:
-                    whole_col_b = A[b_start:N, bb.start:bb.end].storage()
-                else:
-                    cuda_memcpy2d_async(
-                        dst=whole_col_b.data_ptr(), dpitch=max_block_size * dts,
-                        src=A[b_start, bb.start].data_ptr(), spitch=A.shape[1] * dts,
-                        width=bb.length * dts, height=N - b_start, stream=s1_cuda)
+                cuda_memcpy2d_async(
+                    dst=whole_col_b.data_ptr(), dpitch=max_block_size * dts,
+                    src=A[b_start, bb.start].data_ptr(), spitch=A.shape[1] * dts,
+                    width=bb.length * dts, height=N - b_start, stream=s1_cuda)
             except ValueError:  # all of `my_rows` are smaller than `b`.
                 pass
             if not independent_output:
@@ -252,7 +247,10 @@ def par_lauum_c_lower(A: torch.Tensor,
                         cur_lauum_in = lauum_in[:bb.length, :bb.length]
                         cur_lauum_in.copy_(lauum_out)
                         # Since lauum_out is supposed to also be F-contig, we must do another copy from lauum_in to lauum_out.
-                        lauum_out.copy_(cur_lauum_in.T)
+                        if independent_output:
+                            lauum_out.copy_(cur_lauum_in)
+                        else:
+                            lauum_out.copy_(cur_lauum_in.T)
                         cuda_lauum_lower(n=bb.length, A=cur_lauum_in, lda=max_block_size, B=lauum_out, ldb=max_block_size)
 
                     s3.synchronize()
@@ -263,7 +261,10 @@ def par_lauum_c_lower(A: torch.Tensor,
                     # copy back whole_col_b into Abb
                     # Now lauum_out is F-contig, while Abb is C-contig
                     Abb = A[bb.start:bb.end, bb.start:bb.end]
-                    Abb.copy_(lauum_out[:bb.length, :bb.length].T)
+                    if independent_output:
+                        Abb.copy_(lauum_out)
+                    else:
+                        Abb.copy_(lauum_out.T)
                 else:  # r > b
                     br = block_allocs[r]
 

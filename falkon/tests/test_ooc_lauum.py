@@ -110,11 +110,11 @@ class TestOOCLauum:
 
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=False, opt=new_opt)
-        np.testing.assert_allclose(expected_upper, act_up.numpy(), rtol=self.rtol[dtype])
+        np.testing.assert_allclose(expected_upper, act_up.cpu().numpy(), rtol=self.rtol[dtype])
 
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=False, opt=new_opt)
-        np.testing.assert_allclose(expected_lower, act_lo.numpy(), rtol=self.rtol[dtype])
+        np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("order", ["F", "C"])

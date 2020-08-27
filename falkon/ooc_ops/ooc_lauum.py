@@ -30,8 +30,12 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     dts = sizeof_dtype(dt)
     avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
     if A.is_cuda:
-        # Each GPU should hold in memory two additional blocks (2*B^2 <= M)
-        max_block_size = int(math.floor(math.sqrt(avail_ram / 2)))
+        if target.__name__ == "par_lauum_f_lower":
+            # Each GPU should hold in memory two additional blocks (2*B^2 <= M)
+            max_block_size = int(math.floor(math.sqrt(avail_ram / 2)))
+        else:
+            # Same RAM requirements as the non-CUDA version
+            max_block_size = int(math.floor((-2*N + math.sqrt(4*N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
                     "Cannot run parallel LAUUM with minimum "
