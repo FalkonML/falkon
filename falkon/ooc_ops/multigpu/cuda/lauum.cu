@@ -25,10 +25,11 @@ __global__
 void lower_cuda_lauum_ker(const scalar_t* __restrict__ in,
                           scalar_t *out,
                           const int size,
-                          const int stride,
+                          const int in_stride,
+                          const int out_stride,
                           const int grid_size) {
     // Determine the triangular tile of the output (0 indexed)
-    const int2 tile_pos = tri_index(blockIdx.x)
+    const int2 tile_pos = tri_index(blockIdx.x);
 //    const int element = blockIdx.x;
 //    const int tile_row = (int)((-1 + sqrt((double)(8*element + 1))) / 2.0);
 //    const int tile_col = element - tile_row * (tile_row + 1) / 2;
@@ -55,10 +56,10 @@ void lower_cuda_lauum_ker(const scalar_t* __restrict__ in,
         A_tile[ty][tx] = 0;
         B_tile[ty][tx] = 0;
         if (i < size && A_col < size && A_col <= i) {
-            A_tile[ty][tx] = in[i + stride * A_col];
+            A_tile[ty][tx] = in[i + in_stride * A_col];
         }
         if (i < size && B_col < size && B_col <= i) {
-            B_tile[ty][tx] = in[i + stride * B_col];
+            B_tile[ty][tx] = in[i + in_stride * B_col];
         }
         __syncthreads();
         
@@ -79,7 +80,7 @@ void lower_cuda_lauum_ker(const scalar_t* __restrict__ in,
     const int col = tile_pos.x * BLOCK_SIZE + tx;
     const int row = tile_pos.y * BLOCK_SIZE + ty;
     if (row >= col && col < size && row < size) {
-        out[row + col * stride] = accumulator;
+        out[row + col * out_stride] = accumulator;
     }
 }
 
@@ -88,7 +89,8 @@ torch::Tensor lauum_lower(torch::Tensor &input, torch::Tensor &output) {
 
     const auto scalar_type = input.scalar_type();
     const auto size = input.size(0);
-    const auto stride = input.stride(1);
+    const auto in_stride = input.stride(1);
+    const auto out_stride = output.stride(1);
 
     // Setup CUDA grid dimensions:
     // grid is 1D, so that we can only consider triangularly-appropriate tiles
@@ -102,7 +104,7 @@ torch::Tensor lauum_lower(torch::Tensor &input, torch::Tensor &output) {
         at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
         at::DeviceGuard g(input.device());
         lower_cuda_lauum_ker<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(
-            input.data_ptr<scalar_t>(), output.data_ptr<scalar_t>(), size, stride, grid_height);
+            input.data_ptr<scalar_t>(), output.data_ptr<scalar_t>(), size, in_stride, out_stride, grid_height);
     });
     return output;
 }

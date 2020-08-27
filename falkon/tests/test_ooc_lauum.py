@@ -4,15 +4,17 @@ import numpy as np
 import pytest
 import scipy.linalg.lapack as scll
 import torch
-from falkon.utils.tensor_helpers import move_tensor
 
 from falkon.ooc_ops.ooc_utils import calc_block_sizes3
 from falkon.options import FalkonOptions
 from falkon.tests.conftest import memory_checker, fix_mat
 from falkon.utils import decide_cuda
+from falkon.utils.helpers import sizeof_dtype
+from falkon.utils.tensor_helpers import move_tensor
 
 if decide_cuda():
     from falkon.ooc_ops.ooc_lauum import gpu_lauum
+    from falkon.ooc_ops.cuda import cuda_lauum_lower
 
 
 class TestBlockSizeCalculator:
@@ -99,11 +101,17 @@ class TestOOCLauum:
         mat = get_mat(order=order, dtype=dtype)
         mat = move_tensor(mat, device)
 
-        with memory_checker(self.basic_opt) as new_opt:
+        # For cuda inputs we must add to available GPU memory the amount used by the
+        # input matrix, since overwrite=False and a full copy must be performed.
+        mgpu_slack = 0
+        if device.startswith("cuda"):
+            mgpu_slack = self.basic_opt.max_gpu_mem + mat.shape[0]**2 * sizeof_dtype(mat.dtype)
+
+        with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=False, opt=new_opt)
         np.testing.assert_allclose(expected_upper, act_up.numpy(), rtol=self.rtol[dtype])
 
-        with memory_checker(self.basic_opt) as new_opt:
+        with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=False, opt=new_opt)
         np.testing.assert_allclose(expected_lower, act_lo.numpy(), rtol=self.rtol[dtype])
 
@@ -147,3 +155,50 @@ class TestOOCLauum:
 
         act_lo = gpu_lauum(torch.from_numpy(mat), upper=False, overwrite=True, opt=opt)
         np.testing.assert_allclose(expected_lower, act_lo.numpy(), rtol=self.rtol[dtype])
+
+
+@pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
+class TestLauumKernel:
+    rtol = {np.float64:1e-12, np.float32:1e-5}
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
+    def test_lauum(self, dtype, get_mat, expected_lower):
+        n = 70
+        torch.random.manual_seed(10)
+        device = torch.device("cuda:0")
+
+        mat = get_mat(order="F", dtype=dtype)
+        gpu_in = move_tensor(mat, device)
+        gpu_out = move_tensor(mat, device)
+        gpu_out.fill_(0.0)
+
+        # Run on the GPU
+        cuda_lauum_lower(gpu_in, gpu_out)
+        torch.cuda.synchronize(device)
+
+        # Compare outputs and print timing info
+        np.testing.assert_allclose(np.tril(expected_lower), gpu_out.cpu().numpy(), rtol=self.rtol[dtype])
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
+    def test_strided(self, dtype, get_mat, expected_lower):
+        n = 70
+        torch.random.manual_seed(10)
+        device = torch.device("cuda:0")
+
+        mat = get_mat(order="F", dtype=dtype)
+        gpu_in = move_tensor(mat, device)
+        gpu_in_strided = torch.cat([gpu_in, torch.zeros(gpu_in.shape[0], 10, device=device)], 1).T
+        gpu_in_strided = gpu_in_strided[:gpu_in.shape[0], :gpu_in.shape[0]]
+        gpu_in_strided.copy_(gpu_in)
+        gpu_out = move_tensor(mat, device)
+        gpu_out_strided = torch.cat([gpu_out, torch.zeros(gpu_out.shape[0], 10, device=device)], 1).T
+        gpu_out_strided = gpu_out_strided[:gpu_out.shape[0], :gpu_out.shape[0]]
+        gpu_out_strided.fill_(0.0)
+
+        # Run on the GPU
+        cuda_lauum_lower(gpu_in_strided, gpu_out_strided)
+        torch.cuda.synchronize(device)
+
+        # Compare outputs and print timing info
+        np.testing.assert_allclose(np.tril(expected_lower), gpu_out_strided.cpu().numpy(), rtol=self.rtol[dtype])
+

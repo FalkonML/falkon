@@ -30,24 +30,33 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     dts = sizeof_dtype(dt)
     avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
     if A.is_cuda:
-        # No need for block allocations, all computations will occur on the same device where
-        # the data is stored (no support for multi-GPU for now)!
-        block_allocations = [BlockAlloc(0, N, N)]
+        # Each GPU should hold in memory two additional blocks (2*B^2 <= M)
+        max_block_size = int(math.floor(math.sqrt(avail_ram / 2)))
+        if max_block_size < 1:
+            raise RuntimeError(
+                    "Cannot run parallel LAUUM with minimum "
+                    "available memory of %.2fMB" % (avail_ram * dts / 2**20))
+        # All computations on the same device (where data is stored). No multi-GPU support!
+        block_sizes = calc_block_sizes3(max_block_size, 1, N)
         gpu_info = [g for g in gpu_info if g.Id == A.device.index]
     else:
         # Each GPU should be able to hold in memory 2 block columns
+        # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0
         max_block_size = int(math.floor(avail_ram / (2*N)))
+        max_block_size = int(math.floor((-2*N + math.sqrt(4*N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
                     "Cannot run parallel LAUUM with minimum "
                     "available memory of %.2fMB" % (avail_ram * dts / 2**20))
 
         block_sizes = calc_block_sizes3(max_block_size, len(gpu_info), N)
-        block_allocations: List[BlockAlloc] = []
-        cur_n = 0
-        for bs in block_sizes:
-            block_allocations.append(BlockAlloc(start=cur_n, end=cur_n + bs, length=bs))
-            cur_n += bs
+
+    # Create BlockAlloc objects describing the subdivision of input
+    block_allocations: List[BlockAlloc] = []
+    cur_n = 0
+    for bs in block_sizes:
+        block_allocations.append(BlockAlloc(start=cur_n, end=cur_n + bs, length=bs))
+        cur_n += bs
 
     num_gpus = len(gpu_info)
     if num_gpus < 1:
@@ -91,22 +100,20 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
     """
     if opt is None:
         opt = FalkonOptions()
+    if not overwrite:
+        A = copy_same_stride(A, pin_memory=True)
     gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
         g.actual_free_mem = min((g.free_memory - 300 * 2 ** 20) * 0.95,
                                 opt.max_gpu_mem * 0.95)
-    if not overwrite:
-        A = copy_same_stride(A, pin_memory=True)
 
-    # Make A F-contiguous
-    transposed = False
-    if not is_f_contig(A):
-        A = A.T
-        transposed = True
     # Parallel can only do lower C or F-contiguous arrays
     # By transposing as necessary, it is able to run with every combination of inputs.
+    transposed = False
     if upper:
         A = A.T
+        transposed = True
+
     # The parallel runner chooses based on the contiguity pattern of the inputs.
     _parallel_lauum_runner(A, write_opposite, opt, gpu_info)
 

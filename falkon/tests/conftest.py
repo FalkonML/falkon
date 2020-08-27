@@ -22,7 +22,7 @@ if decide_cuda():
 
 
 @contextmanager
-def memory_checker(opt: FalkonOptions):
+def memory_checker(opt: FalkonOptions, extra_mem=0):
     is_cpu = opt.use_cpu
     mem_check = False
     if (is_cpu and opt.max_cpu_mem < np.inf) or (not is_cpu and opt.max_gpu_mem < np.inf):
@@ -46,12 +46,12 @@ def memory_checker(opt: FalkonOptions):
     if mem_check and not is_cpu:
         devices = list(range(torch.cuda.device_count()))
         for dev in devices:
-            used_ram = tcd.max_memory_allocated(dev) - start_ram[dev]
+            used_ram = tcd.max_memory_allocated(dev) - start_ram[dev] - extra_mem
             assert used_ram <= opt.max_gpu_mem, \
                 "DEV %d - Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" % \
                 (dev, used_ram / 2 ** 20, opt.max_gpu_mem / 2 ** 20)
     elif mem_check:
-        used_ram = _cpu_used_mem(uss=True) - start_ram
+        used_ram = _cpu_used_mem(uss=True) - start_ram - extra_mem
         assert used_ram <= opt.max_cpu_mem, \
             "Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" % \
             (used_ram / 2 ** 20, opt.max_cpu_mem / 2 ** 20)
