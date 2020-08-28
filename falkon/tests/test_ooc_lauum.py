@@ -164,8 +164,6 @@ class TestLauumKernel:
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
     def test_lauum(self, dtype, get_mat, expected_lower):
-        n = 70
-        torch.random.manual_seed(10)
         device = torch.device("cuda:0")
 
         mat = get_mat(order="F", dtype=dtype)
@@ -174,7 +172,7 @@ class TestLauumKernel:
         gpu_out.fill_(0.0)
 
         # Run on the GPU
-        cuda_lauum_lower(gpu_in, gpu_out)
+        cuda_lauum_lower(n=mat.shape[0], A=gpu_in, lda=gpu_in.stride(1), B=gpu_out, ldb=gpu_out.stride(1))
         torch.cuda.synchronize(device)
 
         # Compare outputs and print timing info
@@ -182,8 +180,6 @@ class TestLauumKernel:
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
     def test_strided(self, dtype, get_mat, expected_lower):
-        n = 70
-        torch.random.manual_seed(10)
         device = torch.device("cuda:0")
 
         mat = get_mat(order="F", dtype=dtype)
@@ -197,7 +193,7 @@ class TestLauumKernel:
         gpu_out_strided.fill_(0.0)
 
         # Run on the GPU
-        cuda_lauum_lower(gpu_in_strided, gpu_out_strided)
+        cuda_lauum_lower(n=gpu_in.shape[0], A=gpu_in_strided, lda=gpu_in_strided.stride(1), B=gpu_out_strided, ldb=gpu_out_strided.stride(1))
         torch.cuda.synchronize(device)
 
         # Compare outputs and print timing info

@@ -67,7 +67,7 @@ def assert_invariant_on_prec(prec, n, kMM, la, tol=1e-8):
     np.testing.assert_allclose(out, np.eye(M, dtype=out.dtype), rtol=tol, atol=tol)
 
 
-M = 1001
+M = 100
 N = 50_000
 
 
@@ -139,14 +139,26 @@ class TestFalkonPreconditioner:
         opt = dataclasses.replace(self.basic_opt, use_cpu=False, cpu_preconditioner=False)
         rtol = self.rtol[dtype]
 
-        mat = move_tensor(fix_mat(mat, dtype=dtype, order=order, copy=True), "cuda:0")
-        gram = move_tensor(fix_mat(gram, dtype=dtype, order=order, copy=True), "cuda:0")
+        mat = fix_mat(mat, dtype=dtype, order=order, copy=True)
+        gpu_mat = move_tensor(mat, "cuda:0")
+        gram = fix_mat(gram, dtype=dtype, order=order, copy=True)
+        gpu_gram = move_tensor(gram, "cuda:0")
 
-        la = 100
+        la = 1
+
         prec = FalkonPreconditioner(la, kernel, opt)
         prec.init(mat)
-        assert prec.fC.device == mat.device, "Device changed unexpectedly"
-        assert_invariant_on_TT(prec, gram, tol=rtol)
+
+        gpu_prec = FalkonPreconditioner(la, kernel, opt)
+        gpu_prec.init(gpu_mat)
+
+        # Asserts fail, too much precision loss
+        np.testing.assert_allclose(prec.dT.numpy(), gpu_prec.dT.cpu().numpy(), rtol=rtol)
+        np.testing.assert_allclose(prec.dA.numpy(), gpu_prec.dA.cpu().numpy(), rtol=rtol)
+        np.testing.assert_allclose(prec.fC.numpy(), gpu_prec.fC.cpu().numpy(), rtol=rtol)
+        assert gpu_prec.fC.device == gpu_mat.device, "Device changed unexpectedly"
+
+        assert_invariant_on_TT(gpu_prec, gpu_gram, tol=rtol)
         assert_invariant_on_AT(prec, gram, la, tol=rtol)
         assert_invariant_on_T(prec, gram, tol=rtol * 10)
         assert_invariant_on_prec(prec, N, gram, la, tol=rtol * 10)
