@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import torch
+from falkon.models.incore_falkon import InCoreFalkon
 from sklearn import datasets
 
 from falkon import Falkon, kernels
@@ -113,9 +114,49 @@ class TestFalkon:
         flk.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
         flk.to("cuda:0")
 
-        assert flk.predict(Xts.to('cuda:0')).shape == (Yts.shape[0], 1)
-        ts_err = error_fn(flk.predict(Xts.to('cuda:0')).cpu(), Yts)[0]
-        tr_err = error_fn(flk.predict(Xtr.to('cuda:0')).cpu(), Ytr)[0]
+        cuda_preds = flk.predict(Xts.to("cuda:0"))
+        assert cuda_preds.device.type == "cuda"
+        assert cuda_preds.shape == (Yts.shape[0], 1)
+        ts_err = error_fn(cuda_preds.cpu(), Yts)[0]
+        tr_err = error_fn(cuda_preds.cpu(), Ytr)[0]
         assert tr_err < ts_err
         assert ts_err < 2.5
 
+
+@pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
+class TestIncoreFalkon:
+    def test_fails_cpu_tensors(self, cls_data):
+        X, Y = cls_data
+        kernel = kernels.GaussianKernel(2.0)
+
+        opt = FalkonOptions(use_cpu=False, keops_active="no", debug=True)
+
+        flk = InCoreFalkon(
+            kernel=kernel, penalty=1e-6, M=500, seed=10,
+            options=opt)
+        with pytest.raises(ValueError):
+            flk.fit(X, Y)
+        flk.fit(X.cuda(), Y.cuda())
+        with pytest.raises(ValueError):
+            flk.predict(X)
+
+    def test_classif(self, cls_data):
+        X, Y = cls_data
+        X = X.cuda()
+        Y = Y.cuda()
+        kernel = kernels.GaussianKernel(2.0)
+
+        def error_fn(t, p):
+            return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
+
+        opt = FalkonOptions(use_cpu=False, keops_active="no", debug=True)
+
+        flk = InCoreFalkon(
+            kernel=kernel, penalty=1e-6, M=500, seed=10,
+            options=opt,
+            error_fn=error_fn)
+        flk.fit(X, Y)
+        preds = flk.predict(X)
+        assert preds.device == X.device
+        err = error_fn(preds, Y)[0]
+        assert err < 5
