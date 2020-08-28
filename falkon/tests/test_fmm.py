@@ -185,15 +185,15 @@ class TestDenseFmm:
         _run_fmm_test(k_class, k_exp, A, B, out=None, dtype=dtype, opt=opt, rtol=rtol)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    def test_with_out(self, Ac: torch.Tensor, Bc: torch.Tensor, k_class, k_exp, dtype, cpu, input_device):
+    def test_with_out(self, Ac: np.ndarray, Bc: np.ndarray, k_class, k_exp, dtype, cpu, input_device):
         if cpu and input_device.startswith("cuda"):
             return True
-        out = np.empty((Ac.shape[0], Bc.shape[0]), dtype=Ac.dtype)
+        out = np.empty((Ac.shape[0], Bc.shape[0]), dtype=dtype)
         max_mem = 2 * 2 ** 20
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
 
-        Ac = move_tensor(torch.from_numpy(Ac), input_device)
-        Bc = move_tensor(torch.from_numpy(Bc), input_device)
+        Ac = move_tensor(torch.from_numpy(Ac.astype(dtype)), input_device)
+        Bc = move_tensor(torch.from_numpy(Bc.astype(dtype)), input_device)
 
         rtol = choose_on_dtype(dtype)
         _run_fmm_test(k_class, k_exp, Ac, Bc, out=out, dtype=dtype, opt=opt, rtol=rtol)

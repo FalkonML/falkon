@@ -130,7 +130,7 @@ class TestFalkonPreconditioner:
         assert_invariant_on_TT(prec, gram, tol=1e-10)
         assert_invariant_on_AT(prec, gram, la, tol=1e-10)
         assert_invariant_on_T(prec, gram, tol=1e-9)
-        assert_invariant_on_prec(prec, N, gram, la, tol=1e-9)
+        assert_invariant_on_prec(prec, N, gram, la, tol=1e-8)
 
     @pytest.mark.parametrize("order", ["C", "F"])
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
