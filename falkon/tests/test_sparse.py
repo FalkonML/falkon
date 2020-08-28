@@ -75,4 +75,3 @@ class TestNarrow(unittest.TestCase):
         self.assertEqual(sm_coo.row.tolist(), [])
         self.assertEqual(sm_coo.col.tolist(), [])
         self.assertEqual(sm_coo.data.tolist(), [])
-

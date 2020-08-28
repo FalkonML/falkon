@@ -121,3 +121,4 @@ class LogisticFalkon(FalkonBase):
 
     def _predict(self, X, ny_points, alpha):
         return self.kernel.mmv(X, ny_points, alpha, opt=self.options)
+

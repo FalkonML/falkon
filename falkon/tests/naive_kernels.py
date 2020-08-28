@@ -27,4 +27,3 @@ def naive_exponential_kernel(X1, X2, alpha):
 def naive_polynomial_kernel(X1, X2, alpha, beta, degree):
     out = X1 @ X2.T
     return np.power(out * alpha + beta, degree)
-

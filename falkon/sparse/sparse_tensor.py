@@ -41,6 +41,7 @@ class SparseTensor():
     sparse_type: str or SparseType
         Whether the matrix should be interpreted as CSR or CSC format.
     """
+
     def __init__(self,
                  indexptr: torch.Tensor,
                  index: torch.Tensor,
@@ -157,21 +158,21 @@ class SparseTensor():
         new_data = self.data
         new_indexptr = self.indexptr
         new_index = self.index
-        
+
         if dtype is None:
             dtype = self.dtype
         if device is None:
             device = self.device
         change_dtype = dtype != self.dtype
         change_device = device != self.device
-        
+
         if change_dtype or change_device:
             new_data = self.data.to(dtype=dtype, device=device)
         if change_device:
             new_indexptr = self.indexptr.to(device=device)
             new_index = self.index.to(device=device)
         return SparseTensor(
-            indexptr=new_indexptr, index=new_index, data=new_data, 
+            indexptr=new_indexptr, index=new_index, data=new_data,
             size=self.shape, sparse_type=self.sparse_type)
 
     def cuda(self) -> 'SparseTensor':
@@ -190,7 +191,7 @@ class SparseTensor():
         new_index = self.index.to(dtype=torch.int32)
         new_indexptr = self.indexptr.to(dtype=torch.int32)
         return SparseTensor(
-            indexptr=new_indexptr, index=new_index, data=self.data, 
+            indexptr=new_indexptr, index=new_index, data=self.data,
             size=self.shape, sparse_type=self.sparse_type)
 
     def index_to_long_(self):

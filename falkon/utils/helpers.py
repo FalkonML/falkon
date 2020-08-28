@@ -76,15 +76,15 @@ def select_dim_over_d(maxD, maxN, coef_nd, coef_n, coef_d, rest, tot):
         coef_nd = 1e-10
 
     b = coef_n + coef_d
-    x = (-b + math.sqrt(b**2 +4*coef_nd*tot)) / (2*coef_nd)
+    x = (-b + math.sqrt(b**2 + 4 * coef_nd * tot)) / (2 * coef_nd)
     d = math.floor(min(maxD, x))
     n = math.floor(min(maxN, x))
 
     if d == maxD and n < maxN:
-        n = (tot - coef_d*d) / (coef_nd*d + coef_n)
+        n = (tot - coef_d * d) / (coef_nd * d + coef_n)
         n = min(maxN, n)
     elif d < maxD and n == maxN:
-        d = (tot - coef_n*n) / (coef_nd*n + coef_d)
+        d = (tot - coef_n * n) / (coef_nd * n + coef_d)
         d = min(maxD, d)
 
     n, d = int(n), int(d)
@@ -101,7 +101,7 @@ def select_dim_over_m(maxM, maxN, coef_nm, coef_n, coef_m, tot, rest=0):
     tot = tot - rest
     # We consider x = m = n and solve the quadratic equation
     b = coef_n + coef_m
-    x = (-b + math.sqrt(b**2 + 4*coef_nm*tot)) / (2 * coef_nm)
+    x = (-b + math.sqrt(b**2 + 4 * coef_nm * tot)) / (2 * coef_nm)
     m = math.floor(min(maxM, x))
     n = math.floor(min(maxN, x))
 

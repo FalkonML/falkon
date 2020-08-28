@@ -89,3 +89,4 @@ def test_with_y(uniform_sel, colmaj_arr):
     assert centers.device == colmaj_arr.device
     assert cY.dtype == Y.dtype
     assert cY.device == Y.device
+

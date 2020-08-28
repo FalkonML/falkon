@@ -317,6 +317,7 @@ class LaplacianKernel(GaussianKernel):
         k(x, x') = \\exp{-\\frac{\\lVert x - x' \\rVert}{\\sigma}}
 
     """
+
     def __init__(self, sigma: float, opt: Optional[BaseOptions] = None):
         # With respect to the Gaussian kernel we need to change the value of gamma,
         # and from squared norm to norm. The latter change requires a different impl. of

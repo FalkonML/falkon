@@ -34,12 +34,16 @@ def test_check_same_dtype_notequal():
     smat64 = scipy.sparse.csr_matrix(np.array([[0, 1], [0, 1]]).astype(np.float64))
     ts = [torch.tensor(0, dtype=torch.float32),
           torch.tensor(0, dtype=torch.float64),
+<<<<<<< HEAD
           SparseTensor.from_scipy(smat32)]
+=======
+          SparseTensor.from_scipy(smat32), ]
+>>>>>>> master
     assert check_same_dtype(*ts) is False
 
     ts = [torch.tensor(0, dtype=torch.float32),
           SparseTensor.from_scipy(smat32),
-          SparseTensor.from_scipy(smat64),]
+          SparseTensor.from_scipy(smat64), ]
     assert check_same_dtype(*ts) is False
 
 

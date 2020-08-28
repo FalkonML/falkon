@@ -87,10 +87,10 @@ keops_active : (default "auto")
     "cg":
     """
 cg_epsilon_32 (default 1e-7)
-    Small added epsilon to prevent divide-by-zero errors in the conjugate gradient algorithm. 
+    Small added epsilon to prevent divide-by-zero errors in the conjugate gradient algorithm.
     Used for single precision data-types
 cg_epsilon_64 (default 1e-15)
-    Small added epsilon to prevent divide-by-zero errors in the conjugate gradient algorithm. 
+    Small added epsilon to prevent divide-by-zero errors in the conjugate gradient algorithm.
     Used for double precision data-types
 cg_tolerance
     Maximum change in model parameters between iterations. If less change than `cg_tolerance`
@@ -124,7 +124,7 @@ chol_force_in_core
     Whether to force in-core execution of the Cholesky decomposition. This will
     not work with matrices bigger than GPU memory.
 chol_force_ooc
-    Whether to force out-of-core (parallel) execution for the POTRF algorithm, 
+    Whether to force out-of-core (parallel) execution for the POTRF algorithm,
     even on matrices which fit in-GPU-core.
 chol_par_blk_multiplier
     Minimum number of tiles per-GPU in the out-of-core, GPU-parallel POTRF algorithm.

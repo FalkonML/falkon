@@ -77,7 +77,7 @@ def sparse_fmmv(proc_idx, queue, device_id):
     # Other: GPU buffer
     n, m = select_dim_over_m(
         maxM=mtot, maxN=ntot, tot=avail_mem,
-        coef_nm=3, coef_n=2 + 2*dtot*X1.density + T, coef_m=2*dtot*X2.density + T, rest=dtot,
+        coef_nm=3, coef_n=2 + 2 * dtot * X1.density + T, coef_m=2 * dtot * X2.density + T, rest=dtot,
     )
 
     ddev = torch.device('cuda:%d' % int(device_id))
@@ -207,10 +207,10 @@ def sparse_fdmmv(proc_idx, queue, device_id):
     # v_gpu    : M * T
     # out_gpu  : M * T
     avail_mem = max_mem / sizeof_dtype(dtype)
-    den = 2*D*X1.density + 2 + 3*M + T
-    sub = D + 2*D*M*X2.density + M*T
+    den = 2 * D * X1.density + 2 + 3 * M + T
+    sub = D + 2 * D * M * X2.density + M * T
     if v is not None:
-        sub += M*T
+        sub += M * T
     n = (avail_mem - sub) / den
     n = min(int(n), N)
     if n < 1:

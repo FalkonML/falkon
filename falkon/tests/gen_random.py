@@ -16,12 +16,12 @@ def gen_random(a, b, dtype, F=False, seed=0):
 def gen_random_pd(t, dtype, F=False, seed=0):
     A = gen_random(t, t, dtype, F, seed)
     copy_triang(A, upper=True)
-    #A += A.T
-    #A *= 2
-    #A += 20
+    # A += A.T
+    # A *= 2
+    # A += 20
     A *= 1
     A += 2
-    A.flat[::t + 1] += t*4
+    A.flat[::t + 1] += t * 4
     return A
 
 

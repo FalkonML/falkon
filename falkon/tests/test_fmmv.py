@@ -50,9 +50,11 @@ def _run_fmmv_test(fn, exp, tensors, out, rtol, opt):
 def n():
     return 4000
 
+
 @pytest.fixture(scope="module")
 def m():
     return 2000
+
 
 @pytest.fixture(scope="module")
 def d():
@@ -62,6 +64,7 @@ def d():
 @pytest.fixture(scope="module")
 def t():
     return 5
+
 
 @pytest.fixture(scope="module")
 def A(n, d):
@@ -261,7 +264,7 @@ class TestDense:
             "F32-F32-vF32", "C32-C32-vC32", "F64-F64-vF64", "C64-C64-vC64",
             "F32-F32-wF32", "C32-C32-wC32", "F64-F64-wF64", "C64-C64-wC64",
             "F32-C32-vC32-wF32"],
-       indirect=["e_dfmmv"])
+        indirect=["e_dfmmv"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     def test_dfmmv(self, getA, getB, getv, getw, Ao, Adt, Bo, Bdt, vo, vdt, wo, wdt, kernel,
                    e_dfmmv, max_mem, cpu, m, t):
@@ -474,7 +477,7 @@ class TestSparse:
                              ids=["A32-B32-vF32"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     @pytest.mark.parametrize("cuda_inputs", [
-        pytest.param(True, marks=[pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]), 
+        pytest.param(True, marks=[pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]),
         False], ids=["CUDA inputs", "CPU inputs"])
     def test_fmmv_input_device(
             self, getA, getB, getv, Adt, Bdt, vo, vdt, kernel,
@@ -514,8 +517,9 @@ class TestSparse:
     ], ids=["32-32-vF32-wF32", "32-32-vC32-wC32", "64-64-vF64-wF64", "64-64-vC64-wC64",
             "32-32-vF32", "32-32-vC32", "64-64-vF64", "64-64-vC64",
             "32-32-wF32", "32-32-wC32", "64-64-wF64", "64-64-wC64",
-            "32-32-vC32-wF32"],
-       indirect=["s_e_dfmmv"])
+            "32-32-vC32-wF32"
+            ],
+        indirect=["s_e_dfmmv"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     def test_dfmmv(self, getA, getB, getv, getw, Adt, Bdt, vo, vdt, wo, wdt, kernel,
                    s_e_dfmmv, max_mem, cpu, m, t):
@@ -540,7 +544,7 @@ class TestSparse:
     ], ids=["32-32-vF32-wF32", "32-32-vF32", "32-32-wF32"], indirect=["s_e_dfmmv"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     @pytest.mark.parametrize("cuda_inputs", [
-        pytest.param(True, marks=[pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]), 
+        pytest.param(True, marks=[pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]),
         False], ids=["CUDA inputs", "CPU inputs"])
     def test_dfmmv_input_devices(
             self, getA, getB, getv, getw, Adt, Bdt, vo, vdt, wo, wdt, kernel,

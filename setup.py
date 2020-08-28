@@ -13,13 +13,14 @@ WITH_CUDA = torch.cuda.is_available() and CUDA_HOME is not None
 
 try:
     from Cython.Build import cythonize
-except:
+except ImportError:
     WITH_CYTHON = False
 else:
     WITH_CYTHON = True
 
 
-CURRENT_DIR = "."#osp.dirname(__file__)
+CURRENT_DIR = "."  # osp.dirname(__file__)
+
 
 def get_version(root_dir):
     with open(os.path.join(root_dir, 'VERSION')) as version_file:
@@ -34,9 +35,15 @@ def get_extensions():
     extension_cls = CppExtension
     sparse_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'sparse')
     sparse_files = [
+<<<<<<< HEAD
             'sparse_extension.cpp',
-            osp.join('cpp', 'sparse_matmul.cpp'), 
+            osp.join('cpp', 'sparse_matmul.cpp'),
             osp.join('cpp', 'sparse_norm.cpp')
+=======
+        'sparse_extension.cpp',
+        osp.join('cpp', 'sparse_matmul.cpp'),
+        osp.join('cpp', 'sparse_norm.cpp')
+>>>>>>> master
     ]
     sparse_compile_args = {'cxx': ['-fopenmp']}
     sparse_link_args = []

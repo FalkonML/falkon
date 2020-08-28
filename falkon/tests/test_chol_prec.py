@@ -34,7 +34,7 @@ def assert_invariant_on_AT(prec, kMM, la, tol=1e-8):
     """
     M = kMM.shape[0]
     T = prec.invTt(kMM)
-    ATA = (1/M)*T@T.T + la*torch.eye(M, dtype=kMM.dtype, device=kMM.device)
+    ATA = (1. / M) * T @ T.T + la * torch.eye(M, dtype=kMM.dtype, device=kMM.device)
     A = prec.invAt(ATA)
     assert A.dtype == kMM.dtype, "Wrong data-type"
 

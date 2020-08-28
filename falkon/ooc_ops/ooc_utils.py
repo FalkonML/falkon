@@ -16,7 +16,7 @@ def calc_block_sizes(max_block_size: int,
         raise RuntimeError("num_blocks expected > 0, found %d" % (num_blocks))
     # Calculate a block size which evenly splits N
     block_size, extras = divmod(num_rows, num_blocks)
-    block_sizes = extras * [block_size+1] + (num_blocks - extras) * [block_size]
+    block_sizes = extras * [block_size + 1] + (num_blocks - extras) * [block_size]
 
     return block_sizes
 

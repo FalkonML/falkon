@@ -68,13 +68,13 @@ class ConjugateGradient(Optimizer):
                     R = B - mmv(X)
                 else:
                     R = R - torch.mm(AP, torch.diag(alpha))
-                    #R.addmm_(mat1=AP, mat2=torch.diag(alpha), alpha=-1.0)
+                    # R.addmm_(mat1=AP, mat2=torch.diag(alpha), alpha=-1.0)
 
                 # noinspection PyArgumentList
                 Rsnew = torch.sum(R.pow(2), dim=0)
                 if Rsnew.abs().max().sqrt() < self.params.cg_tolerance:
                     print("Stopping conjugate gradient descent at "
-                          "iteration %d. Solution has converged." % (i+1))
+                          "iteration %d. Solution has converged." % (i + 1))
                     break
 
                 P = R + torch.mm(P, torch.diag(Rsnew / (Rsold + m_eps)))
@@ -108,7 +108,7 @@ class FalkonConjugateGradient(Optimizer):
                 Knm = None
             # Compute the right hand side
             if Knm is not None:
-                B = Knm.T @ (Y/n)
+                B = Knm.T @ (Y / n)
             else:
                 B = self.kernel.dmmv(X, M, None, Y / n, opt=self.params)
             B = prec.apply_t(B)

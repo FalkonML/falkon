@@ -92,7 +92,7 @@ class TestOOCLauum:
         np.float64: 1e-12,
         np.float32: 1e-5
     }
-    basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2 ** 20,
+    basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2**20,
                               lauum_par_blk_multiplier=6)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
