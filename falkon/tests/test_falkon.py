@@ -114,11 +114,12 @@ class TestFalkon:
         flk.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
         flk.to("cuda:0")
 
-        cuda_preds = flk.predict(Xts.to("cuda:0"))
-        assert cuda_preds.device.type == "cuda"
-        assert cuda_preds.shape == (Yts.shape[0], 1)
-        ts_err = error_fn(cuda_preds.cpu(), Yts)[0]
-        tr_err = error_fn(cuda_preds.cpu(), Ytr)[0]
+        cuda_ts_preds = flk.predict(Xts.to("cuda:0"))
+        cuda_tr_preds = flk.predict(Xtr.to("cuda:0"))
+        assert cuda_ts_preds.device.type == "cuda"
+        assert cuda_ts_preds.shape == (Yts.shape[0], 1)
+        ts_err = error_fn(cuda_ts_preds.cpu(), Yts)[0]
+        tr_err = error_fn(cuda_tr_preds.cpu(), Ytr)[0]
         assert tr_err < ts_err
         assert ts_err < 2.5
 
@@ -142,21 +143,22 @@ class TestIncoreFalkon:
 
     def test_classif(self, cls_data):
         X, Y = cls_data
-        X = X.cuda()
-        Y = Y.cuda()
+        Xc = X.cuda()
+        Yc = Y.cuda()
         kernel = kernels.GaussianKernel(2.0)
 
         def error_fn(t, p):
             return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
 
         opt = FalkonOptions(use_cpu=False, keops_active="no", debug=True)
-
-        flk = InCoreFalkon(
-            kernel=kernel, penalty=1e-6, M=500, seed=10,
-            options=opt,
+        M = 500
+        flkc = InCoreFalkon(
+            kernel=kernel, penalty=1e-6, M=M, seed=10,
+            options=opt, maxiter=20,
             error_fn=error_fn)
-        flk.fit(X, Y)
-        preds = flk.predict(X)
-        assert preds.device == X.device
-        err = error_fn(preds, Y)[0]
+        flkc.fit(Xc, Yc)
+
+        cpreds = flkc.predict(Xc)
+        assert cpreds.device == Xc.device
+        err = error_fn(cpreds, Yc)[0]
         assert err < 5

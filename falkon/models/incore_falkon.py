@@ -7,8 +7,8 @@ import falkon
 from falkon import FalkonOptions
 from falkon.models.model_utils import FalkonBase
 from falkon.utils.helpers import check_same_device
-from utils import TicToc
-from utils.devices import get_device_info
+from falkon.utils import TicToc
+from falkon.utils.devices import get_device_info
 
 
 class InCoreFalkon(FalkonBase):
@@ -171,6 +171,7 @@ class InCoreFalkon(FalkonBase):
         with TicToc("Calcuating Preconditioner of size %d" % (self.M), debug=self.options.debug):
             precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options)
             precond.init(ny_points)
+        self.precond = precond
 
         # Cache must be emptied to ensure enough memory is visible to the optimizer
         torch.cuda.empty_cache()

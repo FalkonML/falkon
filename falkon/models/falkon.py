@@ -184,6 +184,7 @@ class Falkon(FalkonBase):
                       ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
             precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
             precond.init(ny_points)
+            self.precond = precond
 
         if _use_cuda_mmv:
             # Cache must be emptied to ensure enough memory is visible to the optimizer
