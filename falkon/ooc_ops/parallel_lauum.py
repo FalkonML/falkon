@@ -3,7 +3,6 @@ import threading
 from dataclasses import dataclass
 from typing import List
 
-import scipy.linalg.lapack as scll
 import torch
 
 from falkon.cuda.cublas_gpu import *
@@ -11,9 +10,7 @@ from falkon.cuda.cudart_gpu import cuda_memcpy2d_async
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 from falkon.utils.tensor_helpers import create_fortran
-from falkon.la_helpers import zero_triang, copy_triang
 from falkon.ooc_ops.cuda import cuda_lauum_lower
-from falkon.la_helpers.cuda_la_helpers import cuda_transpose
 
 
 __all__ = ("par_lauum_c_lower", "par_lauum_f_lower", "BlockAlloc")
@@ -182,7 +179,6 @@ def par_lauum_c_lower(A: torch.Tensor,
     dts = sizeof_dtype(A.dtype)
     is_cuda = A.device.type == "cuda"
 
-    lauum_fn = choose_fn(A.dtype, scll.dlauum, scll.slauum, "Lapack LAUUM")
     trmm_fn = choose_fn(A.dtype, cublasDtrmm, cublasStrmm, "cuBlas TRMM")
     gemm_fn = choose_fn(A.dtype, cublasDgemm, cublasSgemm, "cuBlas GEMM")
     syrk_fn = choose_fn(A.dtype, cublasDsyrk, cublasSsyrk, "cuBlas SYRK")
@@ -238,7 +234,6 @@ def par_lauum_c_lower(A: torch.Tensor,
                                 beta=0.0, C=syrk_out.data_ptr(), ldc=max_block_size)
 
                     with torch.cuda.stream(s3):
-                        #lauum_out = whole_col_b[:max_block_size * max_block_size].view(max_block_size, max_block_size)
                         lauum_out = whole_col_b[:bb.length * max_block_size].view(bb.length, max_block_size)[:, :bb.length]
                         # With the copy we go from C-contig to F-contig into lauum_in. This also transposes lauum_out so we get a correct order.
                         cur_lauum_in = lauum_in[:bb.length, :bb.length]
@@ -321,4 +316,3 @@ def par_lauum_c_lower(A: torch.Tensor,
                             B=A[br.start, bb.start].data_ptr(), ldb=A.shape[0],
                             stream=s1_cuda)
             s1.synchronize()
-

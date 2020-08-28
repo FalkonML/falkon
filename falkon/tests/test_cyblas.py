@@ -25,7 +25,7 @@ class TestCudaTranspose:
 
     @pytest.fixture(scope="class")
     def rect(self):
-        return gen_random(self.t, self.t*2-1, np.float64, F=True, seed=12345)
+        return gen_random(self.t, self.t * 2 - 1, np.float64, F=True, seed=12345)
 
     def test_square(self, mat, order, dtype):
         from falkon.la_helpers.cuda_la_helpers import cuda_transpose
@@ -41,7 +41,7 @@ class TestCudaTranspose:
         mat_out = move_tensor(mat_out, "cpu").numpy()
         assert mat_out.strides == exp_mat_out.strides
         np.testing.assert_allclose(exp_mat_out, mat_out)
-        
+
     def test_rect(self, rect, order, dtype):
         from falkon.la_helpers.cuda_la_helpers import cuda_transpose
         mat = fix_mat(rect, order=order, dtype=dtype, copy=True, numpy=True)
@@ -56,7 +56,7 @@ class TestCudaTranspose:
         mat_out = move_tensor(mat_out, "cpu").numpy()
         assert mat_out.strides == exp_mat_out.strides
         np.testing.assert_allclose(exp_mat_out, mat_out)
-        
+
 
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -238,10 +238,10 @@ class TestMulTriang:
         k = 1 if preserve_diag else 0
         if upper:
             tri_fn = partial(np.triu, k=k)
-            other_tri_fn = partial(np.tril, k=k-1)
+            other_tri_fn = partial(np.tril, k=k - 1)
         else:
             tri_fn = partial(np.tril, k=-k)
-            other_tri_fn = partial(np.triu, k=-k+1)
+            other_tri_fn = partial(np.triu, k=-k + 1)
 
         inpt1 = torch.from_numpy(inpt1)
         inpt1_dev = create_same_stride(inpt1.shape, inpt1, inpt1.dtype, device)

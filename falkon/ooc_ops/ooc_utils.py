@@ -40,7 +40,7 @@ def calc_block_sizes3(max_block_size: int, num_devices: int, num_rows: int) -> L
             num_blocks += added_blocks
 
     block_size, extras = divmod(num_rows, num_blocks)
-    block_sizes = extras * [block_size+1] + (num_blocks - extras) * [block_size]
+    block_sizes = extras * [block_size + 1] + (num_blocks - extras) * [block_size]
     return block_sizes
 
 

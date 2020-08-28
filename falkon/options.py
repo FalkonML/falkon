@@ -36,8 +36,8 @@ no_single_kernel (default True)
     products).
 min_cuda_pc_size_32 (default 10000)
     If M (the number of Nystroem centers) is lower than `min_cuda_pc_size_32`, falkon will
-    run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try 
-    to run the preconditioner on the GPU. This setting is valid for data in single 
+    run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try
+    to run the preconditioner on the GPU. This setting is valid for data in single
     (float32) precision.
     Along with the `min_cuda_iter_size_32` setting, this determines a cutoff for running
     Falkon on the CPU or the GPU. Such cutoff is useful since for small-data problems
@@ -46,8 +46,8 @@ min_cuda_pc_size_32 (default 10000)
     which side is faster. This will depend on the exact hardware.
 min_cuda_pc_size_64 (default 30000)
     If M (the number of Nystroem centers) is lower than `min_cuda_pc_size_64`, falkon will
-    run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try 
-    to run the preconditioner on the GPU. This setting is valid for data in double 
+    run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try
+    to run the preconditioner on the GPU. This setting is valid for data in double
     (float64) precision.
     Along with the `min_cuda_iter_size_64` setting, this determines a cutoff for running
     Falkon on the CPU or the GPU. Such cutoff is useful since for small-data problems

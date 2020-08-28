@@ -22,6 +22,7 @@ def _new_strided_tensor(
     else:
         pin_memory &= device.lower() == 'cpu'
 
+    # noinspection PyArgumentList
     return torch.empty_strided(
         size=size, stride=stride,
         dtype=dtype, device=device,
@@ -202,4 +203,3 @@ def move_tensor(tensor: torch.Tensor, device: Union[torch.device, str]) -> torch
     new_tensor = create_same_stride(tensor.size(), tensor, tensor.dtype, device)
     new_tensor.copy_(tensor)
     return new_tensor
-

@@ -19,7 +19,7 @@ from falkon.utils.helpers import (
     select_dim_fMM, calc_gpu_block_sizes, sizeof_dtype,
     select_dim_over_m
 )
-from falkon.utils.tensor_helpers import create_same_stride, cast_tensor, create_fortran
+from falkon.utils.tensor_helpers import create_same_stride, create_fortran
 
 __all__ = ("fmm_cuda", "fmm_cuda_sparse")
 

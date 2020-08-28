@@ -38,7 +38,7 @@ class TestConjugateGradient():
         mat = move_tensor(mat, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x_: mat@x_, max_iter=10, callback=None)
+        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x_: mat @ x_, max_iter=10, callback=None)
 
         assert str(x.device) == device, "Device has changed unexpectedly"
         assert x.stride() == vec_rhs.stride(), "Stride has changed unexpectedly"
@@ -55,7 +55,7 @@ class TestConjugateGradient():
         init_sol = create_same_stride(vec_rhs.size(), vec_rhs, vec_rhs.dtype, device)
         init_sol.fill_(0.0)
 
-        x = conjgrad.solve(X0=init_sol, B=vec_rhs, mmv=lambda x_: mat@x_, max_iter=10,
+        x = conjgrad.solve(X0=init_sol, B=vec_rhs, mmv=lambda x_: mat @ x_, max_iter=10,
                            callback=None)
 
         assert x.data_ptr() == init_sol.data_ptr(), "Initial solution vector was copied"

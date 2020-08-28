@@ -122,7 +122,6 @@ class FalkonBase(base.BaseEstimator, ABC):
 
         return X
 
-
     def _can_store_knm(self, X, ny_points, available_ram, store_threshold=1200):
         """Decide whether it's worthwile to pre-compute the k_NM kernel.
 

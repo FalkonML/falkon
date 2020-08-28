@@ -165,8 +165,8 @@ def generic_fmmv(proc_idx, queue, device_id):
             for k in range(0, dtot, d):
                 kc = min(d, dtot - k)
                 if cuda_inputs:
-                    c_g_X1s = X1[i:i+ic, k:k+kc]
-                    c_g_X2s = X2[:, k:k+kc]
+                    c_g_X1s = X1[i:i + ic, k:k + kc]
+                    c_g_X2s = X2[:, k:k + kc]
                 else:
                     c_g_X1s = copy_to_device_noorder(ic, kc, X1, i, k, X1s_gpu, 0, 0)
                     c_g_X2s = copy_to_device_noorder(M, kc, X2, 0, k, X2s_gpu, 0, 0)
@@ -174,7 +174,7 @@ def generic_fmmv(proc_idx, queue, device_id):
             kernel._finalize(c_g_ker, ddd)
             # Multiply by the vector v
             if cuda_inputs:
-                c_g_mmv = out[i:i+ic, :]
+                c_g_mmv = out[i:i + ic, :]
             else:
                 c_g_mmv = mmv_gpu[:ic, :]
             torch.mm(c_g_ker, v_gpu, out=c_g_mmv)  # n x T
@@ -322,8 +322,8 @@ def generic_fdmmv(proc_idx, queue, device_id):
             for k in range(0, D, d):
                 kc = min(d, D - k)
                 if cuda_inputs:
-                    c_g_X1s = X1[i:i+ic, k:k+kc]
-                    c_g_X2s = X2[:, k:k+kc]
+                    c_g_X1s = X1[i:i + ic, k:k + kc]
+                    c_g_X2s = X2[:, k:k + kc]
                 else:
                     c_g_X1s = copy_to_device_noorder(ic, kc, X1, i, k, X1s_gpu, 0, 0)
                     c_g_X2s = copy_to_device_noorder(M, kc, X2, 0, k, X2s_gpu, 0, 0)
@@ -482,12 +482,12 @@ def distk_fdmmv(proc_idx, queue, device_id):
                 # Parallelize two matrix transfers (probably pointless)
                 with torch.cuda.stream(s2):
                     if cuda_inputs:
-                        cur_X2s_gpu = X2[:, j:j+db]
+                        cur_X2s_gpu = X2[:, j:j + db]
                     else:
                         cur_X2s_gpu = copy_to_device_noorder(M, db, X2, 0, j, X2s_gpu, 0, 0, s=s2)
                     torch.norm(cur_X2s_gpu, p=2, dim=1, keepdim=True, out=sq2_gpu).pow_(2)
                 if cuda_inputs:
-                    cur_X1ss_gpu = X1[i:i+nb, j:j+db]
+                    cur_X1ss_gpu = X1[i:i + nb, j:j + db]
                 else:
                     cur_X1ss_gpu = copy_to_device_noorder(nb, db, X1, i, j, X1ss_gpu, 0, 0, s=s1)
                 torch.norm(cur_X1ss_gpu, p=2, dim=1, keepdim=True, out=sq1_gpu).pow_(2)
@@ -563,7 +563,8 @@ def fmmv_cuda(X1: torch.Tensor,
         args = []  # Arguments passed to each subprocess
         for i, g in enumerate(gpu_info):
             bwidth = block_sizes[i + 1] - block_sizes[i]
-            if bwidth <= 0: continue
+            if bwidth <= 0:
+                continue
             args.append((ArgsFmmv(
                 X1=X1.narrow(0, block_sizes[i], bwidth),
                 X2=X2, v=v,
@@ -603,12 +604,13 @@ def fmmv_cuda_sparse(X1: SparseTensor,
         args = []  # Arguments passed to each subprocess
         for i, g in enumerate(gpu_info):
             bwidth = block_sizes[i + 1] - block_sizes[i]
-            if bwidth <= 0: continue
+            if bwidth <= 0:
+                continue
             args.append((ArgsFmmv(
-                    X1=X1.narrow_rows(block_sizes[i], bwidth),
-                    X2=X2, v=v,
-                    out=out.narrow(0, block_sizes[i], bwidth),
-                    kernel=kernel, max_mem=g.usable_ram), g.Id))
+                X1=X1.narrow_rows(block_sizes[i], bwidth),
+                X2=X2, v=v,
+                out=out.narrow(0, block_sizes[i], bwidth),
+                kernel=kernel, max_mem=g.usable_ram), g.Id))
 
         _start_wait_processes(sparse_fmmv, args)
     return out
@@ -733,7 +735,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
                 X1=X1.narrow_rows(block_sizes[i], bwidth),
                 X2=X2, v=v, w=cur_w, out=cur_out_gpu,
                 kernel=kernel, max_mem=g.usable_ram), g.Id))
-        _start_wait_processes(sparse_fdmmv,  args)
+        _start_wait_processes(sparse_fdmmv, args)
         if len(wrlk) > 1:
             # noinspection PyTypeChecker
             fastest_device: int = np.argmax([d.speed for d in gpu_info])

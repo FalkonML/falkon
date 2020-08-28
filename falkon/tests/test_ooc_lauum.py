@@ -165,7 +165,7 @@ class TestOOCLauum:
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 class TestLauumKernel:
-    rtol = {np.float64:1e-12, np.float32:1e-5}
+    rtol = {np.float64: 1e-12, np.float32: 1e-5}
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
     def test_lauum(self, dtype, get_mat, expected_lower):
@@ -203,4 +203,3 @@ class TestLauumKernel:
 
         # Compare outputs and print timing info
         np.testing.assert_allclose(np.tril(expected_lower), gpu_out_strided.cpu().numpy(), rtol=self.rtol[dtype])
-

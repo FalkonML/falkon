@@ -105,7 +105,7 @@ class TestFalkon:
             return torch.sqrt(torch.mean((t - p) ** 2)), "RMSE"
 
         opt = FalkonOptions(use_cpu=False, keops_active="no", debug=True,
-                min_cuda_pc_size_64=1, min_cuda_iter_size_64=1)
+                            min_cuda_pc_size_64=1, min_cuda_iter_size_64=1)
 
         flk = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,

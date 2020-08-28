@@ -2,8 +2,6 @@ import math
 import threading
 from typing import List, Optional
 
-import torch
-
 from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
 from falkon.utils.tensor_helpers import copy_same_stride
@@ -36,22 +34,22 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
             max_block_size = int(math.floor(math.sqrt(avail_ram / 2)))
         else:
             # Same RAM requirements as the non-CUDA version
-            max_block_size = int(math.floor((-2*N + math.sqrt(4*N**2 + 8 * avail_ram)) / 4))
+            max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
-                    "Cannot run parallel LAUUM with minimum "
-                    "available memory of %.2fMB" % (avail_ram * dts / 2**20))
+                "Cannot run parallel LAUUM with minimum "
+                "available memory of %.2fMB" % (avail_ram * dts / 2**20))
         # All computations on the same device (where data is stored). No multi-GPU support!
         block_sizes = calc_block_sizes3(max_block_size, 1, N)
     else:
         avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
         # Each GPU should be able to hold in memory 2 block columns
         # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0
-        max_block_size = int(math.floor((-2*N + math.sqrt(4*N**2 + 8 * avail_ram)) / 4))
+        max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
-                    "Cannot run parallel LAUUM with minimum "
-                    "available memory of %.2fMB" % (avail_ram * dts / 2**20))
+                "Cannot run parallel LAUUM with minimum "
+                "available memory of %.2fMB" % (avail_ram * dts / 2**20))
 
         block_sizes = calc_block_sizes3(max_block_size, len(gpu_info), N)
 
@@ -114,6 +112,7 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
     # Parallel can only do lower C or F-contiguous arrays
     # By transposing as necessary, it is able to run with every combination of inputs.
     transposed = False
+    # noinspection PyUnresolvedReferences
     if upper:
         A = A.T
         transposed = True

@@ -35,7 +35,7 @@ def test_trsm_wrapper(mat, arr, dtype, order, device, lower, transpose):
     n_mat = move_tensor(fix_mat(mat, dtype=dtype, order=order, copy=True), device=device)
     n_arr = move_tensor(fix_mat(arr, dtype=dtype, order=order, copy=True), device=device)
 
-    expected = sclb.dtrsm(1e-2, mat, arr,  side=0, lower=lower, trans_a=transpose, overwrite_b=0)
+    expected = sclb.dtrsm(1e-2, mat, arr, side=0, lower=lower, trans_a=transpose, overwrite_b=0)
 
     if device.startswith("cuda") and order == "C":
         with pytest.raises(ValueError):
@@ -43,4 +43,3 @@ def test_trsm_wrapper(mat, arr, dtype, order, device, lower, transpose):
     else:
         actual = trsm(n_arr, n_mat, alpha=1e-2, lower=lower, transpose=transpose)
         np.testing.assert_allclose(expected, actual.cpu().numpy(), rtol=rtol)
-
