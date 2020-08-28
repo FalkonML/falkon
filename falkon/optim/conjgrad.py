@@ -51,6 +51,7 @@ class ConjugateGradient(Optimizer):
         m_eps = self.params.cg_epsilon(X.dtype)
 
         P = R
+        # noinspection PyArgumentList
         Rsold = torch.sum(R.pow(2), dim=0)
 
         e_train = time.time() - t_start
@@ -59,6 +60,7 @@ class ConjugateGradient(Optimizer):
             with TicToc("Chol Iter", debug=False):  # TODO: FIXME
                 t_start = time.time()
                 AP = mmv(P)
+                # noinspection PyArgumentList
                 alpha = Rsold / (torch.sum(P * AP, dim=0) + m_eps)
                 X.addmm_(P, torch.diag(alpha))
 
@@ -68,6 +70,7 @@ class ConjugateGradient(Optimizer):
                     R = R - torch.mm(AP, torch.diag(alpha))
                     #R.addmm_(mat1=AP, mat2=torch.diag(alpha), alpha=-1.0)
 
+                # noinspection PyArgumentList
                 Rsnew = torch.sum(R.pow(2), dim=0)
                 if Rsnew.abs().max().sqrt() < self.params.cg_tolerance:
                     print("Stopping conjugate gradient descent at "

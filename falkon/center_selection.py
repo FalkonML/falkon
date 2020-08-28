@@ -8,7 +8,7 @@ import torch
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.tensor_helpers import create_same_stride
 
-__all__ = ("CenterSelector", "UniformSelector")
+__all__ = ("CenterSelector", "FixedSelector", "UniformSelector")
 _tensor_type = Union[torch.Tensor, SparseTensor]
 
 
@@ -19,6 +19,19 @@ class CenterSelector(ABC):
     @abstractmethod
     def select(self, X, Y, M):
         pass
+
+
+class FixedSelector(CenterSelector):
+    def __init__(self, centers: _tensor_type, y_centers: Union[torch.Tensor, None] = None,
+                 random_gen=None):
+        super().__init__(random_gen)
+        self.centers = centers
+        self.y_centers = y_centers
+
+    def select(self, X, Y, M):
+        if Y is not None:
+            return self.centers, self.y_centers
+        return self.centers
 
 
 class UniformSelector(CenterSelector):

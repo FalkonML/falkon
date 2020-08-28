@@ -1,34 +1,18 @@
-import dataclasses
 import time
 from typing import Union, Optional
 
 import torch
 
 import falkon
+from falkon import FalkonOptions
 from falkon.models.model_utils import FalkonBase
-from falkon.options import *
-from falkon.utils import TicToc
-from falkon.utils.devices import get_device_info
-
-__all__ = ("Falkon",)
+from falkon.utils.helpers import check_same_device
+from utils import TicToc
+from utils.devices import get_device_info
 
 
-def get_min_cuda_preconditioner_size(dt, opt: FalkonOptions) -> int:
-    if dt == torch.float32:
-        return opt.min_cuda_pc_size_32
-    else:
-        return opt.min_cuda_pc_size_64
-
-
-def get_min_cuda_mmv_size(dt, opt: FalkonOptions) -> int:
-    if dt == torch.float32:
-        return opt.min_cuda_iter_size_32
-    else:
-        return opt.min_cuda_iter_size_64
-
-
-class Falkon(FalkonBase):
-    """Falkon Kernel Ridge Regression solver.
+class InCoreFalkon(FalkonBase):
+    """In GPU core Falkon Kernel Ridge Regression solver.
 
     This estimator object solves approximate kernel ridge regression problems with Nystroem
     projections and a fast optimization algorithm as described in [1]_, [2]_.
@@ -36,6 +20,15 @@ class Falkon(FalkonBase):
     Multiclass and multiple regression problems can all be tackled
     with this same object, for example by encoding multiple classes
     in a one-hot target matrix.
+
+    Compared to the base `falkon.models.Falkon` estimator, the `InCoreFalkon` estimator
+    is designed to work fully within the GPU, performing no data-copies between CPU and GPU. As
+    such, it is more constraining than the base estimator, but **has better performance on smaller
+    problems**.
+    In particular, the constraints are that:
+     - the input data must be on a single GPU, when calling `InCoreFalkon.fit`;
+     - the data, preconditioner, kernels, etc. must all fit on the same GPU.
+    Using multiple GPUs is not possible with this model.
 
     Parameters
     -----------
@@ -78,13 +71,14 @@ class Falkon(FalkonBase):
     --------
     Running Falkon on a random dataset
 
-    >>> X = torch.randn(1000, 10)
-    >>> Y = torch.randn(1000, 1)
+    >>> X = torch.randn(1000, 10).cuda()
+    >>> Y = torch.randn(1000, 1).cuda()
     >>> kernel = falkon.kernels.GaussianKernel(3.0)
     >>> options = FalkonOptions(use_cpu=True)
-    >>> model = Falkon(kernel=kernel, penalty=1e-6, M=500, options=options)
+    >>> model = InCoreFalkon(kernel=kernel, penalty=1e-6, M=500, options=options)
     >>> model.fit(X, Y)
     >>> preds = model.predict(X)
+    >>> assert preds.is_cuda
 
     References
     ----------
@@ -93,7 +87,6 @@ class Falkon(FalkonBase):
     .. [2] Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi,
        "Kernel methods through the roof: handling billions of points efficiently,"
        arXiv:2006.10350, 2020.
-
     """
 
     def __init__(self,
@@ -110,7 +103,22 @@ class Falkon(FalkonBase):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
         self.maxiter = maxiter
+        if not self.use_cuda_:
+            raise RuntimeError("Cannot instantiate InCoreFalkon when CUDA is not available. "
+                               "If CUDA is present on your system, make sure to set "
+                               "'use_cpu=False' in the `FalkonOptions` object.")
         self._init_cuda()
+
+    def _check_fit_inputs(self, X, Y, Xts, Yts):
+        if not check_same_device(X, Y, Xts, Yts) or (not X.is_cuda):
+            raise ValueError("All tensors for fitting InCoreFalkon must be CUDA tensors, "
+                             "located on the same GPU.")
+        return super()._check_fit_inputs(X, Y, Xts, Yts)
+
+    def _check_predict_inputs(self, X):
+        if not check_same_device(X, self.alpha_):
+            raise ValueError("X must be on device %s" % (self.alpha_.device))
+        return super()._check_predict_inputs(X)
 
     def fit(self,
             X: torch.Tensor,
@@ -124,27 +132,27 @@ class Falkon(FalkonBase):
         X : torch.Tensor (2D)
             The tensor of training data, of shape [num_samples, num_dimensions].
             If X is in Fortran order (i.e. column-contiguous) then we can avoid
-            an extra copy of the data.
+            an extra copy of the data. Must be a CUDA tensor.
         Y : torch.Tensor (1D or 2D)
             The tensor of training targets, of shape [num_samples, num_outputs].
             If X and Y represent a classification problem, Y can be encoded as a one-hot
             vector.
             If Y is in Fortran order (i.e. column-contiguous) then we can avoid an
-            extra copy of the data.
+            extra copy of the data. Must be a CUDA tensor.
         Xts : torch.Tensor (2D) or None
             Tensor of validation data, of shape [num_test_samples, num_dimensions].
             If validation data is provided and `error_fn` was specified when
             creating the model, they will be used to print the validation error
             during the optimization iterations.
             If Xts is in Fortran order (i.e. column-contiguous) then we can avoid an
-            extra copy of the data.
+            extra copy of the data. Must be a CUDA tensor.
         Yts : torch.Tensor (1D or 2D) or None
             Tensor of validation targets, of shape [num_test_samples, num_outputs].
             If validation data is provided and `error_fn` was specified when
             creating the model, they will be used to print the validation error
             during the optimization iterations.
             If Yts is in Fortran order (i.e. column-contiguous) then we can avoid an
-            extra copy of the data.
+            extra copy of the data. Must be a CUDA tensor.
 
         Returns
         --------
@@ -153,47 +161,23 @@ class Falkon(FalkonBase):
         """
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
 
-        dtype = X.dtype
-
-        # Decide whether to use CUDA for preconditioning based on M
-        _use_cuda_preconditioner = (
-                self.use_cuda_ and
-                (not self.options.cpu_preconditioner) and
-                self.M >= get_min_cuda_preconditioner_size(dtype, self.options)
-        )
-        _use_cuda_mmv = (
-                self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype,
-                                                                                          self.options)
-        )
-
         self.fit_times_ = []
         self.ny_points_ = None
         self.alpha_ = None
 
         t_s = time.time()
         ny_points = self.center_selection.select(X, None, self.M)
-        if self.use_cuda_:
-            ny_points = ny_points.pin_memory()
 
         with TicToc("Calcuating Preconditioner of size %d" % (self.M), debug=self.options.debug):
-            pc_opt: FalkonOptions = dataclasses.replace(self.options,
-                                                        use_cpu=not _use_cuda_preconditioner)
-            if pc_opt.debug:
-                print("Preconditioner will run on %s" %
-                      ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
-            precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
+            precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options)
             precond.init(ny_points)
 
-        if _use_cuda_mmv:
-            # Cache must be emptied to ensure enough memory is visible to the optimizer
-            torch.cuda.empty_cache()
-            X = X.pin_memory()
+        # Cache must be emptied to ensure enough memory is visible to the optimizer
+        torch.cuda.empty_cache()
 
         # K_NM storage decision
-        k_opt = dataclasses.replace(self.options, use_cpu=True)
-        cpu_info = get_device_info(k_opt)
-        available_ram = min(k_opt.max_cpu_mem, cpu_info[-1].free_memory) * 0.9
+        gpu_info = get_device_info(self.options)[X.device.index]
+        available_ram = min(self.options.max_gpu_mem, gpu_info.free_memory) * 0.9
         if self._can_store_knm(X, ny_points, available_ram):
             Knm = self.kernel(X, ny_points, opt=self.options)
         else:
@@ -209,11 +193,7 @@ class Falkon(FalkonBase):
 
         # Start with the falkon algorithm
         with TicToc('Computing Falkon iterations', debug=self.options.debug):
-            o_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
-            if o_opt.debug:
-                print("Optimizer will run on %s" %
-                      ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
-            optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt)
+            optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, self.options)
             if Knm is not None:
                 beta = optim.solve(
                     Knm, None, Y, self.penalty, initial_solution=None,
@@ -231,15 +211,4 @@ class Falkon(FalkonBase):
         if ny_points is None:
             # Then X is the kernel itself
             return X @ alpha
-        _use_cuda_mmv = (
-                self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(
-                    X.dtype, self.options)
-        )
-        mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
-        return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
-
-    def to(self, device):
-        self.alpha_ = self.alpha_.to(device)
-        self.ny_points_ = self.ny_points_.to(device)
-        return self
+        return self.kernel.mmv(X, ny_points, alpha, opt=self.options)

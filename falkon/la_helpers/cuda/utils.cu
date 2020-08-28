@@ -265,9 +265,9 @@ torch::Tensor cuda_mul_triang(torch::Tensor &A, bool upper, const bool preserve_
 
 torch::Tensor cuda_transpose(torch::Tensor &input, torch::Tensor &output) {
     if (!input.is_cuda())
-        AT_ERROR("Input A must be a CUDA tensor.");
+        AT_ERROR("Input must be a CUDA tensor.");
     if (!output.is_cuda())
-        AT_ERROR("Input A must be a CUDA tensor.");
+        AT_ERROR("Output must be a CUDA tensor.");
     if (input.size(0) != output.size(1) || input.size(1) != output.size(0))
         AT_ERROR("Input and output matrices must be of the same size.");
     // TODO: Check strides are consistent
