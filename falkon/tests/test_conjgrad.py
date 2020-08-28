@@ -43,8 +43,8 @@ class TestConjugateGradient():
         assert str(x.device) == device, "Device has changed unexpectedly"
         assert x.stride() == vec_rhs.stride(), "Stride has changed unexpectedly"
         assert x.shape == (self.t, vec_rhs.shape[1]), "Output shape is incorrect"
-        expected = np.linalg.solve(mat.numpy(), vec_rhs.numpy())
-        np.testing.assert_allclose(expected, x, rtol=1e-6)
+        expected = np.linalg.solve(mat.cpu().numpy(), vec_rhs.cpu().numpy())
+        np.testing.assert_allclose(expected, x.cpu().numpy(), rtol=1e-6)
 
     def test_with_x0(self, mat, vec_rhs, conjgrad, order, device):
         if order == "F":
@@ -62,8 +62,8 @@ class TestConjugateGradient():
         assert str(x.device) == device, "Device has changed unexpectedly"
         assert x.shape == (self.t, vec_rhs.shape[1]), "Output shape is incorrect"
         assert x.stride() == vec_rhs.stride(), "Stride has changed unexpectedly"
-        expected = np.linalg.solve(mat.numpy(), vec_rhs.numpy())
-        np.testing.assert_allclose(expected, x, rtol=1e-6)
+        expected = np.linalg.solve(mat.cpu().numpy(), vec_rhs.cpu().numpy())
+        np.testing.assert_allclose(expected, x.cpu().numpy(), rtol=1e-6)
 
 
 # TODO: KeOps fails if data is F-contig. Check if this occurs also in `test_falkon`.
@@ -109,6 +109,7 @@ class TestFalkonConjugateGradient:
         return prec
 
     def test_flk_cg(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
+        preconditioner = preconditioner.to(device)
         opt = FalkonConjugateGradient(kernel, preconditioner, opt=self.basic_opt)
 
         # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
@@ -125,4 +126,4 @@ class TestFalkonConjugateGradient:
         alpha = preconditioner.apply(beta)
 
         assert str(beta.device) == device, "Device has changed unexpectedly"
-        np.testing.assert_allclose(expected, alpha, rtol=1e-5)
+        np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)

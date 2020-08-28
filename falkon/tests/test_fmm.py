@@ -176,7 +176,11 @@ class TestDenseFmm:
     def test(self, A, B, k_class, k_exp, dtype, cpu, input_device):
         if cpu and input_device.startswith("cuda"):
             return True
-        max_mem = 2 * 2 ** 20
+        if input_device.startswith("cuda"):
+            # For fMM there is nothing we can do about CUDA memory usage!
+            max_mem = np.inf
+        else:
+            max_mem = 2 * 2 ** 20
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem, max_gpu_mem=max_mem)
         A = move_tensor(torch.from_numpy(A), input_device)
         B = move_tensor(torch.from_numpy(B), input_device)
@@ -194,6 +198,7 @@ class TestDenseFmm:
 
         Ac = move_tensor(torch.from_numpy(Ac.astype(dtype)), input_device)
         Bc = move_tensor(torch.from_numpy(Bc.astype(dtype)), input_device)
+        out = move_tensor(torch.from_numpy(out), input_device)
 
         rtol = choose_on_dtype(dtype)
         _run_fmm_test(k_class, k_exp, Ac, Bc, out=out, dtype=dtype, opt=opt, rtol=rtol)
