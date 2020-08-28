@@ -35,15 +35,9 @@ def get_extensions():
     extension_cls = CppExtension
     sparse_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'sparse')
     sparse_files = [
-<<<<<<< HEAD
-            'sparse_extension.cpp',
-            osp.join('cpp', 'sparse_matmul.cpp'),
-            osp.join('cpp', 'sparse_norm.cpp')
-=======
         'sparse_extension.cpp',
         osp.join('cpp', 'sparse_matmul.cpp'),
         osp.join('cpp', 'sparse_norm.cpp')
->>>>>>> master
     ]
     sparse_compile_args = {'cxx': ['-fopenmp']}
     sparse_link_args = []
