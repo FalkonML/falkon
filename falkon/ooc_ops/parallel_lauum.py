@@ -53,7 +53,6 @@ def par_lauum_f_lower(A: torch.Tensor,
 
     tc_device = torch.device('cuda:%d' % (device_id))
     s1 = torch.cuda.Stream(device=tc_device)
-    s2 = torch.cuda.Stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
     cublasSetStream(cublas_handle, s1._as_parameter_)
 
@@ -109,7 +108,7 @@ def par_lauum_f_lower(A: torch.Tensor,
                             cur_lauum_out.copy_(col_b[:bb.length, :bb.length])
 
                         # LAUUM on col_b[:bb.length, :bb.length], into lauum_out[:bb.length, :bb.length]
-                        cuda_lauum_lower(n=bb.length, A=col_b[:bb.length, :bb.length], lda=A.shape[0], B=cur_lauum_out, ldb=max_block_size)
+                        cuda_lauum_lower(n=bb.length, A=col_b[:bb.length, :bb.length], lda=col_b.stride(1), B=cur_lauum_out, ldb=max_block_size)
                     s3.synchronize()
 
                     # Add outputs of SYRK and LAUUM (only if SYRK was performed)
@@ -123,7 +122,7 @@ def par_lauum_f_lower(A: torch.Tensor,
                     if independent_output:
                         Abb.copy_(cur_lauum_out.T)
                     else:
-                        Abb.copy_(cur_lauum_out)
+                        copy_to_host(bb.length, bb.length, cur_lauum_out, 0, 0, Abb, 0, 0, s=s1)
                 elif r > b:
                     br = block_allocs[r]
 
@@ -168,9 +167,8 @@ def par_lauum_f_lower(A: torch.Tensor,
                             s1.synchronize()
                             A[bb.start:bb.end, br.start:br.end].copy_(_temp_cpu.T)
                     elif not is_cuda:
-                        s1.synchronize()
-                        copy_to_host(br.length, bb.length, ccb, 0, 0, A, br.start, bb.start, s2)
-            s2.synchronize()
+                        copy_to_host(br.length, bb.length, ccb, 0, 0, A, br.start, bb.start, s1)
+            s1.synchronize()
 
 
 def par_lauum_c_lower(A: torch.Tensor,
@@ -191,9 +189,8 @@ def par_lauum_c_lower(A: torch.Tensor,
 
     tc_device = torch.device('cuda:%d' % (device_id))
     s1 = torch.cuda.Stream(device=tc_device)
-    s2 = torch.cuda.Stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
-    s1_cuda, s2_cuda = s1._as_parameter_, s2._as_parameter_
+    s1_cuda = s1._as_parameter_
     cublasSetStream(cublas_handle, s1_cuda)
 
     max_block_size = max(ba.length for ba in block_allocs)
@@ -264,7 +261,13 @@ def par_lauum_c_lower(A: torch.Tensor,
                     if independent_output:
                         Abb.copy_(lauum_out)
                     else:
-                        Abb.copy_(lauum_out.T)
+                        if not is_cuda:
+                            # It is not possible to directly copy lauum_out.T to Abb due to mismatch in strides.
+                            # Use CPU buffer for copy, and then copy transposed into Abb
+                            temp_bb[:bb.length, :bb.length].copy_(lauum_out)
+                            Abb.copy_(temp_bb[:bb.length, :bb.length].T)
+                        else:
+                            Abb.copy_(lauum_out.T)
                 else:  # r > b
                     br = block_allocs[r]
 
@@ -312,10 +315,10 @@ def par_lauum_c_lower(A: torch.Tensor,
                         s1.synchronize()
                         A[bb.start:bb.end, br.start:br.end].copy_(temp_bb[:br.length, :bb.length].T)
                     else:
-                        s1.synchronize()
                         cublasGetMatrixAsync(
                             rows=bb.length, cols=br.length, elem_size=dts,
                             A=ccb.data_ptr(), lda=max_block_size,
                             B=A[br.start, bb.start].data_ptr(), ldb=A.shape[0],
-                            stream=s2_cuda)
-            s2.synchronize()
+                            stream=s1_cuda)
+            s1.synchronize()
+

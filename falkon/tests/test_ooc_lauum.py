@@ -71,7 +71,7 @@ def matrix():
 @pytest.fixture(scope="module")
 def get_mat(matrix):
     def getter(order, dtype):
-        return fix_mat(matrix, dtype=dtype, order=order)
+        return fix_mat(matrix, dtype=dtype, order=order, copy=True)
 
     return getter
 
@@ -110,10 +110,12 @@ class TestOOCLauum:
 
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=False, opt=new_opt)
+            torch.cuda.synchronize()
         np.testing.assert_allclose(expected_upper, act_up.cpu().numpy(), rtol=self.rtol[dtype])
 
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=False, opt=new_opt)
+            torch.cuda.synchronize()
         np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -136,6 +138,7 @@ class TestOOCLauum:
         mat = torch.from_numpy(omat.copy(order="K"))
         with memory_checker(self.basic_opt) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=True, write_opposite=True, opt=new_opt)
+            torch.cuda.synchronize()
         np.testing.assert_allclose(np.triu(omat, k=1), np.triu(act_up.numpy(), k=1),
                                    rtol=self.rtol[dtype])
         np.testing.assert_allclose(np.tril(act_up.numpy()), np.triu(expected_upper).T,
@@ -144,18 +147,20 @@ class TestOOCLauum:
         mat = torch.from_numpy(omat.copy(order="K"))
         with memory_checker(self.basic_opt) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=True, write_opposite=True, opt=new_opt)
+            torch.cuda.synchronize()
         np.testing.assert_allclose(np.tril(omat, k=-1), np.tril(act_lo.numpy(), k=-1),
                                    rtol=self.rtol[dtype])
         np.testing.assert_allclose(np.triu(act_lo.numpy()), np.tril(expected_lower).T,
                                    rtol=self.rtol[dtype])
 
-    def test_no_blk_mul(self, get_mat, expected_lower):
+    def test_no_blk_mul(self, get_mat, expected_upper):
         dtype = np.float32
         mat = get_mat(order="F", dtype=dtype).numpy().copy(order="K")
         opt = dataclasses.replace(self.basic_opt, lauum_par_blk_multiplier=1)
 
-        act_lo = gpu_lauum(torch.from_numpy(mat), upper=False, overwrite=True, opt=opt)
-        np.testing.assert_allclose(expected_lower, act_lo.numpy(), rtol=self.rtol[dtype])
+        act_lo = gpu_lauum(torch.from_numpy(mat), upper=True, overwrite=True, opt=opt)
+        torch.cuda.synchronize()
+        np.testing.assert_allclose(expected_upper, act_lo.numpy(), rtol=self.rtol[dtype])
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")

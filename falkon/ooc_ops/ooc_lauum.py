@@ -28,8 +28,9 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     N = A.shape[0]
     dt = A.dtype
     dts = sizeof_dtype(dt)
-    avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
     if A.is_cuda:
+        gpu_info = [g for g in gpu_info if g.Id == A.device.index]
+        avail_ram = gpu_info[0].actual_free_mem / dts
         if target.__name__ == "par_lauum_f_lower":
             # Each GPU should hold in memory two additional blocks (2*B^2 <= M)
             max_block_size = int(math.floor(math.sqrt(avail_ram / 2)))
@@ -42,8 +43,8 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
                     "available memory of %.2fMB" % (avail_ram * dts / 2**20))
         # All computations on the same device (where data is stored). No multi-GPU support!
         block_sizes = calc_block_sizes3(max_block_size, 1, N)
-        gpu_info = [g for g in gpu_info if g.Id == A.device.index]
     else:
+        avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
         # Each GPU should be able to hold in memory 2 block columns
         # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0
         max_block_size = int(math.floor((-2*N + math.sqrt(4*N**2 + 8 * avail_ram)) / 4))
