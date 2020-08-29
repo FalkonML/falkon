@@ -8,6 +8,7 @@ API Reference
 
     models
     kernels
+    options
     gsc_losses
     preconditioner
     optimization

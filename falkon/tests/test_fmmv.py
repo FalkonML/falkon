@@ -48,9 +48,11 @@ def _run_fmmv_test(fn, exp, tensors, out, rtol, opt):
 def n():
     return 4000
 
+
 @pytest.fixture(scope="module")
 def m():
     return 2000
+
 
 @pytest.fixture(scope="module")
 def d():
@@ -60,6 +62,7 @@ def d():
 @pytest.fixture(scope="module")
 def t():
     return 5
+
 
 @pytest.fixture(scope="module")
 def A(n, d):
@@ -210,7 +213,7 @@ class TestDense:
             "F32-F32-vF32", "C32-C32-vC32", "F64-F64-vF64", "C64-C64-vC64",
             "F32-F32-wF32", "C32-C32-wC32", "F64-F64-wF64", "C64-C64-wC64",
             "F32-C32-vC32-wF32"],
-       indirect=["e_dfmmv"])
+        indirect=["e_dfmmv"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     def test_dfmmv(self, getA, getB, getv, getw, Ao, Adt, Bo, Bdt, vo, vdt, wo, wdt, kernel,
                    e_dfmmv, max_mem, cpu, m, t):
@@ -228,9 +231,10 @@ class TestDense:
         out = torch.empty(m, t, dtype=A.dtype)
         _run_fmmv_test(kernel.dmmv, e_dfmmv, (A, B, v, w), out=out, rtol=rtol, opt=opt)
 
-###################
-### Sparse Test ###
-###################
+
+###############
+# Sparse Test #
+###############
 @pytest.fixture(scope="module")
 def s_d():
     return 10_000
@@ -335,7 +339,7 @@ class TestSparse:
             "32-32-wF32", "32-32-wC32", "64-64-wF64", "64-64-wC64",
             "32-32-vC32-wF32"
             ],
-       indirect=["s_e_dfmmv"])
+        indirect=["s_e_dfmmv"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     def test_dfmmv(self, getA, getB, getv, getw, Adt, Bdt, vo, vdt, wo, wdt, kernel,
                    s_e_dfmmv, max_mem, cpu, m, t):

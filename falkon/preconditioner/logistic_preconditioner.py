@@ -21,16 +21,20 @@ class LogisticPreconditioner(prec.Preconditioner):
     inducing points. A two step approximation of the inverse matrix
     via two cholesky decompositions is performed.
 
+    ```
     T = chol(K_MM)    => T.T @ T = K_MM
     A = chol(1/M * (T @ (T.T @ W)) + lambda)
-    So T and A are both upper triangular.
-    W is a diagonal matrix of weights derived from the 2nd derivative of the loss function.
+    ```
 
-    Here we store T in the upper triangular part of the `fC` matrix,
-    and A in the upper triangular part of the matrix.
+    So `T` and `A` are both upper triangular.
+    `W` is a diagonal matrix of weights derived from the 2nd derivative of the loss function.
+
+    Here we store `T` in the upper triangular part of the `fC` matrix,
+    and `A` in the upper triangular part of the matrix.
     Whenever we need to use one or the other we need to reset the
     diagonal of `fC` since it is shared between the two matrices.
-    W is of size `M` and is the only difference from the normal FALKON preconditioner.
+    `W` is of size `M` and is the only difference with respect to the normal FALKON preconditioner
+    (:cls:`falkon.preconditioner.FalkonPreconditioner`).
 
     Parameters
     -----------
@@ -59,8 +63,8 @@ class LogisticPreconditioner(prec.Preconditioner):
     --------
     :class:`falkon.gsc_losses.LogisticLoss` :
         for an example of loss function used for kernel reweighting.
-    :class:`falkon.LogisticFalkon` :
-        for the estimator which uses this preconditioner.
+    :class:`falkon.models.LogisticFalkon` :
+        for the logistic kernel estimator which uses this preconditioner.
     """
 
     def __init__(self, kernel, loss, opt: FalkonOptions):
@@ -210,7 +214,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=1)
@@ -233,7 +237,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=0)
@@ -256,7 +260,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dT)
         return trsm(v, self.fC, alpha=1.0, lower=0, transpose=0)
@@ -279,7 +283,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag(self.fC, self.dT)
         return trsm(v, self.fC, alpha=1.0, lower=0, transpose=1)
@@ -302,7 +306,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         return self.invT(self.invA(v))
 
@@ -324,7 +328,7 @@ class LogisticPreconditioner(prec.Preconditioner):
 
         See Also
         --------
-        :func:`falkon.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         return self.invAt(self.invTt(v))
 

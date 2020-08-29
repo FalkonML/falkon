@@ -9,6 +9,7 @@ class PropagatingThread(Thread):
     Copied from question:
     https://stackoverflow.com/questions/2829329/catch-a-threads-exception-in-the-caller-thread-in-python
     """
+
     def run(self):
         self.exc = None
         try:
@@ -21,4 +22,3 @@ class PropagatingThread(Thread):
         if self.exc:
             raise RuntimeError('Exception in thread %s' % (self.name)) from self.exc
         return self.ret
-

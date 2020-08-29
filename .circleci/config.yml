@@ -1,0 +1,170 @@
+version: 2.1
+commands:
+  full_checkout:
+    description: "Pull the latest version of the repository and all submodules"
+    steps:
+      - checkout
+      - run:
+          name: pull submodules
+          command: |
+            echo $(git log -1 --pretty=%B) | tee gitlog.txt
+            git submodule update --init --recursive
+  check_install:
+    description: "Check whether the falkon installation is working"
+    steps:
+      - run:
+          name: Installation check
+          command: python -c "import falkon"
+  install_pandoc:
+    description: "Install pandoc"
+    parameters:
+      pandoc_url:
+        type: string
+      pandoc_dest:
+        type: string
+    steps:
+      - restore_cache:
+          keys:
+            - pandoc-download
+      - run:
+          name: Install pandoc
+          command: |
+            if [ ! -f "~/pandoc.tar.gz" ]; then
+              wget << parameters.pandoc_url >> -O ~/pandoc.tar.gz
+            fi
+            sudo tar xvzf ~/pandoc.tar.gz --strip-components 1 -C << parameters.pandoc_dest >>
+      - save_cache:
+          key: pandoc-download
+          paths:
+            - ~/pandoc.tar.gz
+
+executors:
+  falkon_exec:
+    docker:
+      - image: circleci/python:3.8.1-buster
+
+jobs:
+  build:
+    executor: falkon_exec
+    steps:
+      - full_checkout
+      - restore_cache:
+          keys:
+            - pip-cache
+      - run:
+          name: Install python dependencies
+          command: |
+            python -m pip install --user --upgrade --progress-bar off -r requirements.txt;
+            python -m pip install --user -e ./keops/;
+            python -m pip install --user -e .;
+      - save_cache:
+          key: pip-cache
+          paths:
+            - ~/.cache/pip
+      - check_install
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+            - falkon.egg-info
+  build_docs:
+    executor: falkon_exec
+    environment:
+      OPENBLAS_NUM_THREADS: 4
+      DISPLAY: :99
+    steps:
+      - full_checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Spin up Xvfb
+          command: |
+            /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      - restore_cache:
+          keys:
+            - pip-cache-doc
+      - run:
+          name: Install python dependencies
+          command: |
+            python -m pip install --user --upgrade --progress-bar off -r requirements.txt;
+            python -m pip install --user --upgrade --progress-bar off -r doc/doc-requirements.txt;
+            python -m pip install --user -e ./keops/;
+            python -m pip install --user -e .;
+      - save_cache:
+          key: pip-cache-doc
+          paths:
+            - ~/.cache/pip
+      - check_install
+      - install_pandoc:
+          pandoc_url: "https://github.com/jgm/pandoc/releases/download/2.10/pandoc-2.10-linux-amd64.tar.gz"
+          pandoc_dest: "/usr/local/"
+      - run:  # Build docs
+          name: make html
+          no_output_timeout: 30m
+          command: |
+            cd doc;
+            make clean;
+            make html;
+            cd ..;
+      - store_artifacts:  # Save the outputs
+          path: doc/_build/html/
+          destination: dev
+      - persist_to_workspace:  # Now save the outputs to the workspace for 'deploy_docs' job
+          root: .
+          paths:
+            - doc/_build
+  deploy_docs:
+    executor: falkon_exec
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "e0:06:e8:69:1c:39:24:2e:43:86:e2:88:2d:01:5a:0d"
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: install_ghp_import
+          command: |
+            python -m pip install --user --upgrade --progress-bar off ghp-import;
+      - run:  # Deploy docs (with ghp-import)
+          name: deploy
+          command: |
+            ls ~/.ssh
+            mkdir -p ~/.ssh
+            echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==
+            bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==
+            ' >> ~/.ssh/known_hosts
+            chmod og= ~/.ssh/config
+            cd doc;
+            make install
+
+
+workflows:
+  version: 2
+  documentation:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only:
+                - master
+                - /ci-.*/
+                - /doc-.*/
+      - build_docs:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
+                - /ci-.*/
+                - /doc-.*/
+      - deploy_docs:
+          requires:
+            - build_docs
+          filters:
+            branches:
+              only:
+                - master
+                - /ci-.*/
+                - /doc-.*/

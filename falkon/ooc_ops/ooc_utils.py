@@ -16,9 +16,10 @@ def calc_block_sizes(max_block_size: int,
         raise RuntimeError("num_blocks expected > 0, found %d" % (num_blocks))
     # Calculate a block size which evenly splits N
     block_size, extras = divmod(num_rows, num_blocks)
-    block_sizes = extras * [block_size+1] + (num_blocks - extras) * [block_size]
+    block_sizes = extras * [block_size + 1] + (num_blocks - extras) * [block_size]
 
     return block_sizes
+
 
 def calc_block_sizes2(max_block_size: int,
                       num_devices: int,
@@ -53,6 +54,7 @@ def calc_block_sizes2(max_block_size: int,
         pointer = new_pointer
 
     return block_sizes
+
 
 def prepare_matrix(A):
     # Convert to numpy

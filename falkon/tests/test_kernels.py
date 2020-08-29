@@ -163,7 +163,7 @@ class TestGaussianKernel(AbstractKernelTester):
 
     @pytest.fixture(params=[1, 2, 3, 4], ids=[
         "single-sigma", "vec-sigma", "vec-sigma-flat", "mat-sigma"],
-                    scope="class")
+        scope="class")
     def kernel(self, single_sigma, vector_sigma, mat_sigma, request):
         if request.param == 1:
             return GaussianKernel(single_sigma)
@@ -175,7 +175,7 @@ class TestGaussianKernel(AbstractKernelTester):
             return GaussianKernel(mat_sigma)
 
     def test_wrong_sigma_dims(self, d, A, B, cpu, max_mem):
-        sigmas = torch.tensor([2.0] * (d-1), dtype=torch.float64)
+        sigmas = torch.tensor([2.0] * (d - 1), dtype=torch.float64)
         kernel = GaussianKernel(sigma=sigmas)
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
         with pytest.raises(RuntimeError) as excinfo:
@@ -192,7 +192,7 @@ def test_gaussian_pd():
     X = gen_random(10000, 2, 'float32', F=True, seed=12)
     Xt = torch.from_numpy(X)
     sigma = 10.0
-    opt = FalkonOptions(compute_arch_speed=False, max_gpu_mem=1*2**30, use_cpu=False,
+    opt = FalkonOptions(compute_arch_speed=False, max_gpu_mem=1 * 2**30, use_cpu=False,
                         no_single_kernel=False)
     k = GaussianKernel(sigma, opt=opt)
     actual = k(Xt, Xt, opt=opt)

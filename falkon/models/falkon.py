@@ -227,13 +227,13 @@ class Falkon(base.BaseEstimator):
         dtype = X.dtype
         # Decide whether to use CUDA for preconditioning based on M
         _use_cuda_preconditioner = (
-                self.use_cuda_ and
-                (not self.options.cpu_preconditioner) and
-                self.M >= get_min_cuda_preconditioner_size(dtype)
+            self.use_cuda_
+            and (not self.options.cpu_preconditioner)
+            and self.M >= get_min_cuda_preconditioner_size(dtype)
         )
         _use_cuda_mmv = (
-                self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype)
+            self.use_cuda_
+            and X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype)
         )
 
         self.fit_times_ = []
@@ -343,8 +343,8 @@ class Falkon(base.BaseEstimator):
             # Then X is the kernel itself
             return X @ alpha
         _use_cuda_mmv = (
-                self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(X.dtype)
+            self.use_cuda_ and
+            X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(X.dtype)
         )
         mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
         return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
