@@ -11,7 +11,7 @@ from pytest import mark
 
 from falkon.kernels import GaussianKernel, LinearKernel, PolynomialKernel
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.tests.conftest import memory_checker, fix_mat
+from falkon.tests.conftest import memory_checker, fix_mat, fix_sparse_mat
 from falkon.tests.gen_random import gen_random, gen_sparse_matrix
 from falkon.utils import decide_cuda
 
@@ -420,6 +420,7 @@ class TestSparse:
     # sparse_dim and sparse_density result in sparse matrices with m and n non-zero entries.
     sparse_dim = 10_000
     sparse_density = 1e-4
+    max_mem = 1 * 2**20
 
     @pytest.fixture(scope="class")
     def s_A(self):
@@ -464,15 +465,14 @@ class TestSparse:
         (np.float64, np.float64, "F", np.float64),
         (np.float64, np.float64, "C", np.float64),
     ], ids=["A32-B32-vF32", "A32-B32-vC32", "A64-B64-vF64", "A64-B64-vC64"])
-    @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
-    def test_fmmv(self, getA, getB, getv, Adt, Bdt, vo, vdt, kernel,
-                  s_expected_fmmv, max_mem, cpu):
-        A = getA(dtype=Adt, sparse=True)
-        B = getB(dtype=Bdt, sparse=True)
-        v = getv(order=vo, dtype=vdt)
+    def test_fmmv(self, s_A, s_B, v, Adt, Bdt, vo, vdt, kernel,
+                  s_expected_fmmv, cpu):
+        A = fix_sparse_mat(s_A[0], dtype=Adt)
+        B = fix_sparse_mat(s_B[0], dtype=Bdt)
+        v = fix_mat(v, dtype=vdt, order=vo, copy=True)
 
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem,
-                                  max_gpu_mem=max_mem)
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=self.max_mem,
+                                  max_gpu_mem=self.max_mem)
         rtol = choose_on_dtype(A.dtype)
 
         # Test normal
@@ -483,31 +483,28 @@ class TestSparse:
 
     @pytest.mark.parametrize("Adt,Bdt,vo,vdt", [(np.float32, np.float32, "F", np.float32)],
                              ids=["A32-B32-vF32"])
-    @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
-    @pytest.mark.parametrize("cuda_inputs", [
-        pytest.param(True, marks=[
+    @pytest.mark.parametrize("input_device", [
+        pytest.param("cuda:0", marks=[
             # Namely, row-wise matrix norm is missing for CUDA tensors.
             pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]),
-        False], ids=["CUDA_inputs", "CPU_inputs"])
+        "cpu"], ids=["CUDA_inputs", "CPU_inputs"])
     def test_fmmv_input_device(
-            self, getA, getB, getv, Adt, Bdt, vo, vdt, kernel,
-            s_expected_fmmv, max_mem, cpu, cuda_inputs):
-        if cpu and cuda_inputs:
+            self, s_A, s_B, v, Adt, Bdt, vo, vdt, kernel,
+            s_expected_fmmv, cpu, input_device):
+        if cpu and input_device.startswith("cuda"):
             return True
-        A = getA(dtype=Adt, sparse=True, cuda=cuda_inputs)
-        B = getB(dtype=Bdt, sparse=True, cuda=cuda_inputs)
-        v = getv(order=vo, dtype=vdt, cuda=cuda_inputs)
+        A = fix_sparse_mat(s_A[0], dtype=Adt, device=input_device)
+        B = fix_sparse_mat(s_B[0], dtype=Bdt, device=input_device)
+        v = fix_mat(v, dtype=vdt, order=vo, copy=True, device=input_device)
 
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem,
-                                  max_gpu_mem=max_mem)
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=self.max_mem,
+                                  max_gpu_mem=self.max_mem)
         rtol = choose_on_dtype(A.dtype)
 
         # Test normal
         _run_fmmv_test(kernel.mmv, s_expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
         # Test with out
-        out = torch.empty(A.shape[0], v.shape[1], dtype=A.dtype)
-        if cuda_inputs:
-            out = out.cuda()
+        out = torch.empty(A.shape[0], v.shape[1], dtype=A.dtype, device=input_device)
         _run_fmmv_test(kernel.mmv, s_expected_fmmv, (A, B, v), out=out, rtol=rtol, opt=opt)
 
     @pytest.mark.parametrize("Adt,Bdt,vo,vdt,wo,wdt,s_e_dfmmv", [
@@ -543,16 +540,15 @@ class TestSparse:
             "32-32-wF32", "32-32-wC32", "64-64-wF64", "64-64-wC64",
             "32-32-vC32-wF32"
             ], indirect=["s_e_dfmmv"])
-    @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
-    def test_dfmmv(self, getA, getB, getv, getw, Adt, Bdt, vo, vdt, wo, wdt, kernel,
-                   s_e_dfmmv, max_mem, cpu, m, t):
-        A = getA(dtype=Adt, sparse=True)
-        B = getB(dtype=Bdt, sparse=True)
-        v = getv(order=vo, dtype=vdt)
-        w = getw(order=wo, dtype=wdt)
+    def test_dfmmv(self, s_A, s_B, v, w, Adt, Bdt, vo, vdt, wo, wdt, kernel,
+                   s_e_dfmmv, cpu, m, t):
+        A = fix_sparse_mat(s_A[0], dtype=Adt)
+        B = fix_sparse_mat(s_B[0], dtype=Bdt)
+        v = fix_mat(v, order=vo, dtype=vdt)
+        w = fix_mat(w, order=wo, dtype=wdt)
 
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem,
-                                  max_gpu_mem=max_mem)
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=self.max_mem,
+                                  max_gpu_mem=self.max_mem)
         rtol = choose_on_dtype(A.dtype)
 
         # Test normal
@@ -569,29 +565,26 @@ class TestSparse:
         pytest.param(n32, n32, None, None, "F", n32, "s_e_dfmmv3",
                      marks=mark.usefixtures("s_e_dfmmv3")),
     ], ids=["32-32-vF32-wF32", "32-32-vF32", "32-32-wF32"], indirect=["s_e_dfmmv"])
-    @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
-    @pytest.mark.parametrize("cuda_inputs", [
-        pytest.param(True, marks=[
+    @pytest.mark.parametrize("input_device", [
+        pytest.param("cuda:0", marks=[
             pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]),
-        False], ids=["CUDA_inputs", "CPU_inputs"])
+        "cpu"], ids=["CUDA_inputs", "CPU_inputs"])
     def test_dfmmv_input_devices(
-            self, getA, getB, getv, getw, Adt, Bdt, vo, vdt, wo, wdt, kernel,
-            s_e_dfmmv, max_mem, cpu, m, t, cuda_inputs):
-        if cpu and cuda_inputs:
+            self, s_A, s_B, v, w, Adt, Bdt, vo, vdt, wo, wdt, kernel,
+            s_e_dfmmv, cpu, m, t, input_device):
+        if cpu and input_device.startswith("cuda"):
             return True
-        A = getA(dtype=Adt, sparse=True, cuda=cuda_inputs)
-        B = getB(dtype=Bdt, sparse=True, cuda=cuda_inputs)
-        v = getv(order=vo, dtype=vdt, cuda=cuda_inputs)
-        w = getw(order=wo, dtype=wdt, cuda=cuda_inputs)
+        A = fix_sparse_mat(s_A[0], dtype=Adt, device=input_device)
+        B = fix_sparse_mat(s_B[0], dtype=Bdt, device=input_device)
+        v = fix_mat(v, order=vo, dtype=vdt, device=input_device)
+        w = fix_mat(w, order=wo, dtype=wdt, device=input_device)
 
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=max_mem,
-                                  max_gpu_mem=max_mem)
+        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, max_cpu_mem=self.max_mem,
+                                  max_gpu_mem=self.max_mem)
         rtol = choose_on_dtype(A.dtype)
 
         # Test normal
         _run_fmmv_test(kernel.dmmv, s_e_dfmmv, (A, B, v, w), out=None, rtol=rtol, opt=opt)
         # Test with out
-        out = torch.empty(m, t, dtype=A.dtype)
-        if cuda_inputs:
-            out = out.cuda()
+        out = torch.empty(m, t, dtype=A.dtype, device=input_device)
         _run_fmmv_test(kernel.dmmv, s_e_dfmmv, (A, B, v, w), out=out, rtol=rtol, opt=opt)

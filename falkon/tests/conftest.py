@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import torch
 import torch.cuda as tcd
+from falkon.utils.tensor_helpers import move_tensor
 
 from falkon.options import BaseOptions, FalkonOptions
 from falkon.utils import decide_cuda
@@ -57,7 +58,16 @@ def memory_checker(opt: FalkonOptions, extra_mem=0):
             (used_ram / 2 ** 20, opt.max_cpu_mem / 2 ** 20)
 
 
-def fix_mat(t, dtype, order, copy=False, numpy=False):
+def numpy_to_torch_type(dt):
+    if dt == np.float32:
+        return torch.float32
+    elif dt == np.float64:
+        return torch.float64
+    else:
+        raise TypeError("Invalid numpy type %s" % (dt,))
+
+
+def fix_mat(t, dtype, order, device="cpu", copy=False, numpy=False):
     if dtype is None or order is None:
         return None
     if isinstance(t, torch.Tensor):
@@ -66,5 +76,10 @@ def fix_mat(t, dtype, order, copy=False, numpy=False):
         t = np.array(t, dtype=dtype, order=order, copy=copy)
         if numpy:
             return t
-        return torch.from_numpy(t)
+        return move_tensor(torch.from_numpy(t), device)
     return t
+
+
+def fix_sparse_mat(t, dtype, device="cpu"):
+    out = t.to(dtype=numpy_to_torch_type(dtype), device=device)
+    return out
