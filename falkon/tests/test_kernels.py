@@ -124,7 +124,7 @@ class TestGaussianKernel(AbstractKernelTester):
         return 2
 
     @pytest.fixture(scope="class")
-    def vector_sigma(self, d: int, single_sigma: float) -> torch.Tensor:
+    def vector_sigma(self, single_sigma: float) -> torch.Tensor:
         equiv_sigma = 1 / (single_sigma ** 2)
         return torch.tensor([equiv_sigma] * d, dtype=torch.float64)
 
@@ -149,7 +149,7 @@ class TestGaussianKernel(AbstractKernelTester):
         elif request.param == 4:
             return GaussianKernel(mat_sigma)
 
-    def test_wrong_sigma_dims(self, d, A, B, cpu):
+    def test_wrong_sigma_dims(self, A, B, cpu):
         sigmas = torch.tensor([2.0] * (d - 1), dtype=torch.float64)
         kernel = GaussianKernel(sigma=sigmas)
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu,
