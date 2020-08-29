@@ -34,7 +34,7 @@ class LogisticPreconditioner(Preconditioner):
     Whenever we need to use one or the other we need to reset the
     diagonal of `fC` since it is shared between the two matrices.
     `W` is of size `M` and is the only difference with respect to the normal FALKON preconditioner
-    (:cls:`falkon.preconditioner.FalkonPreconditioner`).
+    (:class:`falkon.preconditioner.FalkonPreconditioner`).
 
     Parameters
     -----------

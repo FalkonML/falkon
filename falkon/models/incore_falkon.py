@@ -10,6 +10,8 @@ from falkon.utils.helpers import check_same_device
 from falkon.utils import TicToc
 from falkon.utils.devices import get_device_info
 
+__all__ = ("InCoreFalkon", )
+
 
 class InCoreFalkon(FalkonBase):
     """In GPU core Falkon Kernel Ridge Regression solver.
@@ -26,8 +28,10 @@ class InCoreFalkon(FalkonBase):
     such, it is more constraining than the base estimator, but **has better performance on smaller
     problems**.
     In particular, the constraints are that:
+
      - the input data must be on a single GPU, when calling `InCoreFalkon.fit`;
      - the data, preconditioner, kernels, etc. must all fit on the same GPU.
+
     Using multiple GPUs is not possible with this model.
 
     Parameters
@@ -156,7 +160,7 @@ class InCoreFalkon(FalkonBase):
 
         Returns
         --------
-        model: Falkon
+        model: InCoreFalkon
             The fitted model
         """
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)

@@ -93,12 +93,6 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
     overwrite : bool
         Whether to overwrite matrix A or to output the result in a new
         buffer.
-
-    Notes
-    ------
-    The factorization will always be the 'lower' version of the factorization
-    which could however end up on the upper-triangular part of the matrix
-    in case A is not Fortran contiguous to begin with.
     """
     if opt is None:
         opt = FalkonOptions()
