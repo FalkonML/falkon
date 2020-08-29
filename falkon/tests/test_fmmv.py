@@ -225,7 +225,7 @@ class TestDense:
         ("F", np.float32, "F", np.float32, "F", np.float32),
     ], ids=["AF32-BF32-vF32"])
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
-    @pytest.mark.parametrize("cuda_inputs", [True, False], ids=["CUDA inputs", "CPU inputs"])
+    @pytest.mark.parametrize("cuda_inputs", [True, False], ids=["CUDA_inputs", "CPU_inputs"])
     def test_fmmv_input_device(
             self, getA, getB, getv, Ao, Adt, Bo, Bdt, vo, vdt, kernel, expected_fmmv, max_mem,
             cpu, cuda_inputs):
@@ -307,7 +307,7 @@ class TestDense:
         pytest.param("F", n32, "F", n32, None, None, "F", n32, "e_dfmmv3",
                      marks=mark.usefixtures("e_dfmmv3"))
     ], ids=["F32-F32-vF32-wF32", "F32-F32-vF32", "F32-F32-wF32"], indirect=["e_dfmmv"])
-    @pytest.mark.parametrize("cuda_inputs", [True, False], ids=["CUDA inputs", "CPU inputs"])
+    @pytest.mark.parametrize("cuda_inputs", [True, False], ids=["CUDA_inputs", "CPU_inputs"])
     def test_dfmmv_input_device(
             self, getA, getB, getv, getw, Ao, Adt, Bo, Bdt, vo, vdt, wo, wdt, kernel,
             e_dfmmv, max_mem, cpu, m, t, cuda_inputs):
@@ -409,70 +409,54 @@ class TestKeops:
             _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
 
 
-###############
-# Sparse Test #
-###############
-@pytest.fixture(scope="module")
-def s_d():
-    return 10_000
-
-
-@pytest.fixture(scope="module")
-def s_density():
-    return 1e-4
-
-
-@pytest.fixture(scope="module")
-def s_A(n, s_d, s_density):
-    A = gen_sparse_matrix(n, s_d, np.float64, density=s_density, seed=14)
-    Ad = torch.from_numpy(A.to_scipy().todense())
-    return A, Ad
-
-
-@pytest.fixture(scope="module")
-def s_B(m, s_d, s_density):
-    B = gen_sparse_matrix(m, s_d, np.float64, density=s_density, seed=14)
-    Bd = torch.from_numpy(B.to_scipy().todense())
-    return B, Bd
-
-
-@pytest.fixture(scope="module")
-def s_gram(kernel, s_A, s_B):
-    opt = FalkonOptions(use_cpu=True, compute_arch_speed=False)
-    return kernel(s_A[1], s_B[1], opt=opt)
-
-
-@pytest.fixture(scope="module")
-def s_expected_fmmv(s_gram, v):
-    return s_gram @ v
-
-
-@pytest.fixture(scope="module")
-def s_e_dfmmv1(s_gram, v, w):
-    return s_gram.T @ (s_gram @ v + w)
-
-
-@pytest.fixture(scope="module")
-def s_e_dfmmv2(s_gram, v):
-    return s_gram.T @ (s_gram @ v)
-
-
-@pytest.fixture(scope="module")
-def s_e_dfmmv3(s_gram, w):
-    return s_gram.T @ w
-
-
-@pytest.fixture(scope="module")
-def s_e_dfmmv(request):
-    return request.getfixturevalue(request.param)
-
-
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
     pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
 ], ids=["cpu", "gpu"])
 class TestSparse:
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False)
+    m = 1000
+    n = 1500
+    # sparse_dim and sparse_density result in sparse matrices with m and n non-zero entries.
+    sparse_dim = 10_000
+    sparse_density = 1e-4
+
+    @pytest.fixture(scope="class")
+    def s_A(self):
+        A = gen_sparse_matrix(self.n, self.sparse_dim, np.float64, density=self.sparse_density, seed=14)
+        Ad = torch.from_numpy(A.to_scipy().todense())
+        return A, Ad
+
+    @pytest.fixture(scope="class")
+    def s_B(self):
+        B = gen_sparse_matrix(self.m, self.sparse_dim, np.float64, density=self.sparse_density, seed=14)
+        Bd = torch.from_numpy(B.to_scipy().todense())
+        return B, Bd
+
+    @pytest.fixture(scope="class")
+    def s_gram(self, kernel, s_A, s_B):
+        opt = FalkonOptions(use_cpu=True, compute_arch_speed=False)
+        return kernel(s_A[1], s_B[1], opt=opt)  # n x m kernel
+
+    @pytest.fixture(scope="class")
+    def s_expected_fmmv(self, s_gram, v):
+        return s_gram @ v
+
+    @pytest.fixture(scope="class")
+    def s_e_dfmmv1(self, s_gram, v, w):
+        return s_gram.T @ (s_gram @ v + w)
+
+    @pytest.fixture(scope="class")
+    def s_e_dfmmv2(self, s_gram, v):
+        return s_gram.T @ (s_gram @ v)
+
+    @pytest.fixture(scope="class")
+    def s_e_dfmmv3(self, s_gram, w):
+        return s_gram.T @ w
+
+    @pytest.fixture(scope="class")
+    def s_e_dfmmv(self, request):
+        return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize("Adt,Bdt,vo,vdt", [
         (np.float32, np.float32, "F", np.float32),
@@ -502,8 +486,9 @@ class TestSparse:
     @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     @pytest.mark.parametrize("cuda_inputs", [
         pytest.param(True, marks=[
+            # Namely, row-wise matrix norm is missing for CUDA tensors.
             pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]),
-        False], ids=["CUDA inputs", "CPU inputs"])
+        False], ids=["CUDA_inputs", "CPU_inputs"])
     def test_fmmv_input_device(
             self, getA, getB, getv, Adt, Bdt, vo, vdt, kernel,
             s_expected_fmmv, max_mem, cpu, cuda_inputs):
@@ -588,7 +573,7 @@ class TestSparse:
     @pytest.mark.parametrize("cuda_inputs", [
         pytest.param(True, marks=[
             pytest.mark.xfail(reason="Some sparse operations on CUDA are missing")]),
-        False], ids=["CUDA inputs", "CPU inputs"])
+        False], ids=["CUDA_inputs", "CPU_inputs"])
     def test_dfmmv_input_devices(
             self, getA, getB, getv, getw, Adt, Bdt, vo, vdt, wo, wdt, kernel,
             s_e_dfmmv, max_mem, cpu, m, t, cuda_inputs):
