@@ -126,6 +126,15 @@ class FalkonPreconditioner(Preconditioner):
 
         self.fC = C
 
+    def to(self, device):
+        if self.fC is not None:
+            self.fC = self.fC.to(device)
+        if self.dT is not None:
+            self.dT = self.dT.to(device)
+        if self.dA is not None:
+            self.dA = self.dA.to(device)
+        return self
+
     @check_init("fC", "dT", "dA")
     def invA(self, v: torch.Tensor) -> torch.Tensor:
         """Solve the system of equations :math:`Ax = v` for unknown vector :math:`x`.

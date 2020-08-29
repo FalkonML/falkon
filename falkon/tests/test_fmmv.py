@@ -23,7 +23,7 @@ def choose_on_dtype(dtype):
     if dtype == np.float64 or dtype == torch.float64:
         return 1e-12
     else:
-        return 1e-5
+        return 1e-4
 
 
 def numpy_to_torch_type(dt):
