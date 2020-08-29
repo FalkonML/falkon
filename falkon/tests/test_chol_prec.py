@@ -152,7 +152,6 @@ class TestFalkonPreconditioner:
         gpu_prec = FalkonPreconditioner(la, kernel, opt)
         gpu_prec.init(gpu_mat)
 
-        # Asserts fail, too much precision loss
         np.testing.assert_allclose(prec.dT.numpy(), gpu_prec.dT.cpu().numpy(), rtol=rtol)
         np.testing.assert_allclose(prec.dA.numpy(), gpu_prec.dA.cpu().numpy(), rtol=rtol)
         np.testing.assert_allclose(prec.fC.numpy(), gpu_prec.fC.cpu().numpy(), rtol=rtol*10)
