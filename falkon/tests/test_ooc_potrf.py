@@ -83,7 +83,7 @@ class TestInCorePyTest:
             max_mem = pd_data.shape[0]
         opt = dataclasses.replace(self.basic_options, max_gpu_mem=max_mem)
         # Will raise due to insufficient memory
-        with pytest.raises(RuntimeError, match="Cannot run parallel POTRF with minimum available memory"):
+        with pytest.raises(RuntimeError, match="Cannot run in-core POTRF but `chol_force_in_core` was specified."):
             run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
                            overwrite=overwrite, input_device=input_device, opt=opt)
 

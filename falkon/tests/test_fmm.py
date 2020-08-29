@@ -216,6 +216,10 @@ class TestSparseFmm:
     max_mem = 50 * 2**20
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False, no_single_kernel=True,
                                   max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+    _RTOL = {
+        torch.float32: 1e-5,
+        torch.float64: 1e-12
+    }
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_sparse(self, k_class, k_exp, s_A, s_B, dtype, cpu):
