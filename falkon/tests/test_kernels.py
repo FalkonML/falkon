@@ -36,12 +36,12 @@ def _run_test(fn, exp, tensors, out, rtol, opt):
 
 @pytest.fixture(scope="module")
 def n():
-    return 4000
+    return 2000
 
 
 @pytest.fixture(scope="module")
 def m():
-    return 2000
+    return 1500
 
 
 @pytest.fixture(scope="module")

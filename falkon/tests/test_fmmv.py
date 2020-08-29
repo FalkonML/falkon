@@ -13,6 +13,18 @@ from falkon.utils import decide_cuda
 
 n32 = np.float32
 n64 = np.float64
+# Global dimensions
+n = 1000
+m = 850
+d = 10
+t = 5
+max_mem_dense = 0.5 * 2**20
+max_mem_sparse = 0.5 * 2**20
+cpu_params = [
+    pytest.param(True),
+    pytest.param(False, marks=[mark.skipif(not decide_cuda(), reason="No GPU found.")])
+]
+
 
 
 def choose_on_dtype(dtype):
@@ -40,17 +52,6 @@ def _run_fmmv_test(fn, exp, tensors, out, rtol, opt):
     # Check 2. Output pointers
     if out is not None:
         assert out.data_ptr() == actual.data_ptr(), "Output data tensor was not used"
-
-
-# Global dimensions
-n = 4000
-m = 2000
-d = 10
-t = 5
-cpu_params = [
-    pytest.param(True),
-    pytest.param(False, marks=[mark.skipif(not decide_cuda(), reason="No GPU found.")])
-]
 
 
 @pytest.fixture(scope="module")
@@ -115,9 +116,8 @@ def e_dfmmv(request):
 
 
 class TestDense:
-    max_mem = 1 * 2**20
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False, keops_active="no",
-                                  max_gpu_mem=max_mem, max_cpu_mem=max_mem)
+                                  max_gpu_mem=max_mem_dense, max_cpu_mem=max_mem_dense)
 
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt", [
         ("F", np.float32, "F", np.float32, "F", np.float32),
@@ -258,14 +258,9 @@ class TestDense:
             _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
 
 
-# @pytest.mark.parametrize("cpu", [
-#     pytest.param(True),
-#     pytest.param(False, marks=[mark.skipif(not decide_cuda(), reason="No GPU found.")])
-# ], ids=["cpu", "gpu"])
 class TestKeops:
-    max_mem = 1  * 2**20
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False, keops_active="force",
-                                  max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+                                  max_cpu_mem=max_mem_dense, max_gpu_mem=max_mem_dense)
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt", [
         ("C", np.float32, "C", np.float32, "C", np.float32),
         ("C", np.float64, "C", np.float64, "C", np.float64),
@@ -274,10 +269,9 @@ class TestKeops:
         pytest.param("F", np.float32, "C", np.float32, "C", np.float32,
                      marks=[pytest.mark.xfail(reason="KeOps only C")]),
     ], ids=["AC32-BC32-vC32", "AC64-BC64-vC64", "AF32-BF32-vF32", "AF32-BC32-vC32"])
-    @pytest.mark.parametrize("max_mem", [2 * 2 ** 20])
     @pytest.mark.parametrize("cpu", cpu_params, ids=["cpu", "gpu"])
     def test_fmmv(self, A, B, v, Ao, Adt, Bo, Bdt, vo, vdt, kernel,
-                  expected_fmmv, max_mem, cpu):
+                  expected_fmmv, cpu):
         A = fix_mat(A, order=Ao, dtype=Adt)
         B = fix_mat(B, order=Bo, dtype=Bdt)
         v = fix_mat(v, order=vo, dtype=vdt)
@@ -316,14 +310,9 @@ class TestKeops:
             _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
 
 
-# @pytest.mark.parametrize("cpu", [
-#     pytest.param(True),
-#     pytest.param(False, marks=[mark.skipif(not decide_cuda(), reason="No GPU found.")])
-# ], ids=["cpu", "gpu"])
 class TestSparse:
-    max_mem = 1 * 2**20
-    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, max_cpu_mem=max_mem,
-                                  max_gpu_mem=max_mem)
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, 
+        max_cpu_mem=max_mem_sparse, max_gpu_mem=max_mem_sparse)
     # sparse_dim and sparse_density result in sparse matrices with m and n non-zero entries.
     sparse_dim = 10_000
     sparse_density = 1e-4

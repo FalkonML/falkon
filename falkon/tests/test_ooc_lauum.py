@@ -58,7 +58,8 @@ class TestBlockSizeCalculator:
                                                                      4166, 4166]
 
 
-N = 4000
+# Size of test matrix
+N = 1500
 
 
 @pytest.fixture(scope="module")
@@ -92,7 +93,8 @@ class TestOOCLauum:
         np.float64: 1e-12,
         np.float32: 1e-5
     }
-    basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2**20,
+    max_mem = 2 * 2**20
+    basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=max_mem,
                               lauum_par_blk_multiplier=6)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -189,11 +191,11 @@ class TestLauumKernel:
 
         mat = get_mat(order="F", dtype=dtype)
         gpu_in = move_tensor(mat, device)
-        gpu_in_strided = torch.cat([gpu_in, torch.zeros(gpu_in.shape[0], 10, device=device)], 1).T
+        gpu_in_strided = torch.cat([gpu_in, torch.zeros(gpu_in.shape[0], 10, device=device, dtype=gpu_in.dtype)], 1).T
         gpu_in_strided = gpu_in_strided[:gpu_in.shape[0], :gpu_in.shape[0]]
         gpu_in_strided.copy_(gpu_in)
         gpu_out = move_tensor(mat, device)
-        gpu_out_strided = torch.cat([gpu_out, torch.zeros(gpu_out.shape[0], 10, device=device)], 1).T
+        gpu_out_strided = torch.cat([gpu_out, torch.zeros(gpu_out.shape[0], 10, device=device, dtype=gpu_in.dtype)], 1).T
         gpu_out_strided = gpu_out_strided[:gpu_out.shape[0], :gpu_out.shape[0]]
         gpu_out_strided.fill_(0.0)
 

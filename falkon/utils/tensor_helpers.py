@@ -151,8 +151,8 @@ def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
     # 2 checks for 1D tensors which look 2D
     if tensor.shape[0] == 1:
         if strict:
-            return tensor.stride(0) == 1 and tensor.stride(1) == 1
-        return tensor.stride(1) == 1
+            return tensor.stride(0) == 1
+        return tensor.stride(1) == 1 or tensor.stride(0) == 1
     if tensor.shape[1] == 1:
         if strict:
             return tensor.stride(0) == 1 and tensor.stride(1) >= tensor.size(0)
