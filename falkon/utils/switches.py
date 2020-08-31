@@ -1,5 +1,7 @@
 import warnings
 
+import torch
+
 from falkon.options import BaseOptions, KeopsOptions
 
 
@@ -8,10 +10,16 @@ def decide_cuda(opt: BaseOptions = BaseOptions()):
         return False
 
     def get_error_str(name, err):
-        return ("Failed to initialize %s library; "
-                "falling back to CPU. Set 'use_cpu' to "
-                "True to avoid this warning."
-                "\nError encountered was %s" % (name, err))
+        e_str = ("Failed to initialize %s library; "
+                 "falling back to CPU. Set 'use_cpu' to "
+                 "True to avoid this warning." % (name))
+        if err is not None:
+            e_str += "\nError encountered was %s" % (err)
+        return e_str
+
+    if not torch.cuda.is_available():
+        warnings.warn(get_error_str("CUDA", None))
+        return False
     try:
         from falkon.cuda import cublas_gpu  # noqa F401
     except Exception as e:
