@@ -10,9 +10,9 @@ from falkon.tests.conftest import memory_checker, fix_mat
 from falkon.utils import decide_cuda
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import move_tensor
+from falkon.ooc_ops.ooc_utils import calc_block_sizes3
 
 if decide_cuda():
-    from falkon.ooc_ops.ooc_utils import calc_block_sizes3
     from falkon.ooc_ops.ooc_lauum import gpu_lauum
     # noinspection PyUnresolvedReferences
     from falkon.ooc_ops.cuda import cuda_lauum_lower

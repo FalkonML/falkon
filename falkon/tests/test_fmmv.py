@@ -26,7 +26,6 @@ cpu_params = [
 ]
 
 
-
 def choose_on_dtype(dtype):
     if dtype == np.float64 or dtype == torch.float64:
         return 1e-12
@@ -261,6 +260,7 @@ class TestDense:
 class TestKeops:
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False, keops_active="force",
                                   max_cpu_mem=max_mem_dense, max_gpu_mem=max_mem_dense)
+
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt", [
         ("C", np.float32, "C", np.float32, "C", np.float32),
         ("C", np.float64, "C", np.float64, "C", np.float64),
@@ -311,8 +311,8 @@ class TestKeops:
 
 
 class TestSparse:
-    basic_options = FalkonOptions(debug=True, compute_arch_speed=False, 
-        max_cpu_mem=max_mem_sparse, max_gpu_mem=max_mem_sparse)
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
+                                  max_cpu_mem=max_mem_sparse, max_gpu_mem=max_mem_sparse)
     # sparse_dim and sparse_density result in sparse matrices with m and n non-zero entries.
     sparse_dim = 10_000
     sparse_density = 1e-4
