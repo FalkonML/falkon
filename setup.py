@@ -64,7 +64,7 @@ def get_extensions():
     # Parallel OOC
     if WITH_CUDA:
         ooc_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'ooc_ops', 'multigpu')
-        ooc_files = ['multigpu_potrf_bind.cpp', 'cuda/multigpu_potrf.cu']
+        ooc_files = ['cuda_bind.cpp', 'cuda/multigpu_potrf.cu', 'cuda/lauum.cu']
         ooc_macros = [('WITH_CUDA', None)]
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
@@ -73,7 +73,7 @@ def get_extensions():
         ooc_link_args = ['-lcublas', '-l', 'cublas', '-lcusolver', '-l', 'cusolver']
         extensions.append(
             CUDAExtension(
-                "falkon.ooc_ops.multigpu_potrf",
+                "falkon.ooc_ops.cuda",
                 sources=[osp.join(ooc_ext_dir, f) for f in ooc_files],
                 include_dirs=[ooc_ext_dir],
                 define_macros=ooc_macros,
@@ -83,12 +83,34 @@ def get_extensions():
             )
         )
 
+    # LA Helpers
+    if WITH_CUDA:
+        la_helper_dir = osp.join(CURRENT_DIR, 'falkon', 'la_helpers')
+        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu']
+        la_helper_macros = [('WITH_CUDA', None)]
+        nvcc_flags = os.getenv('NVCC_FLAGS', '')
+        nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
+        nvcc_flags += ['--expt-relaxed-constexpr']
+        la_helper_compile_args = {'nvcc': nvcc_flags, 'cxx': []}
+        la_helper_link_args = []
+        extensions.append(
+            CUDAExtension(
+                "falkon.la_helpers.cuda_la_helpers",
+                sources=[osp.join(la_helper_dir, f) for f in la_helper_files],
+                include_dirs=[la_helper_dir],
+                define_macros=la_helper_macros,
+                extra_compile_args=la_helper_compile_args,
+                extra_link_args=la_helper_link_args,
+                libraries=[],
+            )
+        )
+
     # Cyblas helpers
     file_ext = '.pyx' if WITH_CYTHON else '.c'
     cyblas_compile_args = [
         '-shared', '-fPIC', '-fopenmp', '-O3', '-Wall']
-    cyblas_ext = [Extension('falkon.utils.cyblas',
-                            sources=[osp.join('falkon', 'utils', 'cyblas' + file_ext)],
+    cyblas_ext = [Extension('falkon.la_helpers.cyblas',
+                            sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
                             include_dirs=[numpy.get_include()],
                             extra_compile_args=cyblas_compile_args,
                             extra_link_args=['-fPIC', '-fopenmp', '-s'])]
@@ -125,10 +147,9 @@ setup(
     setup_requires=[
         # Setuptools 18.0 properly handles Cython extensions.
         'setuptools>=18.0',
-        'numpy',  # This is handled in pyproject.toml (since we're importing it at top of this file)
-        'scipy',
+        'numpy',
     ],
-    # test_requires=test_requires,
+    tests_require=test_requires,
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={

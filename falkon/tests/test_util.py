@@ -11,10 +11,10 @@ from falkon.utils.helpers import check_same_dtype, sizeof_dtype, check_sparse
 
 @pytest.mark.parametrize("F", [True, False], ids=["col-contig", "row-contig"])
 def test_add_diag(F):
-    A = gen_random(1000, 1000, 'float64', F=F, seed=10)
+    A = torch.from_numpy(gen_random(1000, 1000, 'float64', F=F, seed=10))
     diag = 10**6
-    falkon.preconditioner.pc_utils.inplace_add_diag(A, diag)
-    assert np.all(A.diagonal() > 10**5)
+    falkon.preconditioner.pc_utils.inplace_add_diag_th(A, diag)
+    assert torch.all((A.diagonal() > 10**5) & (A.diagonal() < 20**6))
 
 
 def test_check_same_dtype_equal():

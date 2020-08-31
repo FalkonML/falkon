@@ -17,9 +17,10 @@ install:
   - conda install -y flake8 codecov
   # check manifest needs conda-forge:
   - conda install -y -c conda-forge check-manifest
+  - pip install -e ./keops/
   - pip install -e .
 script:
-  - pytest -lv --cov-report term-missing falkon --cov=falkon --cov-config .coveragerc
+  - pytest --cov-report=term-missing --cov=falkon --cov-config setup.cfg
   - flake8 --count falkon
 after_success:
   - codecov

@@ -1,15 +1,14 @@
 import functools
 
-import numpy as np
 import torch
-from scipy.linalg import blas as sclb, lapack as scll
+from scipy.linalg import lapack as scll
 
+from falkon.la_helpers import potrf
 from falkon.options import FalkonOptions
-from falkon.utils.cyblas import potrf
 from falkon.utils.helpers import choose_fn
 
-__all__ = ("check_init", "trsm", "inplace_set_diag", "inplace_add_diag", "lauum_wrapper",
-           "potrf_wrapper",)
+__all__ = ("check_init", "inplace_set_diag_th", "inplace_add_diag_th",
+           "lauum_wrapper", "potrf_wrapper")
 
 
 def check_init(*none_check):
@@ -31,49 +30,34 @@ def check_init(*none_check):
     return _checker
 
 
-def trsm(v, A, alpha, lower=0, transpose=0):
-    """Solve triangular system Ax = v
-    """
-    trsm_fn = choose_fn(A.dtype, sclb.dtrsm, sclb.strsm, "TRSM")
-    vF = np.copy(v.numpy(), order='F')
-    trsm_fn(alpha, A, vF,
-            side=0, lower=lower, trans_a=transpose, overwrite_b=1)
-    if not v.numpy().flags.f_contiguous:
-        vF = np.copy(vF, order='C')
-    return torch.from_numpy(vF)
-
-
-def inplace_set_diag(A, k):
-    # Assumes M is square (or wide also works).
-    # Look at np.fill_diagonal
-    step = A.shape[1] + 1
-    A.flat[::step] = k
+def inplace_set_diag_th(A: torch.Tensor, k: torch.Tensor) -> torch.Tensor:
+    A.diagonal().copy_(k)
     return A
 
 
-def inplace_add_diag(A, k):
+def inplace_add_diag_th(A: torch.Tensor, k: float) -> torch.Tensor:
     # Assumes M is square (or wide also works).
-    # Look at np.fill_diagonal
-    step = A.shape[1] + 1
-    A.flat[::step] += k
+    # Need to use .diagonal() as .diag() makes a copy
+    A.diagonal().add_(k)
     return A
 
 
-def lauum_wrapper(A: np.ndarray, upper: bool, use_cuda: bool, opt: FalkonOptions) -> np.ndarray:
+def lauum_wrapper(A: torch.Tensor, upper: bool, use_cuda: bool, opt: FalkonOptions) -> torch.Tensor:
     if use_cuda:
         from falkon.ooc_ops.ooc_lauum import gpu_lauum
         return gpu_lauum(A, upper=upper, write_opposite=True, overwrite=True, opt=opt)
     else:
-        lauum = choose_fn(A.dtype, scll.dlauum, scll.slauum, "LAUUM")
-        sol, info = lauum(A, lower=int(not upper), overwrite_c=1)
+        Anp = A.numpy()
+        lauum = choose_fn(Anp.dtype, scll.dlauum, scll.slauum, "LAUUM")
+        sol, info = lauum(Anp, lower=int(not upper), overwrite_c=1)
         if info != 0:
             raise RuntimeError(f"Lapack LAUUM failed with error code {info}.")
-        return sol
+        return torch.from_numpy(sol)
 
 
-def potrf_wrapper(A: np.ndarray, clean: bool, upper: bool, use_cuda: bool, opt: FalkonOptions) -> np.ndarray:
+def potrf_wrapper(A: torch.Tensor, clean: bool, upper: bool, use_cuda: bool, opt: FalkonOptions) -> torch.Tensor:
     if use_cuda:
         from falkon.ooc_ops.ooc_potrf import gpu_cholesky
-        return gpu_cholesky(torch.from_numpy(A), upper=upper, clean=clean, overwrite=True, opt=opt).numpy()
+        return gpu_cholesky(A, upper=upper, clean=clean, overwrite=True, opt=opt)
     else:
-        return potrf(A, upper=upper, clean=clean, overwrite=True)
+        return potrf(A, upper=upper, clean=clean, overwrite=True, cuda=False)

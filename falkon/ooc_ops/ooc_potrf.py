@@ -5,10 +5,11 @@ from falkon.options import CholeskyOptions
 
 from falkon.cuda import initialization
 from falkon.cuda.cusolver_gpu import *
-from falkon.utils import devices, cyblas
+from falkon.utils import devices
+from falkon import la_helpers
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
-from falkon.ooc_ops.multigpu_potrf import parallel_potrf
+from falkon.ooc_ops.cuda import parallel_potrf
 from falkon.options import FalkonOptions
 from .ooc_utils import calc_block_sizes
 from ..utils.devices import DeviceInfo
@@ -119,9 +120,6 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
             (0.0, initialization.cusolver_handle(g), g)
         )
 
-    # Must empty cache since in parallel_potrf we handle allocations
-    # ourselves
-    torch.cuda.empty_cache()
     parallel_potrf(device_info, block_allocations, A)
     return A
 
@@ -208,7 +206,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
         A = A.T
         upper = not upper
         transposed = True
-    # Now A is always in f_order. So we can only allow upper=False
+    # Now A is always in f_order. So we can only allow upper=False (ooc)
     if upper:
         # Can do only in-core!
         if not ic:
@@ -218,10 +216,8 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     if not ic and A.is_cuda:
         _msg = "Cannot run out-of-core POTRF on CUDA matrix 'A'."
         if opt.chol_force_ooc:
-            _msg += " Set the `chol_force_ooc` option to False in to allow in-core POTRF."
+            _msg += " Set the `chol_force_ooc` option to `False` in to allow in-core POTRF."
         raise ValueError(_msg)
-    if clean and A.is_cuda:
-        raise NotImplementedError("Option `clean=True` is not supported for GPU inputs.")
 
     # Handle different implementations for POTRF: in-core and out-of-core
     if ic:
@@ -236,10 +232,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
 
     # Perform cleaning of the 'other side' of the matrix
     if clean:
-        if upper:
-            cyblas.zero_triang(A.numpy(), False)
-        else:
-            cyblas.zero_triang(A.numpy(), True)
+        la_helpers.zero_triang(A, upper=not upper)
     # Undo previous matrix transformations
     if transposed:
         A = A.T

@@ -1,11 +1,12 @@
 import time
 
 import torch
+from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
 
 from falkon.options import ConjugateGradientOptions, FalkonOptions
 from ..utils import TicToc
 
-
+# More readable 'pseudocode' for conjugate gradient.
 # function [x] = conjgrad(A, b, x)
 #     r = b - A * x;
 #     p = r;
@@ -25,6 +26,7 @@ from ..utils import TicToc
 #     end
 # end
 
+
 class Optimizer(object):
     def __init__(self):
         pass
@@ -39,8 +41,9 @@ class ConjugateGradient(Optimizer):
         t_start = time.time()
 
         if X0 is None:
-            R = B.clone()
-            X = torch.zeros_like(B)
+            R = copy_same_stride(B)  # B.clone()
+            X = create_same_stride(B.size(), B, B.dtype, B.device)  # torch.zeros_like(B)
+            X.fill_(0)
         else:
             R = B - mmv(X0)
             X = X0
@@ -48,6 +51,7 @@ class ConjugateGradient(Optimizer):
         m_eps = self.params.cg_epsilon(X.dtype)
 
         P = R
+        # noinspection PyArgumentList
         Rsold = torch.sum(R.pow(2), dim=0)
 
         e_train = time.time() - t_start
@@ -56,6 +60,7 @@ class ConjugateGradient(Optimizer):
             with TicToc("Chol Iter", debug=False):  # TODO: FIXME
                 t_start = time.time()
                 AP = mmv(P)
+                # noinspection PyArgumentList
                 alpha = Rsold / (torch.sum(P * AP, dim=0) + m_eps)
                 X.addmm_(P, torch.diag(alpha))
 
@@ -65,6 +70,7 @@ class ConjugateGradient(Optimizer):
                     R = R - torch.mm(AP, torch.diag(alpha))
                     # R.addmm_(mat1=AP, mat2=torch.diag(alpha), alpha=-1.0)
 
+                # noinspection PyArgumentList
                 Rsnew = torch.sum(R.pow(2), dim=0)
                 if Rsnew.abs().max().sqrt() < self.params.cg_tolerance:
                     print("Stopping conjugate gradient descent at "
@@ -76,7 +82,7 @@ class ConjugateGradient(Optimizer):
 
                 e_iter = time.time() - t_start
                 e_train += e_iter
-            with TicToc("Chol callback", debug=False):  # params.debug):
+            with TicToc("Chol callback", debug=False):
                 if callback is not None:
                     callback(i + 1, X, e_train)
 
@@ -95,7 +101,7 @@ class FalkonConjugateGradient(Optimizer):
         n = X.size(0)
         prec = self.preconditioner
 
-        with TicToc("ConjGrad preparation", False):  # debug=params.debug):
+        with TicToc("ConjGrad preparation", False):
             if M is None:
                 Knm = X
             else:
@@ -109,7 +115,7 @@ class FalkonConjugateGradient(Optimizer):
 
             # Define the Matrix-vector product iteration
             def mmv(sol):
-                with TicToc("MMV", False):  # debug=params.debug):
+                with TicToc("MMV", False):
                     v = prec.invA(sol)
                     if Knm is not None:
                         cc = Knm.T @ (Knm @ prec.invT(v))

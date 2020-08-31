@@ -71,7 +71,7 @@ class CusolverError(Exception):
             self.message = CUSOLVER_EXCEPTIONS[status_code]
         except KeyError:
             self.message = "Unknown CuBLAS error %d" % (status_code)
-        super.__init__(self.message)
+        super().__init__(self.message)
 
 
 def cusolver_check_status(status):

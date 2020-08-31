@@ -17,3 +17,10 @@ LogisticFalkon
 
 .. autoclass:: LogisticFalkon
     :members:
+
+
+InCoreFalkon
+------------
+
+.. autoclass:: InCoreFalkon
+    :members:

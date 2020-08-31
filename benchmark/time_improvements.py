@@ -42,19 +42,19 @@ def run(exp_num, dset, show_intermediate_errors: bool = False):
         'maxiter': 10,
     }
     if exp_num == 1:
-        opt = dataclasses.replace(opt, cpu_preconditioner=True, no_keops=True)
+        opt = dataclasses.replace(opt, cpu_preconditioner=True, keops_active="no")
         dtype = DataType.float64
     elif exp_num == 2:
-        opt = dataclasses.replace(opt, cpu_preconditioner=True, no_keops=True)
+        opt = dataclasses.replace(opt, cpu_preconditioner=True, keops_active="no")
         dtype = DataType.float32
     elif exp_num == 3:
-        opt = dataclasses.replace(opt, cpu_preconditioner=False, no_keops=True)
+        opt = dataclasses.replace(opt, cpu_preconditioner=False, keops_active="no")
         dtype = DataType.float32
     elif exp_num == 4:
-        opt = dataclasses.replace(opt, cpu_preconditioner=False, no_keops=True)
+        opt = dataclasses.replace(opt, cpu_preconditioner=False, keops_active="no")
         dtype = DataType.float32
     elif exp_num == 5:
-        opt = dataclasses.replace(opt, cpu_preconditioner=False, no_keops=False)
+        opt = dataclasses.replace(opt, cpu_preconditioner=False, keops_active="force")
         dtype = DataType.float32
     else:
         raise ValueError("exp num %d not valid" % (exp_num))

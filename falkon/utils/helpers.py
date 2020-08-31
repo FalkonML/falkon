@@ -8,7 +8,7 @@ import torch.multiprocessing
 from falkon.sparse.sparse_tensor import SparseTensor
 
 
-__all__ = ("check_sparse", "select_dim_fMM",
+__all__ = ("check_sparse", "select_dim_fMM", "check_same_device",
            "select_dim_over_d", "select_dim_over_m", "calc_gpu_block_sizes", "choose_fn", "sizeof_dtype", "check_same_dtype",
            )
 
@@ -176,3 +176,16 @@ def check_same_dtype(*args: Optional[Union[torch.Tensor, SparseTensor]]) -> bool
         else:
             all_equal &= a.dtype == dt
     return all_equal
+
+
+def check_same_device(*args: Union[None, torch.Tensor, SparseTensor]) -> bool:
+    dev = None
+    for t in args:
+        if t is None:
+            continue
+        t_dev = t.device
+        if dev is None:
+            dev = t_dev
+        elif t_dev != dev:
+            return False
+    return True

@@ -1,17 +1,17 @@
-from typing import Union
+from typing import Union, Optional
 
 import torch
 
-from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.cyblas import mul_triang, copy_triang
 from falkon.options import FalkonOptions
-from . import preconditioner as prec
-from .pc_utils import *
+from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils import TicToc, decide_cuda
+from falkon.la_helpers import mul_triang, copy_triang, trsm
 from falkon.utils.tensor_helpers import create_same_stride, is_f_contig, create_fortran
+from .preconditioner import Preconditioner
+from .pc_utils import *
 
 
-class FalkonPreconditioner(prec.Preconditioner):
+class FalkonPreconditioner(Preconditioner):
     """Approximated Cholesky Preconditioner for FALKON.
 
     The preconditioner is based on the :math:`K_{MM}` kernel between the
@@ -60,9 +60,9 @@ class FalkonPreconditioner(prec.Preconditioner):
         self._lambda = penalty
         self.kernel = kernel
 
-        self.fC = None
-        self.dT = None
-        self.dA = None
+        self.fC: Optional[torch.Tensor] = None
+        self.dT: Optional[torch.Tensor] = None
+        self.dA: Optional[torch.Tensor] = None
 
     def init(self, X: Union[torch.Tensor, SparseTensor]):
         """Initialize the preconditioner matrix.
@@ -75,51 +75,65 @@ class FalkonPreconditioner(prec.Preconditioner):
             The matrix of Nystroem centers
         """
         dtype = X.dtype
+        dev = X.device
+        if X.is_cuda and not self._use_cuda:
+            raise RuntimeError("use_cuda is set to False, but data is CUDA tensor. "
+                               "Check your options.")
         eps = self.params.pc_epsilon(X.dtype)
 
         M = X.size(0)
 
         with TicToc("Kernel", debug=self.params.debug):
             if isinstance(X, torch.Tensor):
-                C = create_same_stride((M, M), X, dtype=dtype, device='cpu',
+                C = create_same_stride((M, M), X, dtype=dtype, device=dev,
                                        pin_memory=self._use_cuda)
             else:  # If sparse tensor we need fortran for kernel calculation
-                C = create_fortran((M, M), dtype=dtype, device='cpu', pin_memory=self._use_cuda)
+                C = create_fortran((M, M), dtype=dtype, device=dev, pin_memory=self._use_cuda)
             self.kernel(X, X, out=C, opt=self.params)
-        self.fC = C.numpy()
         if not is_f_contig(C):
-            self.fC = self.fC.T
+            C = C.T
 
         with TicToc("Cholesky 1", debug=self.params.debug):
             # Compute T: lower(fC) = T.T
-            inplace_add_diag(self.fC, eps * M)
-            self.fC = potrf_wrapper(self.fC, clean=False, upper=False,
-                                    use_cuda=self._use_cuda, opt=self.params)
+            inplace_add_diag_th(C, eps * M)
+            C = potrf_wrapper(C, clean=False, upper=False,
+                              use_cuda=self._use_cuda, opt=self.params)
             # Save the diagonal which will be overwritten when computing A
             self.dT = C.diag()
 
         with TicToc("Copy triangular", debug=self.params.debug):
             # Copy lower(fC) to upper(fC):  upper(fC) = T.
-            copy_triang(self.fC, upper=False)
+            copy_triang(C, upper=False)
 
         if self._use_cuda:
             with TicToc("LAUUM", debug=self.params.debug):
                 # Product upper(fC) @ upper(fC).T : lower(fC) = T @ T.T
-                self.fC = lauum_wrapper(self.fC, upper=True, use_cuda=self._use_cuda, opt=self.params)
+                C = lauum_wrapper(C, upper=True, use_cuda=self._use_cuda, opt=self.params)
         else:
             with TicToc("LAUUM", debug=self.params.debug):
                 # Product lower(fC).T @ lower(fC) : lower(fC) = T @ T.T
-                self.fC = lauum_wrapper(self.fC, upper=False, use_cuda=self._use_cuda, opt=self.params)
+                C = lauum_wrapper(C, upper=False, use_cuda=self._use_cuda, opt=self.params)
 
         with TicToc("Cholesky 2", debug=self.params.debug):
             # lower(fC) = 1/M * T@T.T
-            self.fC = mul_triang(self.fC, upper=False, preserve_diag=False, multiplier=1 / M)
+            mul_triang(C, upper=False, preserve_diag=False, multiplier=1 / M)
             # lower(fC) = 1/M * T@T.T + lambda * I
-            inplace_add_diag(self.fC, self._lambda)
+            inplace_add_diag_th(C, self._lambda)
             # Cholesky on lower(fC) : lower(fC) = A.T
-            self.fC = potrf_wrapper(self.fC, clean=False, upper=False,
-                                    use_cuda=self._use_cuda, opt=self.params)
+            C = potrf_wrapper(C, clean=False, upper=False,
+                              use_cuda=self._use_cuda, opt=self.params)
             self.dA = C.diag()
+
+        self.fC = C
+
+    def to(self, device):
+        if self.fC is not None:
+            self.fC = self.fC.to(device)
+        if self.dT is not None:
+            self.dT = self.dT.to(device)
+        if self.dA is not None:
+            self.dA = self.dA.to(device)
+        return self
 
     @check_init("fC", "dT", "dA")
     def invA(self, v: torch.Tensor) -> torch.Tensor:
@@ -141,7 +155,7 @@ class FalkonPreconditioner(prec.Preconditioner):
         --------
         :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
-        inplace_set_diag(self.fC, self.dA)
+        inplace_set_diag_th(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=1)
 
     @check_init("fC", "dT", "dA")
@@ -164,7 +178,7 @@ class FalkonPreconditioner(prec.Preconditioner):
         --------
         :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
-        inplace_set_diag(self.fC, self.dA)
+        inplace_set_diag_th(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=0)
 
     @check_init("fC", "dT", "dA")
@@ -187,7 +201,7 @@ class FalkonPreconditioner(prec.Preconditioner):
         --------
         :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
-        inplace_set_diag(self.fC, self.dT)
+        inplace_set_diag_th(self.fC, self.dT)
         return trsm(v, self.fC, alpha=1.0, lower=0, transpose=0)
 
     @check_init("fC", "dT", "dA")
@@ -210,7 +224,7 @@ class FalkonPreconditioner(prec.Preconditioner):
         --------
         :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
-        inplace_set_diag(self.fC, self.dT)
+        inplace_set_diag_th(self.fC, self.dT)
         return trsm(v, self.fC, alpha=1.0, lower=0, transpose=1)
 
     @check_init("fC", "dT", "dA")

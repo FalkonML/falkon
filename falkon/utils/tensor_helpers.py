@@ -7,7 +7,7 @@ import torch
 __all__ = (
     "create_same_stride", "copy_same_stride",
     "create_fortran", "create_C", "is_f_contig", "is_contig",
-    "cast_tensor"
+    "cast_tensor", "move_tensor",
 )
 
 
@@ -22,6 +22,7 @@ def _new_strided_tensor(
     else:
         pin_memory &= device.lower() == 'cpu'
 
+    # noinspection PyArgumentList
     return torch.empty_strided(
         size=size, stride=stride,
         dtype=dtype, device=device,
@@ -41,7 +42,7 @@ def create_same_stride(size: Union[Tuple[int, int], Tuple[int]],
 
 
 def copy_same_stride(tensor: torch.Tensor, pin_memory: bool = False) -> torch.Tensor:
-    size = tensor.size()
+    size = tensor.shape
     dtype = tensor.dtype
     device = tensor.device
     if is_f_contig(tensor, strict=True):
@@ -150,8 +151,8 @@ def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
     # 2 checks for 1D tensors which look 2D
     if tensor.shape[0] == 1:
         if strict:
-            return tensor.stride(0) == 1 and tensor.stride(1) == 1
-        return tensor.stride(1) == 1
+            return tensor.stride(0) == 1
+        return tensor.stride(1) == 1 or tensor.stride(0) == 1
     if tensor.shape[1] == 1:
         if strict:
             return tensor.stride(0) == 1 and tensor.stride(1) >= tensor.size(0)
@@ -193,3 +194,12 @@ def cast_tensor(tensor: torch.Tensor, dtype: torch.dtype, warn: bool = True) -> 
     out_np = tensor.numpy().astype(
         np_dtype, order='K', casting='unsafe', copy=True)
     return torch.from_numpy(out_np)
+
+
+def move_tensor(tensor: torch.Tensor, device: Union[torch.device, str]) -> torch.Tensor:
+    if str(device) == str(tensor.device):
+        return tensor
+
+    new_tensor = create_same_stride(tensor.size(), tensor, tensor.dtype, device)
+    new_tensor.copy_(tensor)
+    return new_tensor

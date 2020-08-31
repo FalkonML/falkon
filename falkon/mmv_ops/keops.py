@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -5,7 +6,7 @@ import torch
 
 from falkon.options import FalkonOptions, BaseOptions
 from falkon.utils import decide_cuda, devices
-from falkon.utils.helpers import sizeof_dtype, calc_gpu_block_sizes
+from falkon.utils.helpers import sizeof_dtype, calc_gpu_block_sizes, check_same_device
 from pykeops.torch import Genred
 from .utils import _start_wait_processes
 
@@ -181,10 +182,19 @@ def run_keops_mmv(X1: torch.Tensor,
         opt = FalkonOptions()
     # Choose backend
     N, D = X1.shape
-    # M = X2.shape[0]
     T = v.shape[1]
     backend = _decide_backend(opt, D)
     dtype = _keops_dtype(X1.dtype)
+    device = X1.device
+
+    if not check_same_device(X1, X2, v, out, *other_vars):
+        raise RuntimeError("All input tensors must be on the same device.")
+    if (device.type == 'cuda') and (not backend.startswith("GPU")):
+        warnings.warn("KeOps backend was chosen to be CPU, but GPU input tensors found. "
+                      "Defaulting to 'GPU_1D' backend. To force usage of the CPU backend, "
+                      "please pass CPU tensors; to avoid this warning if the GPU backend is "
+                      "desired, check your options (i.e. set 'use_cpu=False').")
+        backend = "GPU_1D"
 
     # Define formula wrapper
     fn = Genred(formula, aliases,
@@ -194,15 +204,16 @@ def run_keops_mmv(X1: torch.Tensor,
 
     # Compile on a small data subset
     small_data_variables = [X1[:100], X2[:10], v[:10]] + other_vars
-    small_data_out = torch.empty((100, T), dtype=X1.dtype, device=X1.device)
+    small_data_out = torch.empty((100, T), dtype=X1.dtype, device=device)
     fn(*small_data_variables, out=small_data_out, backend=backend)
 
     # Create output matrix
     if out is None:
         # noinspection PyArgumentList
-        out = torch.empty(N, T, dtype=X1.dtype, device='cpu', pin_memory=backend != 'CPU')
+        out = torch.empty(N, T, dtype=X1.dtype, device=device,
+                          pin_memory=(backend != 'CPU') and (device.type == 'cpu'))
 
-    if backend.startswith("GPU"):
+    if backend.startswith("GPU") and device.type == 'cpu':
         # Info about GPUs
         ram_slack = 0.7  # slack is high due to imprecise memory usage estimates
         gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
@@ -231,7 +242,7 @@ def run_keops_mmv(X1: torch.Tensor,
                 gpu_ram=gpu_ram[i]
             ), gpu_info[i].Id))
         _start_wait_processes(_single_gpu_method, args)
-    else:  # Run on CPU
+    else:  # Run on CPU or GPU with CUDA inputs
         variables = [X1, X2, v] + other_vars
         out = fn(*variables, out=out, backend=backend)
 
