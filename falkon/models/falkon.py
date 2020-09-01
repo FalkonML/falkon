@@ -227,14 +227,16 @@ class Falkon(FalkonBase):
             self.ny_points_ = ny_points
         return self
 
-    def _predict(self, X, ny_points, alpha):
+    def _predict(self, X, ny_points, alpha: torch.Tensor) -> torch.Tensor:
         if ny_points is None:
             # Then X is the kernel itself
             return X @ alpha
         _use_cuda_mmv = (
-            self.use_cuda_ and
-            X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(
-                X.dtype, self.options)
+            alpha.device.type == "cuda" or (
+                self.use_cuda_ and
+                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(
+                    X.dtype, self.options)
+            )
         )
         mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
         return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
