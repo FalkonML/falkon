@@ -7,12 +7,12 @@ from falkon.sparse import SparseTensor
 
 try:
     from falkon.mmv_ops.keops import run_keops_mmv
-
     _has_keops = True
 except ModuleNotFoundError:
     _has_keops = False
 
 
+# noinspection PyMethodMayBeStatic
 class KeopsKernelMixin():
     def keops_mmv(self,
                   X1: torch.Tensor,
@@ -42,7 +42,10 @@ class KeopsKernelMixin():
         X2 : Tensor M x D
         v  : Tensor M x T
         w  : Tensor N x T
+        kernel : falkon.Kernel
         out : Tensor M x T or None
+        opt : FalkonOptions
+        mmv_fn : Callable
 
         Notes
         ------
@@ -61,9 +64,11 @@ class KeopsKernelMixin():
             out1 = mmv_fn(X1, X2, v, kernel, None, opt)
             return mmv_fn(X2, X1, out1, kernel, out, opt)
 
+    # noinspection PyUnusedLocal
     def keops_can_handle_mm(self, X1, X2, opt) -> bool:
         return False
 
+    # noinspection PyUnusedLocal
     def keops_can_handle_mmv(self,
                              X1: Union[torch.Tensor, SparseTensor],
                              X2: Union[torch.Tensor, SparseTensor],
