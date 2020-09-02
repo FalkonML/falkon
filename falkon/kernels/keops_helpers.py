@@ -1,7 +1,7 @@
 from typing import Optional, List, Union
 
 import torch
-from falkon.options import FalkonOptions
+from falkon.options import FalkonOptions, KeopsOptions
 from falkon.utils.switches import decide_keops
 from falkon.sparse import SparseTensor
 
@@ -10,6 +10,44 @@ try:
     _has_keops = True
 except ModuleNotFoundError:
     _has_keops = False
+
+__all__ = ("should_use_keops", "KeopsKernelMixin", )
+
+
+def should_use_keops(T1: Union[torch.Tensor, SparseTensor],
+                     T2: Union[torch.Tensor, SparseTensor],
+                     opt: KeopsOptions) -> bool:
+    """Check whether the conditions to use KeOps for mmv operations are satisfied
+
+    Parameters
+    ----------
+    T1 : tensor
+        The first 2D tensor in the MMV operation
+    T2 : tensor
+        The second 2D tensor in the MMV operation
+    opt : KeopsOptions
+        Options governing KeOps usage. Significant option is `keops_active`.
+
+    Returns
+    -------
+    Whether KeOps will be used for MMV operations. The decision is based on the options, and
+    on the inputs. In particular, if inputs are sparse or high-dimensional, KeOps does not work
+    (or is too slow) and this function returns `False`. Further, if KeOps is not installed
+    then this function will return `False`.
+    """
+    # No handling of sparse tensors
+    if not isinstance(T1, torch.Tensor) or not isinstance(T2, torch.Tensor) \
+            or T1.is_sparse or T2.is_sparse:
+        return False
+    # No handling if keops is not installed correctly or 'keops_active' is 'no'
+    if not decide_keops(opt):
+        return False
+    # No handling for high dimensional data (https://github.com/getkeops/keops/issues/57)
+    # unless keops_active is in 'force' mode.
+    if T1.shape[1] > 50 and not opt.keops_active == "force":
+        return False
+
+    return True
 
 
 # noinspection PyMethodMayBeStatic
@@ -74,20 +112,7 @@ class KeopsKernelMixin():
                              X2: Union[torch.Tensor, SparseTensor],
                              v: torch.Tensor,
                              opt: FalkonOptions) -> bool:
-        # No handling of sparse tensors
-        # noinspection PyUnresolvedReferences
-        if not isinstance(X1, torch.Tensor) or not isinstance(X2, torch.Tensor) \
-                or X1.is_sparse or X2.is_sparse:
-            return False
-        # No handling if keops is not installed correctly or 'keops_active' is 'no'
-        if not decide_keops(opt):
-            return False
-        # No handling for high dimensional data (https://github.com/getkeops/keops/issues/57)
-        # unless keops_active is in 'force' mode.
-        if X1.shape[1] > 50 and not opt.keops_active == "force":
-            return False
-
-        return True
+        return should_use_keops(X1, X2, opt)
 
     def keops_can_handle_dmmv(self,
                               X1: Union[torch.Tensor, SparseTensor],
