@@ -12,8 +12,8 @@ from falkon.utils.tensor_helpers import is_f_contig
 from falkon.utils.helpers import check_same_dtype, sizeof_dtype
 from falkon.utils import decide_cuda, devices
 from falkon import FalkonOptions
-from kernels.keops_helpers import should_use_keops
-from sparse import SparseTensor
+from falkon.kernels.keops_helpers import should_use_keops
+from falkon.sparse import SparseTensor
 
 
 _tensor_type = Union[torch.Tensor, SparseTensor]

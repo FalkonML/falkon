@@ -51,12 +51,11 @@ def par_lauum_f_lower(A: torch.Tensor,
     tc_device = torch.device('cuda:%d' % (device_id))
     s1 = torch.cuda.Stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
-    cublasSetStream(cublas_handle, s1._as_parameter_)
 
     max_block_size = max(ba.length for ba in block_allocs)
     my_rows = sorted(my_rows)
 
-    with torch.cuda.device(tc_device), torch.cuda.stream(s1):
+    with torch.cuda.device(tc_device), torch.cuda.stream(s1), cublas_stream(cublas_handle, s1._as_parameter_):
         # Preallocate 2 columns
         if not is_cuda:
             whole_col_b = create_fortran((A.shape[0], max_block_size), A.dtype, tc_device)
@@ -187,12 +186,11 @@ def par_lauum_c_lower(A: torch.Tensor,
     s1 = torch.cuda.Stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
     s1_cuda = s1._as_parameter_
-    cublasSetStream(cublas_handle, s1_cuda)
 
     max_block_size = max(ba.length for ba in block_allocs)
     my_rows = sorted(my_rows)
 
-    with torch.cuda.device(tc_device), torch.cuda.stream(s1):
+    with torch.cuda.device(tc_device), torch.cuda.stream(s1), cublas_stream(cublas_handle, s1_cuda):
         # Preallocate 2 block-columns. The single block is a CPU buffer
         whole_col_b = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
         whole_col_r = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)

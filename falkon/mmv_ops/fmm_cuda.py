@@ -121,7 +121,8 @@ def _generic_fmm(proc_idx, queue, device_id):
         n, d, m = select_dim_fMM(avail_mem, ntot, dtot, mtot)
 
     tc_device = torch.device('cuda:%d' % (int(device_id)))
-    with torch.cuda.device(tc_device):
+    s1 = torch.cuda.Stream(device=tc_device)
+    with torch.cuda.device(tc_device), torch.cuda.stream(s1):
         # Initialize GPU buffers
         if not cuda_inputs or change_dtype:
             g_X1d = create_same_stride((n, d), X1, gpu_dtype, tc_device)
@@ -168,7 +169,7 @@ def _generic_fmm(proc_idx, queue, device_id):
 
                 a.kernel._finalize(cur_g_out, ddd)
                 if not cuda_inputs:
-                    copy_to_host_noorder(ic, jc, cur_g_out, 0, 0, out, i, j, cpu_buf)
+                    copy_to_host_noorder(ic, jc, cur_g_out, 0, 0, out, i, j, cpu_buf, s1)
                 elif change_dtype:
                     out.narrow(0, i, ic).narrow(1, j, jc).copy_(cur_g_out)
                 del ddd

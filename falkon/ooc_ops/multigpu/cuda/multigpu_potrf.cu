@@ -453,7 +453,12 @@ void parallel_potrf_runner(int device_id,
 
     // Fetch cuBLAS handle and set cuBLAS, cuSOLVER streams to s1
     const auto cublas_handle = at::cuda::getCurrentCUDABlasHandle();
+    cudaStream_t orig_cublas_stream;
+    CUBLAS_CHECK(cublasGetStream_v2(cublas_handle, &orig_cublas_stream));
     CUBLAS_CHECK(cublasSetStream_v2(cublas_handle, s1_c));
+
+    cudaStream_t orig_cusolver_stream;
+    CUSOLVER_CHECK(cusolverDnGetStream(cusolver_handle, &orig_cusolver_stream));
     CUSOLVER_CHECK(cusolverDnSetStream(cusolver_handle, s1_c));
 
     const auto scalar_type = A.scalar_type();
@@ -477,7 +482,6 @@ void parallel_potrf_runner(int device_id,
         for (int j = 0; j < k; j++) {
             const callBackData cback_data = {.work_unit = &(work[i][j]), .x = i, .y = j, .callee = -1};
 	    callback_data.insert(std::pair<std::pair<int, int>, callBackData>(std::pair<int, int>(i, j), cback_data));
-
 	}
     }
 
@@ -655,6 +659,9 @@ void parallel_potrf_runner(int device_id,
     C10_CUDA_CHECK(cudaStreamSynchronize(s2_c));
     C10_CUDA_CHECK(cudaStreamSynchronize(s3_c));
     });
+
+    CUBLAS_CHECK(cublasSetStream_v2(cublas_handle, orig_cublas_stream));
+    CUSOLVER_CHECK(cusolverDnSetStream(cusolver_handle, orig_cusolver_stream));
 }
 
 torch::Tensor parallel_potrf_cuda(std::vector<gpuInfo> gpu_info,

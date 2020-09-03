@@ -1,11 +1,12 @@
 import sys
 from ctypes import (c_int, c_void_p)
+from contextlib import contextmanager
 
 import ctypes
 
 __all__ = ("cublasSetMatrix", "cublasSetMatrixAsync",
            "cublasGetMatrix", "cublasGetMatrixAsync",
-           "cublasGetStream", "cublasSetStream",
+           "cublasGetStream", "cublasSetStream", "cublas_stream",
            "cublasDsyrk", "cublasSsyrk",
            "cublasDgemm", "cublasSgemm",
            "cublasDtrsm", "cublasStrsm",
@@ -219,6 +220,16 @@ def cublasGetStream(handle):
     status = _libcublas.cublasGetStream_v2(handle, ctypes.byref(id))
     cublas_check_status(status)
     return id.value
+
+
+@contextmanager
+def cublas_stream(cublas_handle, stream_id):
+    try:
+        original_stream_id = cublasGetStream(cublas_handle)
+        cublasSetStream(cublas_handle, stream_id)
+        yield stream_id
+    finally:
+        cublasSetStream(cublas_handle, original_stream_id)
 
 
 # Set/Get matrix (async)
