@@ -84,8 +84,7 @@ def sparse_matmul(A: SparseTensor, B: SparseTensor, out: torch.Tensor) -> torch.
     """Sparse*Sparse matrix multiplication. Output will be copied into dense `out` matrix.
 
     This function can be applied to CPU or CUDA tensors (but all tensors must
-    be consistently on the same device). Note that the CUDA matrix multiplication
-    is
+    be  on the same device).
 
     Parameters
     ----------
@@ -93,6 +92,13 @@ def sparse_matmul(A: SparseTensor, B: SparseTensor, out: torch.Tensor) -> torch.
         N x D, sparse matrix.
     B : SparseTensor
         D x M, sparse matrix
+    out : torch.Tensor
+        Dense N x M tensor, it will hold the output of the multiplication.
+
+    Returns
+    -------
+    out : torch.Tensor
+        The same tensor as the input `out` parameter.
 
     """
     if A.nnz() == 0 or B.nnz() == 0:
@@ -104,7 +110,29 @@ def sparse_matmul(A: SparseTensor, B: SparseTensor, out: torch.Tensor) -> torch.
         return _sparse_matmul_cpu(A, B, out)
 
 
-def sparse_square_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
+def sparse_square_norm(A: SparseTensor, out: torch.Tensor) -> torch.Tensor:
+    """Row-wise squared l2 norm of a sparse 2D matrix.
+
+    The operation is equivalent to squaring all elements of the matrix, and summing up the rows.
+
+    Parameters
+    ----------
+    A : SparseTensor
+        The 2D matrix. Since we compute row-wise norms, the matrix must be in CSR format (for
+        efficiency).
+    out : torch.Tensor
+        A dense tensor with the same number of rows as matrix `A`. Will contain the output
+        of the squared-norm operation.
+
+    Returns
+    -------
+    out : torch.Tensor
+        The same tensor as the input `out` parameter.
+
+    Notes
+    -----
+    This function is currently limited to CPU input tensors.
+    """
     if not A.is_csr:
         raise RuntimeError("Squared norm can only be applied on CSR tensors")
     if not check_same_dtype(A, out):
@@ -116,6 +144,26 @@ def sparse_square_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Te
 
 
 def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
+    """Row-wise l2 norm of a sparse 2D matrix
+
+    Parameters
+    ----------
+    A : SparseTensor
+        The 2D matrix. Since we compute row-wise norms, the matrix must be in CSR format (for
+        efficiency).
+    out : torch.Tensor
+        A dense tensor with the same number of rows as matrix `A`. Will contain the output
+        of the norm operation.
+
+    Returns
+    -------
+    out : torch.Tensor
+        The same tensor as the input `out` parameter.
+
+    Notes
+    -----
+    This function is currently limited to CPU input tensors.
+    """
     if not A.is_csr:
         raise RuntimeError("Norm can only be applied on CSR tensors")
     if not check_same_dtype(A, out):

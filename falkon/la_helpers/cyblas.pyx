@@ -24,11 +24,6 @@ ctypedef fused float_type:
     np.float64_t
     np.float32_t
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.nonecheck(False)
-def zero_triang(np.ndarray[float_type, ndim=2] array, bint upper):
-    return mul_triang(array, upper, 1, 0.0)
 
 
 @cython.boundscheck(False)
@@ -176,7 +171,7 @@ def potrf(np.ndarray[float_type, ndim=2] array, bint upper, bint clean, bint ove
 
     # Clean non-factorized part of the matrix
     if clean:
-        zero_triang(array, not upper)
+        mul_triang(array, not upper, True, 0.0)
 
     # Transpose the matrix if it is C-contig.
     # if array.flags.c_contiguous:

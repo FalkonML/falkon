@@ -1,8 +1,9 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import torch
 from falkon.options import FalkonOptions
 from falkon.utils.switches import decide_keops
+from falkon.sparse import SparseTensor
 
 try:
     from falkon.mmv_ops.keops import run_keops_mmv
@@ -60,23 +61,34 @@ class KeopsKernelMixin():
             out1 = mmv_fn(X1, X2, v, kernel, None, opt)
             return mmv_fn(X2, X1, out1, kernel, out, opt)
 
-    def keops_can_handle_mm(self, X1, X2, opt):
+    def keops_can_handle_mm(self, X1, X2, opt) -> bool:
         return False
 
-    def keops_can_handle_mmv(self, X1, X2, v, opt):
+    def keops_can_handle_mmv(self,
+                             X1: Union[torch.Tensor, SparseTensor],
+                             X2: Union[torch.Tensor, SparseTensor],
+                             v: torch.Tensor,
+                             opt: FalkonOptions) -> bool:
         # No handling of sparse tensors
+        # noinspection PyUnresolvedReferences
         if not isinstance(X1, torch.Tensor) or not isinstance(X2, torch.Tensor) \
                 or X1.is_sparse or X2.is_sparse:
             return False
-        # No handling if keops is not installed correctly or 'no_keops' is True
+        # No handling if keops is not installed correctly or 'keops_active' is 'no'
         if not decide_keops(opt):
             return False
         # No handling for high dimensional data (https://github.com/getkeops/keops/issues/57)
-        if X1.shape[1] > 50:
+        # unless keops_active is in 'force' mode.
+        if X1.shape[1] > 50 and not opt.keops_active == "force":
             return False
 
         return True
 
-    def keops_can_handle_dmmv(self, X1, X2, v, w, opt):
+    def keops_can_handle_dmmv(self,
+                              X1: Union[torch.Tensor, SparseTensor],
+                              X2: Union[torch.Tensor, SparseTensor],
+                              v: torch.Tensor,
+                              w: torch.Tensor,
+                              opt: FalkonOptions) -> bool:
         return (self.keops_can_handle_mmv(X1, X2, v, opt) and
                 self.keops_can_handle_mmv(X2, X1, w, opt))

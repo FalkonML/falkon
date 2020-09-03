@@ -153,7 +153,7 @@ class CudaError(Exception):
             self.message = CUDA_EXCEPTIONS[status_code]
         except KeyError:
             self.message = "Unknown CUDA error %d" % (status_code)
-        super.__init__(self.message)
+        super().__init__(self.message)
 
 
 def cuda_check_status(status):

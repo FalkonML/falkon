@@ -6,6 +6,8 @@ import torch
 
 
 class SparseType(Enum):
+    """Whether a `SparseTensor` is in CSC or CSR format.
+    """
     CSR = "csr"
     CSC = "csc"
 
@@ -17,14 +19,14 @@ class SparseType(Enum):
 
 
 class SparseTensor():
-    """Class to represent sparse 2D matrices
+    """Wrapper class to represent sparse 2D matrices in CSR or CSC format.
 
-    `SparseTensor` can hold the data in CSR or CSC format, which represent the data with three
-    1-dimensional arrays.
+    The wrapper holds three 1D torch tensors which give the sparse representation
+    (an index pointer, an index and the non-zero values of the matrix).
     It supports some of the common torch tensor management functions (e.g. `pin_memory`, `device`,
     `size`) and conversion to and from the corresponding scipy sparse matrix representation.
     It does **not** define any mathematical function on sparse matrices, which are
-    instead defined in the `sparse_ops.py` file.
+    instead defined separately (see :func:`falkon.sparse.sparse_matmul` for example).
 
     Parameters
     ----------
@@ -174,6 +176,14 @@ class SparseTensor():
         return SparseTensor(
             indexptr=new_indexptr, index=new_index, data=new_data,
             size=self.shape, sparse_type=self.sparse_type)
+
+    def cuda(self) -> 'SparseTensor':
+        return SparseTensor(
+            indexptr=self.indexptr.cuda(),
+            index=self.index.cuda(),
+            data=self.data.cuda(),
+            size=self.shape, sparse_type=self.sparse_type
+        )
 
     def index_to_int_(self):
         self.indexptr = self.indexptr.to(dtype=torch.int32)

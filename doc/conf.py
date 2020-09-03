@@ -13,13 +13,15 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../falkon'))
+#sys.path.insert(0, os.path.abspath('../falkon'))
 
 # Need mocking to allow everything to be imported even on no-GPU machines
 autodoc_mock_imports = [
     # "torch",
     # "pykeops",
     # "numpy",
+    "falkon.la_helpers.cuda_la_helpers",
+    "falkon.ooc_ops.cuda",
     "falkon.cuda",
     "falkon.ooc_ops.multigpu_potrf"
 ]

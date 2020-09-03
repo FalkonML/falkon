@@ -1,8 +1,11 @@
 import numpy as np
 import pytest
 import torch
+from falkon.utils.tensor_helpers import move_tensor, create_same_stride
 
-from falkon.center_selection import UniformSel
+from falkon.utils import decide_cuda
+
+from falkon.center_selection import UniformSelector
 from falkon.kernels import GaussianKernel
 from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
 from falkon.options import FalkonOptions
@@ -10,6 +13,9 @@ from falkon.preconditioner import FalkonPreconditioner
 from falkon.tests.gen_random import gen_random, gen_random_pd
 
 
+@pytest.mark.parametrize("order", ["F", "C"])
+@pytest.mark.parametrize("device", [
+    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestConjugateGradient():
     t = 200
 
@@ -25,23 +31,47 @@ class TestConjugateGradient():
     def vec_rhs(self, request):
         return torch.from_numpy(gen_random(self.t, request.param, 'float64', F=False, seed=9))
 
-    @pytest.mark.parametrize("order", ["F", "C"])
-    def test_one_rhs(self, mat, vec_rhs, conjgrad, order):
+    def test_one_rhs(self, mat, vec_rhs, conjgrad, order, device):
         if order == "F":
             mat = torch.from_numpy(np.asfortranarray(mat.numpy()))
             vec_rhs = torch.from_numpy(np.asfortranarray(vec_rhs.numpy()))
+        mat = move_tensor(mat, device)
+        vec_rhs = move_tensor(vec_rhs, device)
 
-        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x: mat @ x, max_iter=10, callback=None)
+        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x_: mat @ x_, max_iter=10, callback=None)
 
-        assert x.shape == (self.t, vec_rhs.shape[1])
-        expected = np.linalg.solve(mat.numpy(), vec_rhs.numpy())
-        np.testing.assert_allclose(expected, x, rtol=1e-6)
+        assert str(x.device) == device, "Device has changed unexpectedly"
+        assert x.stride() == vec_rhs.stride(), "Stride has changed unexpectedly"
+        assert x.shape == (self.t, vec_rhs.shape[1]), "Output shape is incorrect"
+        expected = np.linalg.solve(mat.cpu().numpy(), vec_rhs.cpu().numpy())
+        np.testing.assert_allclose(expected, x.cpu().numpy(), rtol=1e-6)
+
+    def test_with_x0(self, mat, vec_rhs, conjgrad, order, device):
+        if order == "F":
+            mat = torch.from_numpy(np.asfortranarray(mat.numpy()))
+            vec_rhs = torch.from_numpy(np.asfortranarray(vec_rhs.numpy()))
+        mat = move_tensor(mat, device)
+        vec_rhs = move_tensor(vec_rhs, device)
+        init_sol = create_same_stride(vec_rhs.size(), vec_rhs, vec_rhs.dtype, device)
+        init_sol.fill_(0.0)
+
+        x = conjgrad.solve(X0=init_sol, B=vec_rhs, mmv=lambda x_: mat @ x_, max_iter=10,
+                           callback=None)
+
+        assert x.data_ptr() == init_sol.data_ptr(), "Initial solution vector was copied"
+        assert str(x.device) == device, "Device has changed unexpectedly"
+        assert x.shape == (self.t, vec_rhs.shape[1]), "Output shape is incorrect"
+        assert x.stride() == vec_rhs.stride(), "Stride has changed unexpectedly"
+        expected = np.linalg.solve(mat.cpu().numpy(), vec_rhs.cpu().numpy())
+        np.testing.assert_allclose(expected, x.cpu().numpy(), rtol=1e-6)
 
 
 # TODO: KeOps fails if data is F-contig. Check if this occurs also in `test_falkon`.
 #       if so we need to fix in the falkon fn.
+@pytest.mark.parametrize("device", [
+    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestFalkonConjugateGradient:
-    basic_opt = FalkonOptions(use_cpu=True)
+    basic_opt = FalkonOptions(use_cpu=True, keops_active="no")
     N = 500
     M = 10
     D = 10
@@ -61,7 +91,7 @@ class TestFalkonConjugateGradient:
 
     @pytest.fixture()
     def centers(self, data):
-        cs = UniformSel(np.random.default_rng(2))
+        cs = UniformSelector(np.random.default_rng(2))
         return cs.select(data, None, self.M)
 
     @pytest.fixture()
@@ -78,7 +108,8 @@ class TestFalkonConjugateGradient:
         prec.init(centers)
         return prec
 
-    def test_flk_cg(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs):
+    def test_flk_cg(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
+        preconditioner = preconditioner.to(device)
         opt = FalkonConjugateGradient(kernel, preconditioner, opt=self.basic_opt)
 
         # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
@@ -86,7 +117,13 @@ class TestFalkonConjugateGradient:
         lhs = knm.T @ knm + self.penalty * self.N * kmm
         expected = np.linalg.solve(lhs.numpy(), rhs.numpy())
 
-        beta = opt.solve(data, centers, vec_rhs, self.penalty, None, 200)
+        data = move_tensor(data, device)
+        centers = move_tensor(centers, device)
+        vec_rhs = move_tensor(vec_rhs, device)
+
+        beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
+                         initial_solution=None, max_iter=200)
         alpha = preconditioner.apply(beta)
 
-        np.testing.assert_allclose(expected, alpha, rtol=1e-5)
+        assert str(beta.device) == device, "Device has changed unexpectedly"
+        np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)

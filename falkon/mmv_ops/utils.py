@@ -55,6 +55,13 @@ def _start_wait_processes(target, args):
         p.join()
 
 
+def _call_direct(target, arg):
+    args_queue = FakeQueue()
+    args_queue.put(arg[0])
+    new_args_tuple = (0, args_queue, arg[1])
+    return target(*new_args_tuple)
+
+
 def _gpu_tns_same_memory(A: torch.Tensor, B: torch.Tensor) -> bool:
     return (A.dtype == B.dtype) and \
            (A.shape == B.shape) and \
