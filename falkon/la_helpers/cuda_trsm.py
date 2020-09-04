@@ -1,7 +1,7 @@
 import torch
 
 from falkon.cuda.initialization import cublas_handle
-from falkon.cuda.cublas_gpu import cublasStrsm, cublasDtrsm, cublasSetStream
+from falkon.cuda.cublas_gpu import cublasStrsm, cublasDtrsm, cublas_stream
 from falkon.utils.helpers import choose_fn, check_same_device
 # noinspection PyUnresolvedReferences
 from falkon.la_helpers.cuda_la_helpers import cuda_transpose
@@ -18,9 +18,8 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
 
     s1 = torch.cuda.Stream(device=A.device)
     cublas_hdl = cublas_handle(A.device.index)
-    cublasSetStream(cublas_hdl, s1._as_parameter_)
 
-    with torch.cuda.device(A.device), torch.cuda.stream(s1):
+    with torch.cuda.device(A.device), torch.cuda.stream(s1), cublas_stream(cublas_hdl, s1._as_parameter_):
         # Deal with copying v, which may not be F-contiguous.
         vF = create_fortran(v.size(), v.dtype, v.device)
         if is_f_contig(v, strict=False):
