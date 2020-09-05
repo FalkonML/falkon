@@ -67,8 +67,6 @@ class TestConjugateGradient():
         np.testing.assert_allclose(expected, x.cpu().numpy(), rtol=1e-6)
 
 
-# TODO: KeOps fails if data is F-contig. Check if this occurs also in `test_falkon`.
-#       if so we need to fix in the falkon fn.
 @pytest.mark.parametrize("device", [
     "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestFalkonConjugateGradient:

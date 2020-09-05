@@ -53,14 +53,14 @@ class SparseTensor():
         if isinstance(sparse_type, str):
             sparse_type = SparseType(sparse_type)
         if sparse_type == SparseType.CSR:
-            if indexptr.size(0) - 1 != size[0]:
+            if indexptr.shape[0] - 1 != size[0]:
                 raise ValueError("Data is not in correct csr format. Incorrect indexptr size.")
         elif sparse_type == SparseType.CSC:
-            if indexptr.size(0) - 1 != size[1]:
+            if indexptr.shape[0] - 1 != size[1]:
                 raise ValueError("Data is not in correct csc format. Incorrect indexptr size.")
         else:
             raise ValueError("Sparse type %s not valid." % (sparse_type))
-        if index.size(0) != data.size(0):
+        if index.shape[0] != data.shape[0]:
             raise ValueError("Data is not in correct format. Different sizes for index and values.")
 
         dev = data.device
