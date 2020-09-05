@@ -1,7 +1,7 @@
 import numbers
 import warnings
 from abc import abstractmethod, ABC
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
 from sklearn import base
 import numpy as np
@@ -10,9 +10,13 @@ import torch
 import falkon
 from falkon.utils.tensor_helpers import is_f_contig
 from falkon.utils.helpers import check_same_dtype, sizeof_dtype
-from falkon.utils.switches import decide_keops
 from falkon.utils import decide_cuda, devices
 from falkon import FalkonOptions
+from falkon.kernels.keops_helpers import should_use_keops
+from falkon.sparse import SparseTensor
+
+
+_tensor_type = Union[torch.Tensor, SparseTensor]
 
 
 class FalkonBase(base.BaseEstimator, ABC):
@@ -92,11 +96,15 @@ class FalkonBase(base.BaseEstimator, ABC):
 
         return val_cback
 
-    def _check_fit_inputs(self, X, Y, Xts, Yts):
-        if X.size(0) != Y.size(0):
+    def _check_fit_inputs(self,
+                          X: _tensor_type,
+                          Y: torch.Tensor,
+                          Xts: _tensor_type,
+                          Yts: torch.Tensor) -> Tuple[_tensor_type, torch.Tensor, _tensor_type, torch.Tensor]:
+        if X.shape[0] != Y.shape[0]:
             raise ValueError("X and Y must have the same number of "
                              "samples (found %d and %d)" %
-                             (X.size(0), Y.size(0)))
+                             (X.shape[0], Y.shape[0]))
         if Y.dim() == 1:
             Y = torch.unsqueeze(Y, 1)
         if Y.dim() != 2:
@@ -105,7 +113,7 @@ class FalkonBase(base.BaseEstimator, ABC):
             raise TypeError("X and Y must have the same data-type.")
 
         # If KeOps is used, data must be C-contiguous.
-        if decide_keops(self.options):
+        if should_use_keops(X, X, self.options):
             X = to_c_contig(X, "X", True)
             Y = to_c_contig(Y, "Y", True)
             Xts = to_c_contig(Xts, "Xts", True)
@@ -113,11 +121,11 @@ class FalkonBase(base.BaseEstimator, ABC):
 
         return X, Y, Xts, Yts
 
-    def _check_predict_inputs(self, X):
+    def _check_predict_inputs(self, X: _tensor_type) -> _tensor_type:
         if self.alpha_ is None or self.ny_points_ is None:
             raise RuntimeError(
                 "Falkon has not been trained. `predict` must be called after `fit`.")
-        if decide_keops(self.options):
+        if should_use_keops(X, self.ny_points_, self.options):
             X = to_c_contig(X, "X", True)
 
         return X

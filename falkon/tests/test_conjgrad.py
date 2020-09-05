@@ -1,10 +1,11 @@
+import dataclasses
+
 import numpy as np
 import pytest
 import torch
+
 from falkon.utils.tensor_helpers import move_tensor, create_same_stride
-
 from falkon.utils import decide_cuda
-
 from falkon.center_selection import UniformSelector
 from falkon.kernels import GaussianKernel
 from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
@@ -66,15 +67,13 @@ class TestConjugateGradient():
         np.testing.assert_allclose(expected, x.cpu().numpy(), rtol=1e-6)
 
 
-# TODO: KeOps fails if data is F-contig. Check if this occurs also in `test_falkon`.
-#       if so we need to fix in the falkon fn.
 @pytest.mark.parametrize("device", [
     "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestFalkonConjugateGradient:
     basic_opt = FalkonOptions(use_cpu=True, keops_active="no")
     N = 500
     M = 10
-    D = 10
+    D = 2000
     penalty = 10
 
     @pytest.fixture()
@@ -110,7 +109,8 @@ class TestFalkonConjugateGradient:
 
     def test_flk_cg(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)
-        opt = FalkonConjugateGradient(kernel, preconditioner, opt=self.basic_opt)
+        options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")
+        opt = FalkonConjugateGradient(kernel, preconditioner, opt=options)
 
         # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
         rhs = knm.T @ vec_rhs
@@ -122,6 +122,26 @@ class TestFalkonConjugateGradient:
         vec_rhs = move_tensor(vec_rhs, device)
 
         beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
+                         initial_solution=None, max_iter=200)
+        alpha = preconditioner.apply(beta)
+
+        assert str(beta.device) == device, "Device has changed unexpectedly"
+        np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
+
+    def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
+        preconditioner = preconditioner.to(device)
+        options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")
+        opt = FalkonConjugateGradient(kernel, preconditioner, opt=options)
+
+        # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
+        rhs = knm.T @ vec_rhs
+        lhs = knm.T @ knm + self.penalty * self.N * kmm
+        expected = np.linalg.solve(lhs.numpy(), rhs.numpy())
+
+        knm = move_tensor(knm, device)
+        vec_rhs = move_tensor(vec_rhs, device)
+
+        beta = opt.solve(X=knm, M=None, Y=vec_rhs, _lambda=self.penalty,
                          initial_solution=None, max_iter=200)
         alpha = preconditioner.apply(beta)
 
