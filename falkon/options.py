@@ -68,6 +68,12 @@ min_cuda_iter_size_64 (default 900_000_000)
     with 30k points, 10 dimensions, and 3k Nystroem centers. A larger dataset, or the use
     of more centers, will cause the conjugate gradient iterations to run on the GPU.
     This setting is valid for data in double (float64) precision.
+never_store_kernel (default False)
+    If set to True, the kernel between the data and the Nystroem centers will not
+    be stored - even if there is sufficient RAM to do so. Setting this option to
+    True may (in case there would be enough RAM to store the kernel), increase the
+    training time for Falkon since the K_NM matrix must be recomputed at every
+    conjugate gradient iteration.
     """,
     "keops":
     """
@@ -146,6 +152,7 @@ class BaseOptions():
     min_cuda_pc_size_64: int = 30000
     min_cuda_iter_size_32: int = 10_000 * 10 * 3_000
     min_cuda_iter_size_64: int = 30_000 * 10 * 3_000
+    never_store_kernel: bool = False
 
     def get_base_options(self):
         return BaseOptions(debug=self.debug,
@@ -157,7 +164,8 @@ class BaseOptions():
                            min_cuda_pc_size_32=self.min_cuda_pc_size_32,
                            min_cuda_pc_size_64=self.min_cuda_pc_size_64,
                            min_cuda_iter_size_32=self.min_cuda_iter_size_32,
-                           min_cuda_iter_size_64=self.min_cuda_iter_size_64)
+                           min_cuda_iter_size_64=self.min_cuda_iter_size_64,
+                           never_store_kernel=self.never_store_kernel)
 
 
 @dataclass

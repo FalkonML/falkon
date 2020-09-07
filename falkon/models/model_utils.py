@@ -148,6 +148,8 @@ class FalkonBase(base.BaseEstimator, ABC):
          - If RAM is sufficient precompute
          - Otherwise do not precompute
         """
+        if self.options.never_store_kernel:
+            return False
         dts = sizeof_dtype(X.dtype)
         if X.size(1) > store_threshold:
             necessary_ram = X.size(0) * ny_points.size(0) * dts
