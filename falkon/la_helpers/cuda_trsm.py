@@ -38,7 +38,7 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
         if not is_f_contig(v, strict=False):
             vout = create_C(v.size(), v.dtype, v.device)
             vout = cuda_transpose(input=vF, output=vout.T).T
-            s1.synchronize()
-            return vout
+        else:
+            vout = vF
         s1.synchronize()
-        return vF
+    return vout

@@ -1,10 +1,11 @@
 import time
 
 import torch
-from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
 
 from falkon.options import ConjugateGradientOptions, FalkonOptions
-from ..utils import TicToc
+from falkon.mmv_ops.fmmv_incore import incore_fdmmv
+from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
+from falkon.utils import TicToc
 
 # More readable 'pseudocode' for conjugate gradient.
 # function [x] = conjgrad(A, b, x)
@@ -111,6 +112,7 @@ class FalkonConjugateGradient(Optimizer):
                 B = Knm.T @ (Y / n)
             else:
                 B = self.kernel.dmmv(X, M, None, Y / n, opt=self.params)
+
             B = prec.apply_t(B)
 
             # Define the Matrix-vector product iteration
@@ -118,7 +120,7 @@ class FalkonConjugateGradient(Optimizer):
                 with TicToc("MMV", False):
                     v = prec.invA(sol)
                     if Knm is not None:
-                        cc = Knm.T @ (Knm @ prec.invT(v))
+                        cc = incore_fdmmv(Knm, prec.invT(v), None, opt=self.params)
                     else:
                         cc = self.kernel.dmmv(X, M, prec.invT(v), None, opt=self.params)
                     return prec.invAt(prec.invTt(cc / n) + _lambda * v)
