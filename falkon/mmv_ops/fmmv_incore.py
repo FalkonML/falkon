@@ -19,7 +19,7 @@ def incore_fmmv(mat: torch.Tensor, vec: torch.Tensor, out: Optional[torch.Tensor
 
     if out is None:
         out = create_same_stride((mat.shape[0], vec.shape[1]), mat, mat.dtype, device=mat.device,
-                                 pin_memory=mat.device.type != 'cuda')
+                                 pin_memory=False)
 
 
     if mat.is_cuda:
