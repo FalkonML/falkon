@@ -3,7 +3,7 @@ import time
 import torch
 
 from falkon.options import ConjugateGradientOptions, FalkonOptions
-from falkon.mmv_ops.fmmv_incore import incore_fdmmv
+from falkon.mmv_ops.fmmv_incore import incore_fdmmv, incore_fmmv
 from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
 from falkon.utils import TicToc
 
@@ -109,7 +109,7 @@ class FalkonConjugateGradient(Optimizer):
                 Knm = None
             # Compute the right hand side
             if Knm is not None:
-                B = Knm.T @ (Y / n)
+                B = incore_fmmv(Knm, Y / n, None, transpose=True, opt=self.params)
             else:
                 B = self.kernel.dmmv(X, M, None, Y / n, opt=self.params)
 
