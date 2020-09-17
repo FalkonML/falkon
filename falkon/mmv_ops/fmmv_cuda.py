@@ -464,10 +464,10 @@ def distk_fdmmv(proc_idx, queue, device_id):
             out_gpu = out
         else:
             out_gpu = create_same_stride((M, T), out, dtype, ddev)
+        out_gpu.fill_(0.0)
         if not cuda_inputs:
             X1ss_gpu = create_same_stride((n, d), X1, dtype, ddev)
             X2s_gpu = create_same_stride((M, d), X2, dtype, ddev)
-        out_gpu.fill_(0.0)
         sq1_gpu = create_same_stride((n,), X1, dtype, ddev)
         sq2_gpu = create_same_stride((M,), X1, dtype, ddev)
 
@@ -479,8 +479,9 @@ def distk_fdmmv(proc_idx, queue, device_id):
 
             for j in range(0, D, d):
                 db = min(D - j, d)
-                # Parallelize two matrix transfers (probably pointless)
-                with torch.cuda.stream(s2):
+                s1.synchronize()  # need that the add_(sq2_gpu.T) op is complete.
+                # Parallelize two matrix transfers
+                with tcd.stream(s2):
                     if cuda_inputs:
                         cur_X2s_gpu = X2[:, j:j + db]
                     else:
@@ -492,8 +493,7 @@ def distk_fdmmv(proc_idx, queue, device_id):
                     cur_X1ss_gpu = copy_to_device_noorder(nb, db, X1, i, j, X1ss_gpu, 0, 0, s=s1)
                 torch.norm(cur_X1ss_gpu, p=2, dim=1, keepdim=True, out=sq1_gpu).pow_(2)
 
-                s2.synchronize()
-                s1.synchronize()
+                s2.synchronize()  # need that cur_X2s_gpu and sq2_gpu are available.
                 cur_K_gpu.addmm_(mat1=cur_X1ss_gpu, mat2=cur_X2s_gpu.T, alpha=-2.0)
                 cur_K_gpu.add_(sq1_gpu)
                 cur_K_gpu.add_(sq2_gpu.T)
@@ -513,7 +513,6 @@ def distk_fdmmv(proc_idx, queue, device_id):
             # Multiply transposed kernel with the Kv result.
             out_gpu.addmm_(cur_K_gpu.T, cur_Kv_gpu)  # M x T
             s1.synchronize()
-        s1.synchronize()
 
         if not out.is_cuda:
             copy_to_host_noorder(M, T, out_gpu, 0, 0, out, 0, 0)
