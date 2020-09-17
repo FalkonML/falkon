@@ -52,7 +52,6 @@ def zero_triang(mat: arr_type, upper: bool) -> arr_type:
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
-            print("cuda_mul_triang(", mat.size(), "upper", upper)
             return cuda_mul_triang(mat, upper=upper, preserve_diag=True, multiplier=0.0)
         else:
             out_torch_convert = True
@@ -92,7 +91,12 @@ def mul_triang(mat: arr_type, upper: bool, preserve_diag: bool, multiplier: floa
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
-            return cuda_mul_triang(mat, upper=upper, preserve_diag=preserve_diag, multiplier=multiplier)
+            s1 = torch.cuda.Stream(device=mat.device)
+            try:
+                with torch.cuda.stream(s1):
+                    return cuda_mul_triang(mat, upper=upper, preserve_diag=preserve_diag, multiplier=multiplier)
+            finally:
+                s1.synchronize()
         else:
             out_torch_convert = True
             mat = mat.numpy()
@@ -125,7 +129,12 @@ def copy_triang(mat: arr_type, upper: bool) -> arr_type:
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
-            return cuda_copy_triang(mat, upper=upper)
+            s1 = torch.cuda.Stream(device=mat.device)
+            try:
+                with torch.cuda.stream(s1):
+                    return cuda_copy_triang(mat, upper=upper)
+            finally:
+                s1.synchronize()
         else:
             out_torch_convert = True
             mat = mat.numpy()

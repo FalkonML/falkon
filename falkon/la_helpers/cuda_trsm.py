@@ -16,10 +16,11 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
     if not A.is_cuda:
         raise ValueError("A and v must be CUDA tensors!")
 
-    s1 = torch.cuda.Stream(device=A.device)
+    s = torch.cuda.Stream(device=A.device)
     cublas_hdl = cublas_handle(A.device.index)
+    trsm_fn = choose_fn(A.dtype, cublasDtrsm, cublasStrsm, "TRSM")
 
-    with torch.cuda.device(A.device), torch.cuda.stream(s1), cublas_stream(cublas_hdl, s1._as_parameter_):
+    with torch.cuda.device(A.device), torch.cuda.stream(s), cublas_stream(cublas_hdl, s._as_parameter_):
         # Deal with copying v, which may not be F-contiguous.
         vF = create_fortran(v.size(), v.dtype, v.device)
         if is_f_contig(v, strict=False):
@@ -28,17 +29,14 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
         else:
             vF = cuda_transpose(input=v, output=vF.T).T
 
-        trsm_fn = choose_fn(A.dtype, cublasDtrsm, cublasStrsm, "TRSM")
-        handle = cublas_handle(A.device)
-
         uplo = 'L' if lower else 'U'
         trans = 'T' if transpose else 'N'
-        trsm_fn(handle, side='L', uplo=uplo, trans=trans, diag='N', m=vF.shape[0], n=vF.shape[1],
+        trsm_fn(cublas_hdl, side='L', uplo=uplo, trans=trans, diag='N', m=vF.shape[0], n=vF.shape[1],
                 alpha=alpha, A=A.data_ptr(), lda=A.stride(1), B=vF.data_ptr(), ldb=vF.stride(1))
         if not is_f_contig(v, strict=False):
             vout = create_C(v.size(), v.dtype, v.device)
             vout = cuda_transpose(input=vF, output=vout.T).T
         else:
             vout = vF
-        s1.synchronize()
+        s.synchronize()
     return vout
