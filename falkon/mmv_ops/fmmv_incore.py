@@ -25,6 +25,7 @@ def incore_fmmv(mat: torch.Tensor,
         else:
             out_shape = (mat.shape[0], vec.shape[1])
         out = create_same_stride(out_shape, mat, mat.dtype, device=mat.device, pin_memory=False)
+    out.fill_(0.0)
 
     if mat.is_cuda:
         s1 = torch.cuda.Stream()
