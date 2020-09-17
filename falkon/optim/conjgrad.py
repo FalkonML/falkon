@@ -42,9 +42,9 @@ class ConjugateGradient(Optimizer):
         t_start = time.time()
 
         if X0 is None:
-            R = copy_same_stride(B)  # B.clone()
-            X = create_same_stride(B.size(), B, B.dtype, B.device)  # torch.zeros_like(B)
-            X.fill_(0)
+            R = copy_same_stride(B)
+            X = create_same_stride(B.size(), B, B.dtype, B.device)
+            X.fill_(0.0)
         else:
             R = B - mmv(X0)
             X = X0
@@ -79,6 +79,9 @@ class ConjugateGradient(Optimizer):
                     break
 
                 P = R + torch.mm(P, torch.diag(Rsnew / (Rsold + m_eps)))
+                if P.is_cuda:
+                    # P must be synced so that it's correct for mmv in next iter.
+                    torch.cuda.synchronize()
                 Rsold = Rsnew
 
                 e_iter = time.time() - t_start
@@ -116,14 +119,29 @@ class FalkonConjugateGradient(Optimizer):
             B = prec.apply_t(B)
 
             # Define the Matrix-vector product iteration
+            if X.is_cuda:
+                s1 = torch.cuda.Stream(X.device)
             def mmv(sol):
                 with TicToc("MMV", False):
                     v = prec.invA(sol)
+                    v_t = prec.invT(v)
                     if Knm is not None:
-                        cc = incore_fdmmv(Knm, prec.invT(v), None, opt=self.params)
+                        cc = incore_fdmmv(Knm, v_t, None, opt=self.params)
                     else:
-                        cc = self.kernel.dmmv(X, M, prec.invT(v), None, opt=self.params)
-                    return prec.invAt(prec.invTt(cc / n) + _lambda * v)
+                        cc = self.kernel.dmmv(X, M, v_t, None, opt=self.params)
+
+                    if X.is_cuda:
+                        with torch.cuda.stream(s1):
+                            cc_ = cc.div_(n)
+                            v_  = v.mul_(_lambda)
+                            s1.synchronize()
+                            cc_ = prec.invTt(cc_).add_(v_)
+                            s1.synchronize()
+                            out = prec.invAt(cc_)
+                            s1.synchronize()
+                            return out
+                    else:
+                        return prec.invAt(prec.invTt(cc / n) + _lambda * v)
 
         # Run the conjugate gradient solver
         beta = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
