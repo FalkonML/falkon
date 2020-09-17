@@ -447,8 +447,8 @@ def distk_fdmmv(proc_idx, queue, device_id):
         coef_nd=1, coef_n=M + T + 1, coef_d=M, rest=rest_coef + M, tot=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream()
-    s2 = tcd.Stream()
+    s1 = tcd.Stream(ddev)
+    s2 = tcd.Stream(ddev)
 
     with tcd.device(ddev), tcd.stream(s1):
         if v is not None:
@@ -479,7 +479,7 @@ def distk_fdmmv(proc_idx, queue, device_id):
 
             for j in range(0, D, d):
                 db = min(D - j, d)
-                s1.synchronize()  # need that the add_(sq2_gpu.T) op is complete.
+                s1.synchronize()  # need that the add_(sq2_gpu.T) op is complete to avoid overwrite
                 # Parallelize two matrix transfers
                 with tcd.stream(s2):
                     if cuda_inputs:
@@ -512,10 +512,10 @@ def distk_fdmmv(proc_idx, queue, device_id):
 
             # Multiply transposed kernel with the Kv result.
             out_gpu.addmm_(cur_K_gpu.T, cur_Kv_gpu)  # M x T
-            s1.synchronize()
 
         if not out.is_cuda:
             copy_to_host_noorder(M, T, out_gpu, 0, 0, out, 0, 0)
+        s1.synchronize()
     return out
 
 
