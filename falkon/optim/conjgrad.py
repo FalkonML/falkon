@@ -121,6 +121,7 @@ class FalkonConjugateGradient(Optimizer):
             # Define the Matrix-vector product iteration
             if X.is_cuda:
                 s1 = torch.cuda.Stream(X.device)
+
             def mmv(sol):
                 with TicToc("MMV", False):
                     v = prec.invA(sol)
@@ -133,7 +134,7 @@ class FalkonConjugateGradient(Optimizer):
                     if X.is_cuda:
                         with torch.cuda.stream(s1):
                             cc_ = cc.div_(n)
-                            v_  = v.mul_(_lambda)
+                            v_ = v.mul_(_lambda)
                             s1.synchronize()
                             cc_ = prec.invTt(cc_).add_(v_)
                             s1.synchronize()
