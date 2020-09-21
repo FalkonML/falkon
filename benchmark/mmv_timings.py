@@ -9,6 +9,7 @@ import argparse
 import torch
 
 from falkon.kernels import GaussianKernel
+from falkon import FalkonOptions
 
 
 def gen_data(N, M, D, T, cuda=False, dtype=torch.float64):
@@ -68,7 +69,7 @@ if __name__ == "__main__":
             'dt': torch.float32,
             'timings': [],
             'repetitions': 10,
-            'fn': 'kernel._keops_mmv_impl(X1, X2, v, kernel, out=None, opt={"keops_active": "auto", "compute_arch_speed": False});',
+            'fn': 'kernel._keops_mmv_impl(X1, X2, v, kernel, out=None, opt=FalkonOptions(keops_active="force", compute_arch_speed=False));',
         },
         {
             'name': 'varying N - Our 32',
@@ -81,7 +82,7 @@ if __name__ == "__main__":
             'dt': torch.float32,
             'timings': [],
             'repetitions': 10,
-            'fn': 'kernel.mmv(X1, X2, v, out=None, opt={"keops_active": "no", "compute_arch_speed": False});'
+            'fn': 'kernel.mmv(X1, X2, v, out=None, opt=FalkonOptions(keops_active="no", compute_arch_speed=False));'
         },
         {
             'name': 'varying D - KeOps 32',
@@ -94,7 +95,7 @@ if __name__ == "__main__":
             'dt': torch.float32,
             'timings': [],
             'repetitions': 10,
-            'fn': 'kernel._keops_mmv_impl(X1, X2, v, kernel, out=None, opt={"keops_active": "auto", "compute_arch_speed": False});'
+            'fn': 'kernel._keops_mmv_impl(X1, X2, v, kernel, out=None, opt=FalkonOptions(keops_active="force", compute_arch_speed=False));'
         },
         {
             'name': 'varying D - Our 32',
@@ -107,7 +108,7 @@ if __name__ == "__main__":
             'dt': torch.float32,
             'timings': [],
             'repetitions': 20,
-            'fn': 'kernel.mmv(X1, X2, v, out=None, opt={"keops_active": "no", "compute_arch_speed": False});'
+            'fn': 'kernel.mmv(X1, X2, v, out=None, opt=FalkonOptions(keops_active="no", compute_arch_speed=False));'
         },
     ]
 
