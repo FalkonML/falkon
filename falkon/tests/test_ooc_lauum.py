@@ -213,7 +213,7 @@ class TestLauumKernel:
         gpu_out_strided.fill_(0.0)
 
         # Run on the GPU
-        cuda_lauum(n=gpu_in.shape[0], A=gpu_in_strided, lda=gpu_in_strided.stride(1), B=gpu_out_strided, 
+        cuda_lauum(n=gpu_in.shape[0], A=gpu_in_strided, lda=gpu_in_strided.stride(1), B=gpu_out_strided,
                    ldb=gpu_out_strided.stride(1), lower=lower)
         torch.cuda.synchronize(device)
 

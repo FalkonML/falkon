@@ -299,7 +299,7 @@ def par_lauum_c_lower(A: torch.Tensor,
 
                     # Copy back to A[r, b]
                     if is_cuda:
-                        ccb_square = ccb[:max_block_size*br.length].view(br.length, max_block_size)
+                        ccb_square = ccb[:max_block_size * br.length].view(br.length, max_block_size)
                         if independent_output:
                             A[bb.start:bb.end, br.start:br.end].copy_(ccb_square[:br.length, :bb.length].T)
                         else:
