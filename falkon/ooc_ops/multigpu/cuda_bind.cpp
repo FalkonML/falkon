@@ -60,6 +60,7 @@ torch::Tensor parallel_potrf(
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("parallel_potrf", &parallel_potrf, "GPU-Parallel Cholesky Factorization");
 
-  m.def("cuda_lauum_lower", &lauum_lower, "Compute lower-LAUUM",
-        py::arg("n"), py::arg("A"), py::arg("lda"), py::arg("B"), py::arg("ldb"));
+  m.def("cuda_lauum", &lauum, "out of place LAUUM operation on CUDA matrices.",
+        py::arg("n"), py::arg("A"), py::arg("lda"), py::arg("B"),
+	py::arg("ldb"), py::arg("lower"));
 }

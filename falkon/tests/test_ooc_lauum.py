@@ -15,7 +15,7 @@ from falkon.ooc_ops.ooc_utils import calc_block_sizes3
 if decide_cuda():
     from falkon.ooc_ops.ooc_lauum import gpu_lauum
     # noinspection PyUnresolvedReferences
-    from falkon.ooc_ops.cuda import cuda_lauum_lower
+    from falkon.ooc_ops.cuda import cuda_lauum
 
 
 class TestBlockSizeCalculator:
@@ -60,7 +60,7 @@ class TestBlockSizeCalculator:
 
 
 # Size of test matrix
-N = 1500
+N = 1536
 
 
 @pytest.fixture(scope="module")
@@ -72,8 +72,8 @@ def matrix():
 
 @pytest.fixture(scope="module")
 def get_mat(matrix):
-    def getter(order, dtype):
-        return fix_mat(matrix, dtype=dtype, order=order, copy=True)
+    def getter(order, dtype, device="cpu"):
+        return fix_mat(matrix, dtype=dtype, order=order, copy=True, device=device)
 
     return getter
 
@@ -102,8 +102,8 @@ class TestOOCLauum:
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
     def test_no_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper, device):
-        mat = get_mat(order=order, dtype=dtype)
-        mat = move_tensor(mat, device)
+        omat = get_mat(order=order, dtype=dtype)
+        mat = get_mat(order=order, dtype=dtype, device=device)
 
         # For cuda inputs we must add to available GPU memory the amount used by the
         # input matrix, since overwrite=False and a full copy must be performed.
@@ -115,42 +115,51 @@ class TestOOCLauum:
             act_up = gpu_lauum(mat, upper=True, overwrite=False, opt=new_opt)
             torch.cuda.synchronize()
         np.testing.assert_allclose(expected_upper, act_up.cpu().numpy(), rtol=self.rtol[dtype])
+        np.testing.assert_allclose(omat, mat.cpu())
 
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=False, opt=new_opt)
             torch.cuda.synchronize()
         np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
+        np.testing.assert_allclose(omat, mat.cpu())
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("order", ["F", "C"])
-    def test_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper):
-        mat = get_mat(order=order, dtype=dtype).numpy().copy(order="K")
-        with memory_checker(self.basic_opt) as new_opt:
-            act_up = gpu_lauum(torch.from_numpy(mat), upper=True, overwrite=True, opt=new_opt)
-        np.testing.assert_allclose(expected_upper, act_up.numpy(), rtol=self.rtol[dtype])
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+    def test_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper, device):
+        mat = get_mat(order=order, dtype=dtype, device=device)
 
-        mat = get_mat(order=order, dtype=dtype).numpy().copy(order="K")
         with memory_checker(self.basic_opt) as new_opt:
-            act_lo = gpu_lauum(torch.from_numpy(mat), upper=False, overwrite=True, opt=new_opt)
-        np.testing.assert_allclose(expected_lower, act_lo.numpy(), rtol=self.rtol[dtype])
+            act_up = gpu_lauum(mat, upper=True, overwrite=True, opt=new_opt)
+        np.testing.assert_allclose(expected_upper, act_up.cpu().numpy(), rtol=self.rtol[dtype])
+
+        mat = get_mat(order=order, dtype=dtype, device=device)
+        with memory_checker(self.basic_opt) as new_opt:
+            act_lo = gpu_lauum(mat, upper=False, overwrite=True, opt=new_opt)
+        np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("order", ["F", "C"])
-    def test_write_opposite(self, dtype, order, get_mat, expected_lower, expected_upper):
-        omat = get_mat(order=order, dtype=dtype).numpy()
-        mat = torch.from_numpy(omat.copy(order="K"))
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+    def test_write_opposite(self, dtype, order, get_mat, expected_lower, expected_upper, device):
+        omat = get_mat(order=order, dtype=dtype)
+        mat = get_mat(order=order, dtype=dtype, device=device)
+
         with memory_checker(self.basic_opt) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=True, write_opposite=True, opt=new_opt)
             torch.cuda.synchronize()
+        act_up = act_up.cpu()
         np.testing.assert_allclose(np.triu(omat, k=1), np.triu(act_up.numpy(), k=1),
                                    rtol=self.rtol[dtype])
         np.testing.assert_allclose(np.tril(act_up.numpy()), np.triu(expected_upper).T,
                                    rtol=self.rtol[dtype])
 
-        mat = torch.from_numpy(omat.copy(order="K"))
+        mat = get_mat(order=order, dtype=dtype)
+        mat = move_tensor(mat, device)
         with memory_checker(self.basic_opt) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=True, write_opposite=True, opt=new_opt)
             torch.cuda.synchronize()
+        act_lo = act_lo.cpu()
         np.testing.assert_allclose(np.tril(omat, k=-1), np.tril(act_lo.numpy(), k=-1),
                                    rtol=self.rtol[dtype])
         np.testing.assert_allclose(np.triu(act_lo.numpy()), np.tril(expected_lower).T,
@@ -167,11 +176,12 @@ class TestOOCLauum:
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
+@pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
+@pytest.mark.parametrize("lower", [True, False], ids=["lower", "upper"])
 class TestLauumKernel:
     rtol = {np.float64: 1e-12, np.float32: 1e-5}
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
-    def test_lauum(self, dtype, get_mat, expected_lower):
+    def test_lauum(self, dtype, get_mat, expected_lower, expected_upper, lower):
         device = torch.device("cuda:0")
 
         mat = get_mat(order="F", dtype=dtype)
@@ -180,14 +190,16 @@ class TestLauumKernel:
         gpu_out.fill_(0.0)
 
         # Run on the GPU
-        cuda_lauum_lower(n=mat.shape[0], A=gpu_in, lda=gpu_in.stride(1), B=gpu_out, ldb=gpu_out.stride(1))
+        cuda_lauum(n=mat.shape[0], A=gpu_in, lda=gpu_in.stride(1), B=gpu_out, ldb=gpu_out.stride(1), lower=lower)
         torch.cuda.synchronize(device)
 
         # Compare outputs and print timing info
-        np.testing.assert_allclose(np.tril(expected_lower), gpu_out.cpu().numpy(), rtol=self.rtol[dtype])
+        if lower:
+            np.testing.assert_allclose(np.tril(expected_lower), gpu_out.cpu().numpy(), rtol=self.rtol[dtype])
+        else:
+            np.testing.assert_allclose(np.triu(expected_upper), gpu_out.cpu().numpy(), rtol=self.rtol[dtype])
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
-    def test_strided(self, dtype, get_mat, expected_lower):
+    def test_strided(self, dtype, get_mat, expected_lower, expected_upper, lower):
         device = torch.device("cuda:0")
 
         mat = get_mat(order="F", dtype=dtype)
@@ -201,8 +213,12 @@ class TestLauumKernel:
         gpu_out_strided.fill_(0.0)
 
         # Run on the GPU
-        cuda_lauum_lower(n=gpu_in.shape[0], A=gpu_in_strided, lda=gpu_in_strided.stride(1), B=gpu_out_strided, ldb=gpu_out_strided.stride(1))
+        cuda_lauum(n=gpu_in.shape[0], A=gpu_in_strided, lda=gpu_in_strided.stride(1), B=gpu_out_strided, 
+                   ldb=gpu_out_strided.stride(1), lower=lower)
         torch.cuda.synchronize(device)
 
         # Compare outputs and print timing info
-        np.testing.assert_allclose(np.tril(expected_lower), gpu_out_strided.cpu().numpy(), rtol=self.rtol[dtype])
+        if lower:
+            np.testing.assert_allclose(np.tril(expected_lower), gpu_out_strided.cpu().numpy(), rtol=self.rtol[dtype])
+        else:
+            np.testing.assert_allclose(np.triu(expected_upper), gpu_out_strided.cpu().numpy(), rtol=self.rtol[dtype])
