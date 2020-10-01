@@ -16,6 +16,7 @@ if decide_cuda():
 
     @pytest.fixture(scope="session", autouse=True)
     def initialize_cuda():
+        torch.cuda.init()
         # your setup code goes here, executed ahead of first test
         opt = BaseOptions(compute_arch_speed=False, use_cpu=False)
         if decide_cuda():
