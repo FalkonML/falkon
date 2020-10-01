@@ -8,7 +8,7 @@ import torch.multiprocessing
 from falkon.sparse.sparse_tensor import SparseTensor
 
 
-__all__ = ("check_sparse", "select_dim_fMM", "select_dim_fMM2", "check_same_device",
+__all__ = ("check_sparse", "select_dim_fMM", "check_same_device",
            "select_dim_over_d", "select_dim_over_m", "calc_gpu_block_sizes", "choose_fn", "sizeof_dtype", "check_same_dtype",
            )
 
@@ -21,10 +21,10 @@ def check_sparse(*args: Union[torch.Tensor, SparseTensor]) -> List[bool]:
 
 
 def solve_quad(a, b, c):
-    return (-b + math.sqrt(b**2 - 4*a*c)) / (2*a)
+    return (-b + math.sqrt(b ** 2 - 4 * a * c)) / (2 * a)
 
 
-def select_dim_fMM2(max_n, max_m, d, k, l):
+def select_dim_fMM(max_n, max_m, d, max_mem, num_blocks):
     """Finds the optimal values for `n` and `m` to fit in available memory.
 
     This function should be called for problems where the GPU needs to hold
@@ -39,15 +39,23 @@ def select_dim_fMM2(max_n, max_m, d, k, l):
         The maximum value for m (the second dimension of the problem)
     d : int
         The dimensionality of the data
-    k : int
+    max_mem : float
         The amount of available memory in bytes. This is the main problem
         constraint
-    l : int
+    num_blocks : int
         How many of each block will we hold. Normally set to 1, but
         for double-buffered problem set to 2.
 
+    Returns
+    -------
+    out_n : int
+        The dimension n to use in order to fit in available memory
+    out_m : int
+        The dimension m to use in order to fit in available memory
+
     Notes
     ------
+    We call `max_mem=k`, `num_blocks=l`
     We look for solutions to: l*d*(n+m) + l*n*m = k
     with the constraints n <= max_n, m <= max_m
 
@@ -57,58 +65,13 @@ def select_dim_fMM2(max_n, max_m, d, k, l):
     the intersection point.
     """
     fac = max_m / max_n
-    v_n = solve_quad(a=fac*l, b=(fac + 1)*l*d, c=-k)
+    v_n = solve_quad(a=fac * num_blocks, b=(fac + 1) * num_blocks * d, c=-max_mem)
     v_m = fac * v_n
 
     out_n = min(v_n, max_n)
     out_m = min(v_m, max_m)
 
     return int(out_n), int(out_m)
-
-
-def select_dim_fMM(tot, maxN, maxD, maxM):
-    """Calculate the maximum block size given a maximum amount of memory.
-
-    Parameters
-    -----------
-    tot : float
-        The maximal amount of memory that can be used.
-        This constrains the solution since $n*d + M*d + n*M <= tot$
-    maxN : int
-        The maximal value of the `N` dimension.
-    maxD : int
-        The maximal value of the `D` dimension.
-    maxM : int
-        The maximal value of the `M` dimension.
-
-    Returns
-    --------
-    blockN, blockD, blockM : int, int, int
-        The maximum block dimensions which satisfy the provided
-        memory constraints.
-
-    Notes
-    ------
-    solves the problem, max ndM such that n <= maxN, d <= maxD, M <= maxM
-    nd + Md + nM <= tot
-    """
-    order, ind = torch.tensor([maxN, maxM, maxD], dtype=torch.float64).sort()
-    vlx = torch.ones(3, dtype=torch.float64) * math.sqrt(tot / 3)
-
-    vlx = order.min(vlx)
-    # noinspection PyTypeChecker
-    vlx[1] = min(order[1], math.sqrt(tot + vlx[0]**2) - vlx[0])
-    vlx[2] = min(order[2], (tot - vlx[0] * vlx[1]) / (vlx[0] + vlx[1]))
-
-    # Reverse the sort
-    rev_sort = torch.argsort(ind)
-    vlx = vlx[rev_sort]
-
-    bN, bM, bD = int(vlx[0]), int(vlx[1]), int(vlx[2])
-    if bN <= 0 or bM <= 0 or bD <= 0:
-        raise RuntimeError("Available memory %.2fMB is not enough." % (tot / 2**20))
-
-    return bN, bD, bM
 
 
 def select_dim_over_d(maxD, maxN, coef_nd, coef_n, coef_d, rest, tot):
