@@ -154,6 +154,7 @@ inline int potrf_buffer_size<float>(const cusolverDnHandle_t cusolver_handle, co
     return potrf_buf_size;
 }
 
+
 /* POTRF */
 template<typename scalar_t>
 inline void potrf(const cusolverDnHandle_t cusolver_handle, const int mbs,
@@ -211,6 +212,7 @@ inline void potrf<float>(
     potrf_info_h = 0;
 }
 
+
 /* TRSM (cuBLAS) */
 template<typename scalar_t>
 inline void trsm(const cublasHandle_t cublas_handle,
@@ -249,6 +251,7 @@ inline void trsm<float>(
         /*A=*/i_block, /*lda=*/mbs, /*B=*/b_block, /*ldb=*/mbs
     ));
 }
+
 
 /* GEMM (cuBLAS) */
 template<typename scalar_t>
@@ -313,6 +316,7 @@ inline void gemm<float>(
     ));
 }
 
+
 /* SYRK (cuBLAS) */
 template<typename scalar_t>
 inline void syrk(const cublasHandle_t cublas_handle,
@@ -367,6 +371,7 @@ inline void syrk<float>(
 }
 
 
+/* Data-loading helper functions */
 template <typename scalar_t>
 static inline void load_block(
         torch::Tensor &data_h,
@@ -417,7 +422,6 @@ static inline void get_block(
     ));
 }
 
-
 template <typename scalar_t>
 static inline void opt_load_block(
         torch::Tensor &data_h,
@@ -435,6 +439,8 @@ static inline void opt_load_block(
     }
 }
 
+
+/* Main parallel POTRF function */
 void parallel_potrf_runner(int device_id,
                            std::vector<std::vector<std::atomic<int>>> &work,
                            torch::Tensor &A,
@@ -481,8 +487,8 @@ void parallel_potrf_runner(int device_id,
     for (int i = 0; i < k; i++) {
         for (int j = 0; j < k; j++) {
             const callBackData cback_data = {.work_unit = &(work[i][j]), .x = i, .y = j, .callee = -1};
-	    callback_data.insert(std::pair<std::pair<int, int>, callBackData>(std::pair<int, int>(i, j), cback_data));
-	}
+            callback_data.insert(std::pair<std::pair<int, int>, callBackData>(std::pair<int, int>(i, j), cback_data));
+        }
     }
 
     // col0_fill keeps track of the 'current' column: which blocks are loaded or not.
@@ -491,10 +497,10 @@ void parallel_potrf_runner(int device_id,
     // First GPU buffer allocation.
     const uint64_t buf_size = mbs_sq * (k + k + 1);
     const auto buf_opt = torch::TensorOptions()
-	    .dtype(A.dtype())
-	    .device(torch::kCUDA, device_id)
-	    .layout(torch::kStrided)
-	    .requires_grad(false);
+        .dtype(A.dtype())
+        .device(torch::kCUDA, device_id)
+        .layout(torch::kStrided)
+        .requires_grad(false);
     const auto data_buf = torch::empty(buf_size, buf_opt);
 
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
@@ -512,12 +518,12 @@ void parallel_potrf_runner(int device_id,
     scalar_t *col0_h[k];
     for (int i = 0; i < k; i++) {
         col0_h[i] = data_buf_ptr;
-	data_buf_ptr += mbs_sq;
+        data_buf_ptr += mbs_sq;
     }
     scalar_t *col1_h[k];
     for (int i = 0; i < k; i++) {
         col1_h[i] = data_buf_ptr;
-	data_buf_ptr += mbs_sq;
+        data_buf_ptr += mbs_sq;
     }
     scalar_t *g_buf = data_buf_ptr;
 
@@ -528,13 +534,13 @@ void parallel_potrf_runner(int device_id,
     scalar_t **col_buf_h;
     scalar_t **next_buf_h;
     cudaStream_t s_copyback;
-    // Start looping
+    // Start the main loop
     for (int i = 0; i < k; i++) {
 #ifdef DEBUG
-	    fprintf(stderr, "Starting iteration %d\n", i);
+        fprintf(stderr, "Starting iteration %d\n", i);
 #endif
-	// Setup double-buffering (via pre-inserting elements in col0_fill)
-	// and number of updates.
+        // Setup double-buffering (via pre-inserting elements in col0_fill)
+        // and number of updates.
         col_updates_left = 0;
         trail_updates_left = 0;
         for (const auto& mb : my_blocks) {
@@ -548,13 +554,13 @@ void parallel_potrf_runner(int device_id,
         if (i % 2 == 0) {
             col_buf_h = col0_h;
             next_buf_h = col1_h;
-	    s_copyback = s2_c;
+            s_copyback = s2_c;
         } else {
             col_buf_h = col1_h;
             next_buf_h = col0_h;
-	    s_copyback = s3_c;
+            s_copyback = s3_c;
         }
-	C10_CUDA_CHECK(cudaStreamSynchronize(s_copyback));
+        C10_CUDA_CHECK(cudaStreamSynchronize(s_copyback));
 
         // 1. POTRF
         scalar_t * i_block = col_buf_h[i];
@@ -565,7 +571,7 @@ void parallel_potrf_runner(int device_id,
             potrf<scalar_t>(cusolver_handle, mbs, i_alloc, i_block, potrf_buf_ptr, potrf_buf_size,
                             potrf_info_buf_ptr, potrf_info_h, s1_c);
 
-	    C10_CUDA_CHECK(cudaStreamSynchronize(s1_c));
+            C10_CUDA_CHECK(cudaStreamSynchronize(s1_c));
             if (potrf_info_h != 0) {
                 AT_ERROR("Cholesky decomposition failed: leading minor of order ",
                          potrf_info_h, " is not positive definite.");
@@ -573,15 +579,15 @@ void parallel_potrf_runner(int device_id,
             get_block<scalar_t>(i_block, A, i_alloc, i_alloc, mbs, s_copyback);
             C10_CUDA_CHECK(cudaStreamAddCallback(s_copyback, copyCallBack, &callback_data.at(std::pair<int, int>(i, i)), 0));
 #ifdef DEBUG
-	    fprintf(stderr, "D:%d  Iteration %d stage %d - finished [%d, %d]\n", device_id, i, 1, i, i);
+            fprintf(stderr, "D:%d  Iteration %d stage %d - finished [%d, %d]\n", device_id, i, 1, i, i);
 #endif
         }
 
         // 2. COLUMN UPDATE
-	while (work[i][i] < i + 1) { std::this_thread::yield(); }
-	// Keep track of which blocks we have already processed.
-	// work table cannot work for this here, since it is set asynchronously.
-	std::unordered_set<int> processed_idx;
+        while (work[i][i] < i + 1) { std::this_thread::yield(); }
+        // Keep track of which blocks we have already processed.
+        // work table cannot work for this here, since it is set asynchronously.
+        std::unordered_set<int> processed_idx;
         while (col_updates_left > 0) {
             for (const auto& b_alloc : my_blocks) {
                 const int b = b_alloc.id;
@@ -600,19 +606,19 @@ void parallel_potrf_runner(int device_id,
                 C10_CUDA_CHECK(cudaStreamAddCallback(s_copyback, copyCallBack, &callback_data.at(std::pair<int, int>(b, i)), 0));
 
                 col_updates_left--;
-		processed_idx.insert(b);
+                processed_idx.insert(b);
 #ifdef DEBUG
-		fprintf(stderr, "D:%d  Iteration %d stage %d - finished [%d, %d]\n", device_id, i, 2, b, i);
+                fprintf(stderr, "D:%d  Iteration %d stage %d - finished [%d, %d]\n", device_id, i, 2, b, i);
 #endif
             }
         }
 
         // 3. TRAILING UPDATE
-	// Note that this loop does not need `processed_idx` like loop 2
-	// since it is processed in order. In fact the outer while loop
-	// is unnecessary
+        // Note that this loop does not need `processed_idx` like loop 2
+        // since it is processed in order. In fact the outer while loop
+        // is unnecessary
 #ifdef DEBUG
-	fprintf(stderr, "Starting stage 3\n");
+        fprintf(stderr, "Starting stage 3\n");
 #endif
         while (trail_updates_left > 0) {
             for (const auto& b_alloc : my_blocks) {
@@ -641,14 +647,14 @@ void parallel_potrf_runner(int device_id,
                         get_block<scalar_t>(next_buf_h[b], A, b_alloc, y_alloc, mbs, s_copyback);
                         C10_CUDA_CHECK(cudaStreamAddCallback(s_copyback, copyCallBack, &callback_data.at(std::pair<int, int>(b, y)), 0));
                     } else {
-			// We must free the `g_buf` variable before the next round.
+                        // We must free the `g_buf` variable before the next round.
                         get_block<scalar_t>(g_buf, A, b_alloc, y_alloc, mbs, s1_c);
                         C10_CUDA_CHECK(cudaStreamSynchronize(s1_c));
                         std::atomic_fetch_add(&work[b][y], 1);
                     }
                     trail_updates_left--;
 #ifdef DEBUG
-		    fprintf(stderr, "D:%d  Iteration %d stage %d - finished [%d, %d]\n", device_id, i, 3, b, y);
+                    fprintf(stderr, "D:%d  Iteration %d stage %d - finished [%d, %d]\n", device_id, i, 3, b, y);
 #endif
                 }
             }
@@ -672,9 +678,9 @@ torch::Tensor parallel_potrf_cuda(std::vector<gpuInfo> gpu_info,
     std::vector<std::vector<std::atomic<int>>> work(k);
     for (int i = 0; i < k; i++) {
         work[i] = std::vector<std::atomic<int>>(k);
-	for (int j = 0; j < k; j++) {
-	    work[i][j].store(0);
-	}
+        for (int j = 0; j < k; j++) {
+            work[i][j].store(0);
+        }
     }
 
     std::vector<std::thread> threads;

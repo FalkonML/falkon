@@ -10,6 +10,7 @@ from falkon.cuda.cudart_gpu import cuda_memcpy2d_async
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 from falkon.utils.tensor_helpers import create_fortran
+# noinspection PyUnresolvedReferences
 from falkon.ooc_ops.cuda import cuda_lauum
 
 
