@@ -16,12 +16,13 @@ import falkon
 from falkon.mmv_ops.utils import *
 from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.cuda_helpers import copy_to_host_noorder
+from falkon.utils.cuda_helpers import copy_to_host_noorder, copy_to_host
 from falkon.cuda.cudart_gpu import cuda_memcpy2d_async
 from falkon.utils.helpers import (
     select_dim_fMM, calc_gpu_block_sizes, sizeof_dtype,
     select_dim_over_m
 )
+from falkon.utils import TicToc
 from falkon.utils.tensor_helpers import create_same_stride, create_fortran, is_f_contig
 
 __all__ = ("fmm_cuda", "fmm_cuda_sparse")
@@ -94,6 +95,7 @@ def _sparse_fmm(proc_idx, queue, device_id):
 
 # noinspection PyUnboundLocalVariable
 def _generic_fmm(proc_idx, queue, device_id):
+    # Unpack the function arguments
     a: ArgsFmm = queue.get()
     X1: torch.Tensor = a.X1
     X2: torch.Tensor = a.X2
@@ -102,7 +104,7 @@ def _generic_fmm(proc_idx, queue, device_id):
     kernel, gpu_dtype = a.kernel, a.gpu_dtype
     max_mem = a.max_mem
 
-    # Useful flags
+    # flags and local variables
     change_dtype = gpu_dtype != X1.dtype
     X1_equal_X2 = _gpu_tns_same_memory(X1, X2)
     use_gpu_bufs = change_dtype or not cuda_inputs
@@ -110,21 +112,20 @@ def _generic_fmm(proc_idx, queue, device_id):
     j_iter = 0
     dts = sizeof_dtype(gpu_dtype)
     tc_device = torch.device('cuda:%d' % (int(device_id)))
+    num_streams = 6  # TODO: Make this an option.
+    avail_mem = max_mem / dts
 
+    # Choose block sizes n, m such that we won't run out of GPU memory
     ntot, d = X1.shape
     mtot = X2.shape[0]
-
-    avail_mem = max_mem / dts
     if cuda_inputs and not change_dtype:
         # No allocation will be performed, so no need to split at all!
         n, m = ntot, mtot
     else:
-        n, m = select_dim_fMM(max_n=ntot, max_m=mtot, d=d, max_mem=avail_mem, num_blocks=2)
+        n, m = select_dim_fMM(max_n=ntot, max_m=mtot, d=d, max_mem=avail_mem, num_blocks=num_streams)
 
     # Create streams
-    num_streams = 2
-    streams = [torch.cuda.Stream(device=tc_device) for _ in range(num_streams)]
-    s3 = torch.cuda.Stream(device=tc_device)
+    streams = [tcd.Stream(device=tc_device) for _ in range(num_streams)]
 
     # Create buffers
     if use_gpu_bufs:
@@ -134,8 +135,8 @@ def _generic_fmm(proc_idx, queue, device_id):
     if not cuda_inputs:
         cpu_buf_list = [create_same_stride((n, m), out, gpu_dtype, 'cpu', pin_memory=True) for _ in range(num_streams)]
 
-    # Create copy_ops helpers
-    copy_ops = [None, None]
+    # Define helpers for the copy-back operations (from cpu_buf to output)
+    copy_ops = [None] * num_streams
 
     def wrap_copy_op(stream_idx):
         if copy_ops[stream_idx] is not None:
@@ -143,14 +144,15 @@ def _generic_fmm(proc_idx, queue, device_id):
             copy_ops[stream_idx] = None
 
     def do_copy_op(output, buf, i_, ic_, j_, jc_):
+        # This will run the type conversion
         output[i_:i_ + ic_, j_:j_ + jc_].copy_(buf[:ic_, :jc_])
 
-    # Algorithm begin
+    # Kernel computation begin
     with tcd.device(tc_device):
         for i in range(0, ntot, n):
             ic = min(n, ntot - i)
 
-            with tcd.stream(s3):
+            with tcd.stream(streams[j_iter % len(streams)]):
                 X1_chunk = X1.narrow(0, i, ic)
                 if use_gpu_bufs:
                     cur_gX1 = gX1.narrow(0, 0, ic)
@@ -160,12 +162,7 @@ def _generic_fmm(proc_idx, queue, device_id):
 
             for j in range(0, mtot, m):
                 jc = min(m, mtot - j)
-                with tcd.stream(s3):
-                    if X1_equal_X2 and j < i:
-                        out[i:i + ic, j:j + jc].copy_(out[j:j + jc, i:i + ic].T)
-                        continue
                 # Choose the buffers for this inner iteration
-                j_iter += 1
                 stream_id = j_iter % len(streams)
                 stream = streams[stream_id]
                 if use_gpu_bufs:
@@ -173,13 +170,19 @@ def _generic_fmm(proc_idx, queue, device_id):
                     gout = gout_list[stream_id]
                 if not cuda_inputs:
                     cpu_buf = cpu_buf_list[stream_id]
-                # Sync the stream for 'alternate' copies
-                s3.synchronize()
 
                 # Sync for buffers we must use now (e.g. 2 previous iters)
-                stream.synchronize()
-                wrap_copy_op(stream_id)
                 with tcd.stream(stream):  # Inner-loop
+                    stream.synchronize()
+                    wrap_copy_op(stream_id)
+
+                    if X1_equal_X2 and j < i:  # Shortcut for symmetric kernels
+                        jc = min(m, mtot - j)
+                        out[i:i + ic, j:j + jc].copy_(out[j:j + jc, i:i + ic].T, non_blocking=True)
+                        j_iter += 1
+                        continue
+
+                    # Copy (CPU->GPU)
                     X2_chunk = X2.narrow(0, j, jc)
                     if use_gpu_bufs:
                         cur_gX2 = gX2.narrow(0, 0, jc)
@@ -193,16 +196,19 @@ def _generic_fmm(proc_idx, queue, device_id):
                         cur_gout = out[i:i + ic, j:j + jc]
                     cur_gout.fill_(0.0)
 
+                    # Compute
                     ddd = kernel._prepare(cur_gX1, cur_gX2)
                     kernel._apply(cur_gX1, cur_gX2.T, cur_gout)
-                    kernel._finalize(cur_gout, ddd)
+                    cur_gout = kernel._finalize(cur_gout, ddd)
+
+                    # Copy Back (GPU->CPU)
                     if not cuda_inputs:
                         # copy_ does not care about the contiguity of copies, as long as it's consistent
                         # however, in case of C-contiguous inputs it will create an intermediate array
                         # which is undesired. We use cuda_memcpy2d_async which works well with C-contiguous
                         # arrays.
                         if stride == "F":
-                            cpu_buf[:ic, :jc].copy_(cur_gout, non_blocking=True)
+                            copy_to_host(ic, jc, cur_gout, 0, 0, cpu_buf, 0, 0, s=stream)
                         else:
                             cuda_memcpy2d_async(
                                 dst=cpu_buf.data_ptr(), dpitch=cpu_buf.stride(0) * dts,
@@ -211,6 +217,8 @@ def _generic_fmm(proc_idx, queue, device_id):
                         copy_ops[stream_id] = partial(do_copy_op, out, cpu_buf, i, ic, j, jc)
                     elif change_dtype:
                         out.narrow(0, i, ic).narrow(1, j, jc).copy_(cur_gout, non_blocking=True)
+                j_iter += 1
+
         for i in range(num_streams):
             streams[i].synchronize()
             wrap_copy_op(i)
