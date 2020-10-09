@@ -1,28 +1,28 @@
 import dataclasses
 from abc import abstractmethod, ABC
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 
-from falkon.options import FalkonOptions
 import falkon
+from falkon.options import FalkonOptions
 
 __all__ = ("Loss", "LogisticLoss")
 
 
 class Loss(ABC):
-    """Abstract generalized self-concordant loss function class.
+    r"""Abstract generalized self-concordant loss function class.
 
-    Such loss functions must be three times differentiable; but for the LogFalkon algorithm
+    Such loss functions must be three times differentiable; but for the logistic Falkon algorithm
     only the first two derivatives are used.
-    Subclasses must implement the `__call__` method
-    which calculates the loss function given two input vectors (the inputs could also be
-    matrices e.g. for the softmax loss), the `df` method which calculates the first derivative
-    of the function and `ddf` which calculates the second derivative.
+    Subclasses must implement the :meth:`__call__` method which calculates the loss function
+    given two input vectors (the inputs could also be matrices e.g. for the softmax loss),
+    the :meth:`df` method which calculates the first derivative of the function and :meth:`ddf`
+    which calculates the second derivative.
 
-    Additionally, this class provides two methods (`knmp_grad` and `knmp_hess`) which calculate
-    kernel-vector products using the loss derivatives for vectors. These functions are specific
-    to the LogFalkon algorithm.
+    Additionally, this class provides two methods (:meth:`knmp_grad` and :meth:`knmp_hess`) which
+    calculate kernel-vector products using the loss derivatives for vectors. These functions are
+    specific to the logistic Falkon algorithm.
 
     Parameters
     -----------
@@ -37,15 +37,16 @@ class Loss(ABC):
     See Also
     --------
     :class:`LogisticLoss` : a concrete implementation of this class for the logistic loss.
+    :class:`falkon.models.LogisticFalkon` : the logistic Falkon model which uses GSC losses.
     """
 
     def __init__(self,
                  name: str,
-                 kernel: falkon.kernels.Kernel,
-                 opt: FalkonOptions = FalkonOptions()):
+                 kernel: falkon.kernels.kernel.Kernel,
+                 opt: Optional[FalkonOptions] = None):
         self.name = name
         self.kernel = kernel
-        self.params = opt
+        self.params = opt or FalkonOptions()
 
     def _update_opt(self, opt: Optional[FalkonOptions]):
         new_opt = self.params
@@ -55,21 +56,103 @@ class Loss(ABC):
 
     @abstractmethod
     def __call__(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
+        """Abstract method. Should return the loss for predicting `y2` with true labels `y1`.
+
+        Parameters
+        ----------
+        y1 : torch.Tensor
+            One of the two inputs to the loss. This should be interpreted as the `true` labels.
+        y2 : torch.Tensor
+            The other loss input. Should be interpreted as the predicted labels.
+
+        Returns
+        -------
+        torch.Tensor
+            The loss calculated for the two inputs.
+        """
         pass
 
     @abstractmethod
     def df(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
+        """Abstract method. Should return the derivative of the loss wrt `y2`.
+
+        Parameters
+        ----------
+        y1 : torch.Tensor
+            One of the two inputs to the loss. This should be interpreted as the `true` labels.
+        y2 : torch.Tensor
+            The other loss input. Should be interpreted as the predicted labels. The derivative
+            should be computed with respect to this tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            The derivative of the loss with respect to `y2`. It will be a tensor of the same shape
+            as the two inputs.
+        """
         pass
 
     @abstractmethod
     def ddf(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
+        """Abstract method. Should return the second derivative of the loss wrt `y2`.
+
+        Parameters
+        ----------
+        y1 : torch.Tensor
+            One of the two inputs to the loss. This should be interpreted as the `true` labels.
+        y2 : torch.Tensor
+            The other loss input. Should be interpreted as the predicted labels. The derivative
+            should be computed with respect to this tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            The second derivative of the loss with respect to `y2`. It will be a tensor of the
+            same shape as the two inputs.
+        """
         pass
 
-    def knmp_grad(self, X, Xc, Y, u, opt=None):
-        """
-        Calculate (1/n)* K(Xc, X) @ df(Y, K(X, Xc) @ u)
+    def knmp_grad(self,
+                  X: torch.Tensor,
+                  Xc: torch.Tensor,
+                  Y: torch.Tensor,
+                  u: torch.Tensor,
+                  opt: Optional[FalkonOptions] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        r"""Computes a kernel vector product where the vector is the first derivative of this loss
 
-        And return also K(X, Xc) @ u
+        Given kernel function :math:`K`, the loss represented by this class :math:`\mathcal{l}`,
+        number of samples :math:`n`, this function follows equation
+
+        .. math::
+
+            \dfrac{1}{n} K(X_c, X) @ (\mathcal{l}'(Y, K(X, X_c) @ u))
+
+        Parameters
+        ----------
+        X : torch.Tensor
+            Data matrix of shape (n x d) with `n` samples in `d` dimensions.
+        Xc : torch.Tensor
+            Center matrix of shape (m x d) with `m` centers in `d` dimensions.
+        Y : torch.Tensor
+            Label matrix of shape (n x t) with `n` samples. Depending on the loss, the labels may or may not
+            have more than one dimension.
+        u : torch.Tensor
+            A vector (or matrix if the labels are multi-dimensional) of weights of shape (m x t).
+            The product `K(X, Xc) @ u`, where `K` is the kernel associated to this loss, should
+            produce label predictions.
+        opt : FalkonOptions or None
+            Options to be passed to the mmv function for the kernel associated to this loss.
+            Options passed as an argument take precedence over the options used to build this
+            class instance.
+
+        Returns
+        -------
+        grad_mul : torch.Tensor
+            A tensor of shape (m x 1) coming from the multiplication of the kernel matrix
+            `K(Xc, X)` and the loss calculated on predictions with weights `u`.
+            The formula followed is: `(1/n) * K(Xc, X) @ df(Y, K(X, Xc) @ u)`.
+        func_val : torch.Tensor
+            A tensor of shape (n x t) of predictions obtained with weights `u`.
         """
         opt = self._update_opt(opt)
         func_val = self.kernel.mmv(X, Xc, u, opt=opt)
@@ -78,7 +161,13 @@ class Loss(ABC):
         out.mul_(1 / X.shape[0])
         return out, func_val
 
-    def knmp_hess(self, X, Xc, Y, f, u, opt=None):
+    def knmp_hess(self,
+                  X: torch.Tensor,
+                  Xc: torch.Tensor,
+                  Y: torch.Tensor,
+                  f: torch.Tensor,
+                  u: torch.Tensor,
+                  opt: Optional[FalkonOptions] = None) -> torch.Tensor:
         r"""Compute a kernel-vector product with a rescaling with the second derivative
 
         Given kernel function :math:`K`, the loss represented by this class :math:`\mathcal{l}`,
@@ -86,21 +175,32 @@ class Loss(ABC):
 
         .. math::
 
-        \dfrac{1}{n} K(X_c, X) @ (\mathcal{l}^{''} * K(X, X_c) @ u)
-
+            \dfrac{1}{n} K(X_c, X) @ (\mathcal{l}''(Y, f) * K(X, X_c) @ u)
 
         Parameters
         ----------
-        X : Tensor (N x D)
-            Data matrix
-        Xc : Tensor (M x D)
-            Matrix of Nystroem centers
-        Y : Tensor (N x 1)
-            The targets with respect to which the loss is computed
-        f : Tensor (N x 1)
-            Current predictions for the function, for which the loss is computed
-        u : Tensor (M x 1)
-            Vector
+        X : torch.Tensor
+            Data matrix of shape (n x d) with `n` samples in `d` dimensions.
+        Xc : torch.Tensor
+            Center matrix of shape (m x d) with `m` centers in `d` dimensions.
+        Y : torch.Tensor
+            Label matrix of shape (n x t) with `n` samples. Depending on the loss, the labels may
+            or may not have more than one dimension.
+        f : torch.Tensor
+            Tensor of shape (n x t) of predictions. Typically this will be the second output of
+            the :meth:`knmp_grad` method.
+        u : torch.Tensor
+            A vector (or matrix if the labels are multi-dimensional) of weights of shape (m x t).
+            The product `K(X, Xc) @ u`, where `K` is the kernel associated to this loss, should
+            produce label predictions.
+        opt : FalkonOptions or None
+            Options to be passed to the mmv function for the kernel associated to this loss.
+            Options passed as an argument take precedence over the options used to build this
+            class instance.
+
+        Returns
+        -------
+        A tensor of shape (m x t), the output of the computation.
         """
         opt = self._update_opt(opt)
         inner = self.kernel.mmv(X, Xc, u, opt=opt)
@@ -114,13 +214,13 @@ class Loss(ABC):
 
 
 class LogisticLoss(Loss):
-    """Wrapper for the logistic loss, to be used in conjunction with the `LogisticFalkon` estimator.
+    """Wrapper for the logistic loss, to be used in conjunction with the :class:`~falkon.models.LogisticFalkon` estimator.
 
     Parameters
     -----------
-    kernel
-        The kernel function used for training a :class:`LogisticFalkon` model
-    opt
+    kernel : falkon.kernels.kernel.Kernel
+        The kernel function used for training a :class:`~falkon.models.LogisticFalkon` model
+    opt : FalkonOptions
         Falkon options container. Will be passed to the kernel when computing kernel-vector
         products.
 
@@ -133,13 +233,13 @@ class LogisticLoss(Loss):
 
     """
 
-    def __init__(self, kernel: falkon.kernels.Kernel, opt: FalkonOptions = FalkonOptions()):
+    def __init__(self, kernel: falkon.kernels.kernel.Kernel, opt: Optional[FalkonOptions]):
         super().__init__(name="LogisticLoss", kernel=kernel, opt=opt)
 
     def __call__(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
-        """Compute the logistic loss between two 1-dimensional tensors
+        r"""Compute the logistic loss between two 1-dimensional tensors
 
-        The formula used is :math:`\\log(1 + \\exp(-y_1 * y_2))`
+        The formula used is :math:`\log(1 + \exp(-y_1 * y_2))`
 
         Parameters
         ----------
@@ -156,13 +256,13 @@ class LogisticLoss(Loss):
         return torch.log(1 + torch.exp(-y1 * y2))
 
     def df(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
-        """Compute the derivative of the logistic loss between two vectors
+        r"""Compute the derivative of the logistic loss with respect to `y2`
 
         The formula used is
 
-        ..math::
+        .. math::
 
-            -y_1 / (1 + \\exp{y_1 * y_2})
+            -y_1 / (1 + \exp{y_1 * y_2})
 
         Parameters
         ----------
@@ -183,13 +283,13 @@ class LogisticLoss(Loss):
         return out
 
     def ddf(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
-        """Compute the second derivative of the logistic loss between two vectors
+        r"""Compute the second derivative of the logistic loss with respect to `y2`
 
         The formula used is
 
-        ..math::
+        .. math::
 
-            y_1^2 \\dfrac{1}{1 + \\exp{-y_1 * y_2}} \\dfrac{1}{1 + \\exp{y_1 * y_2}}
+            y_1^2 \dfrac{1}{1 + \exp{-y_1 * y_2}} \dfrac{1}{1 + \exp{y_1 * y_2}}
 
 
         Parameters

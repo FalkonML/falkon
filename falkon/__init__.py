@@ -1,11 +1,11 @@
 import os
 
-from . import kernels, optim, preconditioner, center_selection
+from . import kernels, optim, preconditioner, center_selection, sparse
 from .options import FalkonOptions
 from .models import Falkon, LogisticFalkon, InCoreFalkon
 
 __all__ = ('Falkon', 'LogisticFalkon', 'InCoreFalkon',
-           'kernels', 'optim', 'preconditioner', 'center_selection',
+           'kernels', 'optim', 'preconditioner', 'center_selection', 'sparse',
            'FalkonOptions')
 
 

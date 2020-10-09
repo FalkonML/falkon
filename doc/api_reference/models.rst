@@ -10,6 +10,7 @@ Falkon
 
 .. autoclass:: Falkon
     :members:
+    :inherited-members:
 
 
 LogisticFalkon
@@ -17,6 +18,7 @@ LogisticFalkon
 
 .. autoclass:: LogisticFalkon
     :members:
+    :inherited-members:
 
 
 InCoreFalkon
@@ -24,3 +26,4 @@ InCoreFalkon
 
 .. autoclass:: InCoreFalkon
     :members:
+    :inherited-members:

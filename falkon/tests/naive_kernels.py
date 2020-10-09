@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 
-__all__ = ("naive_gaussian_kernel", "naive_exponential_kernel", "naive_laplacian_kernel",
+__all__ = ("naive_gaussian_kernel", "naive_sigmoid_kernel", "naive_laplacian_kernel",
            "naive_linear_kernel", "naive_polynomial_kernel")
 
 
@@ -19,9 +19,9 @@ def naive_linear_kernel(X1, X2, beta, sigma):
     return beta + (1 / sigma ** 2) * X1 @ X2.T
 
 
-def naive_exponential_kernel(X1, X2, alpha):
+def naive_sigmoid_kernel(X1, X2, alpha, beta):
     out = X1 @ X2.T
-    return np.exp(out * alpha)
+    return np.tanh(out * alpha + beta)
 
 
 def naive_polynomial_kernel(X1, X2, alpha, beta, degree):

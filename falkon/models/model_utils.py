@@ -27,7 +27,7 @@ class FalkonBase(base.BaseEstimator, ABC):
                  seed: Optional[int] = None,
                  error_fn: Optional[callable] = None,
                  error_every: Optional[int] = 1,
-                 options=FalkonOptions(),
+                 options: Optional[FalkonOptions] = None,
                  ):
         self.kernel = kernel
         self.M = M
@@ -39,7 +39,7 @@ class FalkonBase(base.BaseEstimator, ABC):
         self.error_fn = error_fn
         self.error_every = error_every
         # Options
-        self.options = options
+        self.options = options or FalkonOptions()
         self._cg_options = options.get_conjgrad_options()
         self._keops_options = options.get_keops_options()
         self._pc_options = options.get_pc_options()
@@ -55,12 +55,12 @@ class FalkonBase(base.BaseEstimator, ABC):
 
         if isinstance(center_selection, str):
             if center_selection.lower() == 'uniform':
-                self.center_selection = falkon.center_selection.UniformSelector(
-                    self.random_state_)
+                self.center_selection: falkon.center_selection.CenterSelector = \
+                    falkon.center_selection.UniformSelector(self.random_state_)
             else:
                 raise ValueError(f'Center selection "{center_selection}" is not valid.')
         else:
-            self.center_selection = center_selection
+            self.center_selection: falkon.center_selection.CenterSelector = center_selection
 
     def _init_cuda(self):
         if self.use_cuda_:
@@ -179,18 +179,16 @@ class FalkonBase(base.BaseEstimator, ABC):
         pass
 
     def predict(self, X: torch.Tensor) -> torch.Tensor:
-        """Predict the outputs on given test points.
+        """Makes predictions on data `X` using the learned model.
 
         Parameters
         -----------
-        X : torch.Tensor (2D)
+        X : torch.Tensor
             Tensor of test data points, of shape [num_samples, num_dimensions].
-            If X is in Fortran order (i.e. column-contiguous) then we can avoid
-            an extra copy of the data.
 
         Returns
         --------
-        predictions : torch.Tensor (2D)
+        predictions : torch.Tensor
             Prediction tensor of shape [num_samples, num_outputs] for all
             data points.
         """

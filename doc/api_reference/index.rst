@@ -13,4 +13,6 @@ API Reference
     preconditioner
     optimization
     outofcore
+    mmv_ops
     sparse
+    center_selector

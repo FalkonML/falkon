@@ -38,7 +38,7 @@ class LogisticPreconditioner(Preconditioner):
 
     Parameters
     -----------
-    kernel : falkon.kernel.Kernel
+    kernel : falkon.kernels.kernel.Kernel
         The kernel object. This is used to compute the M*M kernel
         between inducing points. This kernel is then overwritten by
         the preconditioner itself.
@@ -102,12 +102,12 @@ class LogisticPreconditioner(Preconditioner):
 
         Parameters
         ----------
-        X : MxD tensor
-            Matrix of Nystroem centers
-        Y : Mx1 tensor
-            Vector of targets corresponding to the Nystroem centers `X`
-        alpha : Mx1 tensor
-            Parameter vector (of the same dimension as `Y`) which gives the current
+        X : torch.Tensor
+            (M x D) matrix of Nystroem centers
+        Y : torch.Tensor
+            (M x 1) vector of targets corresponding to the Nystroem centers `X`
+        alpha : torch.Tensor
+            (M x 1) parameter vector (of the same dimension as `Y`) which gives the current
             solution to the optimization problem.
         penalty : float
             Regularization amount

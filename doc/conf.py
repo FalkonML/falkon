@@ -35,17 +35,48 @@ author = 'Giacomo Meanti, Alessandro Rudi'
 
 # -- General configuration ---------------------------------------------------
 
+# Error on warnings/missing links, etc
+nitpicky = True
+nitpick_ignore = [
+    ('py:class', 'torch.Tensor'),
+    ('py:class', "'torch.Tensor'"),
+    ('py:class', "'falkon.kernels.Kernel'"),
+    ('py:class', 'falkon.options.BaseOptions'),
+    ('py:class', 'falkon.options.CholeskyOptions'),
+    ('py:class', 'falkon.kernels.distance_kernel.DistKerContainer'),
+    ('py:func', 'falkon.preconditioner.pc_utils.trsm'),
+    ('py:attr', 'falkon.options.FalkonOptions.no_single_kernel'),
+    ('py:attr', 'falkon.options.FalkonOptions.use_cpu'),
+    ('py:attr', 'FalkonOptions.use_cpu'),
+    ('py:class', "'SparseTensor'"),
+    ('py:class', 'NoneType'),
+    ('py:class', 'default=True'),
+    ('py:class', 'default "auto"'),
+    ('py:class', 'float-like'),
+    ('py:class', 'falkon.options.ConjugateGradientOptions'),
+]
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
-    'numpydoc',  # Our docs are numpy style
+    #'numpydoc',  # Our docs are numpy style
+    'sphinx.ext.napoleon',
     'sphinx_rtd_theme',  # Read-the-docs theme
     'sphinx.ext.mathjax',  # For displaying math in html output
     'nbsphinx',  # For displaying jupyter notebooks
 ]
+
+# Napoleon config
+napoleon_numpy_docstring = True
+napoleon_google_docstring = False
+napoleon_use_rtype = False
+napoleon_type_alias = {
+    '_tensor_type': "Union[torch.Tensor, SparseTensor]",
+}
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -109,13 +140,13 @@ html_static_path = ['_static']
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-# intersphinx_mapping = {
-#     'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
-#     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-#     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
-#     'matplotlib': ('https://matplotlib.org/', None),
-#     'sklearn': ('http://scikit-learn.org/stable', None),
-# }
+intersphinx_mapping = {
+     'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
+     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+     'matplotlib': ('https://matplotlib.org/', None),
+     'sklearn': ('http://scikit-learn.org/stable', None),
+}
 
 # sphinx_gallery_conf = {
 #     'backreferences_dir': 'gen_modules/backreferences',

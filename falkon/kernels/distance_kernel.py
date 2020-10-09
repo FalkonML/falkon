@@ -1,18 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 24 21:49:21 2017
-
-@author: alessandro
-"""
 import collections
 import functools
 from abc import ABC, abstractmethod
 from typing import Optional, Union
 
 import torch
-from falkon.options import BaseOptions, FalkonOptions
 
+from falkon.options import BaseOptions, FalkonOptions
 from falkon.sparse import sparse_ops
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.kernels import Kernel, KeopsKernelMixin
@@ -21,15 +14,15 @@ DistKerContainer = collections.namedtuple('DistKerContainer', ['sq1', 'sq2'])
 
 
 class L2DistanceKernel(Kernel, ABC):
-    """Base class for L2-based kernels
+    r"""Base class for L2-based kernels
 
     Such kernels are characterized by the squared norm of the difference between each input
-    sample. This involves computing the squared norm in `_prepare`, and a simple matrix
-    multiplication in `_apply`.
-    In `_finalize` the squared norm and matrix multiplication are added together to form
+    sample. This involves computing the squared norm in :meth:`Kernel._prepare`, and a simple matrix
+    multiplication in :meth:`Kernel._apply`.
+    In :meth:`Kernel._finalize` the squared norm and matrix multiplication are added together to form
     the kernel matrix.
-    Subclasses should implement the `_transform` method which applies additional elementwise
-    transformations to the kernel matrix. `_transform` is called after `_finalize`.
+    Subclasses should implement the :meth:`Kernel._transform` method which applies additional elementwise
+    transformations to the kernel matrix. :meth:`Kernel._transform` is called after :meth:`Kernel._finalize`.
 
     This class supports sparse data.
 
@@ -88,7 +81,7 @@ class L2DistanceKernel(Kernel, ABC):
 
 
 class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
-    """Class for computing the Gaussian kernel and related kernel-vector products
+    r"""Class for computing the Gaussian kernel and related kernel-vector products
 
     The Gaussian kernel is one of the most common and effective kernel embeddings
     since it is infinite dimensional, and governed by a single parameter. The kernel length-scale
@@ -142,20 +135,18 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
 
     .. math::
 
-        k(x, x') = \\exp{-\\dfrac{\\lVert x - x' \\rVert^2}{2\\sigma^2}}
+        k(x, x') = \exp{-\dfrac{\lVert x - x' \rVert^2}{2\sigma^2}}
 
 
     When the length-scales are specified as a matrix, the RBF kernel is determined by
 
     .. math::
 
-        k(x, x') = \\exp{-\\dfrac{1}{2}x\\Sigma^{-1}x'}
+        k(x, x') = \exp{-\dfrac{1}{2}x\Sigma^{-1}x'}
 
 
     In both cases, the actual computation follows a different path, working on the expanded
-    norm. The KeOps implementation is fully contained in the :meth:`_keops_mmv_impl` method,
-    while our implementation uses methods :meth:`_prepare`, :meth:`_apply`, and :meth:`_transform`
-    and is driven by the functions in :mod:`falkon.mmv_ops`.
+    norm.
     """
     kernel_name = "gaussian"
 
@@ -182,13 +173,13 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
             except ValueError:
                 pass
 
-            if sigma.dim() == 1 or sigma.size(1) == 1:
+            if sigma.dim() == 1 or sigma.shape[1] == 1:
                 return torch.diagflat(sigma), "multi"
 
             if sigma.dim() != 2:
                 raise TypeError("Sigma can be specified as a 1D or a 2D tensor. "
                                 "Found %dD tensor" % (sigma.dim()))
-            if sigma.size(0) != sigma.size(1):
+            if sigma.shape[0] != sigma.shape[1]:
                 raise TypeError("Sigma passed as a 2D matrix must be square. "
                                 "Found dimensions %s" % (sigma.size()))
             return sigma, "multi"
@@ -298,7 +289,7 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
 
 
 class LaplacianKernel(GaussianKernel):
-    """Class for computing the Laplacian kernel, and related kernel-vector products.
+    r"""Class for computing the Laplacian kernel, and related kernel-vector products.
 
     The Laplacian kernel is similar to the Gaussian kernel, but less sensitive to changes
     in the parameter `sigma`.
@@ -314,7 +305,7 @@ class LaplacianKernel(GaussianKernel):
 
     .. math::
 
-        k(x, x') = \\exp{-\\frac{\\lVert x - x' \\rVert}{\\sigma}}
+        k(x, x') = \exp{-\frac{\lVert x - x' \rVert}{\sigma}}
 
     """
 

@@ -26,7 +26,7 @@ class SparseTensor():
     It supports some of the common torch tensor management functions (e.g. `pin_memory`, `device`,
     `size`) and conversion to and from the corresponding scipy sparse matrix representation.
     It does **not** define any mathematical function on sparse matrices, which are
-    instead defined separately (see :func:`falkon.sparse.sparse_matmul` for example).
+    instead defined separately (see :func:`~falkon.sparse.sparse_matmul` for example).
 
     Parameters
     ----------
@@ -40,7 +40,7 @@ class SparseTensor():
         Array of the non-zero elements for the sparse matrix.
     size : Tuple[int, int]
         Shape of the 2D tensor (rows, columns).
-    sparse_type: str or SparseType
+    sparse_type: str or falkon.sparse.sparse_tensor.SparseType
         Whether the matrix should be interpreted as CSR or CSC format.
     """
 
@@ -127,7 +127,7 @@ class SparseTensor():
         Returns
         --------
         SparseTensor
-            A new `SparseTensor` object with `length` rows.
+            A new :class:`~falkon.sparse.sparse_tensor.SparseTensor` object with `length` rows.
 
         Notes
         ------

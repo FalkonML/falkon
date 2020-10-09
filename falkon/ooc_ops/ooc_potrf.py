@@ -1,16 +1,17 @@
 import math
 
 import torch
-from falkon.options import CholeskyOptions
 
+import falkon
 from falkon.cuda import initialization
 from falkon.cuda.cusolver_gpu import *
 from falkon.utils import devices
 from falkon import la_helpers
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
+# noinspection PyUnresolvedReferences
 from falkon.ooc_ops.cuda import parallel_potrf
-from falkon.options import FalkonOptions
+from falkon.options import FalkonOptions, CholeskyOptions
 from .ooc_utils import calc_block_sizes
 from ..utils.devices import DeviceInfo
 from ..utils.tensor_helpers import create_fortran, is_f_contig, copy_same_stride
@@ -152,8 +153,8 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     """
     Parameters
     -----------
-    A : ndarray [N, N]
-        2D positive-definite matrix that will be factorized as
+    A : torch.Tensor
+        2D positive-definite matrix of size (n x n) that will be factorized as
         A = U.T @ U (if `upper` is True) or A = L @ L.T if `upper`
         is False.
     upper : bool
@@ -165,6 +166,10 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     overwrite : bool
         Whether to overwrite matrix A or to output the result in a new
         buffer.
+    opt : FalkonOptions
+        Options forwarded for block calculation, and other knobs in the out-of-core
+        parallel POTRF implementation. Useful options are the ones defined in
+        :class:`~falkon.options.CholeskyOptions` .
 
     Notes
     ------

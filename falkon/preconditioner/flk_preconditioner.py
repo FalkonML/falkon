@@ -12,14 +12,14 @@ from .pc_utils import *
 
 
 class FalkonPreconditioner(Preconditioner):
-    """Approximated Cholesky Preconditioner for FALKON.
+    r"""Approximated Cholesky Preconditioner for FALKON.
 
     The preconditioner is based on the :math:`K_{MM}` kernel between the
     inducing points. A two step approximation of the inverse matrix
     via two Cholesky decompositions is performed.
 
-    Starting with :math:`K_{MM}` we obtain :math:`T = \\mathrm{chol}(K_{MM})`.
-    Then we can obtain :math:`A = \\mathrm{chol}(\\frac{1}{M} T T^\\top + \\lambda)` via another Cholesky
+    Starting with :math:`K_{MM}` we obtain :math:`T = \mathrm{chol}(K_{MM})`.
+    Then we can obtain :math:`A = \mathrm{chol}(\frac{1}{M} T T^\top + \lambda)` via another Cholesky
     decomposition. Both `T` and `A` are upper triangular: the first gets stored in the upper
     triangle of the :math:`K_{MM}` matrix (called `fC` in the code), while the second is stored
     in the lower triangle.
@@ -31,7 +31,7 @@ class FalkonPreconditioner(Preconditioner):
     -----------
     penalty : float
         The regularization parameter for KRR. Must be greater than 0.
-    kernel : falkon.kernel.Kernel
+    kernel : falkon.kernels.kernel.Kernel
         The kernel object. This is used to compute the M*M kernel
         between inducing points. The kernel matrix is then overwritten by
         the preconditioner itself.
@@ -71,8 +71,8 @@ class FalkonPreconditioner(Preconditioner):
 
         Parameters
         ----------
-        X : MxD tensor
-            The matrix of Nystroem centers
+        X : torch.Tensor
+            The (M x D) matrix of Nystroem centers
         """
         dtype = X.dtype
         dev = X.device
@@ -137,7 +137,7 @@ class FalkonPreconditioner(Preconditioner):
 
     @check_init("fC", "dT", "dA")
     def invA(self, v: torch.Tensor) -> torch.Tensor:
-        """Solve the system of equations :math:`Ax = v` for unknown vector :math:`x`.
+        r"""Solve the system of equations :math:`Ax = v` for unknown vector :math:`x`.
 
         Multiple right-hand sides are supported (by simply passing a 2D tensor for `v`)
 
@@ -153,14 +153,14 @@ class FalkonPreconditioner(Preconditioner):
 
         See Also
         --------
-        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`~falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag_th(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=1)
 
     @check_init("fC", "dT", "dA")
     def invAt(self, v: torch.Tensor) -> torch.Tensor:
-        """Solve the system of equations :math:`A^\\top x = v` for unknown vector :math:`x`.
+        r"""Solve the system of equations :math:`A^\top x = v` for unknown vector :math:`x`.
 
         Multiple right-hand sides are supported (by simply passing a 2D tensor for `v`)
 
@@ -183,7 +183,7 @@ class FalkonPreconditioner(Preconditioner):
 
     @check_init("fC", "dT", "dA")
     def invT(self, v: torch.Tensor) -> torch.Tensor:
-        """Solve the system of equations :math:`Tx = v` for unknown vector :math:`x`.
+        r"""Solve the system of equations :math:`Tx = v` for unknown vector :math:`x`.
 
         Multiple right-hand sides are supported (by simply passing a 2D tensor for `v`)
 
@@ -206,7 +206,7 @@ class FalkonPreconditioner(Preconditioner):
 
     @check_init("fC", "dT", "dA")
     def invTt(self, v: torch.Tensor) -> torch.Tensor:
-        """Solve the system of equations :math:`T^\\top x = v` for unknown vector :math:`x`.
+        r"""Solve the system of equations :math:`T^\\top x = v` for unknown vector :math:`x`.
 
         Multiple right-hand sides are supported (by simply passing a 2D tensor for `v`)
 
@@ -229,7 +229,7 @@ class FalkonPreconditioner(Preconditioner):
 
     @check_init("fC", "dT", "dA")
     def apply(self, v: torch.Tensor) -> torch.Tensor:
-        """Solve two systems of equations :math:`ATx = v` for unknown vector :math:`x`.
+        r"""Solve two systems of equations :math:`ATx = v` for unknown vector :math:`x`.
 
         Multiple right-hand sides are supported (by simply passing a 2D tensor for `v`)
 
@@ -251,7 +251,7 @@ class FalkonPreconditioner(Preconditioner):
 
     @check_init("fC", "dT", "dA")
     def apply_t(self, v: torch.Tensor) -> torch.Tensor:
-        """Solve two systems of equations :math:`A^\\top T^\\top x = v` for unknown vector :math:`x`.
+        r"""Solve two systems of equations :math:`A^\top T^\top x = v` for unknown vector :math:`x`.
 
         Multiple right-hand sides are supported (by simply passing a 2D tensor for `v`)
 
