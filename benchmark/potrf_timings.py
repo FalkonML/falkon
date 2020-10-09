@@ -57,7 +57,8 @@ def run_experiments(experiments):
 
 
 if __name__ == "__main__":
-    init_opt = falkon.FalkonOptions(compute_arch_speed=False)
+    init_opt = falkon.FalkonOptions()
+    torch.cuda.init()
     initialization.init(init_opt)
     gpu_info = [v for k, v in devices.get_device_info(init_opt).items() if k >= 0]
     num_gpu = len(gpu_info)
@@ -74,7 +75,7 @@ if __name__ == "__main__":
             'repetitions': 3,
             'torch': True,
             'fn': functools.partial(gpu_cholesky, upper=False, clean=False, overwrite=True,
-                opt=falkon.FalkonOptions(chol_force_ooc=True, chol_par_blk_multiplier=2, compute_arch_speed=False)),
+                opt=falkon.FalkonOptions(chol_force_ooc=True, chol_par_blk_multiplier=2)),
         },
         #{
         #    'name': 'Parallel 64',

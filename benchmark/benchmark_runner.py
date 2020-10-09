@@ -582,7 +582,7 @@ if __name__ == "__main__":
                    help='Type of kernel to use. Used for Falkon')
     p.add_argument('--error-every', type=int, default=1000, required=False,
                    help='How often to display validation error (GPFlow)')
-    p.add_argument('--kernel-variance', type=float, default=1, required=False,
+    p.add_argument('--kernel-variance', type=float, default=1.0, required=False,
                    help='Default kernel variance for GPFlow RBF kernel')
     p.add_argument('--eta-divisor', type=float, default=1.0, required=False,
                    help='Learning-rate regulator for EigenPro')
@@ -622,7 +622,7 @@ if __name__ == "__main__":
                      kernel_sigma=args.sigma, var_dist=str(args.var_dist),
                      batch_size=args.batch_size, lr=args.lr, natgrad_lr=args.natgrad_lr,
                      learn_ind_pts=args.learn_hyperparams, ind_pt_file=args.inducing_point_file,
-                     error_every=args.error_every, kernel_variance=args.kernel_variance, 
+                     error_every=args.error_every, kernel_variance=args.kernel_variance,
                      kfold=args.kfold, seed=args.seed)
     else:
         raise NotImplementedError(f"No benchmark implemented for algorithm {args.algorithm}.")

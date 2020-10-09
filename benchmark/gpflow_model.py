@@ -65,6 +65,9 @@ class TrainableSVGP():
         else:
             raise NotImplementedError("GPFlow cannot implement %s variational distribution" % (self.var_dist))
 
+        if self.natgrad_lr > 0 and q_diag:
+            raise ValueError("The variational distribution must be 'full' with natural gradients")
+
         if self.do_classif:
             if self.num_classes == 2:
                 likelihood = gpflow.likelihoods.Bernoulli()
@@ -123,9 +126,9 @@ class TrainableSVGP():
         t_elapsed = 0
         for step in range(self.num_iter):
             t_s = time.time()
+            adam_opt.minimize(loss, var_list=self.model.trainable_variables)
             if self.natgrad_lr > 0:
                 natgrad_opt.minimize(loss, var_list=variational_params)
-            adam_opt.minimize(loss, var_list=self.model.trainable_variables)
             t_elapsed += time.time() - t_s
             if step % 700 == 0:
                 print("Step %d -- Elapsed %.2fs" % (step, t_elapsed), flush=True)
