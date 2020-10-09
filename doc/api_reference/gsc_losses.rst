@@ -1,19 +1,22 @@
 falkon.gsc_losses
 =================
 
-.. automodule:: falkon.gsc_losses
-.. py:currentmodule:: falkon.gsc_losses
+.. automodule:: falkon
+
+.. py:currentmodule:: falkon
 
 
 Loss
 ----
 
-.. autoclass:: Loss
+.. autoclass:: falkon.gsc_losses.Loss
     :members:
+    :special-members: __call__
 
 
 Logistic loss
 -------------
 
-.. autoclass:: LogisticLoss
+.. autoclass:: falkon.gsc_losses.LogisticLoss
     :members:
+    :special-members: __call__

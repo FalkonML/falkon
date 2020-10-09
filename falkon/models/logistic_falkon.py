@@ -1,5 +1,5 @@
 import time
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Callable
 
 import torch
 
@@ -56,10 +56,10 @@ class LogisticFalkon(FalkonBase):
         Random seed. Can be used to make results stable across runs.
         Randomness is present in the center selection algorithm, and in
         certain optimizers.
-    error_fn : callable or None
-        A function which can be called with targets and predictions as
-        arguments and returns the error of the predictions. This is used
-        to display the evolution of the error during the iterations.
+    error_fn : Callable or None
+        A function with two arguments: targets and predictions, both :class:`torch.Tensor`
+        objects which returns the error incurred for predicting 'predictions' instead of
+        'targets'. This is used to display the evolution of the error during the iterations.
     error_every : int or None
         Evaluate the error (on training or validation data) every
         `error_every` iterations. If set to 1 then the error will be
@@ -94,7 +94,7 @@ class LogisticFalkon(FalkonBase):
 
     Notes
     -----
-    A rule of thumb for setting the `penalty_list` is to keep in mind the desired final
+    A rule of thumb for **setting the `penalty_list`** is to keep in mind the desired final
     regularization (1e-6 in the example above), and then create a short path of around three
     iterations where the regularization is decreased down to the desired value. The decrease can
     be of 10^2 or 10^3 at each step. Then a certain number of iterations at the desired
@@ -111,9 +111,9 @@ class LogisticFalkon(FalkonBase):
                  M: int,
                  center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  seed: Optional[int] = None,
-                 error_fn: Optional[callable] = None,
+                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], float]] = None,
                  error_every: Optional[int] = 1,
-                 options=FalkonOptions(),
+                 options: Optional[FalkonOptions] = None,
                  ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty_list = penalty_list
@@ -133,24 +133,24 @@ class LogisticFalkon(FalkonBase):
 
         Parameters
         -----------
-        X : torch.Tensor (2D)
+        X : torch.Tensor
             The tensor of training data, of shape [num_samples, num_dimensions].
             If X is in Fortran order (i.e. column-contiguous) then we can avoid
             an extra copy of the data.
-        Y : torch.Tensor (1D or 2D)
+        Y : torch.Tensor
             The tensor of training targets, of shape [num_samples, num_outputs].
             If X and Y represent a classification problem, Y can be encoded as a one-hot
             vector.
             If Y is in Fortran order (i.e. column-contiguous) then we can avoid an
             extra copy of the data.
-        Xts : torch.Tensor (2D) or None
+        Xts : torch.Tensor or None
             Tensor of validation data, of shape [num_test_samples, num_dimensions].
             If validation data is provided and `error_fn` was specified when
             creating the model, they will be used to print the validation error
             during the optimization iterations.
             If Xts is in Fortran order (i.e. column-contiguous) then we can avoid an
             extra copy of the data.
-        Yts : torch.Tensor (1D or 2D) or None
+        Yts : torch.Tensor or None
             Tensor of validation targets, of shape [num_test_samples, num_outputs].
             If validation data is provided and `error_fn` was specified when
             creating the model, they will be used to print the validation error

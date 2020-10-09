@@ -87,13 +87,19 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
     """
     Parameters
     -----------
-    A : torch.Tensor [N, N]
-        2D positive-definite matrix that will be factorized as
+    A : torch.Tensor
+        (N x N) positive-definite matrix that will be factorized as
         A = U.T @ U (if `upper` is True) or A = L @ L.T if `upper`
         is False.
     overwrite : bool
         Whether to overwrite matrix A or to output the result in a new
         buffer.
+
+    Returns
+    -------
+    out : torch.Tensor
+        A (N x N) tensor. This will share the same memory as the input tensor `A` if `overwrite`
+        is set to True, otherwise it will be a newly allocated tensor.
     """
     if opt is None:
         opt = FalkonOptions()

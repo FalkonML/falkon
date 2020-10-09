@@ -202,14 +202,14 @@ class TestLinearKernel(AbstractKernelTester):
         return naive_linear_kernel(A.numpy(), B.numpy(), beta=kernel.beta, sigma=kernel.sigma)
 
 
-class TestExponentialKernel(AbstractKernelTester):
+class TestSigmoidKernel(AbstractKernelTester):
     @pytest.fixture(scope="class")
-    def kernel(self) -> ExponentialKernel:
-        return ExponentialKernel(alpha=3)
+    def kernel(self) -> SigmoidKernel:
+        return SigmoidKernel(alpha=3, beta=2)
 
     @pytest.fixture(scope="class")
-    def exp_k(self, A: torch.Tensor, B: torch.Tensor, kernel: ExponentialKernel) -> np.ndarray:
-        return naive_exponential_kernel(A.numpy(), B.numpy(), alpha=kernel.alpha.item())
+    def exp_k(self, A: torch.Tensor, B: torch.Tensor, kernel: SigmoidKernel) -> np.ndarray:
+        return naive_sigmoid_kernel(A.numpy(), B.numpy(), alpha=kernel.alpha.item(), beta=kernel.beta.item())
 
 
 class TestPolynomialKernel(AbstractKernelTester):

@@ -60,32 +60,26 @@ def fmmv_cpu_sparse(X1: SparseTensor,
 def fmmv_cpu(X1, X2, v, kernel, out, opt):
     """Blockwise kernel-vector product
 
-    This function computes
-    ```
-    kernel(X1, X2) @ v
-    ```
-    in a blockwise fashion, to avoid having the whole N*M kernel
-    matrix in memory at once.
-    Note that while the principle is that of matrix-vector product,
-    `v` can have more than one column.
+    This function computes ``kernel(X1, X2) @ v`` in a blockwise fashion, to avoid having the
+    whole N*M kernel matrix in memory at once.
+    Note that while the principle is that of matrix-vector product, `v` can have more than
+    one column.
 
     Parameters
     -----------
-     - X1 : [N, D] array
-     - X2 : [M, D] array
-     - v  : [M, T] array
-     - kernel : Kernel
+    X1
+        [N, D] array
+    X2
+        [M, D] array
+    v
+        [M, T] array
+    kernel
         Class representing the desired kernel function
-     - out : [N, T] array (optional)
-        Array for storing the kernel-vector product output.
+    out : torch.Tensor or None
+        [N, T] array for storing the kernel-vector product output.
         If None, will be allocated within the function.
-     - opt : Union(Dict, CompOpt)
-        Options dictionary. Supported options are
-         - 'max_cpu_mem', sets the maximum amount of RAM which will the program should
-            use.
-         - 'final_type', the data-type of the output array. If `out` is not None and its
-            data-type clashes with the setting of 'final_type', the `out` matrix will not be
-            modified.
+    opt
+        Basic options dictionary, used for determining available memory.
     """
     opt = _setup_opt(opt, is_cpu=True)
 
@@ -124,12 +118,9 @@ def fmmv_cpu(X1, X2, v, kernel, out, opt):
 
 
 def fdmmv_cpu(X1, X2, v, w, kernel, out, opt):
-    """Calculate a kernel-kernel-vector product.
+    """Calculate a double kernel-vector product.
 
-    This function computes the following quantity:
-    ```
-    kernel(X1, X2).T @ (kernel(X1, X2) @ v + w)
-    ```
+    This function computes the following quantity: ``kernel(X1, X2).T @ (kernel(X1, X2) @ v + w)``
     Where one of `v` or `w` can be empty.
     All arrays passed to this function must be 2-dimensional, although
     the second dimension can be unitary.
@@ -140,31 +131,28 @@ def fdmmv_cpu(X1, X2, v, w, kernel, out, opt):
 
     Parameters
     -----------
-    X1 : [N, D] array
-    X2 : [M, D] array
-    v  : [M, T] array (optional)
-        But note that at least one of v or w must be specified.
-    w  : [N, T] array (optional)
-        But note that at least one of v or w must be specified.
-    kernel : Kernel
+    X1
+        [N, D] array
+    X2
+        [M, D] array
+    v : torch.Tensor or None
+        [M, T] array. But note that at least one of v or w must be specified.
+    w : torch.Tensor or None
+        [N, T] array. But note that at least one of v or w must be specified.
+    kernel
         Class representing the desired kernel function
-    out : [M, T] array (optional)
-        Array for storing the kernel-vector product output.
+    out : torch.Tensor or None
+        [M, T] array for storing the kernel-vector product output.
         If None, will be allocated within the function.
-    opt : Union(Dict, CompOpt)
-        Options dictionary. Supported options are
-         - 'max_cpu_mem', sets the maximum amount of RAM which will be allocated within this
-            function (excluding the output array)
-         - 'final_type', the data-type of the output array. If 'out' is not None and it's
-            data-type clashes with the setting of 'final_type', the out matrix will not be
-            modified.
+    opt
+        Basic options dictionary, used for determining available memory.
     """
     opt = _setup_opt(opt, is_cpu=True)
 
     # Parameter validation
     if v is None and w is None:
         raise ValueError("One of v and w must be specified to run fMMV.")
-    T = v.size(1) if v is not None else w.size(1)
+    T = v.shape[1] if v is not None else w.shape[1]
     ntot, dtot = X1.size()
     M = X2.size(0)
     dtype = X1.dtype

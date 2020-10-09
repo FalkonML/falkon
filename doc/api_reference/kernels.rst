@@ -9,10 +9,13 @@ falkon.kernels
 Kernel
 ------
 
-.. autoclass:: Kernel
+.. autoclass:: falkon.kernels.kernel.Kernel
     :members:
-    :special-members:
-    :inherited-members: ABC
+    :private-members: _prepare, _apply, _finalize, _prepare_sparse, _apply_sparse, _decide_mm_impl, _decide_mmv_impl, _decide_dmmv_impl
+    :special-members: __call__
+
+.. autoclass:: falkon.kernels.keops_helpers.KeopsKernelMixin
+    :members:
 
 
 Radial kernels
@@ -22,42 +25,37 @@ Gaussian kernel
 ~~~~~~~~~~~~~~~
 
 .. autoclass:: GaussianKernel
-    :members:
-    :special-members:
-    :inherited-members: ABC
+    :members: mmv, dmmv
+    :special-members: __call__
 
 Laplacian kernel
 ~~~~~~~~~~~~~~~~
 
 .. autoclass:: LaplacianKernel
-    :members:
-    :special-members:
-    :inherited-members: ABC
+    :members: mmv, dmmv
+    :special-members: __call__
 
 
 Dot-Product kernels
 -------------------
 
-Exponential kernel
-~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: ExponentialKernel
-    :members:
-    :special-members:
-    :inherited-members: ABC
-
 Polynomial kernel
 ~~~~~~~~~~~~~~~~~
 
 .. autoclass:: PolynomialKernel
-    :members:
-    :special-members:
-    :inherited-members: ABC
+    :members: mmv, dmmv
+    :special-members: __call__
 
 Linear kernel
 ~~~~~~~~~~~~~
 
 .. autoclass:: LinearKernel
-    :members:
-    :special-members:
-    :inherited-members: ABC
+    :members: mmv, dmmv
+    :special-members: __call__
+
+Sigmoid kernel
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SigmoidKernel
+    :members: mmv, dmmv
+    :special-members: __call__

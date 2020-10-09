@@ -76,14 +76,24 @@ class KeopsKernelMixin():
 
         Parameters
         -----------
-        X1 : Tensor N x D
-        X2 : Tensor M x D
-        v  : Tensor M x T
-        w  : Tensor N x T
-        kernel : falkon.Kernel
-        out : Tensor M x T or None
+        X1 : torch.Tensor
+            N x D tensor
+        X2 : torch.Tensor
+            M x D tensor
+        v  : torch.Tensor
+            M x T tensor. Often, T = 1 and this is a vector.
+        w  : torch.Tensor
+            N x T tensor. Often, T = 1 and this is a vector.
+        kernel : falkon.kernels.kernel.Kernel
+            Kernel instance to calculate this kernel. This is only here to preserve API
+            structure.
+        out : torch.Tensor or None
+            Optional tensor in which to store the output (M x T)
         opt : FalkonOptions
+            Options to be passed downstream
         mmv_fn : Callable
+            The function which performs the mmv operation. Two mmv operations are (usually)
+            needed for a dmmv operation.
 
         Notes
         ------

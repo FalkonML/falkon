@@ -7,10 +7,10 @@ falkon.sparse
 SparseTensor
 ------------
 
-.. autoclass:: SparseTensor
+.. autoclass:: falkon.sparse.sparse_tensor.SparseTensor
     :members:
 
-.. autoclass:: SparseType
+.. autoclass:: falkon.sparse.sparse_tensor.SparseType
     :members:
 
 

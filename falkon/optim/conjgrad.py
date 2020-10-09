@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 import torch
 
@@ -34,9 +35,9 @@ class Optimizer(object):
 
 
 class ConjugateGradient(Optimizer):
-    def __init__(self, opt: ConjugateGradientOptions = ConjugateGradientOptions()):
+    def __init__(self, opt: Optional[ConjugateGradientOptions] = None):
         super().__init__()
-        self.params = opt
+        self.params = opt or ConjugateGradientOptions()
 
     def solve(self, X0, B, mmv, max_iter, callback=None):
         t_start = time.time()

@@ -47,8 +47,13 @@ nitpick_ignore = [
     ('py:func', 'falkon.preconditioner.pc_utils.trsm'),
     ('py:attr', 'falkon.options.FalkonOptions.no_single_kernel'),
     ('py:attr', 'falkon.options.FalkonOptions.use_cpu'),
+    ('py:attr', 'FalkonOptions.use_cpu'),
     ('py:class', "'SparseTensor'"),
     ('py:class', 'NoneType'),
+    ('py:class', 'default=True'),
+    ('py:class', 'default "auto"'),
+    ('py:class', 'float-like'),
+    ('py:class', 'falkon.options.ConjugateGradientOptions'),
 ]
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -57,13 +62,21 @@ nitpick_ignore = [
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
-    'numpydoc',  # Our docs are numpy style
+    #'numpydoc',  # Our docs are numpy style
+    'sphinx.ext.napoleon',
     'sphinx_rtd_theme',  # Read-the-docs theme
     'sphinx.ext.mathjax',  # For displaying math in html output
     'nbsphinx',  # For displaying jupyter notebooks
-    #'sphinx_autodoc_future_annotations',
-    'sphinx_autodoc_typehints',
 ]
+
+# Napoleon config
+napoleon_numpy_docstring = True
+napoleon_google_docstring = False
+napoleon_use_rtype = False
+napoleon_type_alias = {
+    '_tensor_type': "Union[torch.Tensor, SparseTensor]",
+}
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

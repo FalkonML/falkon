@@ -156,26 +156,27 @@ def fmm_cpu(
         kernel: 'falkon.kernels.Kernel',
         out: Optional[torch.Tensor],
         opt: BaseOptions) -> torch.Tensor:
-    """Compute kernel value on matrices X1 and X2: `out = kernel(X1, X2)`
+    """Compute kernel value on matrices X1 and X2: ``out = kernel(X1, X2)``
 
     Parameters
     -----------
-    X1 : [N, D] array
-    X2 : [M, D] array
-    kernel : Kernel
+    X1
+        [N, D] array
+    X2
+        [M, D] array
+    kernel
         Class representing the desired kernel function
-    out : Optional([N, M] array)
+    out
         Array for storing the kernel output. If None, will be allocated within the function.
-    opt : Union(Dict, CompOpt)
-        Options dictionary. Supported options are
-         - 'final_type', the data-type of the output array. If 'out' is not None and it's
-            data-type clashes with the setting of 'final_type', the out matrix will not be
-            modified.
+    opt
+        Basic options dictionary, used for determining available memory. Additionally, the
+        :attr:`~falkon.options.FalkonOptions.no_single_kernel` option is used to determine the
+        accumulator data type.
 
     Returns
     --------
-    out : [N, M] array
-        The kernel between X1 and X2.
+    out
+        [N, M] array. The kernel between X1 and X2.
     """
     opt = _setup_opt(opt, is_cpu=True)
     ntot, dtot = X1.size()

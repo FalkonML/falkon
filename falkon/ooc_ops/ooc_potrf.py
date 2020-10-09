@@ -2,6 +2,7 @@ import math
 
 import torch
 
+import falkon
 from falkon.cuda import initialization
 from falkon.cuda.cusolver_gpu import *
 from falkon.utils import devices
@@ -152,8 +153,8 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     """
     Parameters
     -----------
-    A : ndarray [N, N]
-        2D positive-definite matrix that will be factorized as
+    A : torch.Tensor
+        2D positive-definite matrix of size (n x n) that will be factorized as
         A = U.T @ U (if `upper` is True) or A = L @ L.T if `upper`
         is False.
     upper : bool
@@ -168,7 +169,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     opt : FalkonOptions
         Options forwarded for block calculation, and other knobs in the out-of-core
         parallel POTRF implementation. Useful options are the ones defined in
-        :class:`CholeskyOptions`.
+        :class:`~falkon.options.CholeskyOptions` .
 
     Notes
     ------

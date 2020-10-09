@@ -31,7 +31,7 @@ class FalkonPreconditioner(Preconditioner):
     -----------
     penalty : float
         The regularization parameter for KRR. Must be greater than 0.
-    kernel : falkon.kernel.Kernel
+    kernel : falkon.kernels.kernel.Kernel
         The kernel object. This is used to compute the M*M kernel
         between inducing points. The kernel matrix is then overwritten by
         the preconditioner itself.
@@ -71,8 +71,8 @@ class FalkonPreconditioner(Preconditioner):
 
         Parameters
         ----------
-        X : MxD tensor
-            The matrix of Nystroem centers
+        X : torch.Tensor
+            The (M x D) matrix of Nystroem centers
         """
         dtype = X.dtype
         dev = X.device
@@ -153,7 +153,7 @@ class FalkonPreconditioner(Preconditioner):
 
         See Also
         --------
-        :func:`falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
+        :func:`~falkon.preconditioner.pc_utils.trsm` : the function used to solve the system of equations
         """
         inplace_set_diag_th(self.fC, self.dA)
         return trsm(v, self.fC, alpha=1.0, lower=1, transpose=1)

@@ -13,23 +13,90 @@ _tensor_type = Union[torch.Tensor, SparseTensor]
 
 
 class CenterSelector(ABC):
+    """Create the center selector with a random number generator
+
+    Parameters
+    ----------
+    random_gen
+        A numpy random number generator object.
+    """
     def __init__(self, random_gen):
         self.random_gen = random_gen
 
     @abstractmethod
     def select(self, X, Y, M):
+        """Abstract method for selecting `M` centers from the data.
+
+        Parameters
+        ----------
+        X
+            The full input dataset (or a representation of it)
+        Y
+            The full input labels (this may be None)
+        M
+            The number of centers to be selected
+
+        Returns
+        -------
+        X_centers
+            If Y is None this is the only output: M centers selected from the data.
+        Y_centers
+            If Y is not empty, a set of label centers shall be returned as well.
+        """
         pass
 
 
 class FixedSelector(CenterSelector):
-    def __init__(self, centers: _tensor_type, y_centers: Union[torch.Tensor, None] = None,
-                 random_gen=None):
-        super().__init__(random_gen)
+    """Center selector which always picks the same centers.
+
+    The fixed centers are specified at class initialization time.
+
+    Parameters
+    ----------
+    centers
+        Tensor of data-centers to be used.
+    y_centers
+        Optional tensor of label-centers to be used. If this is empty, calling :meth:`select` with
+        a non-empty `Y` argument will throw an exception
+    """
+    def __init__(self,
+                 centers: _tensor_type,
+                 y_centers: Union[torch.Tensor, None] = None):
+        super().__init__(random_gen=None)
         self.centers = centers
         self.y_centers = y_centers
 
-    def select(self, X, Y, M):
+    def select(self,
+               X: _tensor_type,
+               Y: Union[torch.Tensor, None],
+               M: int) -> Union[_tensor_type, Tuple[_tensor_type, torch.Tensor]]:
+        """Returns the fixed centers with which this instance was created
+
+        Parameters
+        ----------
+        X
+            N x D tensor containing the whole input dataset. We have that N <= M.
+        Y
+            Optional N x T tensor containing the input targets. If `Y` is provided,
+            the same observations selected for `X` will also be selected from `Y`.
+            Certain models (such as :class:`falkon.models.LogisticFalkon`) require centers to be
+            extracted from both predictors and targets, while others (such as
+            :class:`falkon.models.Falkon`) only require the centers from the predictors.
+        M
+            The number of observations to choose. **This parameter is ignored**.
+
+        Returns
+        -------
+        X_M
+            The randomly selected centers. They will be in a new, memory-contiguous tensor.
+            All characteristics of the input tensor will be preserved.
+        (X_M, Y_M)
+            If `Y` was different than `None` then the entries of `Y` corresponding to the
+            selected centers of `X` will also be returned.
+        """
         if Y is not None:
+            if self.y_centers is None:
+                raise RuntimeError("FixedSelector has no y-centers available, but `Y` is not None.")
             return self.centers, self.y_centers
         return self.centers
 
@@ -54,9 +121,9 @@ class UniformSelector(CenterSelector):
         Y
             Optional N x T tensor containing the input targets. If `Y` is provided,
             the same observations selected for `X` will also be selected from `Y`.
-            Certain models (such as :class:`falkon.LogisticFalkon`) require centers to be
+            Certain models (such as :class:`falkon.models.LogisticFalkon`) require centers to be
             extracted from both predictors and targets, while others (such as
-            :class:`falkon.Falkon`) only require the centers from the predictors.
+            :class:`falkon.models.Falkon`) only require the centers from the predictors.
         M
             The number of observations to choose. M <= N, otherwise M is forcibly set to N
             with a warning.

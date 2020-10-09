@@ -1,5 +1,5 @@
 import time
-from typing import Union, Optional
+from typing import Union, Optional, Callable
 
 import torch
 
@@ -17,7 +17,7 @@ class InCoreFalkon(FalkonBase):
     """In GPU core Falkon Kernel Ridge Regression solver.
 
     This estimator object solves approximate kernel ridge regression problems with Nystroem
-    projections and a fast optimization algorithm as described in [1]_, [2]_.
+    projections and a fast optimization algorithm as described in [flkk_1]_, [flkk_2]_.
 
     Multiclass and multiple regression problems can all be tackled
     with this same object, for example by encoding multiple classes
@@ -58,10 +58,10 @@ class InCoreFalkon(FalkonBase):
         Random seed. Can be used to make results stable across runs.
         Randomness is present in the center selection algorithm, and in
         certain optimizers.
-    error_fn : callable or None
-        A function which can be called with targets and predictions as
-        arguments and returns the error of the predictions. This is used
-        to display the evolution of the error during the iterations.
+    error_fn : Callable or None
+        A function with two arguments: targets and predictions, both :class:`torch.Tensor`
+        objects which returns the error incurred for predicting 'predictions' instead of
+        'targets'. This is used to display the evolution of the error during the iterations.
     error_every : int or None
         Evaluate the error (on training or validation data) every
         `error_every` iterations. If set to 1 then the error will be
@@ -86,9 +86,9 @@ class InCoreFalkon(FalkonBase):
 
     References
     ----------
-    .. [1] Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, "FALKON: An optimal large
+    .. [flkk_1] Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, "FALKON: An optimal large
        scale kernel method," Advances in Neural Information Processing Systems 29, 2017.
-    .. [2] Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi,
+    .. [flkk_2] Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi,
        "Kernel methods through the roof: handling billions of points efficiently,"
        arXiv:2006.10350, 2020.
     """
@@ -100,9 +100,9 @@ class InCoreFalkon(FalkonBase):
                  center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  maxiter: int = 20,
                  seed: Optional[int] = None,
-                 error_fn: Optional[callable] = None,
+                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], float]] = None,
                  error_every: Optional[int] = 1,
-                 options=FalkonOptions(),
+                 options: Optional[FalkonOptions] = None,
                  ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
@@ -133,24 +133,24 @@ class InCoreFalkon(FalkonBase):
 
         Parameters
         -----------
-        X : torch.Tensor (2D)
+        X : torch.Tensor
             The tensor of training data, of shape [num_samples, num_dimensions].
             If X is in Fortran order (i.e. column-contiguous) then we can avoid
             an extra copy of the data. Must be a CUDA tensor.
-        Y : torch.Tensor (1D or 2D)
+        Y : torch.Tensor
             The tensor of training targets, of shape [num_samples, num_outputs].
             If X and Y represent a classification problem, Y can be encoded as a one-hot
             vector.
             If Y is in Fortran order (i.e. column-contiguous) then we can avoid an
             extra copy of the data. Must be a CUDA tensor.
-        Xts : torch.Tensor (2D) or None
+        Xts : torch.Tensor or None
             Tensor of validation data, of shape [num_test_samples, num_dimensions].
             If validation data is provided and `error_fn` was specified when
             creating the model, they will be used to print the validation error
             during the optimization iterations.
             If Xts is in Fortran order (i.e. column-contiguous) then we can avoid an
             extra copy of the data. Must be a CUDA tensor.
-        Yts : torch.Tensor (1D or 2D) or None
+        Yts : torch.Tensor or None
             Tensor of validation targets, of shape [num_test_samples, num_outputs].
             If validation data is provided and `error_fn` was specified when
             creating the model, they will be used to print the validation error
@@ -170,12 +170,12 @@ class InCoreFalkon(FalkonBase):
         self.alpha_ = None
 
         t_s = time.time()
-        ny_points = self.center_selection.select(X, None, self.M)
+        # noinspection PyTypeChecker
+        ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None, self.M)
 
         with TicToc("Calcuating Preconditioner of size %d" % (self.M), debug=self.options.debug):
             precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options)
             precond.init(ny_points)
-        self.precond = precond
 
         # Cache must be emptied to ensure enough memory is visible to the optimizer
         torch.cuda.empty_cache()

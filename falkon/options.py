@@ -9,11 +9,11 @@ __all__ = ("BaseOptions", "KeopsOptions", "ConjugateGradientOptions", "Precondit
 _docs = {
     "base":
     """
-debug (default False)
-    When set to `True`, the estimators will print extensive debugging information.
+debug
+    `default False` - When set to ``True``, the estimators will print extensive debugging information.
     Set it if you want to dig deeper.
-use_cpu (default False)
-    When set to `True` forces Falkon not to use the GPU. If this option is not set,
+use_cpu
+    `default False` - When set to ``True`` forces Falkon not to use the GPU. If this option is not set,
     and no GPU is available, Falkon will issue a warning.
 max_gpu_mem
     The maximum GPU memory (in bytes) that Falkon may use. If not set, Falkon will
@@ -22,54 +22,54 @@ max_cpu_mem
     The maximum CPU RAM (in bytes) that Falkon may use. If not set, Falkon will
     use all available memory. This option is not a strict bound (due to the nature
     of memory management in Python).
-compute_arch_speed (default False)
-    When running Falkon on a machine with multiple GPUs which have a range of different
+compute_arch_speed
+    `default False` - When running Falkon on a machine with multiple GPUs which have a range of different
     performance characteristics, setting this option to `True` may help subdivide the
     workload better: the performance of each accelerator will be evaluated on startup,
     then the faster devices will receive more work than the slower ones.
     If this is not the case, do not set this option since evaluating accelerator performance
     increases startup times.
-no_single_kernel (default True)
-    Whether the kernel should always be evaluated in double precision.
-    If set to `False`, kernel evaluations will be faster but less precise (note that this
+no_single_kernel
+    `default True` - Whether the kernel should always be evaluated in double precision.
+    If set to ``False``, kernel evaluations will be faster but less precise (note that this
     referes only to calculations involving the full kernel matrix, not to kernel-vector
     products).
-min_cuda_pc_size_32 (default 10000)
-    If M (the number of Nystroem centers) is lower than `min_cuda_pc_size_32`, falkon will
+min_cuda_pc_size_32
+    `default 10000` - If M (the number of Nystroem centers) is lower than ``min_cuda_pc_size_32``, falkon will
     run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try
     to run the preconditioner on the GPU. This setting is valid for data in single
     (float32) precision.
-    Along with the `min_cuda_iter_size_32` setting, this determines a cutoff for running
+    Along with the ``min_cuda_iter_size_32`` setting, this determines a cutoff for running
     Falkon on the CPU or the GPU. Such cutoff is useful since for small-data problems
     running on the CPU may be faster than running on the GPU. If your data is close to the
     cutoff, it may be worth experimenting with running on the CPU and on the GPU to check
     which side is faster. This will depend on the exact hardware.
-min_cuda_pc_size_64 (default 30000)
-    If M (the number of Nystroem centers) is lower than `min_cuda_pc_size_64`, falkon will
-    run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try
+min_cuda_pc_size_64
+    `default 30000` - If M (the number of Nystroem centers) is lower than ``min_cuda_pc_size_64``, 
+    falkon will run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try
     to run the preconditioner on the GPU. This setting is valid for data in double
     (float64) precision.
-    Along with the `min_cuda_iter_size_64` setting, this determines a cutoff for running
+    Along with the ``min_cuda_iter_size_64`` setting, this determines a cutoff for running
     Falkon on the CPU or the GPU. Such cutoff is useful since for small-data problems
     running on the CPU may be faster than running on the GPU. If your data is close to the
     cutoff, it may be worth experimenting with running on the CPU and on the GPU to check
     which side is faster. This will depend on the exact hardware.
-min_cuda_iter_size_32 (default 300_000_000)
-    If the data size (measured as the product of M, and the dimensions of X) is lower than
-    `min_cuda_iter_size_32`, falkon will run the conjugate gradient iterations on the CPU.
+min_cuda_iter_size_32
+    `default 300_000_000` - If the data size (measured as the product of M, and the dimensions of X) is lower than
+    ``min_cuda_iter_size_32``, falkon will run the conjugate gradient iterations on the CPU.
     For example, with the default setting, the CPU-GPU threshold is set at a dataset
     with 10k points, 10 dimensions, and 3k Nystroem centers. A larger dataset, or the use
     of more centers, will cause the conjugate gradient iterations to run on the GPU.
     This setting is valid for data in single (float32) precision.
-min_cuda_iter_size_64 (default 900_000_000)
-    If the data size (measured as the product of M, and the dimensions of X) is lower than
-    `min_cuda_iter_size_64`, falkon will run the conjugate gradient iterations on the CPU.
+min_cuda_iter_size_64
+    `default 900_000_000` - If the data size (measured as the product of M, and the dimensions of X) is lower than
+    ``min_cuda_iter_size_64``, falkon will run the conjugate gradient iterations on the CPU.
     For example, with the default setting, the CPU-GPU threshold is set at a dataset
     with 30k points, 10 dimensions, and 3k Nystroem centers. A larger dataset, or the use
     of more centers, will cause the conjugate gradient iterations to run on the GPU.
     This setting is valid for data in double (float64) precision.
-never_store_kernel (default False)
-    If set to True, the kernel between the data and the Nystroem centers will not
+never_store_kernel
+    `default False` - If set to True, the kernel between the data and the Nystroem centers will not
     be stored - even if there is sufficient RAM to do so. Setting this option to
     True may (in case there would be enough RAM to store the kernel), increase the
     training time for Falkon since the K_NM matrix must be recomputed at every
@@ -77,64 +77,69 @@ never_store_kernel (default False)
     """,
     "keops":
     """
-keops_acc_dtype (default "auto")
-    A string describing the accumulator data-type for KeOps.
+keops_acc_dtype
+    `default "auto"` - A string describing the accumulator data-type for KeOps.
     For more information refer to the
-    `KeOps documentation <https://www.kernel-operations.io/keops/python/api/pytorch/Genred_torch.html?highlight=genred#pykeops.torch.Genred>`_
-keops_sum_scheme (default "auto")
-    Accumulation scheme for KeOps. For more information refer to the
-    `KeOps documentation <https://www.kernel-operations.io/keops/python/api/pytorch/Genred_torch.html?highlight=genred#pykeops.torch.Genred>`_
-keops_active : (default "auto")
-    Whether to use or not to use KeOps. Three settings are allowed, specified by strings:
+    `KeOps documentation`_ 
+keops_sum_scheme
+    `default "auto"` - Accumulation scheme for KeOps. 
+    For more information refer to the `KeOps documentation`_
+keops_active
+    `default "auto"` - Whether to use or not to use KeOps. Three settings are allowed, specified by strings:
     'auto' (the default setting) means that KeOps will be used if it is installed correctly,
     'no' means keops will not be used, nor will it be imported, and 'force' means that if KeOps is
     not installed an error will be raised.
     """,
     "cg":
     """
-cg_epsilon_32 (default 1e-7)
-    Small added epsilon to prevent divide-by-zero errors in the conjugate gradient algorithm.
-    Used for single precision data-types
-cg_epsilon_64 (default 1e-15)
-    Small added epsilon to prevent divide-by-zero errors in the conjugate gradient algorithm.
-    Used for double precision data-types
+cg_epsilon_32
+    `default 1e-7` - Small added epsilon to prevent divide-by-zero errors in the conjugate 
+    gradient algorithm. Used for single precision data-types
+cg_epsilon_64
+    `default 1e-15` - Small added epsilon to prevent divide-by-zero errors in the conjugate 
+    gradient algorithm. Used for double precision data-types
 cg_tolerance
-    Maximum change in model parameters between iterations. If less change than `cg_tolerance`
-    is detected, then we regard the optimization as converged.
+    `default 1e-7` - Maximum change in model parameters between iterations. If less change than 
+    ``cg_tolerance`` is detected, then we regard the optimization as converged.
 cg_full_gradient_every
-    How often to calculate the full gradient in the conjugate gradient algorithm. Full-gradient
-    iterations take roughly twice the time as normal iterations, but they reset the error
-    introduced by the other iterations.
+    `default 10` - How often to calculate the full gradient in the conjugate gradient algorithm. 
+    Full-gradient iterations take roughly twice the time as normal iterations, but they reset 
+    the error introduced by the other iterations.
     """,
     "pc":
     """
 pc_epsilon_32
-    Epsilon used to increase the diagonal dominance of a matrix before its
+    `default 1e-5` - Epsilon used to increase the diagonal dominance of a matrix before its
     Cholesky decomposition (for single-precision data types).
 pc_epsilon_64
-    Epsilon used to increase the diagonal dominance of a matrix before its
+    `default 1e-13` - Epsilon used to increase the diagonal dominance of a matrix before its
     Cholesky decomposition (for double-precision data types).
 cpu_preconditioner
-    Whether the preconditioner should be computed on the CPU. This setting overrides
-    the :attr:`FalkonOptions.use_cpu` option.
+    `default False` - Whether the preconditioner should be computed on the CPU. This setting 
+    overrides the :attr:`FalkonOptions.use_cpu` option.
     """,
     "lauum":
     """
 lauum_par_blk_multiplier
-    Minimum number of tiles per-GPU for the LAUUM algorithm. This can be set quite high (e.g. 8)
-    too much performance degradation. Optimal settings will depend on the number of GPUs.
+    `default 8` - Minimum number of tiles per-GPU for the LAUUM algorithm. This can be set 
+    quite high (e.g. 8) without too much performance degradation. Optimal settings will depend 
+    on the number of GPUs.
     """,
     "chol":
     """
 chol_force_in_core
-    Whether to force in-core execution of the Cholesky decomposition. This will
+    `default False` - Whether to force in-core execution of the Cholesky decomposition. This will
     not work with matrices bigger than GPU memory.
 chol_force_ooc
-    Whether to force out-of-core (parallel) execution for the POTRF algorithm,
+    `default False` - Whether to force out-of-core (parallel) execution for the POTRF algorithm,
     even on matrices which fit in-GPU-core.
 chol_par_blk_multiplier
-    Minimum number of tiles per-GPU in the out-of-core, GPU-parallel POTRF algorithm.
+    `default 2` - Minimum number of tiles per-GPU in the out-of-core, GPU-parallel POTRF algorithm.
+    """,
+    "extra":
     """
+    .. _KeOps documentation: https://www.kernel-operations.io/keops/python/api/pytorch/Genred_torch.html?highlight=genred#pykeops.torch.Genred
+    """,
 }
 
 
@@ -279,6 +284,6 @@ _reset_doc(LauumOptions, _docs["lauum"])
 _reset_doc(CholeskyOptions, _docs["chol"])
 
 
-FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s%s\n" % (
+FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s%s\n\n%s" % (
     FalkonOptions.__doc__, _docs["base"], _docs["keops"], _docs["cg"], _docs["pc"], _docs["lauum"],
-    _docs["chol"])
+    _docs["chol"], _docs["extra"])
