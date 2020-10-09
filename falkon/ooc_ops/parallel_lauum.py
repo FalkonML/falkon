@@ -85,6 +85,7 @@ def par_lauum_f_lower(A: torch.Tensor,
 
             for r in my_rows:
                 if r == b:
+                    s1.synchronize()
                     # SYRK on col_b[bb.length:, :] with output into syrk_out[:bb.length, :bb.length]
                     # C = beta*C + alpha * op(A) @ op(A).T
                     if b_start + bb.length < N:
