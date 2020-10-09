@@ -3,9 +3,6 @@ import warnings
 from abc import ABC, abstractmethod
 from typing import Optional, Any
 
-import torch
-
-import falkon
 from falkon.mmv_ops.fmm_cpu import fmm_cpu_sparse, fmm_cpu
 from falkon.mmv_ops.fmmv_cpu import fdmmv_cpu_sparse, fmmv_cpu_sparse, fmmv_cpu, fdmmv_cpu
 from falkon.utils.helpers import check_same_dtype, check_sparse, check_same_device

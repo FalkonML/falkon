@@ -180,7 +180,7 @@ def test_gaussian_pd():
 class TestLaplacianKernel(AbstractKernelTester):
     _RTOL = {
         torch.float32: 1e-5,
-        torch.float64: 3e-8
+        torch.float64: 4e-8
     }
 
     @pytest.fixture(scope="class")

@@ -45,7 +45,7 @@ min_cuda_pc_size_32
     cutoff, it may be worth experimenting with running on the CPU and on the GPU to check
     which side is faster. This will depend on the exact hardware.
 min_cuda_pc_size_64
-    `default 30000` - If M (the number of Nystroem centers) is lower than ``min_cuda_pc_size_64``, 
+    `default 30000` - If M (the number of Nystroem centers) is lower than ``min_cuda_pc_size_64``,
     falkon will run the preconditioner on the CPU. Otherwise, if CUDA is available, falkon will try
     to run the preconditioner on the GPU. This setting is valid for data in double
     (float64) precision.
@@ -74,15 +74,19 @@ never_store_kernel
     True may (in case there would be enough RAM to store the kernel), increase the
     training time for Falkon since the K_NM matrix must be recomputed at every
     conjugate gradient iteration.
+num_fmm_streams
+    `default 2` - The number of CUDA streams to use for evaluating kernels when CUDA is available.
+    This number should be increased from its default value when the number of Nystroem centers is
+    higher than around 5000.
     """,
     "keops":
     """
 keops_acc_dtype
     `default "auto"` - A string describing the accumulator data-type for KeOps.
     For more information refer to the
-    `KeOps documentation`_ 
+    `KeOps documentation`_
 keops_sum_scheme
-    `default "auto"` - Accumulation scheme for KeOps. 
+    `default "auto"` - Accumulation scheme for KeOps.
     For more information refer to the `KeOps documentation`_
 keops_active
     `default "auto"` - Whether to use or not to use KeOps. Three settings are allowed, specified by strings:
@@ -93,17 +97,17 @@ keops_active
     "cg":
     """
 cg_epsilon_32
-    `default 1e-7` - Small added epsilon to prevent divide-by-zero errors in the conjugate 
+    `default 1e-7` - Small added epsilon to prevent divide-by-zero errors in the conjugate
     gradient algorithm. Used for single precision data-types
 cg_epsilon_64
-    `default 1e-15` - Small added epsilon to prevent divide-by-zero errors in the conjugate 
+    `default 1e-15` - Small added epsilon to prevent divide-by-zero errors in the conjugate
     gradient algorithm. Used for double precision data-types
 cg_tolerance
-    `default 1e-7` - Maximum change in model parameters between iterations. If less change than 
+    `default 1e-7` - Maximum change in model parameters between iterations. If less change than
     ``cg_tolerance`` is detected, then we regard the optimization as converged.
 cg_full_gradient_every
-    `default 10` - How often to calculate the full gradient in the conjugate gradient algorithm. 
-    Full-gradient iterations take roughly twice the time as normal iterations, but they reset 
+    `default 10` - How often to calculate the full gradient in the conjugate gradient algorithm.
+    Full-gradient iterations take roughly twice the time as normal iterations, but they reset
     the error introduced by the other iterations.
     """,
     "pc":
@@ -115,14 +119,14 @@ pc_epsilon_64
     `default 1e-13` - Epsilon used to increase the diagonal dominance of a matrix before its
     Cholesky decomposition (for double-precision data types).
 cpu_preconditioner
-    `default False` - Whether the preconditioner should be computed on the CPU. This setting 
+    `default False` - Whether the preconditioner should be computed on the CPU. This setting
     overrides the :attr:`FalkonOptions.use_cpu` option.
     """,
     "lauum":
     """
 lauum_par_blk_multiplier
-    `default 8` - Minimum number of tiles per-GPU for the LAUUM algorithm. This can be set 
-    quite high (e.g. 8) without too much performance degradation. Optimal settings will depend 
+    `default 8` - Minimum number of tiles per-GPU for the LAUUM algorithm. This can be set
+    quite high (e.g. 8) without too much performance degradation. Optimal settings will depend
     on the number of GPUs.
     """,
     "chol":
@@ -158,6 +162,7 @@ class BaseOptions():
     min_cuda_iter_size_32: int = 10_000 * 10 * 3_000
     min_cuda_iter_size_64: int = 30_000 * 10 * 3_000
     never_store_kernel: bool = False
+    num_fmm_streams: int = 2
 
     def get_base_options(self):
         return BaseOptions(debug=self.debug,

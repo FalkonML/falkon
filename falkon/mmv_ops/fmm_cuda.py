@@ -22,7 +22,6 @@ from falkon.utils.helpers import (
     select_dim_fMM, calc_gpu_block_sizes, sizeof_dtype,
     select_dim_over_m
 )
-from falkon.utils import TicToc
 from falkon.utils.tensor_helpers import create_same_stride, create_fortran, is_f_contig
 
 __all__ = ("fmm_cuda", "fmm_cuda_sparse")
@@ -36,6 +35,7 @@ class ArgsFmm():
     kernel: 'falkon.kernels.Kernel'
     gpu_dtype: torch.dtype
     max_mem: float
+    num_streams: int = 1
 
 
 def _sparse_fmm(proc_idx, queue, device_id):
@@ -103,6 +103,7 @@ def _generic_fmm(proc_idx, queue, device_id):
     out = a.out
     kernel, gpu_dtype = a.kernel, a.gpu_dtype
     max_mem = a.max_mem
+    num_streams = a.num_streams
 
     # flags and local variables
     change_dtype = gpu_dtype != X1.dtype
@@ -112,7 +113,6 @@ def _generic_fmm(proc_idx, queue, device_id):
     j_iter = 0
     dts = sizeof_dtype(gpu_dtype)
     tc_device = torch.device('cuda:%d' % (int(device_id)))
-    num_streams = 6  # TODO: Make this an option.
     avail_mem = max_mem / dts
 
     # Choose block sizes n, m such that we won't run out of GPU memory
@@ -260,7 +260,8 @@ def fmm_cuda(X1: torch.Tensor,
             continue
         args.append((ArgsFmm(X1=X1.narrow(0, block_sizes[i], bwidth),
                              X2=X2, out=out.narrow(0, block_sizes[i], bwidth),
-                             kernel=kernel, gpu_dtype=gpu_dtype, max_mem=g.usable_ram), g.Id))
+                             kernel=kernel, gpu_dtype=gpu_dtype, max_mem=g.usable_ram,
+                             num_streams=opt.num_fmm_streams), g.Id))
     _start_wait_processes(_generic_fmm, args)
     torch.cuda.empty_cache()
     return out

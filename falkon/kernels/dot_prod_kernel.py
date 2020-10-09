@@ -271,14 +271,14 @@ class SigmoidKernel(DotProdKernel, KeopsKernelMixin):
     def _decide_mmv_impl(self, X1, X2, v, opt):
         if self.keops_can_handle_mmv(X1, X2, v, opt):
             warnings.warn("KeOps implementation for %s kernel is not available. "
-                          "Falling back to matrix-multiplication based implementation.")
+                          "Falling back to matrix-multiplication based implementation." % (self.name))
 
         return super()._decide_mmv_impl(X1, X2, v, opt)
 
     def _decide_dmmv_impl(self, X1, X2, v, w, opt):
         if self.keops_can_handle_dmmv(X1, X2, v, w, opt):
             warnings.warn("KeOps implementation for %s kernel is not available. "
-                          "Falling back to matrix-multiplication based implementation.")
+                          "Falling back to matrix-multiplication based implementation." % (self.name))
         return super()._decide_dmmv_impl(X1, X2, v, w, opt)
 
     def _finalize(self, A, d):

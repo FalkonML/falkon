@@ -2,7 +2,6 @@ import math
 
 import torch
 
-import falkon
 from falkon.cuda import initialization
 from falkon.cuda.cusolver_gpu import *
 from falkon.utils import devices
