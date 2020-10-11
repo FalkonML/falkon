@@ -5,7 +5,7 @@ import torch
 import gpytorch
 from gpytorch.models import ApproximateGP
 from gpytorch.variational import CholeskyVariationalDistribution
-from gpytorch.variational import VariationalStrategy
+from gpytorch.variational import VariationalStrategy, UnwhitenedVariationalStrategy
 
 __all__ = ("get_rbf_kernel", "RegressionVGP", "TwoClassVGP", "MultiClassVGP")
 
@@ -24,6 +24,9 @@ def _choose_var_dist(dist_str, num_points, batch_shape=1):
     elif dist_str == "delta":
         return gpytorch.variational.DeltaVariationalDistribution(
             num_points, batch_shape=batch_shape)
+    elif dist_str == "natgrad":
+        return gpytorch.variational.NaturalVariationalDistribution(
+            num_points, batch_shape=batch_shape)
     else:
         raise KeyError(dist_str)
 
@@ -40,7 +43,7 @@ def _choose_var_strat(model, var_strat, var_dist, ind_pt, learn_ind=True, num_cl
             num_tasks=num_classes, task_dim=0,
         )
     else:
-        return VariationalStrategy(model, ind_pt, var_dist, learn_inducing_locations=learn_ind)
+        return UnwhitenedVariationalStrategy(model, ind_pt, var_dist, learn_inducing_locations=learn_ind)
 
 
 def get_rbf_kernel(ard=None, batch_shape=1):
@@ -104,6 +107,10 @@ class GenericApproxGP(BaseModel):
         self.mean_module = mean_module
         self.covar_module = covar_module
 
+        if not strategy.variational_params_initialized.item():
+            strategy._variational_distribution.initialize_variational_distribution(strategy.prior_distribution)
+            strategy.variational_params_initialized.fill_(1)
+
     def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
@@ -146,11 +153,15 @@ class GPTrainer():
                  mll,
                  num_epochs,
                  params,
+                 natgrad_lr,
+                 num_data,
+                 likelihood,
                  lr=0.001):
         self.model = model
         self.mll = mll
         self.num_epochs = num_epochs
         self.lr = lr
+        self.natgrad_lr = natgrad_lr
 
         self.err_fn = err_fn
         self.mb_size = mb_size
@@ -163,7 +174,14 @@ class GPTrainer():
         num_params = [np.prod(p.data.shape) for p in params]
         print("Training with %d parameters" % (sum(num_params)))
         # Initialize optimizer with the parameters
-        self.optimizer = torch.optim.Adam(self.params, lr=lr)
+        if self.natgrad_lr > 0:
+            self.ng_optimizer = gpytorch.optim.NGD(self.model.variational_parameters(),
+                    num_data=num_data, lr=self.natgrad_lr)
+            params = set(list(self.model.hyperparameters()) + list(likelihood.parameters()))
+            self.optimizer = torch.optim.Adam(list(params), lr=lr)
+        else:
+            self.ng_optimizer = None
+            self.optimizer = torch.optim.Adam(self.params, lr=lr)
 
         self.error_every = 100
 
@@ -184,10 +202,14 @@ class GPTrainer():
                 if self.use_cuda:
                     x_batch = x_batch.cuda()
                     y_batch = y_batch.cuda()
+                if self.ng_optimizer is not None:
+                    self.ng_optimizer.zero_grad()
                 self.optimizer.zero_grad()
                 output = self.model(x_batch)
                 loss = -self.mll(output, y_batch)
                 loss.backward()
+                if self.ng_optimizer is not None:
+                    self.ng_optimizer.step()
                 self.optimizer.step()
                 if j % self.error_every == 0:
                     t_elapsed += time.time() - t_start
@@ -233,14 +255,17 @@ class RegressionVGP(GPTrainer):
                  num_data: int,
                  num_epochs: int,
                  use_cuda: bool,
+                 natgrad_lr: float,
                  lr: float=0.001,
                  learn_ind_pts: bool = False):
         self.var_dist = var_dist
-        if use_cuda:
-            inducing_points = inducing_points.contiguous().cuda()
-
         mean_module = gpytorch.means.ConstantMean()
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
+
+        if use_cuda:
+            inducing_points = inducing_points.contiguous().cuda()
+            mean_module = mean_module.cuda()
+            kernel = kernel.cuda()
 
         model = GenericApproxGP(inducing_points,
                                 mean_module=mean_module,
@@ -250,13 +275,14 @@ class RegressionVGP(GPTrainer):
                                 likelihood=likelihood,
                                 learn_ind_pts=learn_ind_pts,
                                 )
-        loss_fn = gpytorch.mlls.VariationalELBO(likelihood, model, num_data)
+        loss_fn = gpytorch.mlls.VariationalELBO(likelihood, model, num_data=num_data)
         params = model.parameters()
         if not learn_ind_pts:
             exclude = set(mean_module.parameters()) | set(kernel.parameters())
             print("Excluding parameters from mean and covariance models:", exclude)
             params = list(set(model.parameters()) - exclude)
-        super().__init__(model, err_fn, mb_size, use_cuda, mll=loss_fn, num_epochs=num_epochs, lr=lr, params=params)
+        super().__init__(model, err_fn, mb_size, use_cuda, mll=loss_fn, num_epochs=num_epochs, lr=lr, params=params,
+                         natgrad_lr=natgrad_lr, num_data=num_data, likelihood=likelihood)
 
     def do_train(self, Xtr, Ytr, Xts, Yts):
         super().do_train(Xtr, Ytr.reshape(-1), Xts, Yts.reshape(-1))
@@ -284,6 +310,7 @@ class TwoClassVGP(GPTrainer):
                  num_data: int,
                  num_epochs: int,
                  use_cuda: bool,
+                 natgrad_lr: float,
                  lr: float=0.001,
                  learn_ind_pts: bool = True):
         self.var_dist = var_dist
@@ -308,7 +335,8 @@ class TwoClassVGP(GPTrainer):
             exclude = set(mean_module.parameters()) | set(kernel.parameters())
             print("Excluding parameters from mean and covariance models:", exclude)
             params = list(set(model.parameters()) - exclude)
-        super().__init__(model, err_fn, mb_size, use_cuda, mll=loss_fn, num_epochs=num_epochs, lr=lr, params=params)
+        super().__init__(model, err_fn, mb_size, use_cuda, mll=loss_fn, num_epochs=num_epochs, lr=lr, params=params,
+                         natgrad_lr=natgrad_lr, num_data=num_data, likelihood=likelihood)
 
     def do_train(self, Xtr, Ytr, Xts, Yts):
         Ytr = (Ytr + 1) / 2
@@ -342,6 +370,7 @@ class MultiClassVGP(GPTrainer):
                  num_data: int,
                  num_epochs: int,
                  use_cuda: bool,
+                 natgrad_lr: float,
                  lr: float = 0.001,
                  learn_ind_pts: bool = True):
         #if mb_size != 1:
@@ -368,7 +397,8 @@ class MultiClassVGP(GPTrainer):
         if not learn_ind_pts:
             exclude = set(mean_module.parameters()) + set(kernel.parameters())
             params = list(set(model.parameters()) - exclude)
-        super().__init__(model, err_fn, mb_size, use_cuda, mll=loss_fn, num_epochs=num_epochs, lr=lr, params=params)
+        super().__init__(model, err_fn, mb_size, use_cuda, mll=loss_fn, num_epochs=num_epochs, lr=lr, params=params,
+                         natgrad_lr=natgrad_lr, num_data=num_data, likelihood=likelihood)
 
     def do_train(self, Xtr, Ytr, Xts, Yts):
         super().do_train(Xtr, Ytr, Xts, Yts)

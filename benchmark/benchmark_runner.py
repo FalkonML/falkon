@@ -125,6 +125,7 @@ def run_gpytorch(dset: Dataset,
                  dtype: Optional[DataType],
                  batch_size: int,
                  lr: float,
+                 natgrad_lr: float,
                  num_iter: int,
                  num_centers: int,
                  kernel_sigma: float,
@@ -166,8 +167,11 @@ def run_gpytorch(dset: Dataset,
             # Kernel has 1 length-scale!
             kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims=None))
             kernel.base_kernel.lengthscale = kernel_sigma
+            #kernel = gpytorch.kernels.keops.RBFKernel(ard_num_dims=None)
+            #kernel.lengthscale = kernel_sigma
         else:
             kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims=None, batch_shape=torch.Size([num_outputs])))
+            #kernel = gpytorch.kernels.keops.RBFKernel(ard_num_dims=None, batch_shape=torch.Size([num_outputs]))
         if algorithm == Algorithm.GPYTORCH_CLS:
             if num_outputs == 1:
                 # 2 classes
@@ -180,6 +184,7 @@ def run_gpytorch(dset: Dataset,
                     num_epochs=num_iter,
                     use_cuda=True,
                     lr=lr,
+                    natgrad_lr=natgrad_lr,
                     learn_ind_pts=learn_ind_pts,
                 )
             else:
@@ -193,6 +198,7 @@ def run_gpytorch(dset: Dataset,
                     num_data=num_samples,
                     num_epochs=num_iter,
                     use_cuda=True,
+                    natgrad_lr=natgrad_lr,
                     lr=lr,
                     learn_ind_pts=learn_ind_pts,
                 )
@@ -207,6 +213,7 @@ def run_gpytorch(dset: Dataset,
                 num_data=num_samples,
                 num_epochs=num_iter,
                 use_cuda=True,
+                natgrad_lr=natgrad_lr,
                 lr=lr,
                 learn_ind_pts=learn_ind_pts,
             )
@@ -615,7 +622,7 @@ if __name__ == "__main__":
                      kernel_sigma=args.sigma, var_dist=str(args.var_dist),
                      batch_size=args.batch_size, lr=args.lr, learn_ind_pts=args.learn_hyperparams,
                      ind_pt_file=args.inducing_point_file, kfold=args.kfold,
-                     seed=args.seed)
+                     seed=args.seed, natgrad_lr=args.natgrad_lr)
     elif args.algorithm in {Algorithm.GPFLOW_CLS, Algorithm.GPFLOW_REG}:
         run_gpflow(dset=args.dataset, algorithm=args.algorithm, dtype=args.dtype,
                      num_iter=args.epochs, num_centers=args.num_centers,

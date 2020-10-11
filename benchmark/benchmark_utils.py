@@ -79,6 +79,7 @@ class VariationalDistribution(Enum):
     FULL = 'full'
     DIAG = 'diag'
     DELTA = 'delta'
+    NATGRAD = 'natgrad'
 
     def __str__(self):
         return self.value
