@@ -144,7 +144,7 @@ def _generic_fmm(proc_idx, queue, device_id):
             copy_ops[stream_idx] = None
 
     def do_copy_op(output, buf, i_, ic_, j_, jc_):
-        # This will run the type conversion
+        # This function will also do the type conversion
         output[i_:i_ + ic_, j_:j_ + jc_].copy_(buf[:ic_, :jc_])
 
     # Kernel computation begin
@@ -219,9 +219,9 @@ def _generic_fmm(proc_idx, queue, device_id):
                         out.narrow(0, i, ic).narrow(1, j, jc).copy_(cur_gout, non_blocking=True)
                 j_iter += 1
 
-        for i in range(num_streams):
-            streams[i].synchronize()
-            wrap_copy_op(i)
+            for i in range(num_streams):
+                streams[i].synchronize()
+                wrap_copy_op(i)
 
     return out
 
@@ -252,18 +252,24 @@ def fmm_cuda(X1: torch.Tensor,
     if sizeof_dtype(X1.dtype) < 8 and opt.no_single_kernel:
         gpu_dtype = torch.float64
 
-    # Create the arguments passed to each subprocess
-    args = []
-    for i, g in enumerate(gpu_info):
-        bwidth = block_sizes[i + 1] - block_sizes[i]
-        if bwidth <= 0:
-            continue
-        args.append((ArgsFmm(X1=X1.narrow(0, block_sizes[i], bwidth),
-                             X2=X2, out=out.narrow(0, block_sizes[i], bwidth),
-                             kernel=kernel, gpu_dtype=gpu_dtype, max_mem=g.usable_ram,
-                             num_streams=opt.num_fmm_streams), g.Id))
-    _start_wait_processes(_generic_fmm, args)
-    torch.cuda.empty_cache()
+    if device.type == 'cuda':
+        single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
+        args = ArgsFmm(X1=X1, X2=X2, out=out, kernel=kernel, gpu_dtype=gpu_dtype,
+                       max_mem=single_gpu_info.usable_ram,
+                       num_streams=opt.num_fmm_streams)
+        _call_direct(_generic_fmm, (args, device.index))
+    else:
+        # Create the arguments passed to each subprocess
+        args = []
+        for i, g in enumerate(gpu_info):
+            bwidth = block_sizes[i + 1] - block_sizes[i]
+            if bwidth <= 0:
+                continue
+            args.append((ArgsFmm(X1=X1.narrow(0, block_sizes[i], bwidth),
+                                 X2=X2, out=out.narrow(0, block_sizes[i], bwidth),
+                                 kernel=kernel, gpu_dtype=gpu_dtype, max_mem=g.usable_ram,
+                                 num_streams=opt.num_fmm_streams), g.Id))
+        _start_wait_processes(_generic_fmm, args)
     return out
 
 
