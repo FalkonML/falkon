@@ -63,6 +63,7 @@ def par_lauum_f_lower(A: torch.Tensor,
             whole_col_r = create_fortran((A.shape[0], max_block_size), A.dtype, tc_device)
         whole_col_b = create_fortran((A.shape[0], max_block_size), A.dtype, tc_device)
         syrk_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
+        syrk_out.fill_(0.0)
         lauum_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
 
         for b in range(len(block_allocs)):
@@ -205,6 +206,7 @@ def par_lauum_c_lower(A: torch.Tensor,
         whole_col_b = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
         whole_col_r = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
         syrk_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
+        syrk_out.fill_(0.0)
         lauum_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
 
         for b in range(len(block_allocs)):
