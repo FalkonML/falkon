@@ -66,8 +66,10 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
         raise ValueError("Parallel LAUUM can only run when a GPU is available.")
     barrier = threading.Barrier(num_gpus, timeout=1000)
     threads = []
-    for g in gpu_info:
-        gid_allocs = [i for i in range(len(block_allocations)) if i % num_gpus == g.Id]
+    for _gpu_idx, g in enumerate(gpu_info):
+        # Assign rows to GPUs round-robin. We must use _gpu_idx instead of g.Id, since the latter
+        # may not contain all elements from 0.
+        gid_allocs = [i for i in range(len(block_allocations)) if i % num_gpus == _gpu_idx]
         cublas_handle = initialization.cublas_handle(g.Id)
         if cublas_handle is None:
             raise RuntimeError("CUBLAS must be initialized "
