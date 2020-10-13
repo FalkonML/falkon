@@ -152,13 +152,9 @@ def run_gpytorch(dset: Dataset,
     def get_model(Xtr, num_outputs, err_fn):
         num_samples = Xtr.shape[0]
         # Inducing points
-        if ind_pt_file is None or not os.path.isfile(ind_pt_file):
-            inducing_idx = np.random.choice(num_samples, num_centers, replace=False)
-            inducing_points = Xtr[inducing_idx].reshape(num_centers, -1)
-            print("Took %d random inducing points" % (inducing_points.shape[0]))
-        else:
-            inducing_points = torch.from_numpy(np.load(ind_pt_file).astype(dtype.to_numpy_dtype()))
-            print("Loaded %d inducing points to %s" % (inducing_points.shape[0], ind_pt_file))
+        inducing_idx = np.random.choice(num_samples, num_centers, replace=False)
+        inducing_points = Xtr[inducing_idx].reshape(num_centers, -1)
+        print("Took %d random inducing points" % (inducing_points.shape[0]))
         # Determine num devices
         n_devices = torch.cuda.device_count()
         output_device = torch.device('cuda:0')
@@ -219,58 +215,23 @@ def run_gpytorch(dset: Dataset,
             )
         return model
 
-    if kfold == 1:
-        # Load data
-        load_fn = get_load_fn(dset)
-        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True)
-        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-        model = get_model(Xtr, Ytr.shape[1], err_fns[0])
-        print("Starting to train model %s on data %s" % (model, dset), flush=True)
-        t_s = time.time()
+    # Load data
+    load_fn = get_load_fn(dset)
+    Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True)
+    err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
+    model = get_model(Xtr, Ytr.shape[1], err_fns[0])
+    print("Starting to train model %s on data %s" % (model, dset), flush=True)
+    t_s = time.time()
+    with gpytorch.settings.fast_computations(False, False, False):
         model.do_train(Xtr, Ytr, Xts, Yts)
-        print("Training of %s on %s complete in %.2fs" %
-              (algorithm, dset, time.time() - t_s), flush=True)
-        #print("Learned model parameters:")
-        #print(dict(model.model.named_parameters()))
-        #print()
-        if isinstance(model, TwoClassVGP):
-            # Need Ys in range [0,1] for correct error calculation
-            Yts = (Yts + 1) / 2
-            Ytr = (Ytr + 1) / 2
+    print("Training of %s on %s complete in %.2fs" %
+          (algorithm, dset, time.time() - t_s), flush=True)
+    if isinstance(model, TwoClassVGP):
+        # Need Ys in range [0,1] for correct error calculation
+        Yts = (Yts + 1) / 2
+        Ytr = (Ytr + 1) / 2
+    with gpytorch.settings.fast_computations(False, False, False):
         test_model(model, f"{algorithm} on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
-        #if ind_pt_file is not None:
-        #    np.save(ind_pt_file, model.model.inducing_points.cpu().detach().numpy())
-        #    print("Saved inducing points to %s" % (ind_pt_file))
-    else:
-        print("Will train GPytorch on data %s with %d-fold CV" % (dset, kfold), flush=True)
-        load_fn = get_cv_fn(dset)
-        iteration = 0
-        test_errs, train_errs = [], []
-
-        for Xtr, Ytr, Xts, Yts, kwargs in load_fn(
-                k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True):
-            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-            model = get_model(Xtr, Ytr.shape[1], err_fns[0])
-
-            print("Starting GPytorch fit (fold %d)" % (iteration))
-            model.do_train(Xtr, Ytr, Xts, Yts)
-            iteration += 1
-            c_test_errs, c_train_errs = test_model(
-                model, f"{algorithm} on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
-            train_errs.append(c_train_errs)
-            test_errs.append(c_test_errs)
-
-        print("Full errors: Test %s - Train %s" % (test_errs, train_errs))
-        print()
-        print("%d-Fold Error Report" % (kfold))
-        for err_fn_i in range(len(err_fns)):
-            print("Final test errors: %.4f +- %4f" % (
-                np.mean([e[err_fn_i] for e in test_errs]),
-                np.std([e[err_fn_i] for e in test_errs])))
-            print("Final train errors: %.4f +- %4f" % (
-                np.mean([e[err_fn_i] for e in train_errs]),
-                np.std([e[err_fn_i] for e in train_errs])))
-            print()
 
 
 def run_falkon(dset: Dataset,
