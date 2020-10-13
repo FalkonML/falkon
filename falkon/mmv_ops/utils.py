@@ -10,7 +10,7 @@ from falkon.utils.fake_queue import FakeQueue
 from falkon.utils.tensor_helpers import is_contig
 
 __all__ = ("_setup_opt", "_check_contiguity", "_get_gpu_info", "_get_cpu_ram",
-           "_start_wait_processes", "_gpu_tns_same_memory")
+           "_start_wait_processes", "_gpu_tns_same_memory", "_call_direct",)
 
 
 def _setup_opt(opt: Optional[BaseOptions], is_cpu=False) -> BaseOptions:

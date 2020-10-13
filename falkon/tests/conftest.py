@@ -24,10 +24,10 @@ if decide_cuda():
 
 
 @contextmanager
-def memory_checker(opt: FalkonOptions, extra_mem=0):
+def memory_checker(opt: FalkonOptions, extra_mem=0, check_cpu=True):
     is_cpu = opt.use_cpu
     mem_check = False
-    if (is_cpu and opt.max_cpu_mem < np.inf) or (not is_cpu and opt.max_gpu_mem < np.inf):
+    if (is_cpu and check_cpu and opt.max_cpu_mem < np.inf) or (not is_cpu and opt.max_gpu_mem < np.inf):
         mem_check = True
 
     start_ram = None
@@ -77,7 +77,9 @@ def fix_mat(t, dtype, order, device="cpu", copy=False, numpy=False):
         t = np.array(t, dtype=dtype, order=order, copy=copy)
         if numpy:
             return t
-        return move_tensor(torch.from_numpy(t), device)
+        t = move_tensor(torch.from_numpy(t), device)
+        if t.is_cuda:
+            torch.cuda.synchronize()
     return t
 
 
