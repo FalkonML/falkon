@@ -53,6 +53,7 @@ class TrainableSVGP():
         if self.do_classif:
             self.num_classes = int(classif)
         self.model = None
+        self.whiten = False
         self.var_dist = var_dist
 
     def fit(self, X, Y, Xval, Yval):
@@ -89,7 +90,7 @@ class TrainableSVGP():
             inducing_variable=self.Z,
             num_data=N,
             num_latent_gps=num_latent,
-            whiten=False,
+            whiten=self.whiten,
             q_diag=q_diag)
         # Setup training
         if not self.train_hyperparams:
@@ -166,9 +167,9 @@ class TrainableSVGP():
     def __str__(self):
         return (("TrainableSVGP<kernel=%s, num_inducing_points=%d, batch_size=%d, "
                  "num_iter=%d, lr=%f, natgrad_lr=%f, error_every=%d, train_hyperparams=%s, "
-                 "var_dist=%s, do_classif=%s, model=%s")
+                 "var_dist=%s, do_classif=%s, model=%s, whiten=%s>")
                 % (self.kernel, self.Z.shape[0], self.batch_size, self.num_iter, self.lr,
                    self.natgrad_lr, self.error_every, self.train_hyperparams,
-                   self.var_dist, self.do_classif, self.model))
+                   self.var_dist, self.do_classif, self.model, self.whiten))
 
 
