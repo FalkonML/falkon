@@ -6,9 +6,9 @@ from benchmark_utils import Dataset
 
 def rmse(y_true, y_pred, **kwargs):
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
 
     y_true = y_true.reshape((-1, ))
     y_pred = y_pred.reshape((-1, ))
@@ -19,9 +19,9 @@ def rmse(y_true, y_pred, **kwargs):
 
 def mse(y_true, y_pred, **kwargs):
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
 
     y_true = y_true.reshape((-1, ))
     y_pred = y_pred.reshape((-1, ))
@@ -34,14 +34,14 @@ def rmse_with_std(y_true, y_pred, **kwargs):
     Y_std = kwargs['Y_std']
 
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
     if (not isinstance(Y_std, np.ndarray) and
         not isinstance(Y_std, np.float64) and
         not isinstance(Y_std, np.float32) and
         not isinstance(Y_std, float)):
-        Y_std = Y_std.numpy()
+        Y_std = Y_std.cpu().numpy()
 
     y_true = y_true.reshape((-1, ))
     y_pred = y_pred.reshape((-1, ))
@@ -54,14 +54,14 @@ def ms_calc_mse(y_true, y_pred, **kwargs):
     Y_std = kwargs['Y_std']
 
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
     if (not isinstance(Y_std, np.ndarray) and
         not isinstance(Y_std, np.float64) and
         not isinstance(Y_std, np.float32) and
         not isinstance(Y_std, float)):
-        Y_std = Y_std.numpy()
+        Y_std = Y_std.cpu().numpy()
 
     y_true = y_true.reshape((-1, ))
     y_pred = y_pred.reshape((-1, ))
@@ -75,19 +75,19 @@ def ms_calc_relerr(y_true, y_pred, **kwargs):
     Y_mean = kwargs['Y_mean']
 
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
     if (not isinstance(Y_std, np.ndarray) and
         not isinstance(Y_std, np.float64) and
         not isinstance(Y_std, np.float32) and
         not isinstance(Y_std, float)):
-        Y_std = Y_std.numpy()
+        Y_std = Y_std.cpu().numpy()
     if (not isinstance(Y_mean, np.ndarray) and
         not isinstance(Y_mean, np.float64) and
         not isinstance(Y_mean, np.float32) and
         not isinstance(Y_mean, float)):
-        Y_mean = Y_mean.numpy()
+        Y_mean = Y_mean.cpu().numpy()
 
     y_true = y_true.reshape((-1, ))
     y_pred = y_pred.reshape((-1, ))
@@ -145,9 +145,9 @@ def calc_auc_tf(y_true, y_pred, **kwargs):
 def higgs_calc_auc(y_true, y_pred, **kwargs):
     from sklearn import metrics
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
 
     if np.min(y_true) == 0:
         y_true = y_true * 2 - 1
@@ -161,9 +161,9 @@ def higgs_calc_auc(y_true, y_pred, **kwargs):
 
 def binary_cerr(y_true, y_pred, **kwargs):
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
 
     if np.min(y_true) == 0:
         y_true = y_true * 2 - 1
@@ -180,9 +180,9 @@ def binary_cerr(y_true, y_pred, **kwargs):
 
 def mnist_calc_cerr(y_true, y_pred, **kwargs):
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
 
     if y_true.ndim > 1 and y_true.shape[1] > 2:
         y_true = np.argmax(y_true, axis=1)
@@ -208,9 +208,9 @@ def binary_cerr_tf(y_true, y_pred, **kwargs):
 
 def timit_calc_error(y_true, y_pred, **kwargs):
     if not isinstance(y_true, np.ndarray):
-        y_true: np.ndarray = y_true.numpy()
+        y_true: np.ndarray = y_true.cpu().numpy()
     if not isinstance(y_pred, np.ndarray):
-        y_pred: np.ndarray = y_pred.numpy()
+        y_pred: np.ndarray = y_pred.cpu().numpy()
 
     if y_true.ndim > 1 and y_true.shape[1] > 2:
         y_true = np.argmax(np.sum(y_true.reshape((-1, 48, 3)), axis=2), axis=1)
@@ -240,7 +240,7 @@ ERROR_FN_TYPE = Callable[[Any, Any, Dict[str, Any]], Tuple[float, str]]
 
 ERROR_METRICS: Dict[Dataset, List[ERROR_FN_TYPE]] = {
     Dataset.TIMIT: [timit_calc_error],
-    Dataset.MILLIONSONGS: [ms_calc_mse, ms_calc_relerr],
+    Dataset.MILLIONSONGS: [ms_calc_relerr, ms_calc_mse],
     Dataset.HIGGS: [higgs_calc_auc, binary_cerr],
     Dataset.TAXI: [rmse_with_std],
     Dataset.YELP: [rmse],

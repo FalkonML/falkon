@@ -215,7 +215,7 @@ class GPTrainer():
                 if j % self.error_every == 0:
                     t_elapsed += time.time() - t_start
                     err, err_name = self.err_fn(y_batch.cpu(), self.model.likelihood(output).mean.detach().cpu())
-                    print('Epoch %d, iter %d/%d - Elapsed %.1fs - Loss: %.3f - %s: %.3f' %
+                    print('Epoch %d, iter %d/%d - Elapsed %.1fs - Loss: %.3f - %s: %.7f' %
                           (epoch + 1, j, len(train_loader), t_elapsed, loss.item(), err_name, err), flush=True)
                     t_start = time.time()
             t_elapsed += time.time() - t_start  # t_start will be reset at the start of the loop
