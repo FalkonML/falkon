@@ -26,6 +26,7 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
         if is_f_contig(v, strict=False):
             # We can just make a copy of v
             vF.copy_(v)
+            s.synchronize()  # sync is necessary here for correctness. Not sure why!
         else:
             vF = cuda_transpose(input=v, output=vF.T).T
 
@@ -33,10 +34,10 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
         trans = 'T' if transpose else 'N'
         trsm_fn(cublas_hdl, side='L', uplo=uplo, trans=trans, diag='N', m=vF.shape[0], n=vF.shape[1],
                 alpha=alpha, A=A.data_ptr(), lda=A.stride(1), B=vF.data_ptr(), ldb=vF.stride(1))
-        if not is_f_contig(v, strict=False):
+        if is_f_contig(v, strict=False):
+            vout = vF
+        else:
             vout = create_C(v.size(), v.dtype, v.device)
             vout = cuda_transpose(input=vF, output=vout.T).T
-        else:
-            vout = vF
         s.synchronize()
     return vout

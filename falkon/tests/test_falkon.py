@@ -40,6 +40,8 @@ class TestFalkon:
     def test_classif(self, cls_data):
         X, Y = cls_data
         kernel = kernels.GaussianKernel(2.0)
+        torch.manual_seed(13)
+        np.random.seed(13)
 
         def error_fn(t, p):
             return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
@@ -146,6 +148,8 @@ class TestIncoreFalkon:
         Xc = X.cuda()
         Yc = Y.cuda()
         kernel = kernels.GaussianKernel(2.0)
+        torch.manual_seed(13)
+        np.random.seed(13)
 
         def error_fn(t, p):
             return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
@@ -162,3 +166,4 @@ class TestIncoreFalkon:
         assert cpreds.device == Xc.device
         err = error_fn(cpreds, Yc)[0]
         assert err < 5
+
