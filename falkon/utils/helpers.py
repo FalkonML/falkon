@@ -100,7 +100,7 @@ def select_dim_over_d(maxD, maxN, coef_nd, coef_n, coef_d, rest, tot):
 
     n, d = int(n), int(d)
     if n <= 0 or d <= 0:
-        raise RuntimeError("Available memory %.2fMB is not enough." % ((tot + rest) / 2**20))
+        raise MemoryError("Available memory %.2fMB is not enough." % ((tot + rest) / 2**20))
     return n, d
 
 
@@ -128,7 +128,7 @@ def select_dim_over_m(maxM, maxN, coef_nm, coef_n, coef_m, tot, rest=0):
 
     n, m = int(n), int(m)
     if n <= 0 or m <= 0:
-        raise RuntimeError("Available memory %.2fMB is not enough." % (tot / 2**20))
+        raise MemoryError("Available memory %.2fMB is not enough." % (tot / 2**20))
     return n, m
 
 
