@@ -3,7 +3,7 @@ if [ ! -d logs ]; then
     mkdir logs
 fi
 
-export CUDA_VISIBLE_DEVICES="0"
+export CUDA_VISIBLE_DEVICES="1"
 
 # Prepare conda
 CONDA_BASE=$(conda info --base)
@@ -46,27 +46,28 @@ fi
 # GPytorch
 if [ true = true ]; then
 	ALGO="gpytorch-reg"
-	M=2000
-	VAR="diag"
-	BATCH_SIZE=4096
-	LR=0.002
+	M=3000
+	VAR="full"
+	BATCH_SIZE=12000
+	LR=0.01
+    NATGRAD_LR=0.00
 	EPOCHS=20
 	OUTFILE="logs/${DSET}_${ALGO}_${M}_${VAR}.txt"
 	conda activate torch
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 7 -e $EPOCHS --seed 12 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 7 -e $EPOCHS --seed 12 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 7 -e $EPOCHS --seed 13 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 7 -e $EPOCHS --seed 13 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 7 -e $EPOCHS --seed 14 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 7 -e $EPOCHS --seed 14 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 7 -e $EPOCHS --seed 15 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 7 -e $EPOCHS --seed 15 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 7 -e $EPOCHS --seed 16 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 7 -e $EPOCHS --seed 16 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	conda deactivate
 fi
@@ -77,16 +78,18 @@ if [ false = true ]; then
 	M=3000
 	VAR="diag"
 	BATCH_SIZE=16000
-	EPOCHS=1500
+	EPOCHS=3000
 	ERROR_EVERY=32
-	LR=0.002
+	LR=0.008
+    TYPE="float64"
 	OUTFILE="logs/${DSET}_${ALGO}_${M}_${VAR}.txt"
 	conda activate gpflow
 	echo "Running ${ALGO} on ${DSET} data, log will be saved in ${OUTFILE}"
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-				--var-dist ${VAR} --sigma 5 --batch-size $BATCH_SIZE --learn-hyperparams \
+				--var-dist ${VAR} --sigma 5 -t $TYPE --batch-size $BATCH_SIZE --learn-hyperparams \
 				--lr $LR --natgrad-lr 0.000 --epochs $EPOCHS --error-every $ERROR_EVERY \
 				--seed 12 2>&1 | tee -a $OUTFILE
+    exit 1
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
 				--var-dist ${VAR} --sigma 5 --batch-size $BATCH_SIZE --learn-hyperparams \
 				--lr $LR --natgrad-lr 0.000 --epochs $EPOCHS --error-every $ERROR_EVERY \
