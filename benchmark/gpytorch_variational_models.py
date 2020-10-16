@@ -5,7 +5,7 @@ import torch
 import gpytorch
 from gpytorch.models import ApproximateGP
 from gpytorch.variational import CholeskyVariationalDistribution
-from gpytorch.variational import VariationalStrategy, UnwhitenedVariationalStrategy
+from gpytorch.variational import VariationalStrategy
 
 __all__ = ("get_rbf_kernel", "RegressionVGP", "TwoClassVGP", "MultiClassVGP")
 
@@ -43,7 +43,7 @@ def _choose_var_strat(model, var_strat, var_dist, ind_pt, learn_ind=True, num_cl
             num_tasks=num_classes, task_dim=0,
         )
     else:
-        return UnwhitenedVariationalStrategy(model, ind_pt, var_dist, learn_inducing_locations=learn_ind)
+        return VariationalStrategy(model, ind_pt, var_dist, learn_inducing_locations=learn_ind)
 
 
 def get_rbf_kernel(ard=None, batch_shape=1):
@@ -189,9 +189,9 @@ class GPTrainer():
         # Define dataset iterators
         train_dataset = torch.utils.data.TensorDataset(Xtr, Ytr)
         if self.mb_size == 1:
-            train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=True, num_workers=8)
+            train_loader = torch.utils.data.DataLoader(train_dataset, shuffle=True, num_workers=0)
         else:
-            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.mb_size, shuffle=True, num_workers=8)
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.mb_size, shuffle=True, num_workers=0)
 
         # Start training
         t_elapsed = 0
