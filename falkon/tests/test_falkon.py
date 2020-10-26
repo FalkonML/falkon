@@ -172,4 +172,3 @@ class TestIncoreFalkon:
         assert cpreds.device == Xc.device
         err = error_fn(cpreds, Yc)[0]
         assert err < 5
-

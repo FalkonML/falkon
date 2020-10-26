@@ -77,6 +77,7 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
         potrf_fn(handle=cusolver_handle,
                  uplo=uplo, n=n, A=Agpu.data_ptr(), lda=n,
                  workspace=potrf_wspace.data_ptr(), Lwork=potrf_bsize, devInfo=dev_info)
+        torch.cuda.synchronize()
 
         # Copy back to CPU
         if not A.is_cuda:
