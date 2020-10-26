@@ -108,11 +108,12 @@ def get_extensions():
     # Cyblas helpers
     file_ext = '.pyx' if WITH_CYTHON else '.c'
     cyblas_compile_args = [
-        '-shared', '-fPIC', '-fopenmp', '-O3', '-Wall']
+        '-shared', '-fPIC', '-fopenmp', '-O3', '-Wall', '-std=c99']
     cyblas_ext = [Extension('falkon.la_helpers.cyblas',
                             sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
                             include_dirs=[numpy.get_include()],
                             extra_compile_args=cyblas_compile_args,
+                            #define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
                             extra_link_args=['-fPIC', '-fopenmp', '-s'])]
     if WITH_CYTHON:
         cyblas_ext = cythonize(cyblas_ext)
