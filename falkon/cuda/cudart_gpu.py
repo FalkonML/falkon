@@ -347,6 +347,7 @@ def cuda_memcpy2d_async(dst, dpitch, src, spitch, width, height, stream):
 _libcudart.cudaMemcpyAsync.restype = c_int
 _libcudart.cudaMemcpyAsync.argtypes = [c_void_p, c_void_p, c_size_t, c_int, c_void_p]
 
+
 def cuda_memcpy_async(dst, src, count, kind, stream):
     status = _libcudart.cudaMemcpyAsync(dst, src, c_size_t(count), kind, stream)
     cuda_check_status(status)

@@ -5,7 +5,8 @@ import numpy as np
 import torch
 
 __all__ = (
-    "create_same_stride", "copy_same_stride",
+    "create_same_stride", "copy_same_stride", "extract_same_stride",
+    "extract_fortran", "extract_C",
     "create_fortran", "create_C", "is_f_contig", "is_contig",
     "cast_tensor", "move_tensor",
 )
@@ -28,6 +29,40 @@ def _new_strided_tensor(
         dtype=dtype, device=device,
         requires_grad=False,
         pin_memory=pin_memory)
+
+
+def extract_fortran(from_tns: torch.Tensor,
+                    size: Union[Tuple[int, int], Tuple[int]],
+                    offset: int) -> torch.Tensor:
+    if len(size) == 1:
+        stride = (1,)
+    elif len(size) == 2:
+        stride = (1, size[0])
+    else:
+        raise ValueError("extract_fortran can only extract 1 or 2D tensors.")
+    return from_tns.as_strided(size=size, stride=stride, storage_offset=offset)
+
+
+def extract_C(from_tns: torch.Tensor,
+              size: Union[Tuple[int, int], Tuple[int]],
+              offset: int) -> torch.Tensor:
+    if len(size) == 1:
+        stride = (1,)
+    elif len(size) == 2:
+        stride = (size[1], 1)
+    else:
+        raise ValueError("extract_C can only extract 1 or 2D tensors.")
+    return from_tns.as_strided(size=size, stride=stride, storage_offset=offset)
+
+
+def extract_same_stride(from_tns: torch.Tensor,
+                        size: Union[Tuple[int, int], Tuple[int]],
+                        other: torch.Tensor,
+                        offset: int = 0) -> torch.Tensor:
+    if is_f_contig(other, strict=True):
+        return extract_fortran(from_tns, size, offset)
+    else:
+        return extract_C(from_tns, size, offset)
 
 
 def create_same_stride(size: Union[Tuple[int, int], Tuple[int]],

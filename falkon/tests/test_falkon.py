@@ -37,6 +37,12 @@ def reg_data():
 
 
 class TestFalkon:
+    def test_no_opt(self):
+        kernel = kernels.GaussianKernel(2.0)
+        Falkon(
+            kernel=kernel, penalty=1e-6, M=500, center_selection='uniform', options=None,
+        )
+
     def test_classif(self, cls_data):
         X, Y = cls_data
         kernel = kernels.GaussianKernel(2.0)
@@ -166,4 +172,3 @@ class TestIncoreFalkon:
         assert cpreds.device == Xc.device
         err = error_fn(cpreds, Yc)[0]
         assert err < 5
-
