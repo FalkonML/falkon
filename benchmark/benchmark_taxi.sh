@@ -25,7 +25,7 @@ if [ true = false ]; then
 fi
 
 # Falkon 32
-if [ true = true ]; then
+if [ false = true ]; then
     ALGO="falkon"
     M=100000
     TYPE="float32"
@@ -45,23 +45,24 @@ if [ true = true ]; then
 fi
 
 # GPytorch
-if [ false = true ]; then
+if [ true = true ]; then
     ALGO="gpytorch-reg"
-    M=500
-    VAR="diag"
+    M=1000
+    VAR="natgrad"
     OUTFILE="logs/${DSET}_${ALGO}_${M}_${VAR}.txt"
-    BATCH_SIZE=16000
-    LR=0.001
+    BATCH_SIZE=32000
+    LR=0.002
+    NATGRAD_LR=0.002
     EPOCHS=5
     conda activate torch
+    #PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
+	#    --batch-size $BATCH_SIZE --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 1 \
+	#    --epochs $EPOCHS --learn-hyperparams --seed 12 2>&1 | tee -a $OUTFILE
     PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-	    --batch-size $BATCH_SIZE --var-dist $VAR --lr $LR --sigma 1 \
-	    --epochs $EPOCHS --learn-hyperparams --seed 12 2>&1 | tee -a $OUTFILE
-    PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-	    --batch-size $BATCH_SIZE --var-dist $VAR --lr $LR --sigma 1 \
+	    --batch-size $BATCH_SIZE --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 1 \
 	    --epochs $EPOCHS --learn-hyperparams --seed 13 2>&1 | tee -a $OUTFILE
     PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-	    --batch-size $BATCH_SIZE --var-dist $VAR --lr $LR --sigma 1 \
+	    --batch-size $BATCH_SIZE --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 1 \
 	    --epochs $EPOCHS --learn-hyperparams --seed 14 2>&1 | tee -a $OUTFILE
     conda deactivate
 fi

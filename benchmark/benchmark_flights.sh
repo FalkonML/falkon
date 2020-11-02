@@ -35,35 +35,36 @@ if [ false = true ]; then
 fi
 
 # GPytorch
-if [ true = true ]; then
+if [ true = false ]; then
 	ALGO="gpytorch-reg"
-	M=1000
-	VAR="diag"
-	BATCH_SIZE=8000
-	LR=0.01
-	EPOCHS=20
+	M=2000
+	VAR="natgrad"
+	BATCH_SIZE=16000
+	LR=0.005
+    NATGRAD_LR=0.005
+	EPOCHS=30
 	OUTFILE="logs/${DSET}_${ALGO}_${M}_${VAR}.txt"
 	conda activate torch
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 0.9 -e $EPOCHS --seed 12 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 0.9 -e $EPOCHS --seed 12 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 0.9 -e $EPOCHS --seed 13 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 0.9 -e $EPOCHS --seed 13 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 0.9 -e $EPOCHS --seed 14 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 0.9 -e $EPOCHS --seed 14 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 0.9 -e $EPOCHS --seed 15 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 0.9 -e $EPOCHS --seed 15 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M --batch-size $BATCH_SIZE \
-          --var-dist $VAR --lr $LR --sigma 0.9 -e $EPOCHS --seed 16 \
+          --var-dist $VAR --lr $LR --natgrad-lr $NATGRAD_LR --sigma 0.9 -e $EPOCHS --seed 16 \
           --learn-hyperparams 2>&1 | tee -a $OUTFILE
 	conda deactivate
 fi
 
 # GPFlow
-if [ false = true ]; then
+if [ true = true ]; then
 	ALGO="gpflow-reg"
 	M=2000
 	VAR="diag"

@@ -53,7 +53,7 @@ class TrainableSVGP():
         if self.do_classif:
             self.num_classes = int(classif)
         self.model = None
-        self.whiten = False
+        self.whiten = True
         self.var_dist = var_dist
 
     def fit(self, X, Y, Xval, Yval):
@@ -82,7 +82,7 @@ class TrainableSVGP():
                 Y = np.argmax(Y, 1).reshape((-1,1)).astype(int)
         else:
             num_latent = 1
-            likelihood = gpflow.likelihoods.Gaussian()
+            likelihood = gpflow.likelihoods.Gaussian(variance=0.1)
 
         self.model = SVGP(
             kernel=self.kernel,
@@ -125,11 +125,16 @@ class TrainableSVGP():
 
         loss = self.model.training_loss_closure(train_iter)
         t_elapsed = 0
-        for step in range(self.num_iter):
-            t_s = time.time()
+
+        @tf.function
+        def step_fn():
             adam_opt.minimize(loss, var_list=self.model.trainable_variables)
             if self.natgrad_lr > 0:
                 natgrad_opt.minimize(loss, var_list=variational_params)
+
+        for step in range(self.num_iter):
+            t_s = time.time()
+            step_fn()
             t_elapsed += time.time() - t_s
             if step % 700 == 0:
                 print("Step %d -- Elapsed %.2fs" % (step, t_elapsed), flush=True)

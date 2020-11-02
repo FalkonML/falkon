@@ -31,9 +31,10 @@ np.random.seed(RANDOM_SEED)
 
 def run(exp_num, dset, show_intermediate_errors: bool = False):
     opt = falkon.FalkonOptions(
-        lauum_par_blk_multiplier=16, debug=True,
+        chol_par_blk_multiplier=2, debug=True,
         pc_epsilon_32=1e-6, pc_epsilon_64=1e-13,
-        compute_arch_speed=False)
+        compute_arch_speed=False,
+        num_fmm_streams=2, no_single_kernel=False)
     params = {
         'seed': 12,
         'kernel': kernels.GaussianKernel(3.8),
@@ -59,6 +60,7 @@ def run(exp_num, dset, show_intermediate_errors: bool = False):
     else:
         raise ValueError("exp num %d not valid" % (exp_num))
     data = load_data(dset, data_type=dtype)
+    torch.cuda.init()
     initialization.init(opt)
     print("\n\n --- Running Experiment %d -- %s" % (exp_num, opt))
     data = list(data)

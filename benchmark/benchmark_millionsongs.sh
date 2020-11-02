@@ -24,7 +24,7 @@ if [ true = false ]; then
 	conda deactivate
 fi
 
-if [ true = false ]; then
+if [ true = true ]; then
 	ALGO="falkon"
 	M=50000
 	TYPE="float32"
@@ -47,10 +47,10 @@ fi
 if [ true = true ]; then
 	ALGO="gpytorch-reg"
 	M=3000
-	VAR="full"
-	BATCH_SIZE=12000
-	LR=0.01
-    NATGRAD_LR=0.00
+	VAR="natgrad"
+	BATCH_SIZE=16000
+	LR=0.002
+    NATGRAD_LR=0.002
 	EPOCHS=20
 	OUTFILE="logs/${DSET}_${ALGO}_${M}_${VAR}.txt"
 	conda activate torch
@@ -73,15 +73,15 @@ if [ true = true ]; then
 fi
 
 # GPFlow
-if [ false = true ]; then
+if [ true = false ]; then
 	ALGO="gpflow-reg"
 	M=3000
 	VAR="diag"
 	BATCH_SIZE=16000
-	EPOCHS=3000
-	ERROR_EVERY=32
-	LR=0.008
-    TYPE="float64"
+	EPOCHS=3500
+	ERROR_EVERY=100
+	LR=0.004
+    TYPE="float32"
 	OUTFILE="logs/${DSET}_${ALGO}_${M}_${VAR}.txt"
 	conda activate gpflow
 	echo "Running ${ALGO} on ${DSET} data, log will be saved in ${OUTFILE}"

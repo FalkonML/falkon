@@ -4,7 +4,7 @@ if [ ! -d logs ]; then
 fi
 
 # Prepare GPU
-export CUDA_VISIBLE_DEVICES="0"
+export CUDA_VISIBLE_DEVICES="1"
 
 # Prepare conda
 CONDA_BASE=$(conda info --base)
@@ -46,14 +46,15 @@ if [ true = false ]; then
 	conda deactivate
 fi
 
-if [ true = false ]; then
+if [ true = true ]; then
 	conda activate torch
 	ALGO="falkon"
 	M=30000
 	TYPE="float32"
 	OUTFILE="logs/${DSET}_${ALGO}_${M}_${TYPE}.txt"
-	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -e 20 --sigma 3.0 --penalty 1e-6 \
+	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -e 20 --sigma 3.5 --penalty 5e-7 \
 					    -M $M -t $TYPE --kernel gaussian --seed 12 2>&1 | tee -a $OUTFILE
+    exit 1;
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -e 20 --sigma 3.0 --penalty 1e-6 \
 					    -M $M -t $TYPE --kernel gaussian --seed 13 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -e 20 --sigma 3.0 --penalty 1e-6 \
@@ -66,34 +67,36 @@ if [ true = false ]; then
 fi
 
 # GPytorch
-if [ true = true ]; then
+if [ false = true ]; then
 	ALGO="gpytorch-cls"
 	M=1000
-	VAR="diag"
+	VAR="tril_natgrad"
 	OUTFILE="logs/${DSET}_${ALGO}_${M}_${VAR}.txt"
-	BATCH_SIZE=8000
+	BATCH_SIZE=16000
 	LR=0.002
+    NATGRAD_LR=0.002
+    EPOCHS=13
 	conda activate torch
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-				--lr $LR --batch-size $BATCH_SIZE --learn-hyperparams \
-				--var-dist $VAR --sigma 5 -e 10 --seed 12 2>&1 | tee -a $OUTFILE
+				--lr $LR --natgrad-lr $NATGRAD_LR --batch-size $BATCH_SIZE --learn-hyperparams \
+				--var-dist $VAR --sigma 5 -e $EPOCHS --seed 12 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-				--lr $LR --batch-size $BATCH_SIZE --learn-hyperparams \
-				--var-dist $VAR --sigma 5 -e 10 --seed 13 2>&1 | tee -a $OUTFILE
+				--lr $LR --natgrad-lr $NATGRAD_LR --batch-size $BATCH_SIZE --learn-hyperparams \
+				--var-dist $VAR --sigma 5 -e $EPOCHS --seed 13 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-				--lr $LR --batch-size $BATCH_SIZE --learn-hyperparams \
-				--var-dist $VAR --sigma 5 -e 10 --seed 14 2>&1 | tee -a $OUTFILE
+				--lr $LR --natgrad-lr $NATGRAD_LR --batch-size $BATCH_SIZE --learn-hyperparams \
+				--var-dist $VAR --sigma 5 -e $EPOCHS --seed 14 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-				--lr $LR --batch-size $BATCH_SIZE --learn-hyperparams \
-				--var-dist $VAR --sigma 5 -e 10 --seed 15 2>&1 | tee -a $OUTFILE
+				--lr $LR --natgrad-lr $NATGRAD_LR --batch-size $BATCH_SIZE --learn-hyperparams \
+				--var-dist $VAR --sigma 5 -e $EPOCHS --seed 15 2>&1 | tee -a $OUTFILE
 	PYTHONPATH='..' python $PY_LAUNCHER -a $ALGO -d $DSET -M $M \
-				--lr $LR --batch-size $BATCH_SIZE --learn-hyperparams \
-				--var-dist $VAR --sigma 5 -e 10 --seed 16 2>&1 | tee -a $OUTFILE
+				--lr $LR --natgrad-lr $NATGRAD_LR --batch-size $BATCH_SIZE --learn-hyperparams \
+				--var-dist $VAR --sigma 5 -e $EPOCHS --seed 16 2>&1 | tee -a $OUTFILE
 	conda deactivate
 fi
 
 # GPFlow
-if [ true = false ]; then
+if [ false = true ]; then
 	ALGO="gpflow-cls"
 	M=2000
 	VAR="diag"
