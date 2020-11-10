@@ -7,7 +7,7 @@ from setuptools import setup, find_packages, Extension
 try:
     import torch
 except ImportError:
-    raise ImportError("pytorch must be installed to setup Falkon.")
+    raise ImportError("pytorch must be pre-installed to setup Falkon.")
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CUDA_HOME, CppExtension
 WITH_CUDA = torch.cuda.is_available() and CUDA_HOME is not None
 
@@ -131,6 +131,9 @@ install_requires = [
 ]
 test_requires = [
     'pytest',
+    'pytest-cov',
+    'coverage',
+    'numpydoc',
     'sphinx',
     'nbsphinx',
     'sphinx-rtd-theme',
@@ -139,6 +142,9 @@ test_requires = [
     'jupyter',
     # TODO: I'm sure there is more
 ]
+extras = {
+    'test': test_requires
+}
 
 setup(
     name="falkon",
@@ -151,11 +157,12 @@ setup(
         'numpy',
     ],
     tests_require=test_requires,
+    extras_require=extras,
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={
         'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=False)
     },
     install_requires=install_requires,
-    include_package_data=True,
+    include_package_data=True,  # Since we have a MANIFEST.in this will take all from there.
 )
