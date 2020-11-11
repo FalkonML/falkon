@@ -1,36 +1,71 @@
 pipeline {
     agent {
-        docker {
-            // Important to use the `devel` version since the `runtime` version does not include e.g. compilers.
-            image 'pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel'
-            args '--user 0:0 --gpus all'
+        dockerfile {
+            args '--user 0:0'
         }
-    }
-    environment {
-        DISABLE_AUTH = 'true'
-        DB_ENGINE    = 'sqlite'
     }
     stages {
-        stage('test-cuda') {
-            steps {
-                sh """ python -c "import torch; device = torch.device('cuda' if torch.cuda.is_available() else 'cpu'); print('Using device:', device); torch.rand(10).to(device)" """
-            }
-        }
-        stage('download-dependencies') {
-            steps {
-                sh 'pip install pytest pytest-cov coverage numpydoc flake8 codecov'
-            }
-        }
+        boolean test_passed = true
+        boolean flake8_passed = true
         stage('build') {
+            when {
+                expression {
+                    GIT_BRANCH = 'origin/' + sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                    return !(GIT_BRANCH ==~ /(?i)\[skip ci\]/)
+                }
+            }
             steps {
-                sh 'pip install --editable ./keops/'
-                sh 'pip install --verbose --editable .[test]'
+                sh 'pip install --no-cache-dir --editable ./keops/'
+                // Need editable in order for docs to build correctly
+                sh 'pip install --no-cache-dir -v --editable .[test,doc]'
             }
         }
         stage('test') {
+            when {
+                expression {
+                    GIT_BRANCH = 'origin/' + sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                    return !(GIT_BRANCH ==~ /(?i)\[skip ci\]/)
+                }
+            }
             steps {
-                sh 'pytest --cov-report=term-missing --cov=falkon --cov-config setup.cfg'
-                sh 'flake8 --count falkon'
+                try {
+                    sh 'pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg'
+                } catch (Exception e) {
+                    test_passed = false
+                    error "Tests failed"
+                }
+                try {
+                    sh 'flake8 --count falkon'
+                } catch (Exception e) {
+                    flake8_passed = false
+                    error "Flake8 failed"
+                }
+            }
+            post {
+                always {
+                    junit 'junit.xml'
+                    withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+                        sh 'curl -s https://codecov.io/bash | bash -s -- -c -f coverage.xml -t $CODECOV_TOKEN'
+                    }
+                }
+            }
+        }
+        stage('build-docs') {
+            when {
+                expression {
+                    GIT_BRANCH = 'origin/' + sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                    return !(GIT_BRANCH ==~ /(?i)\[skip ci\]/)
+                }
+            }
+            steps {
+                withCredentials([string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
+                    sh "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset"
+                    sh 'git remote set-url origin https://Giodiro:${GIT_TOKEN}@github.com/FalkonML/falkon.git'
+                    sh '''
+                    cd ./doc
+                    make clean && make html && make install
+                    '''
+                }
             }
         }
     }

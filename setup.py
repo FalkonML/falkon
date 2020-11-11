@@ -120,7 +120,7 @@ def get_extensions():
     extensions.extend(cyblas_ext)
     return extensions
 
-
+# Requirements -- TODO: We also have requirements.txt files lying around which are out of sync.
 install_requires = [
     'torch>=1.4',
     'scipy',
@@ -130,20 +130,28 @@ install_requires = [
     'dataclasses;python_version<"3.7"',
 ]
 test_requires = [
+    'pandas',
     'pytest',
     'pytest-cov',
     'coverage',
+    'codecov',
+    'flake8',
+]
+doc_requires = [
+    'pandas',
     'numpydoc',
     'sphinx',
     'nbsphinx',
     'sphinx-rtd-theme',
-    'pandas',
     'matplotlib',
     'jupyter',
-    # TODO: I'm sure there is more
+    'ghp-import',
+    # There is also pandoc O.o
 ]
+
 extras = {
-    'test': test_requires
+    'test': test_requires,
+    'doc': doc_requires
 }
 
 setup(
@@ -161,7 +169,7 @@ setup(
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={
-        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=False)
+        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=True)
     },
     install_requires=install_requires,
     include_package_data=True,  # Since we have a MANIFEST.in this will take all from there.
