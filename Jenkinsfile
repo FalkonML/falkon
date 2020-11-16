@@ -1,3 +1,5 @@
+boolean test_passed = true
+boolean flake8_passed = true
 pipeline {
     agent {
         dockerfile {
@@ -5,8 +7,6 @@ pipeline {
         }
     }
     stages {
-        boolean test_passed = true
-        boolean flake8_passed = true
         stage('build') {
             when {
                 expression {
