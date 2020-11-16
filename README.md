@@ -1,4 +1,3 @@
-[![](https://travis-ci.org/FalkonML/falkon.svg?branch=master)](https://travis-ci.org/github/FalkonML/falkon)
 [![](https://codecov.io/gh/FalkonML/falkon/branch/master/graphs/badge.svg?branch=master)](https://codecov.io/gh/FalkonML/falkon/)
 
 # Falkon
