@@ -1,5 +1,3 @@
-boolean test_passed = true
-boolean flake8_passed = true
 pipeline {
     agent {
         dockerfile {
@@ -28,18 +26,8 @@ pipeline {
                 }
             }
             steps {
-                try {
-                    sh 'pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg'
-                } catch (Exception e) {
-                    test_passed = false
-                    error "Tests failed"
-                }
-                try {
-                    sh 'flake8 --count falkon'
-                } catch (Exception e) {
-                    flake8_passed = false
-                    error "Flake8 failed"
-                }
+                sh 'pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg'
+                sh 'flake8 --count falkon'
             }
             post {
                 always {
