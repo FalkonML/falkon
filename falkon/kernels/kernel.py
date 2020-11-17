@@ -249,6 +249,7 @@ class Kernel(ABC):
 
         Examples
         --------
+        >>> import falkon, torch
         >>> k = falkon.kernels.GaussianKernel(sigma=2)  # You can substitute the Gaussian kernel by any other.
         >>> X1 = torch.randn(100, 3)
         >>> X2 = torch.randn(150, 3)
@@ -354,6 +355,7 @@ class Kernel(ABC):
 
         Examples
         --------
+        >>> import falkon, torch
         >>> k = falkon.kernels.GaussianKernel(sigma=2)  # You can substitute the Gaussian kernel by any other.
         >>> X1 = torch.randn(100, 3)  # N is 100, D is 3
         >>> X2 = torch.randn(150, 3)  # M is 150
