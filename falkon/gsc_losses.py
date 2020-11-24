@@ -7,7 +7,7 @@ import torch
 import falkon
 from falkon.options import FalkonOptions
 
-__all__ = ("Loss", "LogisticLoss")
+__all__ = ("Loss", "LogisticLoss", "WeightedCrossEntropyLoss")
 
 
 class Loss(ABC):
@@ -315,3 +315,32 @@ class LogisticLoss(Loss):
 
     def __repr__(self):
         return "LogisticLoss(kernel=%r)" % (self.kernel)
+    
+class WeightedCrossEntropyLoss(Loss):
+
+    def __init__(self, kernel: falkon.kernels.Kernel, weight: float, opt: FalkonOptions = FalkonOptions()):
+        super().__init__(name="WeightedCrossEntropy", kernel=kernel, opt=opt)
+        self.weight = weight
+
+    def __call__(self, true: torch.Tensor, pred: torch.Tensor) -> torch.Tensor:
+        
+        class1=true*torch.log(1 + torch.exp(-pred))
+        class0 =self.weight*(1 - true)*torch.log(1 + torch.exp(pred))        
+        
+        return (class1+class0)
+
+    def df(self, true: torch.Tensor, pred: torch.Tensor) -> torch.Tensor:
+
+        num = (true * self.weight - self.weight)*torch.exp(pred) + true
+        
+        den = torch.exp(pred) +1 
+
+        return -num/den
+
+    def ddf(self, true: torch.Tensor, pred: torch.Tensor) -> torch.Tensor:
+        num = ((self.weight - 1)*true - self.weight)*torch.exp(pred)
+        den = torch.pow((torch.exp(pred) + 1),2)
+        return -num/den
+
+    def __repr__(self):
+        return "WeightedCrossEntropy(kernel=%r)" % (self.kernel)
