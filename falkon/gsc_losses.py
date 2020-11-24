@@ -216,6 +216,9 @@ class Loss(ABC):
 class LogisticLoss(Loss):
     """Wrapper for the logistic loss, to be used in conjunction with the :class:`~falkon.models.LogisticFalkon` estimator.
 
+    Usage of this loss assumes a binary classification problem with labels -1 and +1. For different
+    choices of labels, see :class:`WeightedCrossEntropyLoss`.
+
     Parameters
     -----------
     kernel : falkon.kernels.kernel.Kernel
@@ -262,7 +265,7 @@ class LogisticLoss(Loss):
 
         .. math::
 
-            -y_1 / (1 + \exp{y_1 * y_2})
+            \dfrac{-y_1}{1 + \exp(y_1 * y_2)}
 
         Parameters
         ----------
@@ -289,7 +292,7 @@ class LogisticLoss(Loss):
 
         .. math::
 
-            y_1^2 \dfrac{1}{1 + \exp{-y_1 * y_2}} \dfrac{1}{1 + \exp{y_1 * y_2}}
+            y_1^2 \dfrac{1}{1 + \exp(-y_1 * y_2)} \dfrac{1}{1 + \exp(y_1 * y_2)}
 
 
         Parameters
@@ -304,7 +307,7 @@ class LogisticLoss(Loss):
         dd_loss
             The second derivative of the logistic loss, calculated between the two input vectors.
         """
-        out = torch.pow(y1, 2)
+        out = torch.square(y1)
         mul = y1 * y2
         mul.exp_()
 
@@ -315,32 +318,122 @@ class LogisticLoss(Loss):
 
     def __repr__(self):
         return "LogisticLoss(kernel=%r)" % (self.kernel)
-    
-class WeightedCrossEntropyLoss(Loss):
 
-    def __init__(self, kernel: falkon.kernels.Kernel, weight: float, opt: FalkonOptions = FalkonOptions()):
+
+class WeightedCrossEntropyLoss(Loss):
+    r"""Wrapper for the weighted binary cross-entropy loss, to be used with the :class:`~falkon.models.LogisticFalkon` estimator.
+
+    Using this loss assumes a binary classification problem with labels 0 and +1. Additionally,
+    this loss allows to place a different weight to samples belonging to one of the two classes
+    (see the `neg_weight` parameter).
+
+    Parameters
+    ---------
+    kernel : falkon.kernels.kernel.Kernel
+        The kernel function used for training a :class:`~falkon.models.LogisticFalkon` model
+    neg_weight: float
+        The weight to be assigned to samples belonging to the negative (0-labeled) class.
+        By setting `neg_weight` to 1, the classes are equally weighted and this loss is
+        equivalent to the :class:`~falkon.gsc_losses.LogisticLoss` loss, but with a different
+        choice of labels.
+    opt : FalkonOptions
+        Falkon options container. Will be passed to the kernel when computing kernel-vector
+        products.
+
+    Examples
+    --------
+
+    >>> k = falkon.kernels.GaussianKernel(3)
+    >>> wce_loss = WeightedCrossEntropyLoss(k)
+    >>> estimator = falkon.LogisticFalkon(k, [1e-4, 1e-4, 1e-4], [3, 3, 3], loss=wce_loss, M=100)
+
+    """
+    def __init__(self,
+                 kernel: falkon.kernels.Kernel,
+                 neg_weight: float,
+                 opt: Optional[FalkonOptions] = None):
         super().__init__(name="WeightedCrossEntropy", kernel=kernel, opt=opt)
-        self.weight = weight
+        self.neg_weight = neg_weight
 
     def __call__(self, true: torch.Tensor, pred: torch.Tensor) -> torch.Tensor:
-        
-        class1=true*torch.log(1 + torch.exp(-pred))
-        class0 =self.weight*(1 - true)*torch.log(1 + torch.exp(pred))        
-        
-        return (class1+class0)
+        r"""Compute the weighted BCE loss between two 1-dimensional tensors
+
+        The formula used is
+
+        .. math::
+
+            \mathrm{true} * \log(1 + e^{-\mathrm{pred}}) + w * (1 - \mathrm{true}) * \log(1 + e^{\mathrm{pred}})
+
+        Parameters
+        ----------
+        true
+            The label tensor. Must be 1D, with values 0 or 1.
+        pred
+            The prediction tensor. Must be 1D. These are "logits" so need not be scaled before
+            hand.
+
+        Returns
+        -------
+        loss
+            The weighted BCE loss between the two input vectors.
+        """
+        class1 = true * torch.log(1 + torch.exp(-pred))
+        class0 = self.neg_weight * (1 - true) * torch.log(1 + torch.exp(pred))
+
+        return (class1 + class0)
 
     def df(self, true: torch.Tensor, pred: torch.Tensor) -> torch.Tensor:
+        r"""Compute the derivative of the weighted BCE loss with respect to `pred`
 
-        num = (true * self.weight - self.weight)*torch.exp(pred) + true
-        
-        den = torch.exp(pred) +1 
+        The formula used is
 
-        return -num/den
+        .. math::
+
+            \dfrac{-(w * \mathrm{true} - w) * e^{\mathrm{pred}} - \mathrm{true}}{e^{\mathrm{pred}} + 1}
+
+        Parameters
+        ----------
+        true
+            The label tensor. Must be 1D
+        pred
+            The prediction tensor. Must be 1D
+
+        Returns
+        -------
+        d_loss
+            The derivative of the weighted BCE loss between the two input vectors.
+        """
+        exp_pred = torch.exp(pred)
+        num = true.mul(self.neg_weight).sub_(self.neg_weight).mul_(exp_pred).add_(true)
+        den = exp_pred.add_(1)
+        return (-num).div_(den)
 
     def ddf(self, true: torch.Tensor, pred: torch.Tensor) -> torch.Tensor:
-        num = ((self.weight - 1)*true - self.weight)*torch.exp(pred)
-        den = torch.pow((torch.exp(pred) + 1),2)
-        return -num/den
+        r"""Compute the second derivative of the weighted BCE loss with respect to `pred`
+
+        The formula used is
+
+        .. math::
+
+            \dfrac{-(\mathrm{true} * (w - 1) - w) * e^{\mathrm{pred}}}{(e^{\mathrm{pred}} + 1)^2}
+
+
+        Parameters
+        ----------
+        true
+            The label tensor. Must be 1D
+        pred
+            The prediction tensor. Must be 1D
+
+        Returns
+        -------
+        dd_loss
+            The second derivative of the weighted BCE loss between the two input vectors.
+        """
+        exp_pred = torch.exp(pred)
+        num = true.mul_(self.neg_weight - 1).sub_(self.neg_weight).mul_(exp_pred)
+        den = exp_pred.add_(1).square_()
+        return (-num).div_(den)
 
     def __repr__(self):
         return "WeightedCrossEntropy(kernel=%r)" % (self.kernel)
