@@ -289,7 +289,8 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
 
     def _transform(self, A) -> torch.Tensor:
         if self.gaussian_type == "single":
-            A.mul_(self.gamma)
+            gamma = self.gamma.to(A)
+            A.mul_(gamma)
             A.exp_()
             return A
         else:
