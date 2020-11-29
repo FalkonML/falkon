@@ -125,12 +125,11 @@ class TestGaussianKernel(AbstractKernelTester):
 
     @pytest.fixture(scope="class")
     def vector_sigma(self, single_sigma: float) -> torch.Tensor:
-        equiv_sigma = 1 / (single_sigma ** 2)
-        return torch.tensor([equiv_sigma] * d, dtype=torch.float64)
+        return torch.tensor([single_sigma] * d, dtype=torch.float64)
 
     @pytest.fixture(scope="class")
     def mat_sigma(self, vector_sigma: torch.Tensor) -> torch.Tensor:
-        return torch.diag(vector_sigma)
+        return torch.diag(1 / (vector_sigma ** 2))
 
     @pytest.fixture(scope="class")
     def exp_k(self, A: torch.Tensor, B: torch.Tensor, single_sigma: float) -> np.ndarray:
@@ -158,7 +157,7 @@ class TestGaussianKernel(AbstractKernelTester):
             _run_test(kernel, None, (A, B), out=None, rtol=self._RTOL[A.dtype], opt=opt)
 
         if cpu:
-            assert "size mismatch" in str(excinfo.value)
+            assert f"The size of tensor a ({d}) must match the size of tensor b ({d-1})" in str(excinfo.value)
         # If on GPU the 'size mismatch' message is in the base exception (since it's reraised
         # by PropagatingThread) but I'm not sure how to fetch it.
 

@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 24 22:09:33 2017
-
-@author: alessandro
-"""
 from dataclasses import dataclass
 from typing import Optional, Union
 
@@ -25,8 +20,8 @@ from falkon.utils.cuda_helpers import copy_to_device_noorder, copy_to_host_noord
 from falkon.utils.helpers import (
     calc_gpu_block_sizes,
     sizeof_dtype,
-    select_dim_over_d,
-    select_dim_over_m
+    select_dim_over_nd,
+    select_dim_over_nm_v2
 )
 from falkon.utils.tensor_helpers import (
     create_same_stride,
@@ -81,10 +76,9 @@ def sparse_fmmv(proc_idx, queue, device_id):
     # mmv_gpu  : N*T
     # v_gpu    : M*T
     # Other: GPU buffer
-    n, m = select_dim_over_m(
-        maxM=mtot, maxN=ntot, tot=avail_mem,
-        coef_nm=3, coef_n=2 + 2 * dtot * X1.density + T, coef_m=2 * dtot * X2.density + T, rest=dtot,
-    )
+    n, m = select_dim_over_nm_v2(max_n=ntot, max_m=mtot, coef_nm=3,
+                                 coef_n=2 + 2 * dtot * X1.density + T,
+                                 coef_m=2 * dtot * X2.density + T, rest=dtot, max_mem=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
     with tcd.device(ddev):
@@ -160,9 +154,11 @@ def generic_fmmv(proc_idx, queue, device_id):
     # ----------
     # total : n*d + n*(M+T) + d*M + M*T
     avail_mem = max_mem / sizeof_dtype(dtype)
-    n, d = select_dim_over_d(
-        maxD=dtot, maxN=ntot,
-        coef_nd=1, coef_n=M + T, coef_d=M, rest=M * T, tot=avail_mem)
+    extra_mem = kernel.extra_mem()
+    n, d = select_dim_over_nd(max_n=ntot, max_d=dtot, coef_nd=1 + extra_mem.get('nd', 0),
+                              coef_n=M + T + extra_mem.get('n', 0) + extra_mem.get('nm', 0) * M,
+                              coef_d=M + extra_mem.get('d', 0) + extra_mem.get('md', 0) * M,
+                              rest=M * T + extra_mem.get('m', 0), max_mem=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
     with tcd.device(ddev):
@@ -340,10 +336,11 @@ def generic_fdmmv(proc_idx, queue, device_id):
     if sizeof_dtype(dtype) == 4:
         avail_mem /= 2
     rest_coef = 2 * M * T if v is not None else M * T
-    n, d = select_dim_over_d(
-        maxD=D, maxN=N,
-        coef_nd=1, coef_n=M + T + 1, coef_d=M, rest=rest_coef + M, tot=avail_mem)
-
+    extra_mem = kernel.extra_mem()
+    n, d = select_dim_over_nd(max_n=N, max_d=D, coef_nd=1 + extra_mem.get('nd', 0),
+                              coef_n=M + T + 1 + extra_mem.get('n', 0) + extra_mem.get('nm', 0) * M,
+                              coef_d=M + extra_mem.get('d', 0) + extra_mem.get('md', 0) * M,
+                              rest=rest_coef + M + extra_mem.get('m', 0), max_mem=avail_mem)
     ddev = torch.device('cuda:%d' % int(device_id))
     with tcd.device(ddev):
         # First collect necessary memory
@@ -430,9 +427,8 @@ def distk_fmmv(proc_idx, queue, device_id):
     # -----------
     # total: n*m + n * (D + T) + m * (D + T) = R
     avail_mem = max_mem / sizeof_dtype(dtype)
-    n, m = select_dim_over_m(
-        maxM=M, maxN=N,
-        coef_nm=1.0, coef_n=D + T, coef_m=D + T, tot=avail_mem)
+    n, m = select_dim_over_nm_v2(max_n=N, max_m=M, coef_nm=1, coef_n=D + T, coef_m=D + T, rest=0,
+                                 max_mem=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
     with tcd.device(ddev):
@@ -518,10 +514,8 @@ def distk_fdmmv(proc_idx, queue, device_id):
     # total : n*d + M*d + n*(M + T + 1) + 2*M*T + M
     avail_mem = max_mem / sizeof_dtype(dtype)
     rest_coef = 2 * M * T if v is not None else M * T
-    n, d = select_dim_over_d(
-        maxD=D, maxN=N,
-        coef_nd=1, coef_n=M + T + 1, coef_d=M, rest=rest_coef + M, tot=avail_mem)
-
+    n, d = select_dim_over_nd(max_n=N, max_d=D, coef_nd=1, coef_n=M + T + 1, coef_d=M,
+                              rest=rest_coef + M, max_mem=avail_mem)
     ddev = torch.device('cuda:%d' % int(device_id))
     s1 = tcd.Stream(ddev)
     s2 = tcd.Stream(ddev)

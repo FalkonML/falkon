@@ -8,23 +8,30 @@ import torch.multiprocessing
 from falkon.sparse.sparse_tensor import SparseTensor
 
 
-__all__ = ("check_sparse", "select_dim_fMM", "check_same_device",
-           "select_dim_over_d", "select_dim_over_m", "calc_gpu_block_sizes", "choose_fn", "sizeof_dtype", "check_same_dtype",
-           )
-
-
-def check_sparse(*args: Union[torch.Tensor, SparseTensor]) -> List[bool]:
-    out = []
-    for t in args:
-        out.append(isinstance(t, SparseTensor))
-    return out
+__all__ = (
+    "select_dim_over_nm",
+    "select_dim_over_nd",
+    "select_dim_over_nm_v2",
+    "calc_gpu_block_sizes",
+    "choose_fn",
+    "sizeof_dtype",
+    "check_sparse",
+    "check_same_dtype",
+    "check_same_device",
+)
 
 
 def solve_quad(a, b, c):
+    if a == 0:
+        return float('inf')
     return (-b + math.sqrt(b ** 2 - 4 * a * c)) / (2 * a)
 
 
-def select_dim_fMM(max_n, max_m, d, max_mem, num_blocks):
+def solve_lin(b, c):
+    return - c / b
+
+
+def select_dim_over_nm(max_n, max_m, d, coef_nd, coef_md, coef_nm, coef_n, coef_m, rest, max_mem):
     """Finds the optimal values for `n` and `m` to fit in available memory.
 
     This function should be called for problems where the GPU needs to hold
@@ -39,12 +46,20 @@ def select_dim_fMM(max_n, max_m, d, max_mem, num_blocks):
         The maximum value for m (the second dimension of the problem)
     d : int
         The dimensionality of the data
+    coef_nd : float
+        How many n*d blocks need to be held in memory
+    coef_md : float
+        How many m*d blocks need to be held in memory
+    coef_nm : float
+        How many m*n blocks need to be held in memory
+    coef_n : float
+        How many n-dimensional vectors need to be held in memory
+    coef_m : float
+        How many m-dimensional vectors need to be held in memory
+    rest : float
+        additional bytes to be kept in memory
     max_mem : float
-        The amount of available memory in bytes. This is the main problem
-        constraint
-    num_blocks : int
-        How many of each block will we hold. Normally set to 1, but
-        for double-buffered problem set to 2.
+        The amount of available memory in bytes. This is the main problem constraint
 
     Returns
     -------
@@ -55,81 +70,77 @@ def select_dim_fMM(max_n, max_m, d, max_mem, num_blocks):
 
     Notes
     ------
-    We call `max_mem=k`, `num_blocks=l`
-    We look for solutions to: l*d*(n+m) + l*n*m = k
-    with the constraints n <= max_n, m <= max_m
-
     The equation gives a hyperbola. We intersect the hyperbola
     with a line from the origin, with the slope given by the ratio
     of max_m and max_n. We then solve a quadratic equation to find
     the intersection point.
     """
     fac = max_m / max_n
-    v_n = solve_quad(a=fac * num_blocks, b=(fac + 1) * num_blocks * d, c=-max_mem)
+
+    if coef_nm == 0 and (coef_nd == 0 and coef_md == 0 and coef_n == 0 and coef_m == 0):
+        v_n = max_n
+    elif coef_nm == 0:
+        v_n = solve_lin(b=d * (coef_nd + fac * coef_md) + coef_n + coef_m * fac,
+                        c=rest - max_mem)
+    else:
+        v_n = solve_quad(a=fac * coef_nm,
+                         b=d * (fac * coef_md + coef_nd) + fac * coef_m + coef_n,
+                         c=rest - max_mem)
     v_m = fac * v_n
 
-    out_n = min(v_n, max_n)
-    out_m = min(v_m, max_m)
+    out_n = int(min(v_n, max_n))
+    out_m = int(min(v_m, max_m))
+    if out_n <= 0 or out_m <= 0:
+        raise MemoryError("Available memory %.2fMB is not enough." % (max_mem / 2**20))
+    return out_n, out_m
 
-    return int(out_n), int(out_m)
 
-
-def select_dim_over_d(maxD, maxN, coef_nd, coef_n, coef_d, rest, tot):
+def select_dim_over_nd(max_n, max_d, coef_nd, coef_n, coef_d, rest, max_mem):
     """
     solves the problem, max n*d such that n <= maxN, d <= maxD and
     coef_nd*nd + coef_n*n + coef_d*d + rest <= tot
     """
-    tot = tot - rest
+    if coef_nd == 0 and (coef_n == 0 or coef_d == 0):  # One or 0 variables interesting
+        if coef_d == coef_n:
+            n, d = max_n, max_d
+        elif coef_n == 0:
+            n = max_n
+            d = (max_mem - rest) / coef_d
+        else:  # coef_d == 0
+            n = (max_mem - rest) / coef_n
+            d = max_d
+    else:  # Both variables are used. We solve assuming n == d
+        if coef_nd == 0:
+            x = solve_lin(b=coef_n + coef_d, c=rest - max_mem)
+        else:
+            try:
+                x = solve_quad(a=coef_nd, b=coef_n + coef_d, c=rest - max_mem)
+            except ValueError:  # Does not intersect x-axis.
+                x = -1
+        n = math.floor(min(max_n, x))
+        d = math.floor(min(max_d, x))
+        # If one of n, d reaches the max, try use up the remaining memory on the other one.
+        if d == max_d and n < max_n:
+            # Assume d fixed at maxD, and derive for the best value of n
+            n = (max_mem - rest - coef_d * d) / (coef_nd * d + coef_n)
+        elif d < max_d and n == max_n:
+            # Assume n fixed at maxN, and derive for the best value of d
+            d = (max_mem - rest - coef_n * n) / (coef_nd * n + coef_d)
 
-    if coef_nd == 0:
-        # We have a linear problem: coef_n*n + coef_d*d <= tot
-        # for now we just solve this in a bad way TODO
-        coef_nd = 1e-10
-
-    b = coef_n + coef_d
-    x = (-b + math.sqrt(b**2 + 4 * coef_nd * tot)) / (2 * coef_nd)
-    d = math.floor(min(maxD, x))
-    n = math.floor(min(maxN, x))
-
-    if d == maxD and n < maxN:
-        n = (tot - coef_d * d) / (coef_nd * d + coef_n)
-        n = min(maxN, n)
-    elif d < maxD and n == maxN:
-        d = (tot - coef_n * n) / (coef_nd * n + coef_d)
-        d = min(maxD, d)
-
-    n, d = int(n), int(d)
+    n = int(min(max_n, n))
+    d = int(min(max_d, d))
     if n <= 0 or d <= 0:
-        raise MemoryError("Available memory %.2fMB is not enough." % ((tot + rest) / 2**20))
+        raise MemoryError("Available memory %.2fMB is not enough." % (max_mem / 2 ** 20))
     return n, d
 
 
-def select_dim_over_m(maxM, maxN, coef_nm, coef_n, coef_m, tot, rest=0):
+def select_dim_over_nm_v2(max_n, max_m, coef_nm, coef_n, coef_m, rest, max_mem):
     """
     solves the problem, max n*m such that n <= maxN, m <= maxM and
     coef_nm*nm + coef_n*n + coef_m*m <= tot
     """
-    tot = tot - rest
-    # We consider x = m = n and solve the quadratic equation
-    b = coef_n + coef_m
-    x = (-b + math.sqrt(b**2 + 4 * coef_nm * tot)) / (2 * coef_nm)
-    m = math.floor(min(maxM, x))
-    n = math.floor(min(maxN, x))
-
-    # If one of the two n, m was capped at it's limit we want to
-    # recalculate the value of the other variable by solving the
-    # corresponding linear equation.
-    if m == maxM and n < maxN:
-        n = (tot - coef_m * m) / (coef_nm * m + coef_n)
-        n = min(maxN, n)
-    if n == maxN and m < maxM:
-        m = (tot - coef_n * n) / (coef_nm * n + coef_m)
-        m = min(maxM, m)
-
-    n, m = int(n), int(m)
-    if n <= 0 or m <= 0:
-        raise MemoryError("Available memory %.2fMB is not enough." % (tot / 2**20))
-    return n, m
+    return select_dim_over_nd(max_n=max_n, max_d=max_m, coef_nd=coef_nm, coef_n=coef_n, coef_d=coef_m,
+                              rest=rest, max_mem=max_mem)
 
 
 def calc_gpu_block_sizes(device_info, tot_size):
@@ -173,6 +184,13 @@ def sizeof_dtype(dtype: Union[torch.dtype, np.dtype, Type]) -> int:
         return 4
 
     raise TypeError("Dtype %s not valid" % (dtype))
+
+
+def check_sparse(*args: Union[torch.Tensor, SparseTensor]) -> List[bool]:
+    out = []
+    for t in args:
+        out.append(isinstance(t, SparseTensor))
+    return out
 
 
 def check_same_dtype(*args: Optional[Union[torch.Tensor, SparseTensor]]) -> bool:
