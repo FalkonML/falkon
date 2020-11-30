@@ -431,7 +431,7 @@ class WeightedCrossEntropyLoss(Loss):
             The second derivative of the weighted BCE loss between the two input vectors.
         """
         exp_pred = torch.exp(pred)
-        num = true.mul_(self.neg_weight - 1).sub_(self.neg_weight).mul_(exp_pred)
+        num = true.mul(self.neg_weight - 1).sub_(self.neg_weight).mul_(exp_pred)
         den = exp_pred.add_(1).square_()
         return (-num).div_(den)
 

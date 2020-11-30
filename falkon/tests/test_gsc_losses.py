@@ -14,6 +14,7 @@ def naive_bce(true, pred, weight):
 
 
 def derivative_test(diff_fn, loss, pred, true):
+    o_true, o_pred = true.clone(), pred.clone()
     exp = diff_fn(true, pred)
 
     exp_d = []
@@ -26,8 +27,14 @@ def derivative_test(diff_fn, loss, pred, true):
 
     pred = pred.detach()
     np.testing.assert_allclose(exp.detach().numpy(), loss(true, pred).detach().numpy())
+    np.testing.assert_allclose(o_true.detach(), true.detach())
+    np.testing.assert_allclose(o_pred.detach(), pred.detach())
     np.testing.assert_allclose([e.item() for e in exp_d], loss.df(true, pred).detach().numpy())
+    np.testing.assert_allclose(o_true.detach(), true.detach())
+    np.testing.assert_allclose(o_pred.detach(), pred.detach())
     np.testing.assert_allclose([e.item() for e in exp_dd], loss.ddf(true, pred).detach().numpy())
+    np.testing.assert_allclose(o_true.detach(), true.detach())
+    np.testing.assert_allclose(o_pred.detach(), pred.detach())
 
 
 def test_logistic_loss_derivative():
