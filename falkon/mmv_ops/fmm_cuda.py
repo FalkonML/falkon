@@ -1,26 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 24 22:09:33 2017
-
-@author: alessandro
-"""
 from dataclasses import dataclass
-from typing import Optional, Union
 from functools import partial
+from typing import Optional, Union
 
 import torch
 import torch.cuda as tcd
 
 import falkon
+from falkon.cuda.cudart_gpu import cuda_memcpy2d_async
 from falkon.mmv_ops.utils import *
 from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.cuda_helpers import copy_to_host_noorder, copy_to_host
-from falkon.cuda.cudart_gpu import cuda_memcpy2d_async
 from falkon.utils.helpers import (
-    select_dim_fMM, calc_gpu_block_sizes, sizeof_dtype,
-    select_dim_over_m
+    calc_gpu_block_sizes, sizeof_dtype,
+    select_dim_over_nm, select_dim_over_nm_v2,
 )
 from falkon.utils.tensor_helpers import create_same_stride, create_fortran, is_f_contig
 
@@ -55,9 +50,9 @@ def _sparse_fmm(proc_idx, queue, device_id):
     # X2_chunk : dtot + 2 * D * mtot * density (because is transposed)
     # sparse_out : ntot + 2 * ntot * mtot * density (assume density=1 here)
     # ker_gpu  : mtot * ntot
-    n, m = select_dim_over_m(
-        maxN=ntot, maxM=mtot, tot=avail_mem,
-        coef_nm=3, coef_m=2 * dtot * X2.density, coef_n=2 + 2 * dtot * X1.density, rest=dtot)
+    n, m = select_dim_over_nm_v2(max_n=ntot, max_m=mtot, coef_nm=3,
+                                 coef_n=2 + 2 * dtot * X1.density, coef_m=2 * dtot * X2.density,
+                                 rest=dtot, max_mem=avail_mem)
 
     tc_device = torch.device('cuda:%d' % (int(device_id)))
     with torch.cuda.device(tc_device):
@@ -118,11 +113,26 @@ def _generic_fmm(proc_idx, queue, device_id):
     # Choose block sizes n, m such that we won't run out of GPU memory
     ntot, d = X1.shape
     mtot = X2.shape[0]
+    extra_mem = kernel.extra_mem()
     if cuda_inputs and not change_dtype:
-        # No allocation will be performed, so no need to split at all!
-        n, m = ntot, mtot
+        # No allocation will be performed by us. Only in-kernel stuff.
+        n, m = select_dim_over_nm(max_n=ntot, max_m=mtot, d=d,
+                                  coef_nd=extra_mem.get('nd', 0),
+                                  coef_md=extra_mem.get('md', 0),
+                                  coef_nm=extra_mem.get('nm', 0),
+                                  coef_n=extra_mem.get('n', 0),
+                                  coef_m=extra_mem.get('m', 0),
+                                  rest=extra_mem.get('d', 0),
+                                  max_mem=avail_mem)
     else:
-        n, m = select_dim_fMM(max_n=ntot, max_m=mtot, d=d, max_mem=avail_mem, num_blocks=num_streams)
+        n, m = select_dim_over_nm(max_n=ntot, max_m=mtot, d=d,
+                                  coef_nd=num_streams * (extra_mem.get('nd', 0) + 1),
+                                  coef_md=num_streams * (extra_mem.get('md', 0) + 1),
+                                  coef_nm=num_streams * (extra_mem.get('nm', 0) + 1),
+                                  coef_n=extra_mem.get('n', 0),
+                                  coef_m=extra_mem.get('m', 0),
+                                  rest=extra_mem.get('d', 0),
+                                  max_mem=avail_mem)
 
     # Create streams
     streams = [tcd.Stream(device=tc_device) for _ in range(num_streams)]

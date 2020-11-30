@@ -8,7 +8,7 @@ from falkon.options import BaseOptions
 import falkon
 from falkon.mmv_ops.utils import _setup_opt, _get_cpu_ram
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.helpers import sizeof_dtype
+from falkon.utils.helpers import sizeof_dtype, select_dim_over_nm
 
 __all__ = ("fmm_cpu", "fmm_cpu_sparse")
 
@@ -47,21 +47,24 @@ def blockwise_fmm_cpu(
     # - batch_size * batch_size (chunk of distance matrix)
     # Hence x² + 2*D*x = M, where x=batch_size, M=max_mem
     max_mem /= 8
-    tmp = 2 * D
-    batch_size = (-tmp + np.sqrt(tmp ** 2 + 4 * max_mem)) / 2
-    batch_size = int(math.floor(batch_size))
-    if batch_size < 1:
-        raise MemoryError(("Available memory %.2fGB is insufficient "
-                           "for blockwise fMM.") % (max_mem / 2**30))
+    extra_mem = kernel.extra_mem()
+    n, m = select_dim_over_nm(max_n=N, max_m=M, d=D,
+                              coef_nd=extra_mem.get('nd', 0) + 1,
+                              coef_md=extra_mem.get('md', 0) + 1,
+                              coef_nm=extra_mem.get('nm', 0) + 1,
+                              coef_n=extra_mem.get('n', 0),
+                              coef_m=extra_mem.get('m', 0),
+                              rest=extra_mem.get('d', 0),
+                              max_mem=max_mem)
 
-    out_chunk = torch.empty((batch_size, batch_size), dtype=torch.float64, device='cpu')
+    out_chunk = torch.empty((n, m), dtype=torch.float64, device='cpu')
 
-    for i in range(0, N, batch_size):
-        len_i = min(N - i, batch_size)
+    for i in range(0, N, n):
+        len_i = min(N - i, n)
         X1_chunk = X1.narrow(0, i, len_i).to(dtype=torch.float64)
 
-        for j in range(0, M, batch_size):
-            len_j = min(M - j, batch_size)
+        for j in range(0, M, m):
+            len_j = min(M - j, m)
 
             if X1 is X2 and j < i:
                 # when X1 is X2 the distance matrix is symmetric so we only need
@@ -180,7 +183,7 @@ def fmm_cpu(
     """
     opt = _setup_opt(opt, is_cpu=True)
     ntot, dtot = X1.size()
-    mtot = X2.size(0)
+    mtot = X2.shape[0]
 
     if out is None:
         out = torch.empty(ntot, mtot, dtype=X1.dtype)

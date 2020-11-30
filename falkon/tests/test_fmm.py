@@ -15,9 +15,9 @@ from falkon.utils import decide_cuda
 
 
 # Global data dimensions
-n = 2000
+n = 2001
 m = 1500
-d = 10
+d = 11
 s_n = 500
 s_m = 550
 s_d = 20000

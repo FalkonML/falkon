@@ -1,7 +1,7 @@
 import dataclasses
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 
 from falkon.mmv_ops.fmm_cpu import fmm_cpu_sparse, fmm_cpu
 from falkon.mmv_ops.fmmv_cpu import fdmmv_cpu_sparse, fmmv_cpu_sparse, fmmv_cpu, fdmmv_cpu
@@ -544,6 +544,31 @@ class Kernel(ABC):
         """
         raise NotImplementedError("_apply_sparse not implemented for kernel %s" %
                                   (self.kernel_type))
+
+    def extra_mem(self) -> Dict[str, float]:
+        """Compute the amount of extra memory which will be needed when computing this kernel.
+
+        Often kernel computation needs some extra memory allocations. To avoid using too large
+        block-sizes which may lead to OOM errors, you should declare any such extra allocations
+        for your kernel here.
+
+        Indicate extra allocations as coefficients on the required dimensions. For example,
+        if computing a kernel needs to re-allocate the data-matrix (which is of size n * d),
+        the return dictionary will be: `{'nd': 1}`. Other possible coefficients are on `d`, `n`, `m`
+        which are respectively the data-dimension, the number of data-points in the first data
+        matrix and the number of data-points in the second matrix. Pairwise combinations of the
+        three dimensions are possible (i.e. `nd`, `nm`, `md`).
+        Make sure to specify the dictionary keys as is written here since they will not be
+        recognized otherwise.
+
+        Returns
+        -------
+        extra_allocs : dictionary
+            A dictionary from strings indicating on which dimensions the extra-allocation is
+            needed (allowed strings: `'n', 'm', 'd', 'nm', 'nd', 'md'`) to floating-point numbers
+            indicating how many extra-allocations are needed.
+        """
+        return {}
 
     def __str__(self):
         return f"<{self.name} kernel>"

@@ -2,12 +2,14 @@ import math
 from typing import Optional
 
 import torch
-from falkon.options import BaseOptions
 
 import falkon
 from falkon.mmv_ops.utils import _setup_opt, _get_cpu_ram
+from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.helpers import select_dim_over_d, sizeof_dtype, select_dim_over_m
+from falkon.utils.helpers import (
+    sizeof_dtype, select_dim_over_nd, select_dim_over_nm_v2
+)
 from falkon.utils.tensor_helpers import create_same_stride
 
 
@@ -33,9 +35,8 @@ def fmmv_cpu_sparse(X1: SparseTensor,
     # Prepare - not computable, depends on kernel
     # ker_chunk : n*m
     # finalize : 0 (if can be implemented in place, kernel-dependent)
-    n, m = select_dim_over_m(
-        maxM=mtot, maxN=ntot,
-        coef_nm=1, coef_n=1, coef_m=1, tot=avail_mem)
+    n, m = select_dim_over_nm_v2(max_n=ntot, max_m=mtot, coef_nm=1, coef_n=1, coef_m=1, rest=0,
+                                 max_mem=avail_mem)
 
     ker_chunk = create_same_stride((n, m), out, dtype, device='cpu')
     for i in range(0, ntot, n):
@@ -94,9 +95,11 @@ def fmmv_cpu(X1, X2, v, kernel, out, opt):
     avail_mem = _get_cpu_ram(opt, 0.95) / sizeof_dtype(dtype)
     # Only necessary memory allocation is that for the temporary kernel
     # `temp_out` of size n*M
-    n, d = select_dim_over_d(
-        maxD=dtot, maxN=ntot,
-        coef_nd=0, coef_n=M, coef_d=0, rest=0, tot=avail_mem)
+    extra_mem = kernel.extra_mem()
+    n, d = select_dim_over_nd(max_n=ntot, max_d=dtot, coef_nd=extra_mem.get('nd', 0),
+                              coef_n=M + extra_mem.get('n', 0) + extra_mem.get('nm', 0) * M,
+                              coef_d=extra_mem.get('d', 0) + extra_mem.get('md', 0) * M,
+                              rest=extra_mem.get('m', 0), max_mem=avail_mem)
 
     # Run batched matrix multiplication
     for i in range(0, ntot, n):
@@ -165,9 +168,11 @@ def fdmmv_cpu(X1, X2, v, w, kernel, out, opt):
     avail_mem = _get_cpu_ram(opt, 0.95) / sizeof_dtype(dtype)
     # The only necessary temporary matrices are: `temp_out` of size n*M and
     # temp_w_block of size n*T
-    n, d = select_dim_over_d(
-        maxD=dtot, maxN=ntot,
-        coef_nd=0, coef_n=M + T, coef_d=0, rest=0, tot=avail_mem)
+    extra_mem = kernel.extra_mem()
+    n, d = select_dim_over_nd(max_n=ntot, max_d=dtot, coef_nd=extra_mem.get('nd', 0),
+                              coef_n=M + T + extra_mem.get('n', 0) + extra_mem.get('nm', 0) * M,
+                              coef_d=extra_mem.get('d', 0) + extra_mem.get('md', 0) * M,
+                              rest=extra_mem.get('m', 0), max_mem=avail_mem)
 
     # Run Batched Matrix Computation
     for i in range(0, ntot, n):
