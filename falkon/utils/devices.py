@@ -73,6 +73,9 @@ def _get_cpu_device_info(opt: BaseOptions, data_dict: Dict[int, DeviceInfo]) -> 
 def _get_gpu_device_info(opt: BaseOptions,
                          g: int,
                          data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
+    # This is often the first CUDA-related call. Call init() here to avoid segfaults due to
+    # uninitialized CUDA environment.
+    tcd.init()
     try:
         from ..cuda.cudart_gpu import cuda_meminfo
     except Exception as e:
