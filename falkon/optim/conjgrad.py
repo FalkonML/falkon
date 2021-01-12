@@ -67,6 +67,9 @@ class ConjugateGradient(Optimizer):
                 X.addmm_(P, torch.diag(alpha))
 
                 if (i + 1) % self.params.cg_full_gradient_every == 0:
+                    if (X.is_cuda):
+                        # addmm_ may not be finished yet causing mmv to get stale inputs.
+                        torch.cuda.synchronize()
                     R = B - mmv(X)
                 else:
                     R = R - torch.mm(AP, torch.diag(alpha))
