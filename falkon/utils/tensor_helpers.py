@@ -40,7 +40,7 @@ def extract_fortran(from_tns: torch.Tensor,
         stride = (1, size[0])
     else:
         raise ValueError("extract_fortran can only extract 1 or 2D tensors.")
-    return from_tns.as_strided(size=size, stride=stride, storage_offset=offset)
+    return from_tns.as_strided(size=size, stride=stride, storage_offset=int(offset))
 
 
 def extract_C(from_tns: torch.Tensor,
@@ -52,7 +52,7 @@ def extract_C(from_tns: torch.Tensor,
         stride = (size[1], 1)
     else:
         raise ValueError("extract_C can only extract 1 or 2D tensors.")
-    return from_tns.as_strided(size=size, stride=stride, storage_offset=offset)
+    return from_tns.as_strided(size=size, stride=stride, storage_offset=int(offset))
 
 
 def extract_same_stride(from_tns: torch.Tensor,
