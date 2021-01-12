@@ -163,6 +163,8 @@ class InCoreFalkon(FalkonBase):
         model: InCoreFalkon
             The fitted model
         """
+        # Fix a synchronization bug which occurs when re-using center selector.
+        torch.cuda.synchronize()
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
 
         self.fit_times_ = []
