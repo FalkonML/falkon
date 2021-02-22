@@ -52,6 +52,14 @@ def w() -> torch.Tensor:
     return torch.from_numpy(gen_random(n, t, 'float64', False, seed=92))
 
 
+@pytest.fixture(scope="module")
+def rtol() -> dict:
+    return {
+        torch.float32: 1e-5,
+        torch.float64: 1e-12,
+    }
+
+
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
     pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
@@ -60,10 +68,6 @@ class AbstractKernelTester(abc.ABC):
     max_mem = 2 * 2**20
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
                                   max_cpu_mem=max_mem, max_gpu_mem=max_mem)
-    _RTOL = {
-        torch.float32: 1e-5,
-        torch.float64: 1e-12
-    }
 
     @pytest.fixture(scope="class")
     def exp_v(self, exp_k: np.ndarray, v: torch.Tensor) -> np.ndarray:
@@ -81,41 +85,99 @@ class AbstractKernelTester(abc.ABC):
     def exp_dvw(self, exp_k: np.ndarray, v: torch.Tensor, w: torch.Tensor) -> np.ndarray:
         return exp_k.T @ (exp_k @ v.numpy() + w.numpy())
 
-    def test_kernel(self, kernel, A, B, exp_k, cpu):
+    def test_kernel(self, kernel, A, B, exp_k, cpu, rtol):
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
-        _run_test(kernel, exp_k, (A, B), out=None, rtol=self._RTOL[A.dtype], opt=opt)
+        _run_test(kernel, exp_k, (A, B), out=None, rtol=rtol[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
         pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
         "no"
     ], ids=["KeOps", "No KeOps"])
-    def test_mmv(self, kernel, keops, A, B, v, exp_v, cpu):
+    def test_mmv(self, kernel, keops, A, B, v, exp_v, cpu, rtol):
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, keops_active=keops)
-        _run_test(kernel.mmv, exp_v, (A, B, v), out=None, rtol=self._RTOL[A.dtype], opt=opt)
+        _run_test(kernel.mmv, exp_v, (A, B, v), out=None, rtol=rtol[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
         pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
         "no"
     ], ids=["KeOps", "No KeOps"])
-    def test_dv(self, kernel, keops, A, B, v, exp_dv, cpu):
+    def test_dv(self, kernel, keops, A, B, v, exp_dv, cpu, rtol):
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, keops_active=keops)
-        _run_test(kernel.dmmv, exp_dv, (A, B, v, None), out=None, rtol=self._RTOL[A.dtype], opt=opt)
+        _run_test(kernel.dmmv, exp_dv, (A, B, v, None), out=None, rtol=rtol[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
         pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
         "no"
     ], ids=["KeOps", "No KeOps"])
-    def test_dw(self, kernel, keops, A, B, w, exp_dw, cpu):
+    def test_dw(self, kernel, keops, A, B, w, exp_dw, cpu, rtol):
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, keops_active=keops)
-        _run_test(kernel.dmmv, exp_dw, (A, B, None, w), out=None, rtol=self._RTOL[A.dtype], opt=opt)
+        _run_test(kernel.dmmv, exp_dw, (A, B, None, w), out=None, rtol=rtol[A.dtype], opt=opt)
 
     @pytest.mark.parametrize("keops", [
         pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
         "no"
     ], ids=["KeOps", "No KeOps"])
-    def test_dvw(self, kernel, keops, A, B, v, w, exp_dvw, cpu):
+    def test_dvw(self, kernel, keops, A, B, v, w, exp_dvw, cpu, rtol):
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu, keops_active=keops)
-        _run_test(kernel.dmmv, exp_dvw, (A, B, v, w), out=None, rtol=self._RTOL[A.dtype], opt=opt)
+        _run_test(kernel.dmmv, exp_dvw, (A, B, v, w), out=None, rtol=rtol[A.dtype], opt=opt)
+
+
+# @pytest.mark.parametrize("nu", [0.5, 1.5, 2.5, np.inf])
+class TestMaternKernel(AbstractKernelTester):
+
+    @pytest.fixture(params=[0.5, 1.5, 2.5, np.inf],
+        scope="class")
+    def nu(self, request) -> float:
+        return request.param
+
+    @pytest.fixture(scope="class")
+    def single_sigma(self) -> float:
+        return 2
+
+    @pytest.fixture(scope="class")
+    def vector_sigma(self, single_sigma: float) -> torch.Tensor:
+        return torch.tensor([single_sigma] * d, dtype=torch.float64)
+
+    @pytest.fixture(scope="class")
+    def mat_sigma(self, vector_sigma: torch.Tensor) -> torch.Tensor:
+        return torch.diag(1 / (vector_sigma ** 2))
+
+    @pytest.fixture(scope="class")
+    def exp_k(self, A: torch.Tensor, B: torch.Tensor, single_sigma: float, nu: float) -> np.ndarray:
+        return naive_matern_kernel(A.numpy(), B.numpy(), single_sigma, nu)
+
+    @pytest.fixture(params=[1, 2, 3], ids=[
+        "single-sigma", "vec-sigma", "vec-sigma-flat"],
+        scope="class")
+    def kernel(self, single_sigma, vector_sigma, nu, request):
+        if request.param == 1:
+            return MaternKernel(single_sigma, nu)
+        elif request.param == 2:
+            return MaternKernel(vector_sigma, nu)
+        elif request.param == 3:
+            return MaternKernel(vector_sigma.reshape(-1, 1), nu)
+
+    @pytest.fixture(scope="class")
+    def rtol(self, nu, rtol):
+        if nu == 0.5:
+            return {
+                torch.float32: 1e-5,
+                torch.float64: 4e-8,
+            }
+        return rtol
+
+    def test_mat_sigma_fail(self, A, B, cpu, nu, mat_sigma, rtol):
+        with pytest.raises(ValueError) as excinfo:
+            kernel = MaternKernel(sigma=mat_sigma, nu=nu)
+
+        assert f"'full' covariance matrix not allowed for the MaternKernel class." in str(excinfo.value)
+
+    def test_nu_fail(self, A, B, cpu, nu, single_sigma):
+        nu = 2.1
+        with pytest.raises(ValueError) as excinfo:
+            kernel = MaternKernel(sigma=single_sigma, nu=nu)
+        assert f"The given value of nu = {nu} can only take values" in str(excinfo.value)
+
 
 
 class TestGaussianKernel(AbstractKernelTester):
@@ -148,13 +210,13 @@ class TestGaussianKernel(AbstractKernelTester):
         elif request.param == 4:
             return GaussianKernel(mat_sigma)
 
-    def test_wrong_sigma_dims(self, A, B, cpu):
+    def test_wrong_sigma_dims(self, A, B, cpu, rtol):
         sigmas = torch.tensor([2.0] * (d - 1), dtype=torch.float64)
         kernel = GaussianKernel(sigma=sigmas)
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu,
                                   max_gpu_mem=np.inf, max_cpu_mem=np.inf)
         with pytest.raises(RuntimeError) as excinfo:
-            _run_test(kernel, None, (A, B), out=None, rtol=self._RTOL[A.dtype], opt=opt)
+            _run_test(kernel, None, (A, B), out=None, rtol=rtol[A.dtype], opt=opt)
 
         if cpu:
             assert f"The size of tensor a ({d}) must match the size of tensor b ({d-1})" in str(excinfo.value)
@@ -177,10 +239,12 @@ def test_gaussian_pd():
 
 
 class TestLaplacianKernel(AbstractKernelTester):
-    _RTOL = {
-        torch.float32: 1e-5,
-        torch.float64: 4e-8
-    }
+    @pytest.fixture(scope="class")
+    def rtol(self, rtol):
+        return {
+            torch.float32: 1e-5,
+            torch.float64: 4e-8,
+        }
 
     @pytest.fixture(scope="class")
     def kernel(self) -> LaplacianKernel:
