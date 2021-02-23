@@ -5,7 +5,7 @@ import pytest
 from pytest import mark
 import torch
 
-from falkon.kernels import GaussianKernel, LinearKernel, PolynomialKernel
+from falkon.kernels import GaussianKernel, LinearKernel, PolynomialKernel, MaternKernel
 from falkon.options import FalkonOptions
 from falkon.tests.conftest import memory_checker, fix_mat, fix_sparse_mat
 from falkon.tests.gen_random import gen_random, gen_sparse_matrix
@@ -79,7 +79,7 @@ def w():
     return torch.from_numpy(gen_random(n, t, 'float64', False, seed=92))
 
 
-@pytest.fixture(scope="module", params=[1, 2, 3], ids=["Gaussian", "Linear", "Polynomial"])
+@pytest.fixture(scope="module", params=[1, 2, 3, 4], ids=["Gaussian", "Linear", "Polynomial", "Matern"])
 def kernel(request):
     if request.param == 1:
         return GaussianKernel(sigma=1)
@@ -87,6 +87,8 @@ def kernel(request):
         return LinearKernel()
     elif request.param == 3:
         return PolynomialKernel(1.2, 3, 2.5)
+    elif request.param == 4:
+        return MaternKernel(sigma=1.0, nu=1.5)
 
 
 @pytest.fixture(scope="module")
