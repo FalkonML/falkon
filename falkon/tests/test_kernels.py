@@ -125,8 +125,7 @@ class AbstractKernelTester(abc.ABC):
 # @pytest.mark.parametrize("nu", [0.5, 1.5, 2.5, np.inf])
 class TestMaternKernel(AbstractKernelTester):
 
-    @pytest.fixture(params=[0.5, 1.5, 2.5, np.inf],
-        scope="class")
+    @pytest.fixture(params=[0.5, 1.5, 2.5, np.inf], scope="class")
     def nu(self, request) -> float:
         return request.param
 
@@ -168,16 +167,15 @@ class TestMaternKernel(AbstractKernelTester):
 
     def test_mat_sigma_fail(self, A, B, cpu, nu, mat_sigma, rtol):
         with pytest.raises(ValueError) as excinfo:
-            kernel = MaternKernel(sigma=mat_sigma, nu=nu)
+            MaternKernel(sigma=mat_sigma, nu=nu)
 
-        assert f"'full' covariance matrix not allowed for the MaternKernel class." in str(excinfo.value)
+        assert "'full' covariance matrix not allowed for the MaternKernel class." in str(excinfo.value)
 
     def test_nu_fail(self, A, B, cpu, nu, single_sigma):
         nu = 2.1
         with pytest.raises(ValueError) as excinfo:
-            kernel = MaternKernel(sigma=single_sigma, nu=nu)
+            MaternKernel(sigma=single_sigma, nu=nu)
         assert f"The given value of nu = {nu} can only take values" in str(excinfo.value)
-
 
 
 class TestGaussianKernel(AbstractKernelTester):

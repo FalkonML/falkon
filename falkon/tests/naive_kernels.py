@@ -29,6 +29,7 @@ def naive_polynomial_kernel(X1, X2, alpha, beta, degree):
     out = X1 @ X2.T
     return np.power(out * alpha + beta, degree)
 
+
 def naive_matern_kernel(X1, X2, sigma, nu):
     pairwise_dists = cdist(X1 / sigma, X2 / sigma, 'euclidean')
 
@@ -43,4 +44,3 @@ def naive_matern_kernel(X1, X2, sigma, nu):
     elif nu == np.inf:
         K = np.exp(-pairwise_dists ** 2 / 2.0)
     return K
-

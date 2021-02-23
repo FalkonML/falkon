@@ -399,6 +399,7 @@ class MaternKernel(GaussianKernel):
 
     """
     _valid_nu_values = frozenset({0.5, 1.5, 2.5, float('inf')})
+
     def __init__(self,
                  sigma: Union[float, torch.Tensor],
                  nu: Union[float, torch.Tensor],
@@ -503,7 +504,7 @@ class MaternKernel(GaussianKernel):
             Asqrt = torch.sqrt(A)
             Asqrt.mul_(math.sqrt(5))
 
-            A.mul_(5/3)
+            A.mul_(5 / 3)
             A.add_(Asqrt)
             A.add_(1)
 
