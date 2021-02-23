@@ -498,7 +498,6 @@ class MaternKernel(GaussianKernel):
 
             A.add_(1.0)
             A.mul_(Aneg)
-            return A
         elif self.nu == 2.5:
             # (1 + sqrt(5)*D + (sqrt(5)*D)^2 / 3 ) * exp(-sqrt(5)*D)
             Asqrt = torch.sqrt(A)
@@ -512,11 +511,10 @@ class MaternKernel(GaussianKernel):
             Asqrt.exp_()
 
             A.mul_(Asqrt)
-            return A
         elif self.nu == float('inf'):
             A.mul_(-0.5)
             A.exp_()
-            return A
+        return A
 
     def __repr__(self):
         return f"MaternKernel(sigma={self.sigma}, nu={self.nu:.1f})"
