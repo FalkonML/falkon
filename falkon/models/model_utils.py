@@ -226,14 +226,14 @@ def to_c_contig(tensor: Optional[torch.Tensor],
                 name: str = "",
                 warn: bool = False) -> Optional[torch.Tensor]:
     warning_text = (
-        "Input '%s' is F-contiguous; to ensure KeOps compatibility, C-contiguous inputs "
+        "Input '%s' is F-contiguous (stride=%s); to ensure KeOps compatibility, C-contiguous inputs "
         "are necessary. The data will be copied to change its order. To avoid this "
         "unnecessary copy, either disable KeOps (passing `keops_active='no'`) or make "
         "the input tensors C-contiguous."
     )
-    if tensor is not None and is_f_contig(tensor):
+    if tensor is not None and is_f_contig(tensor, strict=True):
         if warn:
-            warnings.warn(warning_text % name)
+            warnings.warn(warning_text % (name, tensor.stride()))
         orig_device = tensor.device
         return torch.from_numpy(np.array(tensor.cpu().numpy(), order="C")).to(device=orig_device)
     return tensor
