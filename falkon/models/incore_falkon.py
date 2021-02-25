@@ -67,6 +67,9 @@ class InCoreFalkon(FalkonBase):
         `error_every` iterations. If set to 1 then the error will be
         calculated at each iteration. If set to None, it will never be
         calculated.
+    weight_fun : Callable or None
+        A function with one argument (a torch.Tensor containing the targets (or a subset of it)) which returns a vector of weights.
+        If set to None, it will never be used.
     options : FalkonOptions
         Additional options used by the components of the Falkon solver. Individual options
         are documented in :mod:`falkon.options`.
@@ -102,11 +105,13 @@ class InCoreFalkon(FalkonBase):
                  seed: Optional[int] = None,
                  error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], float]] = None,
                  error_every: Optional[int] = 1,
+                 weight_fun = None,
                  options: Optional[FalkonOptions] = None,
                  ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
         self.maxiter = maxiter
+        self.weight_fun = weight_fun
         if not self.use_cuda_:
             raise RuntimeError("Cannot instantiate InCoreFalkon when CUDA is not available. "
                                "If CUDA is present on your system, make sure to set "
@@ -173,10 +178,20 @@ class InCoreFalkon(FalkonBase):
 
         t_s = time.time()
         # noinspection PyTypeChecker
-        ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None, self.M)
-
+        if self.weight_fun is None:
+            ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None, self.M)
+        else:
+            ny_points, ny_indices = self.center_selection.select(X, None, self.M)
         with TicToc("Calcuating Preconditioner of size %d" % (self.M), debug=self.options.debug):
-            precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options)
+
+
+            if self.weight_fun is None:
+                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options, None)
+            else:
+                ny_weight_vec = self.weight_fun(Y[ny_indices])
+                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options, ny_weight_vec)
+
+#            precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options)
             precond.init(ny_points)
 
         # Cache must be emptied to ensure enough memory is visible to the optimizer
@@ -200,7 +215,15 @@ class InCoreFalkon(FalkonBase):
 
         # Start with the falkon algorithm
         with TicToc('Computing Falkon iterations', debug=self.options.debug):
-            optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, self.options)
+
+
+#            optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, self.options)
+
+            if self.weight_fun is None:
+                optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, self.options)
+            else:
+                optim = falkon.optim.WFalkonConjugateGradient(self.kernel, precond, self.options, self.weight_fun)
+
             if Knm is not None:
                 beta = optim.solve(
                     Knm, None, Y, self.penalty, initial_solution=None,

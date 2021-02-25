@@ -5,7 +5,7 @@ import torch
 from falkon.options import FalkonOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils import TicToc, decide_cuda
-from falkon.la_helpers import mul_triang, copy_triang, trsm
+from falkon.la_helpers import mul_triang, copy_triang, trsm, vec_mul_triang
 from falkon.utils.tensor_helpers import create_same_stride, is_f_contig, create_fortran
 from .preconditioner import Preconditioner
 from .pc_utils import *
@@ -52,13 +52,14 @@ class FalkonPreconditioner(Preconditioner):
 
     """
 
-    def __init__(self, penalty: float, kernel, opt: FalkonOptions):
+    def __init__(self, penalty: float, kernel, opt: FalkonOptions, weight_vec: torch.Tensor = None):
         super().__init__()
         self.params = opt
         self._use_cuda = decide_cuda(self.params) and not self.params.cpu_preconditioner
 
         self._lambda = penalty
         self.kernel = kernel
+        self.weight_vec = weight_vec
 
         self.fC: Optional[torch.Tensor] = None
         self.dT: Optional[torch.Tensor] = None
@@ -104,6 +105,11 @@ class FalkonPreconditioner(Preconditioner):
         with TicToc("Copy triangular", debug=self.params.debug):
             # Copy lower(fC) to upper(fC):  upper(fC) = T.
             copy_triang(C, upper=False)
+
+
+        if self.weight_vec is not None:
+            with TicToc("Add weight to lower triangular", debug = self.params.debug):
+                vec_mul_triang(C, self.weight_vec.numpy().reshape(-1), side=0, upper=False)
 
         if self._use_cuda:
             with TicToc("LAUUM", debug=self.params.debug):

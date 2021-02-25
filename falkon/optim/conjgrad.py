@@ -151,3 +151,70 @@ class FalkonConjugateGradient(Optimizer):
         # Run the conjugate gradient solver
         beta = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
         return beta
+
+
+class WFalkonConjugateGradient(Optimizer):
+    def __init__(self, kernel, preconditioner, opt: FalkonOptions, weight_fun):
+        super().__init__()
+        self.kernel = kernel
+        self.preconditioner = preconditioner
+        self.params = opt
+        self.weight_fun = weight_fun
+        self.optimizer = ConjugateGradient(opt.get_conjgrad_options())
+
+    def solve(self, X, M, Y, _lambda, initial_solution, max_iter, callback=None):
+        assert Y.shape[1] == 1
+        n = X.size(0)
+        prec = self.preconditioner
+        wvec = self.weight_fun(Y)
+        #wvec = torch.ones(Y.shape,dtype=Y.dtype)
+        #wvec[Y == -1.0] = self.weight
+        
+        Y *= wvec
+
+        with TicToc("ConjGrad preparation", False):
+            if M is None:
+                Knm = X
+            else:
+                Knm = None
+            # Compute the right hand side
+            if Knm is not None:
+                B = incore_fmmv(Knm, Y / n, None, transpose=True, opt=self.params)
+            else:
+                B = self.kernel.dmmv(X, M, None, Y / n, opt=self.params)
+            B = prec.apply_t(B)
+
+            # Define the Matrix-vector product iteration
+            if X.is_cuda:
+                s1 = torch.cuda.Stream(X.device)
+
+            def mmv(sol):
+                with TicToc("MMV", False):
+                    v = prec.invA(sol)
+                    v_t = prec.invT(v)
+                    #cc = incore_fdmmv(Knm, v_t, None, opt=self.params)
+                   # print("CC shape: ",cc)
+                    if Knm is not None:
+                        cc = incore_fmmv(Knm, v_t, None, opt =self.params).mul_(wvec)
+                        cc = incore_fmmv(Knm.T, cc, None, opt=self.params)                    
+                    else:
+                        cc = self.kernel.mmv(X, M, v_t, None, opt=self.params).mul_(wvec)
+                        cc = self.kernel.mmv(M, X, cc, None, opt =self.params)
+                        
+                    
+                    if X.is_cuda:
+                        with torch.cuda.stream(s1):
+                            cc_ = cc.div_(n)
+                            v_ = v.mul_(_lambda)
+                            s1.synchronize()
+                            cc_ = prec.invTt(cc_).add_(v_)
+                            s1.synchronize()
+                            out = prec.invAt(cc_)
+                            s1.synchronize()
+                            return out
+                    else:
+                        return prec.invAt(prec.invTt(cc / n) + _lambda * v)
+
+        # Run the conjugate gradient solver
+        beta = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
+        return beta

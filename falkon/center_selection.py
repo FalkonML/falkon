@@ -24,7 +24,7 @@ class CenterSelector(ABC):
         self.random_gen = random_gen
 
     @abstractmethod
-    def select(self, X, Y, M):
+    def select(self, X, Y, M, return_indices=False):
         """Abstract method for selecting `M` centers from the data.
 
         Parameters
@@ -61,15 +61,18 @@ class FixedSelector(CenterSelector):
     """
     def __init__(self,
                  centers: _tensor_type,
-                 y_centers: Union[torch.Tensor, None] = None):
+                 y_centers: Union[torch.Tensor, None] = None,
+                 idx_centers = None):
         super().__init__(random_gen=None)
         self.centers = centers
+        self.idx_centers = idx_centers
         self.y_centers = y_centers
 
     def select(self,
                X: _tensor_type,
                Y: Union[torch.Tensor, None],
-               M: int) -> Union[_tensor_type, Tuple[_tensor_type, torch.Tensor]]:
+               M: int,
+               return_indices: bool = False) -> Union[_tensor_type, Tuple[_tensor_type, torch.Tensor]]:
         """Returns the fixed centers with which this instance was created
 
         Parameters
@@ -85,6 +88,7 @@ class FixedSelector(CenterSelector):
         M
             The number of observations to choose. **This parameter is ignored**.
 
+
         Returns
         -------
         X_M
@@ -97,7 +101,11 @@ class FixedSelector(CenterSelector):
         if Y is not None:
             if self.y_centers is None:
                 raise RuntimeError("FixedSelector has no y-centers available, but `Y` is not None.")
+            if return_indices:
+                return self.centers, self.y_centers, self.idx_centers    
             return self.centers, self.y_centers
+        if return_indices:
+            return self.idx_centers
         return self.centers
 
 
@@ -108,7 +116,8 @@ class UniformSelector(CenterSelector):
     def select(self,
                X: _tensor_type,
                Y: Union[torch.Tensor, None],
-               M: int) -> Union[_tensor_type, Tuple[_tensor_type, torch.Tensor]]:
+               M: int,
+               return_indices: bool = False) -> Union[_tensor_type, Tuple[_tensor_type, torch.Tensor]]:
         """Select M observations from 2D tensor `X`, preserving device and memory order.
 
         The selection strategy is uniformly at random. To control the randomness,
@@ -159,5 +168,9 @@ class UniformSelector(CenterSelector):
                                     pin_memory=False)
             th_idx = torch.from_numpy(idx.astype(np.long)).to(Y.device)
             torch.index_select(Y, dim=0, index=th_idx, out=Yc)
+            if return_indices:
+                return Xc, Yc, idx 
             return Xc, Yc
+        if return_indices:
+            return Xc, idx
         return Xc
