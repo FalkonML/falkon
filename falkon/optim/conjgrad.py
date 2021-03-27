@@ -3,12 +3,12 @@ import time
 from typing import Optional
 
 import torch
-from utils.stream_utils import get_non_default_stream
 
 import falkon
 from falkon.options import ConjugateGradientOptions, FalkonOptions
 from falkon.mmv_ops.fmmv_incore import incore_fdmmv, incore_fmmv
 from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
+from falkon.utils.stream_utils import get_non_default_stream
 from falkon.utils import TicToc
 
 # More readable 'pseudocode' for conjugate gradient.

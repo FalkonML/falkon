@@ -7,14 +7,14 @@ from falkon.cuda.cusolver_gpu import *
 from falkon.utils import devices
 from falkon import la_helpers
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
-from utils.stream_utils import sync_current_stream
+from falkon.utils.stream_utils import sync_current_stream
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 # noinspection PyUnresolvedReferences
 from falkon.ooc_ops.cuda import parallel_potrf
 from falkon.options import FalkonOptions, CholeskyOptions
 from .ooc_utils import calc_block_sizes
-from ..utils.devices import DeviceInfo
-from ..utils.tensor_helpers import create_fortran, is_f_contig, copy_same_stride
+from falkon.utils.devices import DeviceInfo
+from falkon.utils.tensor_helpers import create_fortran, is_f_contig, copy_same_stride
 
 __all__ = ("gpu_cholesky",)
 

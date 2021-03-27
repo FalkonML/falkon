@@ -19,7 +19,7 @@ from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.cuda_helpers import (
     copy_to_device_noorder, copy_to_host_noorder
 )
-from utils.stream_utils import sync_current_stream
+from falkon.utils.stream_utils import sync_current_stream
 from falkon.utils.helpers import (
     calc_gpu_block_sizes,
     sizeof_dtype,

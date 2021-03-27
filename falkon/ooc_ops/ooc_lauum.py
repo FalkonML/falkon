@@ -2,16 +2,16 @@ import math
 import threading
 from typing import List, Optional
 
-from utils.stream_utils import sync_current_stream
 
 from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
 from falkon.utils.tensor_helpers import copy_same_stride
 from falkon.utils.helpers import sizeof_dtype
+from falkon.utils.tensor_helpers import is_f_contig, is_contig
+from falkon.utils.stream_utils import sync_current_stream
 from falkon.options import FalkonOptions, LauumOptions
 from .ooc_utils import calc_block_sizes3
 from .parallel_lauum import par_lauum_f_lower, par_lauum_c_lower, BlockAlloc
-from ..utils.tensor_helpers import is_f_contig, is_contig
 
 __all__ = ("gpu_lauum",)
 

@@ -3,13 +3,13 @@ from typing import Optional
 import torch
 
 
-def sync_current_stream(device: Optional[torch.cuda.Device] = None) -> None:
+def sync_current_stream(device: Optional[torch.device] = None) -> None:
     # Sync current stream
     stream = torch.cuda.current_stream(device)
     stream.synchronize()
 
 
-def get_non_default_stream(device: Optional[torch.cuda.Device] = None) -> torch.cuda.Stream:
+def get_non_default_stream(device: Optional[torch.device] = None) -> torch.cuda.Stream:
     # Chooses the current stream if it's not the default stream.
     # If the current stream is the default stream, creates a new stream.
     stream = torch.cuda.current_stream(device)
