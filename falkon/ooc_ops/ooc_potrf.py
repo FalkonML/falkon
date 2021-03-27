@@ -7,6 +7,7 @@ from falkon.cuda.cusolver_gpu import *
 from falkon.utils import devices
 from falkon import la_helpers
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
+from utils.stream_utils import sync_current_stream
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 # noinspection PyUnresolvedReferences
 from falkon.ooc_ops.cuda import parallel_potrf
@@ -194,6 +195,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
                                 opt.max_gpu_mem * 0.95)
 
     if A.is_cuda:
+        sync_current_stream(A.device)
         try:
             device = [d for d in gpu_info if d.Id == A.device.index][0]
         except IndexError:

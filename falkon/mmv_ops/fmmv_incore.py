@@ -28,13 +28,10 @@ def incore_fmmv(mat: torch.Tensor,
     out.fill_(0.0)
 
     if mat.is_cuda:
-        s1 = torch.cuda.Stream()
-        with torch.cuda.stream(s1):
-            if transpose:
-                out.addmm_(mat.T, vec, beta=0.0)
-            else:
-                out.addmm_(mat, vec, beta=0.0)
-            s1.synchronize()
+        if transpose:
+            out.addmm_(mat.T, vec, beta=0.0)
+        else:
+            out.addmm_(mat, vec, beta=0.0)
     else:
         if transpose:
             out.addmm_(mat.T, vec, beta=0.0)

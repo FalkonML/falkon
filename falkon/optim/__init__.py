@@ -1,4 +1,4 @@
-from .conjgrad import Optimizer, ConjugateGradient, FalkonConjugateGradient, WFalkonConjugateGradient
+from .conjgrad import Optimizer, ConjugateGradient, FalkonConjugateGradient
 
-__all__ = ('Optimizer', 'ConjugateGradient', 'FalkonConjugateGradient', 'WFalkonConjugateGradient')
+__all__ = ('Optimizer', 'ConjugateGradient', 'FalkonConjugateGradient')
 

@@ -90,8 +90,8 @@ class TestFalkonConjugateGradient:
 
     @pytest.fixture()
     def centers(self, data):
-        cs = UniformSelector(np.random.default_rng(2))
-        return cs.select(data, None, self.M)
+        cs = UniformSelector(np.random.default_rng(2), num_centers=self.M)
+        return cs.select(data, None)
 
     @pytest.fixture()
     def knm(self, kernel, data, centers):

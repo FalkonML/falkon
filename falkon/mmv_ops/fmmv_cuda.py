@@ -16,7 +16,10 @@ from falkon.mmv_ops.utils import (
 )
 from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.cuda_helpers import copy_to_device_noorder, copy_to_host_noorder
+from falkon.utils.cuda_helpers import (
+    copy_to_device_noorder, copy_to_host_noorder
+)
+from utils.stream_utils import sync_current_stream
 from falkon.utils.helpers import (
     calc_gpu_block_sizes,
     sizeof_dtype,
@@ -633,6 +636,7 @@ def fmmv_cuda(X1: torch.Tensor,
     gpu_info = _get_gpu_info(opt, slack=0.9)
 
     if device.type == 'cuda':
+        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel,
                         max_mem=single_gpu_info.usable_ram)
@@ -674,6 +678,7 @@ def fmmv_cuda_sparse(X1: SparseTensor,
     gpu_info = _get_gpu_info(opt, slack=0.9)
 
     if device.type == 'cuda':
+        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel,
                         max_mem=single_gpu_info.usable_ram)
@@ -736,6 +741,7 @@ def fdmmv_cuda(X1: torch.Tensor,
         target = generic_fdmmv
 
     if device.type == 'cuda':
+        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFdmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel,
                          max_mem=single_gpu_info.usable_ram)
@@ -792,6 +798,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
     gpu_info = _get_gpu_info(opt, slack=0.95)
 
     if device.type == 'cuda':
+        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFdmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel,
                          max_mem=single_gpu_info.usable_ram)

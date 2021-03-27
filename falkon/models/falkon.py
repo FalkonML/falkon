@@ -70,9 +70,14 @@ class Falkon(FalkonBase):
         `error_every` iterations. If set to 1 then the error will be
         calculated at each iteration. If set to None, it will never be
         calculated.
-    weight_fun : Callable or None
-        A function with one argument (a torch.Tensor containing the targets (or a subset of it)) which returns a vector of weights.
-        If set to None, it will never be used.  
+    weight_fn : Callable or None
+        A function which appropriately weighs the target tensor (i.e. Y). This function is used
+        for weighted least-squares, it should accept a single argument which represents a subset
+        of the targets, and return a vector of weights corresponding to the input targets.
+
+        As an example, in the setting of binary classification Y can be -1 or +1. To give more
+        importance to errors on the negative class, pass a `weight_fn` which returns 2 whenever
+        the target is -1.
     options : FalkonOptions
         Additional options used by the components of the Falkon solver. Individual options
         are documented in :mod:`falkon.options`.
@@ -108,13 +113,13 @@ class Falkon(FalkonBase):
                  seed: Optional[int] = None,
                  error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], float]] = None,
                  error_every: Optional[int] = 1,
-                 weight_fun = None,
+                 weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
                  options: Optional[FalkonOptions] = None,
                  ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
         self.maxiter = maxiter
-        self.weight_fun = weight_fun
+        self.weight_fn = weight_fn
         self._init_cuda()
 
     def fit(self,
@@ -176,11 +181,13 @@ class Falkon(FalkonBase):
         self.alpha_ = None
 
         t_s = time.time()
-        # noinspection PyTypeChecker
-        if self.weight_fun is None:
-            ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None, self.M)
+        if self.weight_fn is not None:
+            # noinspection PyTupleAssignmentBalance
+            ny_points, ny_indices = self.center_selection.select_indices(X, None)
         else:
-            ny_points, ny_indices = self.center_selection.select(X, None, self.M, True)
+            # noinspection PyTypeChecker
+            ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None)
+            ny_indices = None
         
         if self.use_cuda_:
             ny_points = ny_points.pin_memory()
@@ -191,12 +198,11 @@ class Falkon(FalkonBase):
             if pc_opt.debug:
                 print("Preconditioner will run on %s" %
                       ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
-            if self.weight_fun is None:
-                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt, None)
-            else:
-                ny_weight_vec = self.weight_fun(Y[ny_indices])
-                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt,ny_weight_vec)
-            precond.init(ny_points)
+            precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
+            ny_weight_vec = None
+            if self.weight_fn is not None:
+                ny_weight_vec = self.weight_fn(Y[ny_indices])
+            precond.init(ny_points, weight_vec=ny_weight_vec)
 
         if _use_cuda_mmv:
             # Cache must be emptied to ensure enough memory is visible to the optimizer
@@ -226,11 +232,8 @@ class Falkon(FalkonBase):
             if o_opt.debug:
                 print("Optimizer will run on %s" %
                       ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
-            if self.weight_fun is None:
-                optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt)
-            else:
-                optim = falkon.optim.WFalkonConjugateGradient(self.kernel, precond, o_opt, self.weight_fun)
-            
+            optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt,
+                                                         weight_fn=self.weight_fn)
             if Knm is not None:
                 beta = optim.solve(
                     Knm, None, Y, self.penalty, initial_solution=None,

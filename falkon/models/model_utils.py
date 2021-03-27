@@ -1,4 +1,3 @@
-import numbers
 import warnings
 from abc import abstractmethod, ABC
 from typing import Union, Optional, Tuple
@@ -8,13 +7,13 @@ import numpy as np
 import torch
 
 import falkon
+from falkon import FalkonOptions
 from falkon.utils.tensor_helpers import is_f_contig
 from falkon.utils.helpers import check_same_dtype, sizeof_dtype
 from falkon.utils import decide_cuda, devices
-from falkon import FalkonOptions
 from falkon.kernels.keops_helpers import should_use_keops
 from falkon.sparse import SparseTensor
-
+from falkon.utils import check_random_generator
 
 _tensor_type = Union[torch.Tensor, SparseTensor]
 
@@ -56,7 +55,7 @@ class FalkonBase(base.BaseEstimator, ABC):
         if isinstance(center_selection, str):
             if center_selection.lower() == 'uniform':
                 self.center_selection: falkon.center_selection.CenterSelector = \
-                    falkon.center_selection.UniformSelector(self.random_state_)
+                    falkon.center_selection.UniformSelector(self.random_state_, num_centers=M)
             else:
                 raise ValueError(f'Center selection "{center_selection}" is not valid.')
         else:
@@ -200,28 +199,6 @@ class FalkonBase(base.BaseEstimator, ABC):
         return super().__repr__(N_CHAR_MAX=5000)
 
 
-def check_random_generator(seed):
-    """Turn seed into a np.random.Generator instance
-
-    Parameters
-    ----------
-    seed : None | int | instance of Generator
-        If seed is None, return the Generator singleton used by np.random.
-        If seed is an int, return a new Generator instance seeded with seed.
-        If seed is already a Generator instance, return it.
-        Otherwise raise ValueError.
-    """
-    if seed is None or seed is np.random:
-        # noinspection PyProtectedMember
-        return np.random.mtrand._rand
-    if isinstance(seed, numbers.Integral):
-        return np.random.default_rng(seed)
-    if isinstance(seed, np.random.Generator):
-        return seed
-    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
-                     ' instance' % seed)
-
-
 def to_c_contig(tensor: Optional[torch.Tensor],
                 name: str = "",
                 warn: bool = False) -> Optional[torch.Tensor]:
@@ -233,6 +210,7 @@ def to_c_contig(tensor: Optional[torch.Tensor],
     )
     if tensor is not None and is_f_contig(tensor, strict=True):
         if warn:
+            # noinspection PyArgumentList
             warnings.warn(warning_text % (name, tensor.stride()))
         orig_device = tensor.device
         return torch.from_numpy(np.array(tensor.cpu().numpy(), order="C")).to(device=orig_device)

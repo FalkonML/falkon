@@ -2,13 +2,14 @@ from typing import Union, Optional
 
 import torch
 
+from falkon.la_helpers import mul_triang, copy_triang, trsm, vec_mul_triang
 from falkon.options import FalkonOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils import TicToc, decide_cuda
-from falkon.la_helpers import mul_triang, copy_triang, trsm, vec_mul_triang
+from falkon.utils.helpers import check_same_device
 from falkon.utils.tensor_helpers import create_same_stride, is_f_contig, create_fortran
-from .preconditioner import Preconditioner
 from .pc_utils import *
+from .preconditioner import Preconditioner
 
 
 class FalkonPreconditioner(Preconditioner):
@@ -52,20 +53,20 @@ class FalkonPreconditioner(Preconditioner):
 
     """
 
-    def __init__(self, penalty: float, kernel, opt: FalkonOptions, weight_vec: torch.Tensor = None):
+    def __init__(self, penalty: float, kernel, opt: FalkonOptions):
         super().__init__()
         self.params = opt
         self._use_cuda = decide_cuda(self.params) and not self.params.cpu_preconditioner
 
         self._lambda = penalty
         self.kernel = kernel
-        self.weight_vec = weight_vec
+        # self.weight_vec = weight_vec
 
         self.fC: Optional[torch.Tensor] = None
         self.dT: Optional[torch.Tensor] = None
         self.dA: Optional[torch.Tensor] = None
 
-    def init(self, X: Union[torch.Tensor, SparseTensor]):
+    def init(self, X: Union[torch.Tensor, SparseTensor], weight_vec: Optional[torch.Tensor] = None):
         """Initialize the preconditioner matrix.
 
         This method must be called before the preconditioner can be used.
@@ -74,14 +75,22 @@ class FalkonPreconditioner(Preconditioner):
         ----------
         X : torch.Tensor
             The (M x D) matrix of Nystroem centers
+        weight_vec
+            An optional vector of size (M x 1) which is used for reweighted least-squares.
+            This vector should contain the weights corresponding to the Nystrom centers.
         """
-        dtype = X.dtype
-        dev = X.device
         if X.is_cuda and not self._use_cuda:
             raise RuntimeError("use_cuda is set to False, but data is CUDA tensor. "
                                "Check your options.")
+        if weight_vec is not None and not check_same_device(X, weight_vec):
+            raise ValueError(f"Weights and data are not on the same device "
+                             f"({weight_vec.device}, {X.device})")
+        if weight_vec is not None and weight_vec.shape[0] != X.shape[0]:
+            raise ValueError(f"Weights and Nystrom centers should have the same first dimension. "
+                             f"Found instead {weight_vec.shape[0]}, {X.shape[0]}.")
+        dtype = X.dtype
+        dev = X.device
         eps = self.params.pc_epsilon(X.dtype)
-
         M = X.size(0)
 
         with TicToc("Kernel", debug=self.params.debug):
@@ -106,17 +115,26 @@ class FalkonPreconditioner(Preconditioner):
             # Copy lower(fC) to upper(fC):  upper(fC) = T.
             copy_triang(C, upper=False)
 
-
-        if self.weight_vec is not None:
-            with TicToc("Add weight to lower triangular", debug = self.params.debug):
-                vec_mul_triang(C, self.weight_vec.numpy().reshape(-1), side=0, upper=False)
+        # Weighted least-squares uses slightly different preconditioner
+        if weight_vec is not None:
+            with TicToc("Weighting", debug=self.params.debug):
+                # TODO: Do we need to sqrt?
+                if C.is_cuda:
+                    # NOTE: vec_mul_triang is not implemented on CUDA. We can simply multiply the full matrix
+                    C.mul_(weight_vec.reshape(1, -1))
+                else:
+                    # We switch on CUDA since LAUUM uses upper(C) or lower(C) depending on this.
+                    if self._use_cuda:
+                        vec_mul_triang(C, weight_vec.numpy().reshape(-1), side=0, upper=False)
+                    else:
+                        vec_mul_triang(C, weight_vec.numpy().reshape(-1), side=1, upper=True)
 
         if self._use_cuda:
-            with TicToc("LAUUM", debug=self.params.debug):
+            with TicToc("LAUUM(CUDA)", debug=self.params.debug):
                 # Product upper(fC) @ upper(fC).T : lower(fC) = T @ T.T
                 C = lauum_wrapper(C, upper=True, use_cuda=self._use_cuda, opt=self.params)
         else:
-            with TicToc("LAUUM", debug=self.params.debug):
+            with TicToc("LAUUM(CPU)", debug=self.params.debug):
                 # Product lower(fC).T @ lower(fC) : lower(fC) = T @ T.T
                 C = lauum_wrapper(C, upper=False, use_cuda=self._use_cuda, opt=self.params)
 

@@ -169,7 +169,7 @@ class LogisticFalkon(FalkonBase):
         self.fit_times_ = []
 
         t_s = time.time()
-        ny_X, ny_Y = self.center_selection.select(X, Y, self.M)
+        ny_X, ny_Y = self.center_selection.select(X, Y)
         if self.use_cuda_:
             ny_X = ny_X.pin_memory()
 

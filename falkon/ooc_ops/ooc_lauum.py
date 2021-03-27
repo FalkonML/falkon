@@ -2,6 +2,8 @@ import math
 import threading
 from typing import List, Optional
 
+from utils.stream_utils import sync_current_stream
+
 from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
 from falkon.utils.tensor_helpers import copy_same_stride
@@ -27,6 +29,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     dt = A.dtype
     dts = sizeof_dtype(dt)
     if A.is_cuda:
+        sync_current_stream(A.device)
         gpu_info = [g for g in gpu_info if g.Id == A.device.index]
         avail_ram = gpu_info[0].actual_free_mem / dts
         if target.__name__ == "par_lauum_f_lower":

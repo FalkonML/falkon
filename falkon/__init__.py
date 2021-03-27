@@ -1,6 +1,6 @@
 import os
 
-from . import kernels, optim, preconditioner, center_selection, sparse
+from . import kernels, sparse, center_selection, preconditioner, optim
 from .options import FalkonOptions
 from .models import Falkon, LogisticFalkon, InCoreFalkon
 
