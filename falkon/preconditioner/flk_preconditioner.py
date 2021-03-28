@@ -109,6 +109,7 @@ class FalkonPreconditioner(Preconditioner):
 
         if self.weight_vec is not None:
             with TicToc("Add weight to lower triangular", debug = self.params.debug):
+                self.weight_vec.sqrt_()
                 vec_mul_triang(C, self.weight_vec.numpy().reshape(-1), side=0, upper=False)
 
         if self._use_cuda:
