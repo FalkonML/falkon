@@ -1,5 +1,5 @@
 import time
-from typing import Union, Optional, List, Callable
+from typing import Union, Optional, List, Callable, Tuple
 
 import torch
 
@@ -111,7 +111,7 @@ class LogisticFalkon(FalkonBase):
                  M: int,
                  center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  seed: Optional[int] = None,
-                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], float]] = None,
+                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
                  error_every: Optional[int] = 1,
                  options: Optional[FalkonOptions] = None,
                  ):

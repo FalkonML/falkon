@@ -1,5 +1,5 @@
 import time
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, Tuple
 
 import torch
 
@@ -45,7 +45,9 @@ class InCoreFalkon(FalkonBase):
         The number of Nystrom centers to pick. `M` must be positive,
         and lower than the total number of training points. A larger
         `M` will typically lead to better accuracy but will use more
-        computational resources.
+        computational resources. You can either specify the number of centers
+        by setting this parameter, or by passing to this constructor a `CenterSelctor` class
+        instance.
     center_selection : str or falkon.center_selection.CenterSelector
         The center selection algorithm. Implemented is only 'uniform'
         selection which can choose each training sample with the same
@@ -108,7 +110,7 @@ class InCoreFalkon(FalkonBase):
                  center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  maxiter: int = 20,
                  seed: Optional[int] = None,
-                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], float]] = None,
+                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
                  error_every: Optional[int] = 1,
                  weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
                  options: Optional[FalkonOptions] = None,
@@ -181,7 +183,10 @@ class InCoreFalkon(FalkonBase):
         self.ny_points_ = None
         self.alpha_ = None
 
+        # Start training timer
         t_s = time.time()
+
+        # Pick Nystrom centers
         if self.weight_fn is not None:
             # noinspection PyTupleAssignmentBalance
             ny_points, ny_indices = self.center_selection.select_indices(X, None)
@@ -189,8 +194,9 @@ class InCoreFalkon(FalkonBase):
             # noinspection PyTypeChecker
             ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None)
             ny_indices = None
+        num_centers = ny_points.shape[0]
 
-        with TicToc("Calcuating Preconditioner of size %d" % (self.M), debug=self.options.debug):
+        with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
             precond = falkon.preconditioner.FalkonPreconditioner(
                 self.penalty, self.kernel, self.options)
             ny_weight_vec = None

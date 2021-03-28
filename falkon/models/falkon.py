@@ -1,6 +1,6 @@
 import dataclasses
 import time
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, Tuple
 
 import torch
 
@@ -48,7 +48,9 @@ class Falkon(FalkonBase):
         The number of Nystrom centers to pick. `M` must be positive,
         and lower than the total number of training points. A larger
         `M` will typically lead to better accuracy but will use more
-        computational resources.
+        computational resources. You can either specify the number of centers
+        by setting this parameter, or by passing to this constructor a `CenterSelctor` class
+        instance.
     center_selection : str or falkon.center_selection.CenterSelector
         The center selection algorithm. Implemented is only 'uniform'
         selection which can choose each training sample with the same
@@ -111,7 +113,7 @@ class Falkon(FalkonBase):
                  center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  maxiter: int = 20,
                  seed: Optional[int] = None,
-                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], float]] = None,
+                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
                  error_every: Optional[int] = 1,
                  weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
                  options: Optional[FalkonOptions] = None,
@@ -162,25 +164,15 @@ class Falkon(FalkonBase):
             The fitted model
         """
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
-
         dtype = X.dtype
-
-        # Decide whether to use CUDA for preconditioning based on M
-        _use_cuda_preconditioner = (
-            self.use_cuda_ and
-            (not self.options.cpu_preconditioner) and
-            self.M >= get_min_cuda_preconditioner_size(dtype, self.options)
-        )
-        _use_cuda_mmv = (
-            self.use_cuda_ and
-            X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
-        )
-
         self.fit_times_ = []
         self.ny_points_ = None
         self.alpha_ = None
 
+        # Start training timer
         t_s = time.time()
+
+        # Pick Nystrom centers
         if self.weight_fn is not None:
             # noinspection PyTupleAssignmentBalance
             ny_points, ny_indices = self.center_selection.select_indices(X, None)
@@ -188,11 +180,23 @@ class Falkon(FalkonBase):
             # noinspection PyTypeChecker
             ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None)
             ny_indices = None
+        num_centers = ny_points.shape[0]
+
+        # Decide whether to use CUDA for preconditioning and iterations, based on number of centers
+        _use_cuda_preconditioner = (
+            self.use_cuda_ and
+            (not self.options.cpu_preconditioner) and
+            num_centers >= get_min_cuda_preconditioner_size(dtype, self.options)
+        )
+        _use_cuda_mmv = (
+            self.use_cuda_ and
+            X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
+        )
         
         if self.use_cuda_:
             ny_points = ny_points.pin_memory()
 
-        with TicToc("Calcuating Preconditioner of size %d" % (self.M), debug=self.options.debug):
+        with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
             pc_opt: FalkonOptions = dataclasses.replace(self.options,
                                                         use_cpu=not _use_cuda_preconditioner)
             if pc_opt.debug:
@@ -251,10 +255,11 @@ class Falkon(FalkonBase):
         if ny_points is None:
             # Then X is the kernel itself
             return X @ alpha
+        num_centers = alpha.shape[0]
         _use_cuda_mmv = (
             alpha.device.type == "cuda" or (
                 self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(
+                X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(
                     X.dtype, self.options)
             )
         )

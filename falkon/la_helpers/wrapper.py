@@ -14,17 +14,9 @@ from falkon.la_helpers.cyblas import (
     copy_triang as c_copy_triang,
     potrf as c_potrf
 )
-from falkon.utils import decide_cuda
 from falkon.utils.helpers import check_same_device
 from .cpu_trsm import cpu_trsm
 
-if decide_cuda():
-    # noinspection PyUnresolvedReferences
-    from falkon.la_helpers.cuda_la_helpers import (
-        cuda_copy_triang,
-        cuda_mul_triang
-    )
-    from .cuda_trsm import cuda_trsm
 
 arr_type = Union[torch.Tensor, np.ndarray]
 __all__ = ("zero_triang", "mul_triang", "copy_triang", "vec_mul_triang", "potrf", "trsm")
@@ -52,6 +44,8 @@ def zero_triang(mat: arr_type, upper: bool) -> arr_type:
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
+            # noinspection PyUnresolvedReferences
+            from falkon.la_helpers.cuda_la_helpers import cuda_mul_triang
             return cuda_mul_triang(mat, upper=upper, preserve_diag=True, multiplier=0.0)
         else:
             out_torch_convert = True
@@ -91,6 +85,8 @@ def mul_triang(mat: arr_type, upper: bool, preserve_diag: bool, multiplier: floa
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
+            # noinspection PyUnresolvedReferences
+            from falkon.la_helpers.cuda_la_helpers import cuda_mul_triang
             return cuda_mul_triang(mat, upper=upper, preserve_diag=preserve_diag, multiplier=multiplier)
         else:
             out_torch_convert = True
@@ -124,6 +120,8 @@ def copy_triang(mat: arr_type, upper: bool) -> arr_type:
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
+            # noinspection PyUnresolvedReferences
+            from falkon.la_helpers.cuda_la_helpers import cuda_copy_triang
             return cuda_copy_triang(mat, upper=upper)
         else:
             out_torch_convert = True
@@ -172,6 +170,7 @@ def trsm(v: arr_type, A: arr_type, alpha: float, lower: int = 0, transpose: int 
             if not check_same_device(A, v):
                 raise ValueError("A and v must be on the same device.")
             if A.is_cuda and v.is_cuda:
+                from falkon.la_helpers.cuda_trsm import cuda_trsm
                 return cuda_trsm(A, v, alpha, lower, transpose)
             else:
                 out_torch_convert = True

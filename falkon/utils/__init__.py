@@ -21,8 +21,7 @@ def check_random_generator(seed):
         Otherwise raise ValueError.
     """
     if seed is None or seed is np.random:
-        # noinspection PyProtectedMember
-        return np.random.mtrand._rand
+        return np.random.default_rng()
     if isinstance(seed, numbers.Integral):
         return np.random.default_rng(seed)
     if isinstance(seed, np.random.Generator):

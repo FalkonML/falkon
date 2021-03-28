@@ -21,7 +21,7 @@ _tensor_type = Union[torch.Tensor, SparseTensor]
 class FalkonBase(base.BaseEstimator, ABC):
     def __init__(self,
                  kernel: falkon.kernels.Kernel,
-                 M: int,
+                 M: Optional[int],
                  center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  seed: Optional[int] = None,
                  error_fn: Optional[callable] = None,
@@ -54,6 +54,10 @@ class FalkonBase(base.BaseEstimator, ABC):
 
         if isinstance(center_selection, str):
             if center_selection.lower() == 'uniform':
+                if M is None:
+                    raise ValueError(
+                        "M must be specified when no `CenterSelector` object is provided. "
+                        "Specify an integer value for `M` or a `CenterSelector` object.")
                 self.center_selection: falkon.center_selection.CenterSelector = \
                     falkon.center_selection.UniformSelector(self.random_state_, num_centers=M)
             else:
@@ -74,6 +78,8 @@ class FalkonBase(base.BaseEstimator, ABC):
         The callback computes and displays the validation error.
         """
         def val_cback(it, beta, train_time):
+            # fit_times_[0] is the preparation (i.e. preconditioner time).
+            # train_time is the cumulative training time (excludes time for this function)
             self.fit_times_.append(self.fit_times_[0] + train_time)
             if it % self.error_every != 0:
                 print("Iteration %3d - Elapsed %.1fs" % (it, self.fit_times_[-1]), flush=True)
