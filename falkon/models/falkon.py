@@ -192,7 +192,7 @@ class Falkon(FalkonBase):
             self.use_cuda_ and
             X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
         )
-        
+
         if self.use_cuda_:
             ny_points = ny_points.pin_memory()
 

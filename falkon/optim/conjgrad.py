@@ -132,6 +132,11 @@ class FalkonConjugateGradient(Optimizer):
         the CG method could converge very slowly.
     opt
         Options passed to the CG solver and to the kernel for computations.
+
+    See Also
+    --------
+    :class:`falkon.preconditioner.FalkonPreconditioner`
+        for the preconditioner class which is responsible for computing matrices `T` and `A`.
     """
     def __init__(self,
                  kernel: falkon.kernels.Kernel,

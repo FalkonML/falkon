@@ -157,7 +157,7 @@ class FixedSelector(CenterSelector):
         Raises
         ------
         RuntimeError
-            If the indices passed to the class constructor are `None`.`
+            If the indices passed to the class constructor are `None`.
         RuntimeError
             If parameter `Y` is not None but the `y_centers` tensor passed to the class constructor
             is `None`.

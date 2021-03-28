@@ -25,9 +25,3 @@ FalkonConjugateGradient
 
 .. autoclass:: FalkonConjugateGradient
     :members:
-
-WFalkonConjugateGradient
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: WFalkonConjugateGradient
-    :members:

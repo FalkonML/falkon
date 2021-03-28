@@ -1,8 +1,6 @@
 import math
 from typing import List
 
-import torch
-
 
 def calc_block_sizes(max_block_size: int,
                      num_devices: int,

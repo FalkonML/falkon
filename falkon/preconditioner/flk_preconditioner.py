@@ -230,7 +230,7 @@ class FalkonPreconditioner(Preconditioner):
 
     @check_init("fC", "dT", "dA")
     def invTt(self, v: torch.Tensor) -> torch.Tensor:
-        r"""Solve the system of equations :math:`T^\\top x = v` for unknown vector :math:`x`.
+        r"""Solve the system of equations :math:`T^\top x = v` for unknown vector :math:`x`.
 
         Multiple right-hand sides are supported (by simply passing a 2D tensor for `v`)
 
