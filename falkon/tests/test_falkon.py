@@ -70,7 +70,7 @@ class TestFalkon:
         def error_fn(t, p):
             t = torch.argmax(t, dim=1)
             p = torch.argmax(p, dim=1)
-            return torch.mean((t.reshape(-1, ) != p.reshape(-1, )).to(torch.float64)), "multic-err"
+            return float(torch.mean((t.reshape(-1, ) != p.reshape(-1, )).to(torch.float64))), "multic-err"
 
         opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
 
@@ -88,7 +88,7 @@ class TestFalkon:
         kernel = kernels.GaussianKernel(20.0)
 
         def error_fn(t, p):
-            return torch.sqrt(torch.mean((t - p) ** 2)), "RMSE"
+            return torch.sqrt(torch.mean((t - p) ** 2)).item(), "RMSE"
 
         opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
 
@@ -110,7 +110,7 @@ class TestFalkon:
         kernel = kernels.GaussianKernel(20.0)
 
         def error_fn(t, p):
-            return torch.sqrt(torch.mean((t - p) ** 2)), "RMSE"
+            return torch.sqrt(torch.mean((t - p) ** 2)).item(), "RMSE"
 
         opt = FalkonOptions(use_cpu=False, keops_active="no", debug=True,
                             min_cuda_pc_size_64=1, min_cuda_iter_size_64=1)
@@ -130,6 +130,40 @@ class TestFalkon:
         tr_err = error_fn(cuda_tr_preds.cpu(), Ytr)[0]
         assert tr_err < ts_err
         assert ts_err < 2.5
+
+
+class TestWeightedFalkon:
+    def test_classif(self, cls_data):
+        X, Y = cls_data
+        kernel = kernels.GaussianKernel(2.0)
+        torch.manual_seed(13)
+        np.random.seed(13)
+
+        def error_fn(t, p):
+            return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
+
+        def weight_fn(y):
+            y[y == -1] = -3
+            return y
+        # Y[Y == -1] = -3
+        # X[Y.reshape(-1) == -1, :] *= 3
+
+        opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
+
+        flk = Falkon(
+            kernel=kernel,
+            penalty=1e-6,
+            M=500,
+            seed=10,
+            options=opt,
+            error_fn=error_fn,
+            weight_fn=weight_fn,
+        )
+        flk.fit(X, Y)
+        preds = flk.predict(X)
+        err = error_fn(preds, Y)[0]
+        print(flk.alpha_)
+        assert err < 5
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
