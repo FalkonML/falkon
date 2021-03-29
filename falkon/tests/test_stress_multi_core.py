@@ -25,9 +25,9 @@ def _runner_str(fname_X, fname_Y, fname_out, num_centers, num_rep, max_iter, gpu
     
     num_rep = 5
     kernel = kernels.GaussianKernel(20.0)
-    with open({fname_X}, 'rb') as fh:
+    with open('{fname_X}', 'rb') as fh:
         X = pickle.load(fh)
-    with open({fname_Y}, 'rb') as fh:
+    with open('{fname_Y}', 'rb') as fh:
         Y = pickle.load(fh)
     X, Y = X.cuda(), Y.cuda()
     
@@ -42,7 +42,7 @@ def _runner_str(fname_X, fname_Y, fname_out, num_centers, num_rep, max_iter, gpu
             center_selection=center_sel)
         flk.fit(X, Y)
         out.append(flk.predict(X))
-    with open({fname_out}, 'wb') as fh:
+    with open('{fname_out}', 'wb') as fh:
         pickle.dump([o.cpu() for o in out], fh)
     """
     # Save string to temporary file
@@ -51,6 +51,7 @@ def _runner_str(fname_X, fname_Y, fname_out, num_centers, num_rep, max_iter, gpu
         fh.write(run_str)
 
     os.system(f"CUDA_VISIBLE_DEVICES='{gpu_num}' python {py_fname}")
+    os.remove(py_fname)
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
@@ -85,7 +86,7 @@ class TestStressInCore:
                                          'fname_out': out_files[i],
                                          'num_rep': num_rep,
                                          'max_iter': max_iter,
-                                         'gpu_num': num_gpus % i
+                                         'gpu_num': i % num_gpus
                                      },
                                      daemon=False)
                 threads.append(t)
