@@ -54,19 +54,21 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
     n = A.shape[0]
 
     tc_device = torch.device("cuda:%d" % (device))
+    tc_stream = torch.cuda.current_stream(tc_device)
     # Choose functions by dtype
     potrf_buf_size = choose_fn(A.dtype, cusolverDnDpotrf_bufferSize, cusolverDnSpotrf_bufferSize,
                                "POTRF Buffer size")
     potrf_fn = choose_fn(A.dtype, cusolverDnDpotrf, cusolverDnSpotrf, "POTRF")
-
     # noinspection PyUnresolvedReferences
-    with torch.cuda.device(tc_device):
+    with torch.cuda.device(tc_device), \
+            torch.cuda.stream(tc_stream), \
+            cusolver_stream(cusolver_handle, tc_stream._as_parameter_):
         # Copy A to device memory
         if A.is_cuda:
             Agpu = A
         else:
             Agpu = create_fortran(A.shape, A.dtype, tc_device)
-            copy_to_device(n, n, A, 0, 0, Agpu, 0, 0)
+            copy_to_device(n, n, A, 0, 0, Agpu, 0, 0, s=tc_stream)
 
         # Create workspace buffer
         potrf_bsize = potrf_buf_size(
@@ -78,11 +80,10 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
         potrf_fn(handle=cusolver_handle,
                  uplo=uplo, n=n, A=Agpu.data_ptr(), lda=n,
                  workspace=potrf_wspace.data_ptr(), Lwork=potrf_bsize, devInfo=dev_info)
-        torch.cuda.synchronize()
 
         # Copy back to CPU
         if not A.is_cuda:
-            copy_to_host(n, n, Agpu, 0, 0, A, 0, 0)
+            copy_to_host(n, n, Agpu, 0, 0, A, 0, 0, s=tc_stream)
             del Agpu
         del potrf_wspace, dev_info
     return A
@@ -195,7 +196,6 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
                                 opt.max_gpu_mem * 0.95)
 
     if A.is_cuda:
-        sync_current_stream(A.device)
         try:
             device = [d for d in gpu_info if d.Id == A.device.index][0]
         except IndexError:

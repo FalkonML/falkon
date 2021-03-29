@@ -37,7 +37,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
             # and 1 full column
             max_block_size = int(math.floor((-N + math.sqrt(N**2 + 8 * avail_ram)) / 4))
         else:
-            # Same RAM requirements as the non-CUDA version
+            # Same RAM requirements as the out-of-core version
             max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
@@ -70,8 +70,8 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     barrier = threading.Barrier(num_gpus, timeout=1000)
     threads = []
     for _gpu_idx, g in enumerate(gpu_info):
-        # Assign rows to GPUs round-robin. We must use _gpu_idx instead of g.Id, since the latter
-        # may not contain all elements from 0.
+        # Assign rows to GPUs round-robin. Use _gpu_idx instead of g.Id since the latter
+        # may not contain all integers from 0.
         gid_allocs = [i for i in range(len(block_allocations)) if i % num_gpus == _gpu_idx]
         cublas_handle = initialization.cublas_handle(g.Id)
         if cublas_handle is None:
@@ -110,6 +110,7 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
         opt = FalkonOptions()
     if not overwrite:
         A = copy_same_stride(A, pin_memory=True)
+    # TODO: There is a helper function in mmv_ops for this.
     gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
         g.actual_free_mem = min((g.free_memory - 300 * 2 ** 20) * 0.95,

@@ -1,12 +1,15 @@
 import ctypes
 import sys
+from contextlib import contextmanager
 
 from falkon.cuda.cublas_gpu import CUBLAS_FILL_MODE
 
-__all__ = ["cusolverDnCreate", "cusolverDnDestroy",
-           "cusolverDnSetStream", "cusolverDnGetStream",
-           "cusolverDnSpotrf_bufferSize", "cusolverDnDpotrf_bufferSize",
-           "cusolverDnSpotrf", "cusolverDnDpotrf"]
+__all__ = (
+    "cusolverDnCreate", "cusolverDnDestroy",
+    "cusolverDnSetStream", "cusolverDnGetStream", "cusolver_stream",
+    "cusolverDnSpotrf_bufferSize", "cusolverDnDpotrf_bufferSize",
+    "cusolverDnSpotrf", "cusolverDnDpotrf"
+)
 
 # Globals
 CUSOLVER_EXCEPTIONS = {
@@ -46,18 +49,18 @@ def load_cusolver_library():
         raise RuntimeError('unsupported platform')
 
     # Print understandable error message when library cannot be found:
-    _libcusolver = None
+    libcusolver = None
     for _libcusolver_libname in _libcusolver_libname_list:
         try:
-            _libcusolver = ctypes.cdll.LoadLibrary(_libcusolver_libname)
+            libcusolver = ctypes.cdll.LoadLibrary(_libcusolver_libname)
         except OSError:
             pass
         else:
             break
-    if _libcusolver is None:
+    if libcusolver is None:
         raise OSError('cusolver library not found')
 
-    return _libcusolver
+    return libcusolver
 
 
 _libcusolver = load_cusolver_library()
@@ -188,6 +191,18 @@ def cusolverDnGetStream(handle):
     status = _libcusolver.cusolverDnGetStream(handle, ctypes.byref(stream))
     cusolver_check_status(status)
     return stream.value
+
+
+@contextmanager
+def cusolver_stream(cusolver_handle, stream_id):
+    original_stream_id = None
+    try:
+        original_stream_id = cusolverDnGetStream(cusolver_handle)
+        cusolverDnSetStream(cusolver_handle, stream_id)
+        yield stream_id
+    finally:
+        if original_stream_id is not None:
+            cusolverDnSetStream(cusolver_handle, original_stream_id)
 
 
 _libcusolver.cusolverDnSpotrf_bufferSize.restype = int

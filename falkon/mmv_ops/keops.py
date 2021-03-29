@@ -3,6 +3,9 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import torch
+from falkon.utils.stream_utils import sync_current_stream
+
+from falkon.mmv_ops.utils import _get_gpu_info
 
 from falkon.options import FalkonOptions, BaseOptions
 from falkon.utils import decide_cuda, devices
@@ -161,7 +164,7 @@ def _single_gpu_method(proc_idx, queue, device_id):
 
             variables = [cX1, cX2, cv] + other_vars
             fn(*variables, out=cout, device_id=device_id, backend=backend)
-        torch.cuda.synchronize(device_id)
+        torch.cuda.synchronize(device_id)  # TODO: Check if CUDA streams are used inside KeOps.
         if ml != M and mi > 0:
             oout.add_(out)
 
@@ -202,7 +205,7 @@ def run_keops_mmv(X1: torch.Tensor,
                 dtype=dtype, dtype_acc=opt.keops_acc_dtype,
                 sum_scheme=opt.keops_sum_scheme)
 
-    # Compile on a small data subset
+    # Compile on a small data subset. TODO: Is this needed?
     small_data_variables = [X1[:100], X2[:10], v[:10]] + other_vars
     small_data_out = torch.empty((100, T), dtype=X1.dtype, device=device)
     fn(*small_data_variables, out=small_data_out, backend=backend)
@@ -214,23 +217,17 @@ def run_keops_mmv(X1: torch.Tensor,
                           pin_memory=(backend != 'CPU') and (device.type == 'cpu'))
 
     if backend.startswith("GPU") and device.type == 'cpu':
-        # Info about GPUs
-        ram_slack = 0.7  # slack is high due to imprecise memory usage estimates
-        gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
-        gpu_ram = [
-            min((g.free_memory - 300 * 2 ** 20) * ram_slack, opt.max_gpu_mem * ram_slack)
-            for g in gpu_info
-        ]
+        # slack is high due to imprecise memory usage estimates for keops
+        gpu_info = _get_gpu_info(opt, slack=0.7)
         block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
         # Create queues
         args = []  # Arguments passed to each subprocess
-        for i in range(len(gpu_info)):
+        for i, g in enumerate(gpu_info):
             # First round of subdivision
             bwidth = block_sizes[i + 1] - block_sizes[i]
             if bwidth <= 0:
                 continue
-
             args.append((ArgsFmmv(
                 X1=X1.narrow(0, block_sizes[i], bwidth),
                 X2=X2,
@@ -239,10 +236,12 @@ def run_keops_mmv(X1: torch.Tensor,
                 other_vars=other_vars,
                 function=fn,
                 backend=backend,
-                gpu_ram=gpu_ram[i]
-            ), gpu_info[i].Id))
+                gpu_ram=g.usable_ram
+            ), g.Id))
         _start_wait_processes(_single_gpu_method, args)
     else:  # Run on CPU or GPU with CUDA inputs
+        if device.type == 'cuda':
+            sync_current_stream(device)
         variables = [X1, X2, v] + other_vars
         out = fn(*variables, out=out, backend=backend)
 

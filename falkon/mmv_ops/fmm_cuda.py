@@ -252,8 +252,7 @@ def fmm_cuda(X1: torch.Tensor,
     M = X2.shape[0]
     device = X1.device
     if out is None:
-        out = create_same_stride((N, M), X1, X1.dtype, device=device,
-                                 pin_memory=False)
+        out = create_same_stride((N, M), X1, X1.dtype, device=device, pin_memory=False)
     gpu_info = _get_gpu_info(opt, slack=0.9)
     block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
