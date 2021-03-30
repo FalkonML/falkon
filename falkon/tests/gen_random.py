@@ -25,8 +25,8 @@ def gen_random_pd(t, dtype, F=False, seed=0):
     return A
 
 
-def gen_sparse_matrix(a, b, dtype, density=0.1, seed=0) -> SparseTensor:
-    out = random_sparse(a, b, density=density, sparse_format='csr', dtype=dtype, seed=seed)
+def gen_sparse_matrix(a, b, dtype, density=0.1, seed=0, sparse_fromat='csr') -> SparseTensor:
+    out = random_sparse(a, b, density=density, sparse_format=sparse_fromat, dtype=dtype, seed=seed)
 
     return SparseTensor.from_scipy(out)
 

@@ -76,10 +76,10 @@ static inline void calc_norm(
         i_end = indptr[i+1];
         val_ij = 0.0;
         while (i_start < i_end) {
-            val_ij += sqrt(data[i_start]*data[i_start]);
+            val_ij += data[i_start]*data[i_start];
             i_start++;
         }
-        out_data[i] = val_ij;
+        out_data[i] = sqrt(val_ij);
     }
 }
 

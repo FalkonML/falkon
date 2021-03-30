@@ -8,7 +8,7 @@ from falkon.utils.stream_utils import sync_current_stream
 from falkon.mmv_ops.utils import _get_gpu_info
 
 from falkon.options import FalkonOptions, BaseOptions
-from falkon.utils import decide_cuda, devices
+from falkon.utils import decide_cuda
 from falkon.utils.helpers import sizeof_dtype, calc_gpu_block_sizes, check_same_device
 from pykeops.torch import Genred
 from .utils import _start_wait_processes

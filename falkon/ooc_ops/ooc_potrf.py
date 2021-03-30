@@ -7,7 +7,6 @@ from falkon.cuda.cusolver_gpu import *
 from falkon.utils import devices
 from falkon import la_helpers
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
-from falkon.utils.stream_utils import sync_current_stream
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 # noinspection PyUnresolvedReferences
 from falkon.ooc_ops.cuda import parallel_potrf

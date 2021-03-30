@@ -17,8 +17,6 @@ def _sparse_matmul_cpu(A, B, out):
     """
     from falkon.mkl_bindings.mkl_bind import mkl_lib
 
-    if A.nnz() == 0 or B.nnz() == 0:
-        return out
     if not A.is_csr:
         raise ValueError("A must be CSR matrix")
     if not B.is_csc:
@@ -102,6 +100,7 @@ def sparse_matmul(A: SparseTensor, B: SparseTensor, out: torch.Tensor) -> torch.
 
     """
     if A.nnz() == 0 or B.nnz() == 0:
+        out.fill_(0.0)
         return out
 
     if A.is_cuda:
@@ -133,12 +132,14 @@ def sparse_square_norm(A: SparseTensor, out: torch.Tensor) -> torch.Tensor:
     -----
     This function is currently limited to CPU input tensors.
     """
+    if out is None:
+        out = torch.empty(A.shape[0], 1, dtype=A.dtype, device=A.device)
     if not A.is_csr:
-        raise RuntimeError("Squared norm can only be applied on CSR tensors")
+        raise RuntimeError("Sparse squared norm can only be applied on CSR tensors.")
     if not check_same_dtype(A, out):
-        raise ValueError("All data-types must match")
+        raise ValueError("All data-types must match.")
     if A.shape[0] != out.shape[0]:
-        raise ValueError("Dimension 0 of A must match the length of tensor 'out'")
+        raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
     return norm_sq(A.indexptr, A.data, out)
 
@@ -164,11 +165,13 @@ def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
     -----
     This function is currently limited to CPU input tensors.
     """
+    if out is None:
+        out = torch.empty(A.shape[0], 1, dtype=A.dtype, device=A.device)
     if not A.is_csr:
-        raise RuntimeError("Norm can only be applied on CSR tensors")
+        raise RuntimeError("Sparse norm can only be applied on CSR tensors.")
     if not check_same_dtype(A, out):
-        raise ValueError("All data-types must match")
+        raise ValueError("All data-types must match.")
     if A.shape[0] != out.shape[0]:
-        raise ValueError("Dimension 0 of A must match the length of tensor 'out'")
+        raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
     return norm_(A.indexptr, A.data, out)
