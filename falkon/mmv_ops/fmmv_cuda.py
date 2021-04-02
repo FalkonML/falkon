@@ -172,7 +172,7 @@ def generic_fmmv(proc_idx, queue, device_id):
                               max_mem=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream(ddev)
+    s1 = tcd.current_stream(ddev)
     with tcd.device(ddev), tcd.stream(s1):
         # First collect necessary memory
         mem_needed = n * M
@@ -352,7 +352,7 @@ def generic_fdmmv(proc_idx, queue, device_id):
                               rest=rest_coef + M + extra_mem.get('m', 0),
                               max_mem=avail_mem)
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream(ddev)
+    s1 = tcd.current_stream(ddev)
     with tcd.device(ddev), tcd.stream(s1):
         # First collect necessary memory
         mem_needed = n * M + n * T
@@ -437,7 +437,7 @@ def distk_fmmv(proc_idx, queue, device_id):
                                  max_mem=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream(ddev)
+    s1 = tcd.current_stream(ddev)
     with tcd.device(ddev), tcd.stream(s1):
         mem_needed = n * m
         if not cuda_inputs:
@@ -520,9 +520,8 @@ def distk_fdmmv(proc_idx, queue, device_id):
     n, d = select_dim_over_nd(max_n=N, max_d=D, coef_nd=1, coef_n=M + T + 1, coef_d=M,
                               rest=rest_coef + M, max_mem=avail_mem)
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream(ddev)
+    s1 = tcd.current_stream(ddev)
     s2 = tcd.Stream(ddev)
-
     with tcd.device(ddev), tcd.stream(s1):
         # First collect necessary memory
         mem_needed = n * M + n * T + n + M
@@ -577,7 +576,7 @@ def distk_fdmmv(proc_idx, queue, device_id):
                     cur_X1ss_gpu = copy_to_device_noorder(nb, db, X1, i, j, X1ss_gpu, 0, 0, s=s1)
                 torch.norm(cur_X1ss_gpu, p=2, dim=1, keepdim=True, out=sq1_gpu).pow_(2)
 
-                s2.synchronize()  # need that cur_X2s_gpu and sq2_gpu are available.
+                s1.wait_stream(s2)  # need that cur_X2s_gpu and sq2_gpu are available.
                 cur_K_gpu.addmm_(mat1=cur_X1ss_gpu, mat2=cur_X2s_gpu.T, alpha=-2.0)
                 cur_K_gpu.add_(sq1_gpu)
                 cur_K_gpu.add_(sq2_gpu.T)
@@ -629,14 +628,14 @@ def fmmv_cuda(X1: torch.Tensor,
     out.fill_(0.0)
 
     if kernel.kernel_type == "l2distance" and kernel.name == "gaussian":
-        target = distk_fmmv
+        #target = distk_fmmv
+        target = generic_fmmv
     else:
         target = generic_fmmv
 
     gpu_info = _get_gpu_info(opt, slack=0.9)
 
     if device.type == 'cuda':
-        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel,
                         max_mem=single_gpu_info.usable_ram)
@@ -678,7 +677,6 @@ def fmmv_cuda_sparse(X1: SparseTensor,
     gpu_info = _get_gpu_info(opt, slack=0.9)
 
     if device.type == 'cuda':
-        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel,
                         max_mem=single_gpu_info.usable_ram)
@@ -741,7 +739,6 @@ def fdmmv_cuda(X1: torch.Tensor,
         target = generic_fdmmv
 
     if device.type == 'cuda':
-        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFdmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel,
                          max_mem=single_gpu_info.usable_ram)

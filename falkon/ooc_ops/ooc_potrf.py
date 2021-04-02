@@ -85,6 +85,7 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
             copy_to_host(n, n, Agpu, 0, 0, A, 0, 0, s=tc_stream)
             del Agpu
         del potrf_wspace, dev_info
+        tc_stream.synchronize()
     return A
 
 

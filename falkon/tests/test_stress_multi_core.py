@@ -31,7 +31,7 @@ with open('{fname_Y}', 'rb') as fh:
     Y = pickle.load(fh)
 X, Y = X.cuda(), Y.cuda()
 
-opt = FalkonOptions(use_cpu=False, keops_active="no", debug=False, #never_store_kernel=True,
+opt = FalkonOptions(use_cpu=False, keops_active="no", debug=False, never_store_kernel=True,
                     max_gpu_mem=1*2**30, cg_full_gradient_every=2,
                     min_cuda_iter_size_32=0, min_cuda_iter_size_64=0, min_cuda_pc_size_32=0, min_cuda_pc_size_64=0)
 out = []
@@ -106,7 +106,7 @@ class TestStressInCore:
         # Expected result
         kernel = kernels.GaussianKernel(20.0)
         X, Y = X.cuda(), Y.cuda()
-        opt = FalkonOptions(use_cpu=False, keops_active="no", debug=False, #never_store_kernel=True,
+        opt = FalkonOptions(use_cpu=False, keops_active="no", debug=False, never_store_kernel=True,
                             max_gpu_mem=1*2**30, cg_full_gradient_every=2)
         center_sel = FixedSelector(X[:num_centers])
         flk = InCoreFalkon(

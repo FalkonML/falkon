@@ -196,13 +196,15 @@ class InCoreFalkon(FalkonBase):
             ny_indices = None
         num_centers = ny_points.shape[0]
 
-        with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
+        pc_stream = torch.cuda.Stream(X.device)
+        with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug), torch.cuda.stream(pc_stream):
             precond = falkon.preconditioner.FalkonPreconditioner(
                 self.penalty, self.kernel, self.options)
             ny_weight_vec = None
             if self.weight_fn is not None:
                 ny_weight_vec = self.weight_fn(Y[ny_indices])
             precond.init(ny_points, weight_vec=ny_weight_vec)
+        pc_stream.synchronize()
 
         # Cache must be emptied to ensure enough memory is visible to the optimizer
         torch.cuda.empty_cache()
