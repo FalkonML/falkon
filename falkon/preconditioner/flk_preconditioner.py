@@ -116,23 +116,25 @@ class FalkonPreconditioner(Preconditioner):
             copy_triang(C, upper=False)
 
         # Weighted least-squares uses slightly different preconditioner
-        if weight_vec is not None:
-            with TicToc("Weighting", debug=self.params.debug):
+        if weight_vec is not None and not self._use_cuda:
+            with TicToc("Weighting(CPU)", debug=self.params.debug):
                 weight_vec.sqrt_()
-                # We switch on CUDA since LAUUM uses upper(C) or lower(C) depending on this.
-                if self._use_cuda:
-                    vec_mul_triang(C, weight_vec.numpy().reshape(-1), side=0, upper=True)
-                else:
-                    vec_mul_triang(C, weight_vec.numpy().reshape(-1), side=1, upper=False)
+                vec_mul_triang(C, weight_vec, side=1, upper=False)
 
         if self._use_cuda:
             with TicToc("LAUUM(CUDA)", debug=self.params.debug):
-                # Product upper(fC) @ upper(fC).T : upper(fC) = T @ T.T
+                # Product upper(fC) @ upper(fC).T : lower(fC) = T @ T.T
                 C = lauum_wrapper(C, upper=True, use_cuda=self._use_cuda, opt=self.params)
         else:
             with TicToc("LAUUM(CPU)", debug=self.params.debug):
-                # Product lower(fC).T @ lower(fC) : upper(fC) = T @ T.T
+                # Product lower(fC).T @ lower(fC) : lower(fC) = T @ T.T
                 C = lauum_wrapper(C, upper=False, use_cuda=self._use_cuda, opt=self.params)
+
+        if weight_vec is not None and self._use_cuda:
+            with TicToc("Weighting(CUDA)", debug=self.params.debug):
+                weight_vec.sqrt_()
+                vec_mul_triang(C, weight_vec, side=0, upper=False)
+                vec_mul_triang(C, weight_vec, side=1, upper=False)
 
         with TicToc("Cholesky 2", debug=self.params.debug):
             # lower(fC) = 1/M * T@T.T

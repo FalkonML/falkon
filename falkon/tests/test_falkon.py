@@ -53,11 +53,9 @@ class TestFalkon:
             return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
 
         opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
-
         flk = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,
-            options=opt,
-            error_fn=error_fn)
+            options=opt, maxiter=10)
         flk.fit(X, Y)
         preds = flk.predict(X)
         err = error_fn(preds, Y)[0]
@@ -74,11 +72,9 @@ class TestFalkon:
                 torch.mean((t.reshape(-1, ) != p.reshape(-1, )).to(torch.float64))), "multic-err"
 
         opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
-
         flk = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,
-            options=opt,
-            error_fn=error_fn)
+            options=opt, maxiter=10)
         flk.fit(X, Y)
         preds = flk.predict(X)
         err = error_fn(preds, Y)[0]
@@ -92,11 +88,9 @@ class TestFalkon:
             return torch.sqrt(torch.mean((t - p) ** 2)).item(), "RMSE"
 
         opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
-
         flk = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,
-            options=opt,
-            error_fn=error_fn)
+            options=opt, maxiter=10)
         flk.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
 
         assert flk.predict(Xts).shape == (Yts.shape[0], 1)
@@ -143,14 +137,12 @@ class TestFalkon:
         opt_cpu = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
         flk_cpu = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,
-            options=opt_cpu,
-            error_fn=error_fn)
+            options=opt_cpu, maxiter=10, error_fn=error_fn)
         flk_cpu.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
         opt_gpu = FalkonOptions(use_cpu=False, keops_active="no", debug=True)
         flk_gpu = Falkon(
             kernel=kernel, penalty=1e-6, M=500, seed=10,
-            options=opt_gpu,
-            error_fn=error_fn)
+            options=opt_gpu, maxiter=10, error_fn=error_fn)
         flk_gpu.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
 
         np.testing.assert_allclose(flk_cpu.alpha_.numpy(), flk_gpu.alpha_.numpy())
@@ -182,25 +174,27 @@ class TestWeightedFalkon:
             weight[y == -1] = 2
             return weight
 
-        opt = FalkonOptions(use_cpu=cuda_usage == "cpu_only", keops_active="no", debug=True)
+        opt = FalkonOptions(use_cpu=cuda_usage == "cpu_only", keops_active="no", debug=False)
 
         flk_weight = flk_cls(kernel=kernel, penalty=1e-6, M=500, seed=10, options=opt,
                              error_fn=error_fn, weight_fn=weight_fn)
         flk_weight.fit(X, Y)
-        preds_weight = flk_weight.predict(X).cpu()
+        preds_weight = flk_weight.predict(X)
         preds_weight_m1 = preds_weight[Y == -1]
         preds_weight_p1 = preds_weight[Y == 1]
         err_weight_m1 = error_fn(preds_weight_m1, Y[Y == -1])[0]
-        err_weight_p1 = error_fn(preds_weight_p1, Y[Y == -1])[0]
+        err_weight_p1 = error_fn(preds_weight_p1, Y[Y == 1])[0]
 
         flk = flk_cls(kernel=kernel, penalty=1e-6, M=500, seed=10, options=opt,
                       error_fn=error_fn, weight_fn=None)
         flk.fit(X, Y)
-        preds = flk.predict(X).cpu()
+        preds = flk.predict(X)
         preds_m1 = preds[Y == -1]
         preds_p1 = preds[Y == 1]
         err_m1 = error_fn(preds_m1, Y[Y == -1])[0]
-        err_p1 = error_fn(preds_p1, Y[Y == -1])[0]
+        err_p1 = error_fn(preds_p1, Y[Y == 1])[0]
+
+        print("Weighted errors: -1 (%f) +1 (%f) -- Normal errors: -1 (%f) +1 (%f)" % (err_weight_m1, err_weight_p1, err_m1, err_p1))
 
         assert err_weight_m1 < err_m1, "Error of weighted class is higher than without weighting"
         assert err_weight_p1 >= err_p1, "Error of unweighted class is lower than in flk with no weights"
