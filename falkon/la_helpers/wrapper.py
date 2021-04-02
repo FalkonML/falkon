@@ -142,7 +142,7 @@ def vec_mul_triang(mat: arr_type, multipliers: arr_type, upper: bool, side: int)
             out_torch_convert = True
             mat = mat.numpy()
     if isinstance(multipliers, torch.Tensor):
-        multipliers = multipliers.numpy()
+        multipliers = multipliers.numpy().reshape(-1)
     out = c_vec_mul_triang(mat, multiplier=multipliers, upper=upper, side=side)
     if out_torch_convert:
         return torch.from_numpy(out)

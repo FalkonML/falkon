@@ -342,12 +342,21 @@ class TestVecMulTriang:
     def test_all_combos(self, mat, vec, order, device, upper, side):
         exp_output = self.exp_vec_mul_triang(mat, vec, upper, side)
 
-        vec = fix_mat(vec, order=order, dtype=mat.dtype, numpy=False, device=device)
-        mat = fix_mat(mat, order=order, dtype=mat.dtype, numpy=False, device=device, copy=True)
-
-        out = vec_mul_triang(mat, upper=upper, side=side, multipliers=vec).cpu().numpy()
+        vec = fix_mat(vec, order=order, dtype=np.float64, numpy=False, device=device)
+        mat2 = fix_mat(mat, order=order, dtype=np.float64, numpy=False, device=device, copy=True)
+        out = vec_mul_triang(mat2, upper=upper, side=side, multipliers=vec).cpu().numpy()
         np.testing.assert_allclose(exp_output.numpy(), out)
         assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
+
+        # Test with different vec orderings
+        vec = vec.reshape(1, -1)
+        mat2 = fix_mat(mat, order=order, dtype=np.float64, numpy=False, device=device, copy=True)
+        out = vec_mul_triang(mat2, upper=upper, side=side, multipliers=vec).cpu().numpy()
+        np.testing.assert_allclose(exp_output.numpy(), out, err_msg="Vec row ordering failed")
+        vec = vec.reshape(-1)
+        mat2 = fix_mat(mat, order=order, dtype=np.float64, numpy=False, device=device, copy=True)
+        out = vec_mul_triang(mat2, upper=upper, side=side, multipliers=vec).cpu().numpy()
+        np.testing.assert_allclose(exp_output.numpy(), out, err_msg="Vec 1D ordering failed")
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
