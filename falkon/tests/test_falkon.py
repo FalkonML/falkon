@@ -143,10 +143,10 @@ class TestWeightedFalkon:
             return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
 
         def weight_fn(y):
-            y[y == -1] = -3
-            return y
-        # Y[Y == -1] = -3
-        # X[Y.reshape(-1) == -1, :] *= 3
+            weight = torch.empty_like(y)
+            weight[y == 1] = 1
+            weight[y == -1] = 2
+            return weight
 
         opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
 
@@ -162,7 +162,12 @@ class TestWeightedFalkon:
         flk.fit(X, Y)
         preds = flk.predict(X)
         err = error_fn(preds, Y)[0]
-        print(flk.alpha_)
+
+        preds_m1 = preds[Y == -1]
+        preds_p1 = preds[Y == 1]
+        print("error m1: %.5f" % (error_fn(preds_m1, Y[Y == -1])[0]))
+        print("error p1: %.5f" % (error_fn(preds_p1, Y[Y == 1])[0]))
+
         assert err < 5
 
 
