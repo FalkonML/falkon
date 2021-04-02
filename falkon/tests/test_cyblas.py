@@ -382,5 +382,5 @@ class TestVecMulTriang:
             torch.cuda.synchronize()
             gpu_times.append(time.time() - t_s)
 
-        print("mat size %d - t_cpu: %.4fs -- t_cuda: %.4fs" % (TestVecMulTriangSimple.mat_size, np.min(cpu_times), np.min(gpu_times)))
+        print("mat size %d - t_cpu: %.4fs -- t_cuda: %.4fs" % (t, np.min(cpu_times), np.min(gpu_times)))
         np.testing.assert_allclose(out_cpu, out_cuda.cpu().numpy())

@@ -137,6 +137,7 @@ def vec_mul_triang(mat: arr_type, multipliers: arr_type, upper: bool, side: int)
         if mat.is_cuda:
             # noinspection PyUnresolvedReferences
             from falkon.la_helpers.cuda_la_helpers import cuda_vec_mul_triang
+            multipliers = multipliers.reshape(-1)
             return cuda_vec_mul_triang(mat, multipliers, upper, side)
         else:
             out_torch_convert = True
