@@ -305,56 +305,73 @@ class TestTrsm:
 
 
 class TestVecMulTriang:
-    @pytest.fixture
+    MAT_SIZE = 120
+
+    @pytest.fixture(scope="class")
     def mat(self):
-        return np.array([[1, 1, 1],
-                         [2, 2, 4],
-                         [6, 6, 8]], dtype=np.float32)
+        return torch.from_numpy(gen_random(
+            TestVecMulTriang.MAT_SIZE, TestVecMulTriang.MAT_SIZE, 'float64', False, seed=91))
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def vec(self):
-        return np.array([0, 1, 0.5], dtype=np.float32)
+        return torch.from_numpy(gen_random(
+            TestVecMulTriang.MAT_SIZE, 1, 'float64', False, seed=91))
+
+    @staticmethod
+    def exp_vec_mul_triang(mat, vec, upper, side):
+        if side == 0:
+            vec = vec.reshape(-1, 1)
+        else:
+            vec = vec.reshape(1, -1)
+        if upper:
+            tri_mat = torch.triu(mat, diagonal=0)
+            tri_idx = torch.triu_indices(mat.shape[0], mat.shape[1], offset=0)
+        else:
+            tri_mat = torch.tril(mat, diagonal=0)
+            tri_idx = torch.tril_indices(mat.shape[0], mat.shape[1], offset=0)
+        tri_mat *= vec
+        exp = mat.clone()
+        exp[tri_idx[0], tri_idx[1]] = tri_mat[tri_idx[0], tri_idx[1]]
+        return exp
 
     @pytest.mark.parametrize("order", ["F", "C"])
-    def test_lower(self, mat, vec, order):
-        mat = fix_mat(mat, order=order, dtype=mat.dtype, numpy=True, copy=True)
+    @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
+    @pytest.mark.parametrize("side", [0, 1], ids=["side0", "side1"])
+    @pytest.mark.parametrize("device",
+        ["cpu", pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
+    def test_all_combos(self, mat, vec, order, device, upper, side):
+        exp_output = self.exp_vec_mul_triang(mat, vec, upper, side)
 
-        out = vec_mul_triang(mat.copy(order="K"), upper=False, side=0, multipliers=vec)
-        exp = np.array([[0, 1, 1], [2, 2, 4], [3, 3, 4]], dtype=np.float32)
-        np.testing.assert_allclose(exp, out)
-        assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
+        vec = fix_mat(vec, order=order, dtype=mat.dtype, numpy=False, device=device)
+        mat = fix_mat(mat, order=order, dtype=mat.dtype, numpy=False, device=device, copy=True)
 
-        out = vec_mul_triang(mat.copy(order="K"), upper=False, side=1, multipliers=vec)
-        exp = np.array([[0, 1, 1], [0, 2, 4], [0, 6, 4]], dtype=np.float32)
-        np.testing.assert_allclose(exp, out)
-        assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
-
-    @pytest.mark.parametrize("order", ["F", "C"])
-    def test_upper(self, mat, vec, order):
-        mat = fix_mat(mat, order=order, dtype=mat.dtype, numpy=True, copy=True)
-
-        out = vec_mul_triang(mat.copy(order="K"), upper=True, side=0, multipliers=vec)
-        exp = np.array([[0, 0, 0], [2, 2, 4], [6, 6, 4]], dtype=np.float32)
-        np.testing.assert_allclose(exp, out)
-        assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
-
-        out = vec_mul_triang(mat.copy(order="K"), upper=True, side=1, multipliers=vec)
-        exp = np.array([[0, 1, 0.5], [2, 2, 2], [6, 6, 4]], dtype=np.float32)
-        np.testing.assert_allclose(exp, out)
+        out = vec_mul_triang(mat, upper=upper, side=side, multipliers=vec).cpu().numpy()
+        np.testing.assert_allclose(exp_output.numpy(), out)
         assert out.flags["%s_CONTIGUOUS" % order] is True, "Output is not %s-contiguous" % (order)
 
     @pytest.mark.benchmark
+    @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_large(self):
-        t = 30_000
-        mat = gen_random(t, t, np.float64, F=False, seed=123)
-        vec = gen_random(t, 1, np.float64, F=False, seed=124).reshape((-1,))
+        t = 20_000
+        num_rep = 5
+        mat = torch.from_numpy(gen_random(t, t, np.float32, F=False, seed=123))
+        vec = torch.from_numpy(gen_random(t, 1, np.float32, F=False, seed=124).reshape((-1,)))
 
-        t_s = time.time()
-        vec_mul_triang(mat, vec, upper=True, side=1)
-        t_tri = time.time() - t_s
+        mat_cuda = mat.cuda()
+        vec_cuda = vec.cuda()
 
-        t_s = time.time()
-        mat *= vec
-        t_full = time.time() - t_s
+        cpu_times = []
+        for i in range(num_rep):
+            t_s = time.time()
+            out_cpu = vec_mul_triang(mat, vec, True, 1)
+            cpu_times.append(time.time() - t_s)
 
-        print("Our took %.2fs -- Full took %.2fs" % (t_tri, t_full))
+        gpu_times = []
+        for i in range(num_rep):
+            t_s = time.time()
+            out_cuda = vec_mul_triang(mat_cuda, vec_cuda, True, 1)
+            torch.cuda.synchronize()
+            gpu_times.append(time.time() - t_s)
+
+        print("mat size %d - t_cpu: %.4fs -- t_cuda: %.4fs" % (TestVecMulTriangSimple.mat_size, np.min(cpu_times), np.min(gpu_times)))
+        np.testing.assert_allclose(out_cpu, out_cuda.cpu().numpy())

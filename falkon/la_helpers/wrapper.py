@@ -17,7 +17,6 @@ from falkon.la_helpers.cyblas import (
 from falkon.utils.helpers import check_same_device
 from .cpu_trsm import cpu_trsm
 
-
 arr_type = Union[torch.Tensor, np.ndarray]
 __all__ = ("zero_triang", "mul_triang", "copy_triang", "vec_mul_triang", "potrf", "trsm")
 
@@ -136,7 +135,9 @@ def vec_mul_triang(mat: arr_type, multipliers: arr_type, upper: bool, side: int)
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
-            raise NotImplementedError("'vec_mul_triang' is only implemented for CPU tensors")
+            # noinspection PyUnresolvedReferences
+            from falkon.la_helpers.cuda_la_helpers import cuda_vec_mul_triang
+            return cuda_vec_mul_triang(mat, multipliers, upper, side)
         else:
             out_torch_convert = True
             mat = mat.numpy()

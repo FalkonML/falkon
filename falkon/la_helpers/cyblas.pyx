@@ -44,43 +44,43 @@ def vec_mul_triang(np.ndarray[float_type, ndim=2] array,
     cdef float_type mul
     cdef int i, j
     if array.flags.f_contiguous: # Column-contiguous
-        if upper and side == 1:  # upper=1, side=1
+        if upper and side == 1:  # 1 - upper=1, side=1
             for j in prange(cols, nogil=True, schedule='guided', chunksize=max(cols//1000, 30)):
                 mul = multiplier[j]
                 for i in range(j + 1):
                     array[i, j] *= mul
-        elif upper and side == 0:  # upper=1, side=0
+        elif upper and side == 0:  # 2 - upper=1, side=0
             for j in prange(cols, nogil=True, schedule='guided', chunksize=max(cols//1000, 30)):
                 for i in range(j + 1):
                     mul = multiplier[i]
                     array[i, j] *= mul
-        elif side == 1:  # upper=0, side=1
+        elif side == 1:  # 3 - upper=0, side=1
             for j in prange(cols, nogil=True, schedule='guided', chunksize=max(cols//1000, 30)):
                 mul = multiplier[j]
                 for i in range(j, rows):
                     array[i, j] *= mul
-        else: # upper=0, side=0
+        else: # 4 - upper=0, side=0
             for j in prange(cols, nogil=True, schedule='guided', chunksize=max(cols//1000, 30)):
                 for i in range(j, rows):
                     mul = multiplier[i]
                     array[i, j] *= mul
     elif array.flags.c_contiguous:
-        if upper and side == 1:  # upper=1, side=1
+        if upper and side == 1:  # 4 - upper=1, side=1
             for i in prange(rows, nogil=True, schedule='guided', chunksize=max(rows//1000, 30)):
                 for j in range(i, cols):
                     mul = multiplier[j]
                     array[i, j] *= mul
-        elif upper and side == 0:  # upper=1, side=0
+        elif upper and side == 0:  # 3 - upper=1, side=0
             for i in prange(rows, nogil=True, schedule='guided', chunksize=max(rows//1000, 30)):
                 mul = multiplier[i]
                 for j in range(i, cols):
                     array[i, j] *= mul
-        elif side == 1:  # upper=0, side=1
+        elif side == 1:  # 2 - upper=0, side=1
             for i in prange(rows, nogil=True, schedule='guided', chunksize=max(rows//1000, 30)):
                 for j in range(i + 1):
                     mul = multiplier[j]
                     array[i, j] *= mul
-        else:  # upper=0, side=0
+        else:  # 1 - upper=0, side=0
             for i in prange(rows, nogil=True, schedule='guided', chunksize=max(rows//1000, 30)):
                 mul = multiplier[i]
                 for j in range(i + 1):
