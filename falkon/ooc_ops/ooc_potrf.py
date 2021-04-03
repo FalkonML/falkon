@@ -2,18 +2,20 @@ import math
 
 import torch
 
+from falkon import la_helpers
 from falkon.cuda import initialization
 from falkon.cuda.cusolver_gpu import *
+from falkon.options import FalkonOptions, CholeskyOptions
 from falkon.utils import devices
-from falkon import la_helpers
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
+from falkon.utils.devices import DeviceInfo
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 # noinspection PyUnresolvedReferences
 from falkon.ooc_ops.cuda import parallel_potrf
-from falkon.options import FalkonOptions, CholeskyOptions
+from falkon.utils.tensor_helpers import (
+    is_f_contig, copy_same_stride, extract_fortran
+)
 from .ooc_utils import calc_block_sizes
-from falkon.utils.devices import DeviceInfo
-from falkon.utils.tensor_helpers import create_fortran, is_f_contig, copy_same_stride
 
 __all__ = ("gpu_cholesky",)
 
@@ -58,21 +60,24 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
     potrf_buf_size = choose_fn(A.dtype, cusolverDnDpotrf_bufferSize, cusolverDnSpotrf_bufferSize,
                                "POTRF Buffer size")
     potrf_fn = choose_fn(A.dtype, cusolverDnDpotrf, cusolverDnSpotrf, "POTRF")
-    # noinspection PyUnresolvedReferences
+
     with torch.cuda.device(tc_device), \
             torch.cuda.stream(tc_stream), \
             cusolver_stream(cusolver_handle, tc_stream._as_parameter_):
-        # Copy A to device memory
+        # Determine necessary buffer size
+        potrf_bsize = potrf_buf_size(handle=cusolver_handle, uplo=uplo, n=n, A=0, lda=n)
+
+        # Allocate flat GPU buffer, and extract buffers
         if A.is_cuda:
+            potrf_wspace = torch.empty(size=(potrf_bsize, ), dtype=A.dtype, device=tc_device)
             Agpu = A
         else:
-            Agpu = create_fortran(A.shape, A.dtype, tc_device)
+            gpu_buf = torch.empty(size=(n * n + potrf_bsize, ), dtype=A.dtype, device=tc_device)
+            potrf_wspace = gpu_buf[:potrf_bsize]
+            Agpu = extract_fortran(gpu_buf, (n, n), offset=potrf_bsize)
+            # Copy A to device memory
             copy_to_device(n, n, A, 0, 0, Agpu, 0, 0, s=tc_stream)
 
-        # Create workspace buffer
-        potrf_bsize = potrf_buf_size(
-            handle=cusolver_handle, uplo=uplo, n=n, A=Agpu.data_ptr(), lda=n)
-        potrf_wspace = create_fortran((potrf_bsize,), A.dtype, tc_device)
         dev_info = torch.tensor(4, dtype=torch.int32, device=tc_device)
 
         # Run cholesky

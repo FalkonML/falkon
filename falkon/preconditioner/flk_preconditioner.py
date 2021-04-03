@@ -60,7 +60,6 @@ class FalkonPreconditioner(Preconditioner):
 
         self._lambda = penalty
         self.kernel = kernel
-        # self.weight_vec = weight_vec
 
         self.fC: Optional[torch.Tensor] = None
         self.dT: Optional[torch.Tensor] = None
@@ -115,7 +114,9 @@ class FalkonPreconditioner(Preconditioner):
             # Copy lower(fC) to upper(fC):  upper(fC) = T.
             copy_triang(C, upper=False)
 
-        # Weighted least-squares uses slightly different preconditioner
+        # Weighted least-squares needs to weight the A matrix. We can weigh once before LAUUM,
+        # but since CUDA-LAUUM touches both sides of C, weighting before LAUUM will also modify
+        # the matrix T. Therefore for CUDA inputs we weigh twice after LAUUM!
         if weight_vec is not None and not self._use_cuda:
             with TicToc("Weighting(CPU)", debug=self.params.debug):
                 weight_vec.sqrt_()
@@ -123,11 +124,11 @@ class FalkonPreconditioner(Preconditioner):
 
         if self._use_cuda:
             with TicToc("LAUUM(CUDA)", debug=self.params.debug):
-                # Product upper(fC) @ upper(fC).T : lower(fC) = T @ T.T
+                # Product upper(fC) @ upper(fC).T, store in lower(fC) = T @ T.T
                 C = lauum_wrapper(C, upper=True, use_cuda=self._use_cuda, opt=self.params)
         else:
             with TicToc("LAUUM(CPU)", debug=self.params.debug):
-                # Product lower(fC).T @ lower(fC) : lower(fC) = T @ T.T
+                # Product lower(fC).T @ lower(fC), store in lower(fC) = T @ T.T
                 C = lauum_wrapper(C, upper=False, use_cuda=self._use_cuda, opt=self.params)
 
         if weight_vec is not None and self._use_cuda:
