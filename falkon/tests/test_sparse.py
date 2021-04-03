@@ -3,6 +3,7 @@ import scipy.sparse
 
 import torch
 import numpy as np
+from falkon.utils.tensor_helpers import create_fortran
 
 from falkon.sparse import sparse_norm, sparse_square_norm, sparse_matmul
 from falkon.utils import decide_cuda
@@ -88,14 +89,13 @@ class TestSparseNorm():
 ])
 class TestMyTranspose():
     def test_simple_transpose(self, device, csr_mat):
-        tc_device = torch.cuda.device(device)
-        arr = csr_mat.to(device=tc_device)
+        arr = csr_mat.to(device=device)
         tr_arr = arr.transpose_csc()
-        self.assertEqual((2, 3), tr_arr.shape)
+        assert tr_arr.shape == (2, 3), "expected transpose shape to be %s, but found %s" % ((2, 3), tr_arr.shape)
         tr_mat = tr_arr.to_scipy().tocoo()
-        self.assertEqual(tr_mat.row.tolist(), [1, 0, 1, 0])
-        self.assertEqual(tr_mat.col.tolist(), [0, 1, 1, 2])
-        self.assertEqual(tr_mat.data.tolist(), [2, 1, 3, 4])
+        assert tr_mat.row.tolist() == [1, 0, 1, 0], "expected rows %s, but found %s" % ([1, 0, 1, 0], tr_mat.row.tolist())
+        assert tr_mat.col.tolist() == [0, 1, 1, 2], "expected cols %s, but found %s" % ([0, 1, 1, 2], tr_mat.col.tolist())
+        assert tr_mat.data.tolist() == [2, 1, 3, 4], "expected data %s, but found %s" % ([2, 1, 3, 4], tr_mat.data.tolist())
 
 
 @pytest.mark.parametrize("device", [
@@ -104,51 +104,48 @@ class TestMyTranspose():
 ])
 class TestNarrow():
     def test_start_zero(self, device, csr_mat):
-        tc_device = torch.cuda.device(device)
-        arr = csr_mat.to(device=tc_device)
+        arr = csr_mat.to(device=device)
 
         arr_small = arr.narrow_rows(0, 2)
         sm_coo = arr_small.to_scipy().tocoo()
-        self.assertEqual(sm_coo.row.tolist(), [0, 1, 1])
-        self.assertEqual(sm_coo.col.tolist(), [1, 0, 1])
-        self.assertEqual(sm_coo.data.tolist(), [2, 1, 3])
-        self.assertEqual(arr.indexptr.data_ptr(), arr_small.indexptr.data_ptr())
+        assert sm_coo.row.tolist() == [0, 1, 1]
+        assert sm_coo.col.tolist() == [1, 0, 1]
+        assert sm_coo.data.tolist() == [2, 1, 3]
+        assert arr.indexptr.data_ptr() == arr_small.indexptr.data_ptr()
 
         arr_small = arr.narrow_rows(0, 1)
         sm_coo = arr_small.to_scipy().tocoo()
-        self.assertEqual(sm_coo.row.tolist(), [0])
-        self.assertEqual(sm_coo.col.tolist(), [1])
-        self.assertEqual(sm_coo.data.tolist(), [2])
-        self.assertEqual(arr.indexptr.data_ptr(), arr_small.indexptr.data_ptr())
+        assert sm_coo.row.tolist() == [0]
+        assert sm_coo.col.tolist() == [1]
+        assert sm_coo.data.tolist() == [2]
+        assert arr.indexptr.data_ptr() == arr_small.indexptr.data_ptr()
 
     def test_start_mid(self, device, csr_mat):
-        tc_device = torch.cuda.device(device)
-        arr = csr_mat.to(device=tc_device)
+        arr = csr_mat.to(device=device)
 
         arr_small = arr.narrow_rows(1, None)
         sm_coo = arr_small.to_scipy().tocoo()
-        self.assertEqual([0, 0, 1], sm_coo.row.tolist())
-        self.assertEqual([0, 1, 0], sm_coo.col.tolist())
-        self.assertEqual([1, 3, 4], sm_coo.data.tolist())
+        assert [0, 0, 1] == sm_coo.row.tolist()
+        assert [0, 1, 0] == sm_coo.col.tolist()
+        assert [1, 3, 4] == sm_coo.data.tolist()
 
         arr_small = arr.narrow_rows(1, 1)
         sm_coo = arr_small.to_scipy().tocoo()
-        self.assertEqual(sm_coo.row.tolist(), [0, 0])
-        self.assertEqual(sm_coo.col.tolist(), [0, 1])
-        self.assertEqual(sm_coo.data.tolist(), [1, 3])
+        assert sm_coo.row.tolist() == [0, 0]
+        assert sm_coo.col.tolist() == [0, 1]
+        assert sm_coo.data.tolist() == [1, 3]
 
     def test_empty(self, device):
-        tc_device = torch.cuda.device(device)
-        indexptr = torch.tensor([0, 1, 1, 1, 3, 4], dtype=torch.long, device=tc_device)
-        index = torch.tensor([1, 0, 1, 0], dtype=torch.long, device=tc_device)
-        value = torch.tensor([2, 1, 3, 4], dtype=torch.float32, device=tc_device)
+        indexptr = torch.tensor([0, 1, 1, 1, 3, 4], dtype=torch.long, device=device)
+        index = torch.tensor([1, 0, 1, 0], dtype=torch.long, device=device)
+        value = torch.tensor([2, 1, 3, 4], dtype=torch.float32, device=device)
         arr = SparseTensor(indexptr=indexptr, index=index, data=value, size=(5, 2), sparse_type="csr")
 
         arr_small = arr.narrow_rows(1, 2)
         sm_coo = arr_small.to_scipy().tocoo()
-        self.assertEqual(sm_coo.row.tolist(), [])
-        self.assertEqual(sm_coo.col.tolist(), [])
-        self.assertEqual(sm_coo.data.tolist(), [])
+        assert sm_coo.row.tolist() == []
+        assert sm_coo.col.tolist() == []
+        assert sm_coo.data.tolist() == []
 
 
 class TestMatMul():
@@ -222,9 +219,13 @@ class TestMatMul():
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_cuda_matmul(self, mat1, mat2, expected):
         dev = torch.device("cuda:0")
-        out = torch.empty_like(expected).to(device=dev)
+        out = create_fortran(expected.shape, expected.dtype, dev)
         mat1_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(mat1)).to(device=dev)
         mat2_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(mat2)).to(device=dev)
         sparse_matmul(mat1_csr, mat2_csr, out)
 
         torch.testing.assert_allclose(out, expected)
+
+
+if __name__ == "__main__":
+    pytest.main()

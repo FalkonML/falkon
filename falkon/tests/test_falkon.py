@@ -32,8 +32,8 @@ def reg_data():
     X, Y = datasets.make_regression(1000, 30, random_state=11)
     X = X.astype(np.float64)
     Y = Y.astype(np.float64).reshape(-1, 1)
-    return torch.from_numpy(X[:800]), torch.from_numpy(Y[:800]), \
-           torch.from_numpy(X[800:]), torch.from_numpy(Y[800:])
+    return (torch.from_numpy(X[:800]), torch.from_numpy(Y[:800]),
+            torch.from_numpy(X[800:]), torch.from_numpy(Y[800:]))
 
 
 class TestFalkon:
@@ -194,7 +194,8 @@ class TestWeightedFalkon:
         err_m1 = error_fn(preds_m1, Y[Y == -1])[0]
         err_p1 = error_fn(preds_p1, Y[Y == 1])[0]
 
-        print("Weighted errors: -1 (%f) +1 (%f) -- Normal errors: -1 (%f) +1 (%f)" % (err_weight_m1, err_weight_p1, err_m1, err_p1))
+        print("Weighted errors: -1 (%f) +1 (%f) -- Normal errors: -1 (%f) +1 (%f)" % (
+            err_weight_m1, err_weight_p1, err_m1, err_p1))
 
         assert err_weight_m1 < err_m1, "Error of weighted class is higher than without weighting"
         assert err_weight_p1 >= err_p1, "Error of unweighted class is lower than in flk with no weights"

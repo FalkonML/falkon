@@ -337,8 +337,8 @@ class TestVecMulTriang:
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
     @pytest.mark.parametrize("side", [0, 1], ids=["side0", "side1"])
-    @pytest.mark.parametrize("device",
-        ["cpu", pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
+    @pytest.mark.parametrize("device", [
+        "cpu", pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
     def test_all_combos(self, mat, vec, order, device, upper, side):
         exp_output = self.exp_vec_mul_triang(mat, vec, upper, side)
 

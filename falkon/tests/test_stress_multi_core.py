@@ -107,7 +107,7 @@ class TestStressInCore:
         kernel = kernels.GaussianKernel(20.0)
         X, Y = X.cuda(), Y.cuda()
         opt = FalkonOptions(use_cpu=False, keops_active="no", debug=False, never_store_kernel=True,
-                            max_gpu_mem=1*2**30, cg_full_gradient_every=2)
+                            max_gpu_mem=1 * 2**30, cg_full_gradient_every=2)
         center_sel = FixedSelector(X[:num_centers])
         flk = InCoreFalkon(
             kernel=kernel, penalty=1e-6, M=num_centers, seed=10, options=opt,
@@ -120,7 +120,7 @@ class TestStressInCore:
             for j in range(len(actual[i])):
                 try:
                     np.testing.assert_allclose(expected.numpy(), actual[i][j].numpy(), rtol=1e-7)
-                except:
+                except AssertionError:
                     print(f"Result {j} from process {i} is incorrect")
                     wrong += 1
         assert wrong == 0, "%d results were not equal" % (wrong)

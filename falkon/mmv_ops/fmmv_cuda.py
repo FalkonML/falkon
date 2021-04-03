@@ -130,7 +130,7 @@ def sparse_fmmv(proc_idx, queue, device_id):
                 cur_ker_gpu = ker_gpu[:ic, :jc]
                 cur_ker_gpu.fill_(0.0)
                 # Run the matrix multiplication (kernel apply)
-                cur_ker_gpu = kernel._apply_sparse(X1_chunk_d, X2_chunk_d, cur_ker_gpu)
+                kernel._apply_sparse(X1_chunk_d, X2_chunk_d, cur_ker_gpu)
                 cur_ker_gpu = kernel._finalize(cur_ker_gpu, ddd)
 
                 # Multiply by the vector v
@@ -230,9 +230,9 @@ def sparse_fdmmv(proc_idx, queue, device_id):
     N, D = X1.shape
     M = X2.size(0)
     if v is None:
-        T = w.size(1)
+        T = w.shape[1]
     else:
-        T = v.size(1)
+        T = v.shape[1]
 
     # Memory needs:
     # X1_chunk : ntot + 2 * D * ntot * density
@@ -628,8 +628,7 @@ def fmmv_cuda(X1: torch.Tensor,
     out.fill_(0.0)
 
     if kernel.kernel_type == "l2distance" and kernel.name == "gaussian":
-        #target = distk_fmmv
-        target = generic_fmmv
+        target = distk_fmmv
     else:
         target = generic_fmmv
 
@@ -671,7 +670,7 @@ def fmmv_cuda_sparse(X1: SparseTensor,
     N = X1.size(0)
     # Create output matrix
     if out is None:
-        out = create_fortran((N, v.size(1)), X1.dtype, device, pin_memory=device.type != 'cuda')
+        out = create_fortran((N, v.size[1]), X1.dtype, device, pin_memory=device.type != 'cuda')
     out.fill_(0.0)
 
     gpu_info = _get_gpu_info(opt, slack=0.9)
