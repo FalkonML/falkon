@@ -2,7 +2,6 @@ import math
 import threading
 from typing import List, Optional
 
-
 from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
 from falkon.utils.tensor_helpers import copy_same_stride

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 from dataclasses import dataclass
 from typing import Optional, Union
 
@@ -670,7 +668,7 @@ def fmmv_cuda_sparse(X1: SparseTensor,
     N = X1.size(0)
     # Create output matrix
     if out is None:
-        out = create_fortran((N, v.size[1]), X1.dtype, device, pin_memory=device.type != 'cuda')
+        out = create_fortran((N, v.shape[1]), X1.dtype, device, pin_memory=device.type != 'cuda')
     out.fill_(0.0)
 
     gpu_info = _get_gpu_info(opt, slack=0.9)
@@ -722,9 +720,9 @@ def fdmmv_cuda(X1: torch.Tensor,
     if v is None and w is None:
         raise ValueError("one of 'v' or 'w' must not be None.")
 
-    T = v.size(1) if v is not None else w.size(1)
-    M = X2.size(0)
-    N = X1.size(0)
+    T = v.shape[1] if v is not None else w.shape[1]
+    M = X2.shape[0]
+    N = X1.shape[0]
 
     if out is None:
         out = create_same_stride((M, T), X1, X1.dtype, device=device,
@@ -784,7 +782,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
     device = X1.device
     if v is None and w is None:
         raise ValueError("one of 'v' or 'w' must not be None.")
-    T = v.size(1) if v is not None else w.size(1)
+    T = v.shape[1] if v is not None else w.shape[1]
     M = X2.size(0)
     N = X1.size(0)
     # Create output matrix

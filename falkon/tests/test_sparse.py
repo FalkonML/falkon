@@ -224,7 +224,7 @@ class TestMatMul():
         mat2_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(mat2)).to(device=dev)
         sparse_matmul(mat1_csr, mat2_csr, out)
 
-        torch.testing.assert_allclose(out, expected)
+        torch.testing.assert_allclose(out.cpu(), expected)
 
 
 if __name__ == "__main__":
