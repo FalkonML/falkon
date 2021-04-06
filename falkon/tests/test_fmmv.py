@@ -303,7 +303,7 @@ class TestKeops:
         # Test normal
         _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
         # Test with out
-        out = torch.empty(A.shape[0], v.shape[1], dtype=A.dtype).cuda()
+        out = torch.empty(A.shape[0], v.shape[1], dtype=A.dtype).to(A.device)
         _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=out, rtol=rtol, opt=opt)
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")

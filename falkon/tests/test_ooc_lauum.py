@@ -95,8 +95,7 @@ class TestOOCLauum:
         np.float32: 1e-5
     }
     max_mem = 2 * 2**20
-    basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=max_mem,
-                              lauum_par_blk_multiplier=6)
+    basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=max_mem)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("order", ["F", "C"])
@@ -122,6 +121,29 @@ class TestOOCLauum:
             torch.cuda.synchronize()
         np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
         np.testing.assert_allclose(omat, mat.cpu())
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("order", ["F", "C"])
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+    def test_diff_blk_sizes(self, dtype, order, get_mat, device):
+        omat = get_mat(order=order, dtype=dtype)
+        mat = get_mat(order=order, dtype=dtype, device=device)
+
+        # For cuda inputs we must add to available GPU memory the amount used by the
+        # input matrix, since overwrite=False and a full copy must be performed.
+        mgpu_slack = 0
+        if device.startswith("cuda"):
+            mgpu_slack = mat.shape[0]**2 * sizeof_dtype(mat.dtype)
+
+        opt_v1 = dataclasses.replace(self.basic_opt, max_gpu_mem=2*2**20 + mgpu_slack)
+        act_up_v1 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v1)
+        opt_v2 = dataclasses.replace(self.basic_opt, max_gpu_mem=4*2**20 + mgpu_slack)
+        act_up_v2 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v2)
+        opt_v3 = dataclasses.replace(self.basic_opt, max_gpu_mem=6*2**20 + mgpu_slack)
+        act_up_v3 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v3)
+
+        np.testing.assert_allclose(act_up_v3.cpu().numpy(), act_up_v1.cpu().numpy(), rtol=self.rtol[dtype])
+        np.testing.assert_allclose(act_up_v3.cpu().numpy(), act_up_v2.cpu().numpy(), rtol=self.rtol[dtype])
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("order", ["F", "C"])
@@ -164,15 +186,6 @@ class TestOOCLauum:
                                    rtol=self.rtol[dtype])
         np.testing.assert_allclose(np.triu(act_lo.numpy()), np.tril(expected_lower).T,
                                    rtol=self.rtol[dtype])
-
-    def test_no_blk_mul(self, get_mat, expected_upper):
-        dtype = np.float32
-        mat = get_mat(order="F", dtype=dtype).numpy().copy(order="K")
-        opt = dataclasses.replace(self.basic_opt, lauum_par_blk_multiplier=1)
-
-        act_lo = gpu_lauum(torch.from_numpy(mat), upper=True, overwrite=True, opt=opt)
-        torch.cuda.synchronize()
-        np.testing.assert_allclose(expected_upper, act_lo.numpy(), rtol=self.rtol[dtype])
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")

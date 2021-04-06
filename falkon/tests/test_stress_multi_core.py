@@ -24,6 +24,9 @@ import pickle
 import torch
 from falkon.ooc_ops.ooc_lauum import gpu_lauum
 from falkon import FalkonOptions
+from falkon.cuda import initialization
+
+initialization.init(FalkonOptions())
 
 with open('{fname_A}', 'rb') as fh:
     A = pickle.load(fh)
@@ -50,10 +53,11 @@ with open('{fname_out}', 'wb') as fh:
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 class TestStressOocLauum:
     def test_multiple_ooc_lauums(self):
-        num_processes = 6
+        num_processes = 2
         num_rep = 5
         num_pts = 1536
         num_gpus = torch.cuda.device_count()
+        torch.manual_seed(19)
         A = torch.randn(num_pts, num_pts, dtype=torch.float32, device='cpu')
         with tempfile.TemporaryDirectory() as folder:
             A_file = os.path.join(folder, "data_A.pkl")
@@ -66,12 +70,12 @@ class TestStressOocLauum:
 
             threads = []
             for i in range(num_processes):
-                t = threading.Thread(target=_runner_str,
+                t = threading.Thread(target=_ooc_lauum_runner_str,
                                      kwargs={
                                          'fname_A': A_file,
                                          'fname_out': out_files[i],
                                          'num_rep': num_rep,
-                                         'gpu_num': i % num_gpus,
+                                         'gpu_num': i % num_gpus, #'0,1',
                                      },
                                      daemon=False)
                 threads.append(t)
@@ -87,6 +91,7 @@ class TestStressOocLauum:
                     actual.append(pickle.load(fh))
 
         # Expected result
+        torch.cuda.empty_cache()
         opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2**20,
                             lauum_par_blk_multiplier=6)
         expected = gpu_lauum(A, upper=True, overwrite=False, opt=opt).cpu()
@@ -97,6 +102,7 @@ class TestStressOocLauum:
                 try:
                     np.testing.assert_allclose(expected.numpy(), actual[i][j].numpy(), rtol=1e-7)
                 except AssertionError:
+                    raise
                     print(f"Result {j} from process {i} is incorrect")
                     wrong += 1
         assert wrong == 0, "%d results were not equal" % (wrong)
