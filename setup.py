@@ -28,6 +28,29 @@ def get_version(root_dir):
     return version
 
 
+def parallel_backend():
+    # https://github.com/suphoff/pytorch_parallel_extension_cpp/blob/master/setup.py
+    from torch.__config__ import parallel_info
+    parallel_info_string = parallel_info()
+    parallel_info_array = parallel_info_string.splitlines()
+    backend_lines = [line for line in parallel_info_array if line.startswith('ATen parallel backend:')]
+    if len(backend_lines) != 1:
+        return None
+    backend = backend_lines[0].rsplit(': ')[1]
+    return backend
+
+
+def parallel_extra_compile_args():
+    backend = parallel_backend()
+    if (backend == 'OpenMP'):
+        return ['-DAT_PARALLEL_OPENMP', '-fopenmp']
+    elif (backend == 'native thread pool'):
+        return ['-DAT_PARALLEL_NATIVE']
+    elif (backend == 'native thread pool and TBB'):
+        return ['-DAT_PARALLEL_NATIVE_TBB']
+    return []
+
+
 def get_extensions():
     extensions = []
 
@@ -36,10 +59,9 @@ def get_extensions():
     sparse_ext_dir = osp.join(CURRENT_DIR, 'falkon', 'sparse')
     sparse_files = [
         'sparse_extension.cpp',
-        osp.join('cpp', 'sparse_matmul.cpp'),
         osp.join('cpp', 'sparse_norm.cpp')
     ]
-    sparse_compile_args = {'cxx': ['-fopenmp']}
+    sparse_compile_args = {'cxx': parallel_extra_compile_args()}
     sparse_link_args = []
     sparse_macros = []
     if WITH_CUDA:
@@ -169,7 +191,7 @@ setup(
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={
-        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=True)
+        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=False)
     },
     install_requires=install_requires,
     include_package_data=True,  # Since we have a MANIFEST.in this will take all from there.
