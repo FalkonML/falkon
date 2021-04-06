@@ -34,7 +34,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
         if target.__name__ == "par_lauum_f_lower":
             # Each GPU should hold in memory two additional blocks (2*B^2 <= M)
             # and 1 full column
-            max_block_size = int(math.floor((-N + math.sqrt(N**2 + 8 * avail_ram)) / 4))
+            max_block_size = int(math.floor((-2 * N + math.sqrt(N**2 + 8 * avail_ram)) / 4))
         else:
             # Same RAM requirements as the out-of-core version
             max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))

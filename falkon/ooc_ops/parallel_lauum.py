@@ -3,13 +3,14 @@ import threading
 from dataclasses import dataclass
 from typing import List
 
+import numpy as np
 import torch
 
 from falkon.cuda.cublas_gpu import *
 from falkon.cuda.cudart_gpu import cuda_memcpy2d_async
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
-from falkon.utils.tensor_helpers import create_fortran
+from falkon.utils.tensor_helpers import create_fortran, extract_same_stride, extract_fortran
 # noinspection PyUnresolvedReferences
 from falkon.ooc_ops.cuda import cuda_lauum
 
@@ -35,6 +36,12 @@ def _round_nb_size(size, multiple):
         return max(1, size)
 
 
+def _extract_flat(flat_tn, size, other, offset):
+    struct_tn = extract_same_stride(flat_tn, size=size, other=other, offset=offset)
+    offset += np.prod(struct_tn.shape)
+    return struct_tn, offset
+
+
 def par_lauum_f_lower(A: torch.Tensor,
                       block_allocs: List[BlockAlloc],
                       my_rows: List[int],
@@ -57,14 +64,20 @@ def par_lauum_f_lower(A: torch.Tensor,
     my_rows = sorted(my_rows)
 
     with torch.cuda.device(tc_device), torch.cuda.stream(s1), cublas_stream(cublas_handle, s1._as_parameter_):
-        # Preallocate 2 columns
+        # Pre allocate b-col, syrk-out, lauum-out
+        mem_needed = N * max_block_size + 2 * (max_block_size ** 2)
+        if not is_cuda:
+            # Also pre alloc r-col
+            mem_needed += N * max_block_size
+        f_gpu = torch.empty(size=(mem_needed,), dtype=A.dtype, device=tc_device)
+        f_offset = 0
+        whole_col_b, f_offset = _extract_flat(f_gpu, (N, max_block_size), other=A, offset=f_offset)
+        syrk_out, f_offset = _extract_flat(f_gpu, (max_block_size, max_block_size), other=A, offset=f_offset)
+        lauum_out, f_offset = _extract_flat(f_gpu, (max_block_size, max_block_size), other=A, offset=f_offset)
         if not is_cuda:
             temp_bb = create_fortran((max_block_size, max_block_size), A.dtype, 'cpu', pin_memory=True)
-            whole_col_r = create_fortran((A.shape[0], max_block_size), A.dtype, tc_device)
-        whole_col_b = create_fortran((A.shape[0], max_block_size), A.dtype, tc_device)
-        syrk_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
+            whole_col_r, f_offset = _extract_flat(f_gpu, (N, max_block_size), other=A, offset=f_offset)
         syrk_out.fill_(0.0)
-        lauum_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
 
         for b in range(len(block_allocs)):
             bb = block_allocs[b]
@@ -193,7 +206,7 @@ def par_lauum_c_lower(A: torch.Tensor,
     syrk_fn = choose_fn(A.dtype, cublasDsyrk, cublasSsyrk, "cuBlas SYRK")
 
     tc_device = torch.device('cuda:%d' % (device_id))
-    s1 = torch.cuda.Stream(device=tc_device)
+    s1 = torch.cuda.current_stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
     s1_cuda = s1._as_parameter_
 
@@ -201,14 +214,16 @@ def par_lauum_c_lower(A: torch.Tensor,
     my_rows = sorted(my_rows)
 
     with torch.cuda.device(tc_device), torch.cuda.stream(s1), cublas_stream(cublas_handle, s1_cuda):
-        # Preallocate 2 block-columns. The single block is a CPU buffer
         if not is_cuda:
             temp_bb = create_fortran((max_block_size, max_block_size), A.dtype, 'cpu', pin_memory=True).T
-        whole_col_b = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
-        whole_col_r = create_fortran((A.shape[0] * max_block_size,), A.dtype, tc_device)
-        syrk_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
+        # Pre allocate r-col, b-col, syrk-out, lauum-out
+        mem_needed = 2 * N * max_block_size + 2 * (max_block_size ** 2)
+        f_gpu = torch.empty(size=(mem_needed,), dtype=A.dtype, device=tc_device)
+        whole_col_b = f_gpu[:N * max_block_size]
+        whole_col_r = f_gpu[N * max_block_size: 2 * N * max_block_size]
+        syrk_out = extract_fortran(f_gpu, size=(max_block_size, max_block_size), offset=2 * N * max_block_size)
+        lauum_out = extract_fortran(f_gpu, size=(max_block_size, max_block_size), offset=2 * N * max_block_size + max_block_size ** 2)
         syrk_out.fill_(0.0)
-        lauum_out = create_fortran((max_block_size, max_block_size), A.dtype, tc_device)
 
         for b in range(len(block_allocs)):
             bb = block_allocs[b]
