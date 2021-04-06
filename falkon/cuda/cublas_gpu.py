@@ -224,12 +224,14 @@ def cublasGetStream(handle):
 
 @contextmanager
 def cublas_stream(cublas_handle, stream_id):
+    original_stream_id = None
     try:
         original_stream_id = cublasGetStream(cublas_handle)
         cublasSetStream(cublas_handle, stream_id)
         yield stream_id
     finally:
-        cublasSetStream(cublas_handle, original_stream_id)
+        if original_stream_id is not None:
+            cublasSetStream(cublas_handle, original_stream_id)
 
 
 # Set/Get matrix (async)

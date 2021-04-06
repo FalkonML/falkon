@@ -20,11 +20,11 @@ class LogisticPreconditioner(Preconditioner):
     The preconditioner is based on the K_MM kernel between the
     inducing points. A two step approximation of the inverse matrix
     via two cholesky decompositions is performed.
+    ::
 
-    ```
-    T = chol(K_MM)    => T.T @ T = K_MM
-    A = chol(1/M * (T @ (T.T @ W)) + lambda)
-    ```
+        T = chol(K_MM)    => T.T @ T = K_MM
+        A = chol(1/M * (T @ (T.T @ W)) + lambda)
+
 
     So `T` and `A` are both upper triangular.
     `W` is a diagonal matrix of weights derived from the 2nd derivative of the loss function.

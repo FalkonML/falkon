@@ -8,6 +8,14 @@ from falkon.cuda.cublas_gpu import (cublasSetMatrix, cublasSetMatrixAsync,
                                     cublasGetMatrix, cublasGetMatrixAsync)
 
 
+__all__ = (
+    "copy_to_device",
+    "copy_to_device_noorder",
+    "copy_to_host",
+    "copy_to_host_noorder",
+)
+
+
 def copy_to_device(rows, cols, H, Hi, Hj, D, Di, Dj, s=None, check=False):
     if check:
         if not is_f_contig(H):

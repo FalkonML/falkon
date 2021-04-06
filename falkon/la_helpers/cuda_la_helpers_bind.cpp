@@ -12,4 +12,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def("cuda_transpose", &cuda_transpose, "Transpose a matrix out-of-place",
         py::arg("input"), py::arg("output"));
+
+  m.def("cuda_vec_mul_triang", &cuda_vec_mul_triang, "Multiply a triangular matrix by a vector",
+        py::arg("A"), py::arg("v"), py::arg("upper"), py::arg("side"));
 }

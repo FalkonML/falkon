@@ -7,7 +7,7 @@ falkon.preconditioner
 Preconditioner
 --------------
 
-.. autoclass:: Preconditioner
+.. autoclass:: falkon.preconditioner.preconditioner.Preconditioner
     :members:
 
 

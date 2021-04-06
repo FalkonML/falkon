@@ -148,7 +148,7 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
 
     .. math::
 
-        k(x, x') = \exp{-\dfrac{1}{2}x\Sigmax'}
+        k(x, x') = \exp{-\dfrac{1}{2}x\Sigma x'}
 
 
     In both cases, the actual computation follows a different path, working on the expanded

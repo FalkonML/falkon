@@ -2,13 +2,14 @@ from typing import Union, Optional
 
 import torch
 
+from falkon.la_helpers import mul_triang, copy_triang, trsm, vec_mul_triang
 from falkon.options import FalkonOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils import TicToc, decide_cuda
-from falkon.la_helpers import mul_triang, copy_triang, trsm
+from falkon.utils.helpers import check_same_device
 from falkon.utils.tensor_helpers import create_same_stride, is_f_contig, create_fortran
-from .preconditioner import Preconditioner
 from .pc_utils import *
+from .preconditioner import Preconditioner
 
 
 class FalkonPreconditioner(Preconditioner):
@@ -64,7 +65,7 @@ class FalkonPreconditioner(Preconditioner):
         self.dT: Optional[torch.Tensor] = None
         self.dA: Optional[torch.Tensor] = None
 
-    def init(self, X: Union[torch.Tensor, SparseTensor]):
+    def init(self, X: Union[torch.Tensor, SparseTensor], weight_vec: Optional[torch.Tensor] = None):
         """Initialize the preconditioner matrix.
 
         This method must be called before the preconditioner can be used.
@@ -73,14 +74,22 @@ class FalkonPreconditioner(Preconditioner):
         ----------
         X : torch.Tensor
             The (M x D) matrix of Nystroem centers
+        weight_vec
+            An optional vector of size (M x 1) which is used for reweighted least-squares.
+            This vector should contain the weights corresponding to the Nystrom centers.
         """
-        dtype = X.dtype
-        dev = X.device
         if X.is_cuda and not self._use_cuda:
             raise RuntimeError("use_cuda is set to False, but data is CUDA tensor. "
                                "Check your options.")
+        if weight_vec is not None and not check_same_device(X, weight_vec):
+            raise ValueError(f"Weights and data are not on the same device "
+                             f"({weight_vec.device}, {X.device})")
+        if weight_vec is not None and weight_vec.shape[0] != X.shape[0]:
+            raise ValueError(f"Weights and Nystrom centers should have the same first dimension. "
+                             f"Found instead {weight_vec.shape[0]}, {X.shape[0]}.")
+        dtype = X.dtype
+        dev = X.device
         eps = self.params.pc_epsilon(X.dtype)
-
         M = X.size(0)
 
         with TicToc("Kernel", debug=self.params.debug):
@@ -105,14 +114,28 @@ class FalkonPreconditioner(Preconditioner):
             # Copy lower(fC) to upper(fC):  upper(fC) = T.
             copy_triang(C, upper=False)
 
+        # Weighted least-squares needs to weight the A matrix. We can weigh once before LAUUM,
+        # but since CUDA-LAUUM touches both sides of C, weighting before LAUUM will also modify
+        # the matrix T. Therefore for CUDA inputs we weigh twice after LAUUM!
+        if weight_vec is not None and not self._use_cuda:
+            with TicToc("Weighting(CPU)", debug=self.params.debug):
+                weight_vec.sqrt_()
+                vec_mul_triang(C, weight_vec, side=1, upper=False)
+
         if self._use_cuda:
-            with TicToc("LAUUM", debug=self.params.debug):
-                # Product upper(fC) @ upper(fC).T : lower(fC) = T @ T.T
+            with TicToc("LAUUM(CUDA)", debug=self.params.debug):
+                # Product upper(fC) @ upper(fC).T, store in lower(fC) = T @ T.T
                 C = lauum_wrapper(C, upper=True, use_cuda=self._use_cuda, opt=self.params)
         else:
-            with TicToc("LAUUM", debug=self.params.debug):
-                # Product lower(fC).T @ lower(fC) : lower(fC) = T @ T.T
+            with TicToc("LAUUM(CPU)", debug=self.params.debug):
+                # Product lower(fC).T @ lower(fC), store in lower(fC) = T @ T.T
                 C = lauum_wrapper(C, upper=False, use_cuda=self._use_cuda, opt=self.params)
+
+        if weight_vec is not None and self._use_cuda:
+            with TicToc("Weighting(CUDA)", debug=self.params.debug):
+                weight_vec.sqrt_()
+                vec_mul_triang(C, weight_vec, side=0, upper=False)
+                vec_mul_triang(C, weight_vec, side=1, upper=False)
 
         with TicToc("Cholesky 2", debug=self.params.debug):
             # lower(fC) = 1/M * T@T.T
@@ -206,7 +229,7 @@ class FalkonPreconditioner(Preconditioner):
 
     @check_init("fC", "dT", "dA")
     def invTt(self, v: torch.Tensor) -> torch.Tensor:
-        r"""Solve the system of equations :math:`T^\\top x = v` for unknown vector :math:`x`.
+        r"""Solve the system of equations :math:`T^\top x = v` for unknown vector :math:`x`.
 
         Multiple right-hand sides are supported (by simply passing a 2D tensor for `v`)
 

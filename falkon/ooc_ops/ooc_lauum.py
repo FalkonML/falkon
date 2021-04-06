@@ -6,10 +6,11 @@ from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
 from falkon.utils.tensor_helpers import copy_same_stride
 from falkon.utils.helpers import sizeof_dtype
+from falkon.utils.tensor_helpers import is_f_contig, is_contig
+from falkon.utils.stream_utils import sync_current_stream
 from falkon.options import FalkonOptions, LauumOptions
 from .ooc_utils import calc_block_sizes3
 from .parallel_lauum import par_lauum_f_lower, par_lauum_c_lower, BlockAlloc
-from ..utils.tensor_helpers import is_f_contig, is_contig
 
 __all__ = ("gpu_lauum",)
 
@@ -27,14 +28,15 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     dt = A.dtype
     dts = sizeof_dtype(dt)
     if A.is_cuda:
+        sync_current_stream(A.device)
         gpu_info = [g for g in gpu_info if g.Id == A.device.index]
         avail_ram = gpu_info[0].actual_free_mem / dts
         if target.__name__ == "par_lauum_f_lower":
             # Each GPU should hold in memory two additional blocks (2*B^2 <= M)
-            # and 1 full column
+            # and 1 full column.
             max_block_size = int(math.floor((-N + math.sqrt(N**2 + 8 * avail_ram)) / 4))
         else:
-            # Same RAM requirements as the non-CUDA version
+            # Same RAM requirements as the out-of-core version
             max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
@@ -45,8 +47,13 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     else:
         avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
         # Each GPU should be able to hold in memory 2 block columns
-        # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0
-        max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
+        # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0.
+        # An additional block is needed whenever write_opposite is True, due to
+        # copying blocks between matrices with different strides!
+        if write_opposite:
+            max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 12 * avail_ram)) / 6))
+        else:
+            max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
                 "Cannot run parallel LAUUM with minimum "
@@ -67,8 +74,8 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     barrier = threading.Barrier(num_gpus, timeout=1000)
     threads = []
     for _gpu_idx, g in enumerate(gpu_info):
-        # Assign rows to GPUs round-robin. We must use _gpu_idx instead of g.Id, since the latter
-        # may not contain all elements from 0.
+        # Assign rows to GPUs round-robin. Use _gpu_idx instead of g.Id since the latter
+        # may not contain all integers from 0.
         gid_allocs = [i for i in range(len(block_allocations)) if i % num_gpus == _gpu_idx]
         cublas_handle = initialization.cublas_handle(g.Id)
         if cublas_handle is None:
@@ -107,6 +114,7 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
         opt = FalkonOptions()
     if not overwrite:
         A = copy_same_stride(A, pin_memory=True)
+    # TODO: There is a helper function in mmv_ops for this.
     gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
         g.actual_free_mem = min((g.free_memory - 300 * 2 ** 20) * 0.95,

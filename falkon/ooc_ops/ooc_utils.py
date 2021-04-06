@@ -1,8 +1,6 @@
 import math
 from typing import List
 
-import torch
-
 
 def calc_block_sizes(max_block_size: int,
                      num_devices: int,
@@ -42,19 +40,3 @@ def calc_block_sizes3(max_block_size: int, num_devices: int, num_rows: int) -> L
     block_size, extras = divmod(num_rows, num_blocks)
     block_sizes = extras * [block_size + 1] + (num_blocks - extras) * [block_size]
     return block_sizes
-
-
-def prepare_matrix(A):
-    # Convert to numpy
-    if isinstance(A, torch.Tensor):
-        A = A.numpy()
-
-    # Make A Fortran-order
-    transpose = False
-    if not A.flags['FARRAY']:
-        A = A.T
-        transpose = not transpose
-    if not A.flags['F_CONTIGUOUS']:
-        raise RuntimeError("Failed to convert matrix A to Fortran order. "
-                           "Matrix is not contiguous in memory.")
-    return A, transpose

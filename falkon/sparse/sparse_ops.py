@@ -2,6 +2,7 @@ from typing import Optional
 
 import torch
 from falkon.sparse.sparse_helpers import norm_sq, norm_
+from falkon.utils.tensor_helpers import is_f_contig
 
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.helpers import check_same_dtype
@@ -17,8 +18,6 @@ def _sparse_matmul_cpu(A, B, out):
     """
     from falkon.mkl_bindings.mkl_bind import mkl_lib
 
-    if A.nnz() == 0 or B.nnz() == 0:
-        return out
     if not A.is_csr:
         raise ValueError("A must be CSR matrix")
     if not B.is_csc:
@@ -51,13 +50,16 @@ def _sparse_matmul_cpu(A, B, out):
 
 def _sparse_matmul_cuda(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
     """
-    Typically D is very large, and we will need to convert B to CSR format
-    so memory usage will be high.
+    Typically D is very large and since `B` must be in CSR format, memory usage will be quite high.
 
     Parameters
     ----------
-    A : N x D, CSR matrix
-    B : D x M, CSR matrix
+    A : SparseTensor
+        N x D :class:`SparseTensor`. Must be in CSR format.
+    B : SparseTensor
+        D x M :class:`SparseTensor`. Must be in CSR format.
+    out : torch.Tensor
+        Dense N x M output tensor. Must be F-contiguous (column-contiguous)
 
     Notes
     ------
@@ -71,11 +73,13 @@ def _sparse_matmul_cuda(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
         raise ValueError("A must be CSR matrix")
     if not B.is_csr:
         raise ValueError("B must be CSR matrix")
+    if not is_f_contig(out, strict=False):
+        raise ValueError("out must be F-contiguous")
 
-    # 2. MatMul
+    # 1. MatMul
     out_indexptr, out_index, out_data = spspmm(
         A.indexptr, A.index, A.data, B.indexptr, B.index, B.data, A.shape[1])
-    # 3. Convert to dense
+    # 2. Convert to dense
     out = csr2dense(out_indexptr, out_index, out_data, out)
     return out
 
@@ -102,6 +106,7 @@ def sparse_matmul(A: SparseTensor, B: SparseTensor, out: torch.Tensor) -> torch.
 
     """
     if A.nnz() == 0 or B.nnz() == 0:
+        out.fill_(0.0)
         return out
 
     if A.is_cuda:
@@ -133,12 +138,14 @@ def sparse_square_norm(A: SparseTensor, out: torch.Tensor) -> torch.Tensor:
     -----
     This function is currently limited to CPU input tensors.
     """
+    if out is None:
+        out = torch.empty(A.shape[0], 1, dtype=A.dtype, device=A.device)
     if not A.is_csr:
-        raise RuntimeError("Squared norm can only be applied on CSR tensors")
+        raise RuntimeError("Sparse squared norm can only be applied on CSR tensors.")
     if not check_same_dtype(A, out):
-        raise ValueError("All data-types must match")
+        raise ValueError("All data-types must match.")
     if A.shape[0] != out.shape[0]:
-        raise ValueError("Dimension 0 of A must match the length of tensor 'out'")
+        raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
     return norm_sq(A.indexptr, A.data, out)
 
@@ -164,11 +171,13 @@ def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
     -----
     This function is currently limited to CPU input tensors.
     """
+    if out is None:
+        out = torch.empty(A.shape[0], 1, dtype=A.dtype, device=A.device)
     if not A.is_csr:
-        raise RuntimeError("Norm can only be applied on CSR tensors")
+        raise RuntimeError("Sparse norm can only be applied on CSR tensors.")
     if not check_same_dtype(A, out):
-        raise ValueError("All data-types must match")
+        raise ValueError("All data-types must match.")
     if A.shape[0] != out.shape[0]:
-        raise ValueError("Dimension 0 of A must match the length of tensor 'out'")
+        raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
     return norm_(A.indexptr, A.data, out)

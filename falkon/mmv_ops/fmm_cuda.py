@@ -13,6 +13,7 @@ from falkon.mmv_ops.utils import *
 from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.cuda_helpers import copy_to_host_noorder, copy_to_host
+from falkon.utils.stream_utils import sync_current_stream
 from falkon.utils.helpers import (
     calc_gpu_block_sizes, sizeof_dtype,
     select_dim_over_nm, select_dim_over_nm_v2,
@@ -251,8 +252,7 @@ def fmm_cuda(X1: torch.Tensor,
     M = X2.shape[0]
     device = X1.device
     if out is None:
-        out = create_same_stride((N, M), X1, X1.dtype, device=device,
-                                 pin_memory=False)
+        out = create_same_stride((N, M), X1, X1.dtype, device=device, pin_memory=False)
     gpu_info = _get_gpu_info(opt, slack=0.9)
     block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
@@ -263,6 +263,7 @@ def fmm_cuda(X1: torch.Tensor,
         gpu_dtype = torch.float64
 
     if device.type == 'cuda':
+        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFmm(X1=X1, X2=X2, out=out, kernel=kernel, gpu_dtype=gpu_dtype,
                        max_mem=single_gpu_info.usable_ram,

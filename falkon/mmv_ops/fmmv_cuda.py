@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 from dataclasses import dataclass
 from typing import Optional, Union
 
@@ -16,7 +14,10 @@ from falkon.mmv_ops.utils import (
 )
 from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.utils.cuda_helpers import copy_to_device_noorder, copy_to_host_noorder
+from falkon.utils.cuda_helpers import (
+    copy_to_device_noorder, copy_to_host_noorder
+)
+from falkon.utils.stream_utils import sync_current_stream
 from falkon.utils.helpers import (
     calc_gpu_block_sizes,
     sizeof_dtype,
@@ -127,7 +128,7 @@ def sparse_fmmv(proc_idx, queue, device_id):
                 cur_ker_gpu = ker_gpu[:ic, :jc]
                 cur_ker_gpu.fill_(0.0)
                 # Run the matrix multiplication (kernel apply)
-                cur_ker_gpu = kernel._apply_sparse(X1_chunk_d, X2_chunk_d, cur_ker_gpu)
+                kernel._apply_sparse(X1_chunk_d, X2_chunk_d, cur_ker_gpu)
                 cur_ker_gpu = kernel._finalize(cur_ker_gpu, ddd)
 
                 # Multiply by the vector v
@@ -169,7 +170,7 @@ def generic_fmmv(proc_idx, queue, device_id):
                               max_mem=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream(ddev)
+    s1 = tcd.current_stream(ddev)
     with tcd.device(ddev), tcd.stream(s1):
         # First collect necessary memory
         mem_needed = n * M
@@ -227,9 +228,9 @@ def sparse_fdmmv(proc_idx, queue, device_id):
     N, D = X1.shape
     M = X2.size(0)
     if v is None:
-        T = w.size(1)
+        T = w.shape[1]
     else:
-        T = v.size(1)
+        T = v.shape[1]
 
     # Memory needs:
     # X1_chunk : ntot + 2 * D * ntot * density
@@ -349,7 +350,7 @@ def generic_fdmmv(proc_idx, queue, device_id):
                               rest=rest_coef + M + extra_mem.get('m', 0),
                               max_mem=avail_mem)
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream(ddev)
+    s1 = tcd.current_stream(ddev)
     with tcd.device(ddev), tcd.stream(s1):
         # First collect necessary memory
         mem_needed = n * M + n * T
@@ -434,7 +435,7 @@ def distk_fmmv(proc_idx, queue, device_id):
                                  max_mem=avail_mem)
 
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream(ddev)
+    s1 = tcd.current_stream(ddev)
     with tcd.device(ddev), tcd.stream(s1):
         mem_needed = n * m
         if not cuda_inputs:
@@ -517,9 +518,8 @@ def distk_fdmmv(proc_idx, queue, device_id):
     n, d = select_dim_over_nd(max_n=N, max_d=D, coef_nd=1, coef_n=M + T + 1, coef_d=M,
                               rest=rest_coef + M, max_mem=avail_mem)
     ddev = torch.device('cuda:%d' % int(device_id))
-    s1 = tcd.Stream(ddev)
+    s1 = tcd.current_stream(ddev)
     s2 = tcd.Stream(ddev)
-
     with tcd.device(ddev), tcd.stream(s1):
         # First collect necessary memory
         mem_needed = n * M + n * T + n + M
@@ -574,7 +574,7 @@ def distk_fdmmv(proc_idx, queue, device_id):
                     cur_X1ss_gpu = copy_to_device_noorder(nb, db, X1, i, j, X1ss_gpu, 0, 0, s=s1)
                 torch.norm(cur_X1ss_gpu, p=2, dim=1, keepdim=True, out=sq1_gpu).pow_(2)
 
-                s2.synchronize()  # need that cur_X2s_gpu and sq2_gpu are available.
+                s1.wait_stream(s2)  # need that cur_X2s_gpu and sq2_gpu are available.
                 cur_K_gpu.addmm_(mat1=cur_X1ss_gpu, mat2=cur_X2s_gpu.T, alpha=-2.0)
                 cur_K_gpu.add_(sq1_gpu)
                 cur_K_gpu.add_(sq2_gpu.T)
@@ -668,7 +668,7 @@ def fmmv_cuda_sparse(X1: SparseTensor,
     N = X1.size(0)
     # Create output matrix
     if out is None:
-        out = create_fortran((N, v.size(1)), X1.dtype, device, pin_memory=device.type != 'cuda')
+        out = create_fortran((N, v.shape[1]), X1.dtype, device, pin_memory=device.type != 'cuda')
     out.fill_(0.0)
 
     gpu_info = _get_gpu_info(opt, slack=0.9)
@@ -720,9 +720,9 @@ def fdmmv_cuda(X1: torch.Tensor,
     if v is None and w is None:
         raise ValueError("one of 'v' or 'w' must not be None.")
 
-    T = v.size(1) if v is not None else w.size(1)
-    M = X2.size(0)
-    N = X1.size(0)
+    T = v.shape[1] if v is not None else w.shape[1]
+    M = X2.shape[0]
+    N = X1.shape[0]
 
     if out is None:
         out = create_same_stride((M, T), X1, X1.dtype, device=device,
@@ -782,7 +782,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
     device = X1.device
     if v is None and w is None:
         raise ValueError("one of 'v' or 'w' must not be None.")
-    T = v.size(1) if v is not None else w.size(1)
+    T = v.shape[1] if v is not None else w.shape[1]
     M = X2.size(0)
     N = X1.size(0)
     # Create output matrix
@@ -792,6 +792,7 @@ def fdmmv_cuda_sparse(X1: SparseTensor,
     gpu_info = _get_gpu_info(opt, slack=0.95)
 
     if device.type == 'cuda':
+        sync_current_stream(device)
         single_gpu_info = [g for g in gpu_info if g.Id == device.index][0]
         args = ArgsFdmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel,
                          max_mem=single_gpu_info.usable_ram)

@@ -1,6 +1,6 @@
 import dataclasses
 import time
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, Tuple
 
 import torch
 
@@ -48,7 +48,9 @@ class Falkon(FalkonBase):
         The number of Nystrom centers to pick. `M` must be positive,
         and lower than the total number of training points. A larger
         `M` will typically lead to better accuracy but will use more
-        computational resources.
+        computational resources. You can either specify the number of centers
+        by setting this parameter, or by passing to this constructor a `CenterSelctor` class
+        instance.
     center_selection : str or falkon.center_selection.CenterSelector
         The center selection algorithm. Implemented is only 'uniform'
         selection which can choose each training sample with the same
@@ -70,6 +72,14 @@ class Falkon(FalkonBase):
         `error_every` iterations. If set to 1 then the error will be
         calculated at each iteration. If set to None, it will never be
         calculated.
+    weight_fn : Callable or None
+        A function which appropriately weighs the target tensor (i.e. Y). This function is used
+        for weighted least-squares, it should accept a single argument which represents a subset
+        of the targets, and return a vector of weights corresponding to the input targets.
+
+        As an example, in the setting of binary classification Y can be -1 or +1. To give more
+        importance to errors on the negative class, pass a `weight_fn` which returns 2 whenever
+        the target is -1.
     options : FalkonOptions
         Additional options used by the components of the Falkon solver. Individual options
         are documented in :mod:`falkon.options`.
@@ -103,13 +113,15 @@ class Falkon(FalkonBase):
                  center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
                  maxiter: int = 20,
                  seed: Optional[int] = None,
-                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], float]] = None,
+                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
                  error_every: Optional[int] = 1,
+                 weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
                  options: Optional[FalkonOptions] = None,
                  ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
         self.maxiter = maxiter
+        self.weight_fn = weight_fn
         self._init_cuda()
 
     def fit(self,
@@ -152,38 +164,49 @@ class Falkon(FalkonBase):
             The fitted model
         """
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
-
         dtype = X.dtype
-
-        # Decide whether to use CUDA for preconditioning based on M
-        _use_cuda_preconditioner = (
-            self.use_cuda_ and
-            (not self.options.cpu_preconditioner) and
-            self.M >= get_min_cuda_preconditioner_size(dtype, self.options)
-        )
-        _use_cuda_mmv = (
-            self.use_cuda_ and
-            X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
-        )
-
         self.fit_times_ = []
         self.ny_points_ = None
         self.alpha_ = None
 
+        # Start training timer
         t_s = time.time()
-        # noinspection PyTypeChecker
-        ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None, self.M)
+
+        # Pick Nystrom centers
+        if self.weight_fn is not None:
+            # noinspection PyTupleAssignmentBalance
+            ny_points, ny_indices = self.center_selection.select_indices(X, None)
+        else:
+            # noinspection PyTypeChecker
+            ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None)
+            ny_indices = None
+        num_centers = ny_points.shape[0]
+
+        # Decide whether to use CUDA for preconditioning and iterations, based on number of centers
+        _use_cuda_preconditioner = (
+            self.use_cuda_ and
+            (not self.options.cpu_preconditioner) and
+            num_centers >= get_min_cuda_preconditioner_size(dtype, self.options)
+        )
+        _use_cuda_mmv = (
+            self.use_cuda_ and
+            X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
+        )
+
         if self.use_cuda_:
             ny_points = ny_points.pin_memory()
 
-        with TicToc("Calcuating Preconditioner of size %d" % (self.M), debug=self.options.debug):
+        with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
             pc_opt: FalkonOptions = dataclasses.replace(self.options,
                                                         use_cpu=not _use_cuda_preconditioner)
             if pc_opt.debug:
                 print("Preconditioner will run on %s" %
                       ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
             precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
-            precond.init(ny_points)
+            ny_weight_vec = None
+            if self.weight_fn is not None:
+                ny_weight_vec = self.weight_fn(Y[ny_indices])
+            precond.init(ny_points, weight_vec=ny_weight_vec)
 
         if _use_cuda_mmv:
             # Cache must be emptied to ensure enough memory is visible to the optimizer
@@ -213,7 +236,8 @@ class Falkon(FalkonBase):
             if o_opt.debug:
                 print("Optimizer will run on %s" %
                       ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
-            optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt)
+            optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt,
+                                                         weight_fn=self.weight_fn)
             if Knm is not None:
                 beta = optim.solve(
                     Knm, None, Y, self.penalty, initial_solution=None,
@@ -231,10 +255,11 @@ class Falkon(FalkonBase):
         if ny_points is None:
             # Then X is the kernel itself
             return X @ alpha
+        num_centers = alpha.shape[0]
         _use_cuda_mmv = (
             alpha.device.type == "cuda" or (
                 self.use_cuda_ and
-                X.shape[0] * X.shape[1] * self.M / self.num_gpus >= get_min_cuda_mmv_size(
+                X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(
                     X.dtype, self.options)
             )
         )

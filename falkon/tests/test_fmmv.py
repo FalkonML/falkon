@@ -295,15 +295,15 @@ class TestKeops:
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_gpu_inputs(self, A, B, v, kernel, expected_fmmv):
-        A = fix_mat(A, order="C", dtype=n32, device="cuda:0")
-        B = fix_mat(B, order="C", dtype=n32, device="cuda:0")
-        v = fix_mat(v, order="C", dtype=n32, device="cuda:0")
+        A = fix_mat(A, order="C", dtype=n32).cuda()
+        B = fix_mat(B, order="C", dtype=n32, device=A.device)
+        v = fix_mat(v, order="C", dtype=n32, device=A.device)
         opt = dataclasses.replace(self.basic_options, use_cpu=False, max_gpu_mem=np.inf)
         rtol = choose_on_dtype(A.dtype)
         # Test normal
         _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=None, rtol=rtol, opt=opt)
         # Test with out
-        out = torch.empty(A.shape[0], v.shape[1], dtype=A.dtype).cuda()
+        out = torch.empty(A.shape[0], v.shape[1], dtype=A.dtype, device=A.device)
         _run_fmmv_test(kernel.mmv, expected_fmmv, (A, B, v), out=out, rtol=rtol, opt=opt)
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")

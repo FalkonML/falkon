@@ -1,11 +1,15 @@
 import warnings
+from typing import Optional
 
 import torch
 
 from falkon.options import BaseOptions, KeopsOptions
 
 
-def decide_cuda(opt: BaseOptions = BaseOptions()):
+def decide_cuda(opt: Optional[BaseOptions] = None):
+    if opt is None:
+        opt = BaseOptions()
+
     if opt.use_cpu:
         return False
 
