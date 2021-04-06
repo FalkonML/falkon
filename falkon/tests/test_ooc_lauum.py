@@ -108,18 +108,16 @@ class TestOOCLauum:
         # input matrix, since overwrite=False and a full copy must be performed.
         mgpu_slack = 0
         if device.startswith("cuda"):
-            mgpu_slack = self.basic_opt.max_gpu_mem + mat.shape[0]**2 * sizeof_dtype(mat.dtype)
+            mgpu_slack = mat.shape[0]**2 * sizeof_dtype(mat.dtype)
 
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=False, opt=new_opt)
-            torch.cuda.synchronize()
-        np.testing.assert_allclose(expected_upper, act_up.cpu().numpy(), rtol=self.rtol[dtype])
+            np.testing.assert_allclose(expected_upper, act_up.cpu().numpy(), rtol=self.rtol[dtype])
         np.testing.assert_allclose(omat, mat.cpu())
 
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=False, opt=new_opt)
-            torch.cuda.synchronize()
-        np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
+            np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
         np.testing.assert_allclose(omat, mat.cpu())
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -150,7 +148,6 @@ class TestOOCLauum:
     @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
     def test_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper, device):
         mat = get_mat(order=order, dtype=dtype, device=device)
-
         with memory_checker(self.basic_opt) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=True, opt=new_opt)
         np.testing.assert_allclose(expected_upper, act_up.cpu().numpy(), rtol=self.rtol[dtype])
@@ -167,17 +164,16 @@ class TestOOCLauum:
         omat = get_mat(order=order, dtype=dtype)
         mat = get_mat(order=order, dtype=dtype, device=device)
 
-        with memory_checker(self.basic_opt) as new_opt:
-            act_up = gpu_lauum(mat, upper=True, overwrite=True, write_opposite=True, opt=new_opt)
-            torch.cuda.synchronize()
+        mgpu_slack = mat.shape[0]**2 * sizeof_dtype(mat.dtype)
+        with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
+            act_up = gpu_lauum(mat, upper=True, overwrite=False, write_opposite=True, opt=new_opt)
         act_up = act_up.cpu()
         np.testing.assert_allclose(np.triu(omat, k=1), np.triu(act_up.numpy(), k=1),
                                    rtol=self.rtol[dtype])
         np.testing.assert_allclose(np.tril(act_up.numpy()), np.triu(expected_upper).T,
                                    rtol=self.rtol[dtype])
 
-        mat = get_mat(order=order, dtype=dtype)
-        mat = move_tensor(mat, device)
+        mat = get_mat(order=order, dtype=dtype, device=device)
         with memory_checker(self.basic_opt) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=True, write_opposite=True, opt=new_opt)
             torch.cuda.synchronize()

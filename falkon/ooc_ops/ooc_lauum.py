@@ -33,8 +33,8 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
         avail_ram = gpu_info[0].actual_free_mem / dts
         if target.__name__ == "par_lauum_f_lower":
             # Each GPU should hold in memory two additional blocks (2*B^2 <= M)
-            # and 1 full column
-            max_block_size = int(math.floor((-2 * N + math.sqrt(N**2 + 8 * avail_ram)) / 4))
+            # and 1 full column.
+            max_block_size = int(math.floor((-N + math.sqrt(N**2 + 8 * avail_ram)) / 4))
         else:
             # Same RAM requirements as the out-of-core version
             max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
@@ -47,8 +47,13 @@ def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info)
     else:
         avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
         # Each GPU should be able to hold in memory 2 block columns
-        # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0
-        max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
+        # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0.
+        # An additional block is needed whenever write_opposite is True, due to
+        # copying blocks between matrices with different strides!
+        if write_opposite:
+            max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 12 * avail_ram)) / 6))
+        else:
+            max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
                 "Cannot run parallel LAUUM with minimum "
