@@ -50,7 +50,7 @@ def par_lauum_f_lower(A: torch.Tensor,
     syrk_fn = choose_fn(A.dtype, cublasDsyrk, cublasSsyrk, "cuBlas SYRK")
 
     tc_device = torch.device('cuda:%d' % (device_id))
-    s1 = torch.cuda.Stream(device=tc_device)
+    s1 = torch.cuda.current_stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
 
     max_block_size = max(ba.length for ba in block_allocs)
@@ -84,6 +84,7 @@ def par_lauum_f_lower(A: torch.Tensor,
                 pass  # No column here
             if not independent_output:
                 barrier.wait()
+                torch.cuda.synchronize()
 
             for r in my_rows:
                 if r == b:
@@ -225,6 +226,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                 pass
             if not independent_output:
                 barrier.wait()
+                torch.cuda.synchronize()
 
             for r in my_rows:
                 if r < b:
