@@ -1,3 +1,5 @@
+#include "multigpu_potrf.cuh"
+
 #include <thread>
 #include <atomic>
 #include <algorithm>
@@ -11,8 +13,6 @@
 #include <torch/extension.h>
 #include <cusolverDn.h>
 #include <cublas_v2.h>
-
-#include "multigpu_potrf.cuh"
 
 //#define DEBUG 1
 

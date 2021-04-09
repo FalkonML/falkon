@@ -1,34 +1,14 @@
+#include "lauum.cuh"
+#include "utils.cuh"
+
 #include <torch/extension.h>
 #include <ATen/cuda/CUDAContext.h>
-
 #include <c10/cuda/CUDAGuard.h>
 #include <ATen/cuda/Exceptions.h>
 
 
-#include "lauum.cuh"
-int ceildiv(int dividend, int divisor);
-
-
 #define BLOCK_SIZE 32
 //#define DEBUG
-
-
-__device__ int2 tri_index_lower(const int linear_index) {
-    const int row = (int)((-1 + sqrt((double)(8*linear_index + 1))) / 2.0);
-    return make_int2(
-        linear_index - row * (row + 1) / 2,
-        row
-    );
-}
-
-__device__ int2 tri_index_upper(const int linear_index) {
-    const int row = (int)((-1 + sqrt((double)(8*linear_index + 1))) / 2.0);
-    return make_int2(
-        row,
-        linear_index - row * (row + 1) / 2
-    );
-}
-
 
 
 template<typename scalar_t>
@@ -159,15 +139,7 @@ void lower_cuda_lauum_ker(const scalar_t* __restrict__ in,
 }
 
 
-int ceildiv(int dividend, int divisor) {
-    int res = dividend / divisor;
-    if (dividend % divisor != 0)
-        res++;
-    return res;
-}
-
-
-torch::Tensor lauum(const int n, const torch::Tensor &A, const int lda, torch::Tensor &B, const int ldb, const bool lower) {
+torch::Tensor lauum_cuda(const int n, const torch::Tensor &A, const int lda, torch::Tensor &B, const int ldb, const bool lower) {
     // TODO: Consistency checks
     const auto scalar_type = A.scalar_type();
     const auto size = n;

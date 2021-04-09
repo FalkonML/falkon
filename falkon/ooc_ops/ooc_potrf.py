@@ -10,8 +10,7 @@ from falkon.utils import devices
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.devices import DeviceInfo
 from falkon.utils.helpers import choose_fn, sizeof_dtype
-# noinspection PyUnresolvedReferences
-from falkon.ooc_ops.cuda import parallel_potrf
+from falkon.c_ext import parallel_potrf
 from falkon.utils.tensor_helpers import (
     is_f_contig, copy_same_stride, extract_fortran
 )

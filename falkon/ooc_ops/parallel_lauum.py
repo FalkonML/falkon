@@ -11,8 +11,7 @@ from falkon.cuda.cudart_gpu import cuda_memcpy2d_async
 from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.helpers import choose_fn, sizeof_dtype
 from falkon.utils.tensor_helpers import create_fortran, extract_same_stride, extract_fortran
-# noinspection PyUnresolvedReferences
-from falkon.ooc_ops.cuda import cuda_lauum
+from falkon.c_ext import lauum_cuda
 
 
 __all__ = ("par_lauum_c_lower", "par_lauum_f_lower", "BlockAlloc")
@@ -125,7 +124,7 @@ def par_lauum_f_lower(A: torch.Tensor,
                             cur_lauum_out.copy_(col_b[:bb.length, :bb.length])
 
                         # LAUUM on col_b[:bb.length, :bb.length], into lauum_out[:bb.length, :bb.length]
-                        cuda_lauum(n=bb.length, A=col_b[:bb.length, :bb.length], lda=col_b.stride(1),
+                        lauum_cuda(n=bb.length, A=col_b[:bb.length, :bb.length], lda=col_b.stride(1),
                                    B=cur_lauum_out, ldb=max_block_size, lower=True)
                     s1.wait_stream(s3)  # all subsequent work will need cur_lauum_out
 
@@ -272,7 +271,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                             c_lauum_out.copy_(c_lauum_in)
                         else:
                             c_lauum_out.copy_(c_lauum_in.T)
-                        cuda_lauum(n=bb.length, A=c_lauum_in, lda=max_block_size, B=c_lauum_out, ldb=max_block_size, lower=False)
+                        lauum_cuda(n=bb.length, A=c_lauum_in, lda=max_block_size, B=c_lauum_out, ldb=max_block_size, lower=False)
 
                     s1.wait_stream(s3)  # all subsequent work on s1 will need cur_lauum_out
                     if not is_last_row:

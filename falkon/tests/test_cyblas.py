@@ -7,6 +7,7 @@ import scipy
 import torch
 
 from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang, trsm
+from falkon.c_ext import copy_transpose
 from falkon.tests.conftest import fix_mat
 from falkon.tests.gen_random import gen_random, gen_random_pd
 from falkon.utils import decide_cuda
@@ -16,7 +17,7 @@ from falkon.utils.tensor_helpers import create_same_stride, move_tensor
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-class TestCudaTranspose:
+class TestCopyTranspose:
     t = 600
 
     @pytest.fixture(scope="class")
@@ -28,7 +29,6 @@ class TestCudaTranspose:
         return gen_random(self.t, self.t * 2 - 1, np.float64, F=True, seed=12345)
 
     def test_square(self, mat, order, dtype):
-        from falkon.la_helpers.cuda_la_helpers import cuda_transpose
         mat = fix_mat(mat, order=order, dtype=dtype, copy=True, numpy=True)
         mat_out = np.copy(mat, order="K")
         exp_mat_out = np.copy(mat.T, order=order)
@@ -36,14 +36,13 @@ class TestCudaTranspose:
         mat = move_tensor(torch.from_numpy(mat), "cuda:0")
         mat_out = move_tensor(torch.from_numpy(mat_out), "cuda:0")
 
-        cuda_transpose(input=mat, output=mat_out)
+        copy_transpose(input=mat, output=mat_out)
 
         mat_out = move_tensor(mat_out, "cpu").numpy()
         assert mat_out.strides == exp_mat_out.strides
         np.testing.assert_allclose(exp_mat_out, mat_out)
 
     def test_rect(self, rect, order, dtype):
-        from falkon.la_helpers.cuda_la_helpers import cuda_transpose
         mat = fix_mat(rect, order=order, dtype=dtype, copy=True, numpy=True)
         exp_mat_out = np.copy(mat.T, order=order)
 
@@ -51,7 +50,7 @@ class TestCudaTranspose:
         mat_out = move_tensor(torch.from_numpy(exp_mat_out), "cuda:0")
         mat_out.fill_(0.0)
 
-        cuda_transpose(input=mat, output=mat_out)
+        copy_transpose(input=mat, output=mat_out)
 
         mat_out = move_tensor(mat_out, "cpu").numpy()
         assert mat_out.strides == exp_mat_out.strides

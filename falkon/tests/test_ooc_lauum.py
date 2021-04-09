@@ -14,8 +14,7 @@ from falkon.ooc_ops.ooc_utils import calc_block_sizes3
 
 if decide_cuda():
     from falkon.ooc_ops.ooc_lauum import gpu_lauum
-    # noinspection PyUnresolvedReferences
-    from falkon.ooc_ops.cuda import cuda_lauum
+    from falkon.c_ext import lauum_cuda
 
 
 class TestBlockSizeCalculator:
@@ -199,7 +198,7 @@ class TestLauumKernel:
         gpu_out.fill_(0.0)
 
         # Run on the GPU
-        cuda_lauum(n=mat.shape[0], A=gpu_in, lda=gpu_in.stride(1), B=gpu_out, ldb=gpu_out.stride(1), lower=lower)
+        lauum_cuda(n=mat.shape[0], A=gpu_in, lda=gpu_in.stride(1), B=gpu_out, ldb=gpu_out.stride(1), lower=lower)
         torch.cuda.synchronize(device)
 
         # Compare outputs and print timing info
@@ -222,7 +221,7 @@ class TestLauumKernel:
         gpu_out_strided.fill_(0.0)
 
         # Run on the GPU
-        cuda_lauum(n=gpu_in.shape[0], A=gpu_in_strided, lda=gpu_in_strided.stride(1), B=gpu_out_strided,
+        lauum_cuda(n=gpu_in.shape[0], A=gpu_in_strided, lda=gpu_in_strided.stride(1), B=gpu_out_strided,
                    ldb=gpu_out_strided.stride(1), lower=lower)
         torch.cuda.synchronize(device)
 

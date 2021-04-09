@@ -1,11 +1,10 @@
-#include "csr2dense_cuda.cuh"
+#include "csr2dense_cuda.h"
+#include "utils.cuh"
 
 #include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
 #include <cusparse.h>
 #include <torch/extension.h>
 
-#define CHECK_CUDA(x) AT_ASSERTM(x.device().is_cuda(), #x " must be CUDA tensor")
 #define CHECK_INPUT(x) AT_ASSERTM(x, "Input mismatch")
 #define DISPATCH_CSR2DENSE_TYPES(TYPE, ...)                                    \
   [&] {                                                                        \
@@ -26,7 +25,7 @@
   }()
 
 
-torch::Tensor csr2dense_cuda(torch::Tensor rowptr, torch::Tensor col, torch::Tensor val, torch::Tensor out) {
+torch::Tensor csr2dense_cuda(torch::Tensor &rowptr, torch::Tensor &col, torch::Tensor &val, torch::Tensor &out) {
   CHECK_CUDA(rowptr);
   CHECK_CUDA(col);
   CHECK_CUDA(val);
@@ -43,7 +42,7 @@ torch::Tensor csr2dense_cuda(torch::Tensor rowptr, torch::Tensor col, torch::Ten
 
   auto handle = at::cuda::getCurrentCUDASparseHandle();
   cusparseStatus_t status;
-  c10::cuda::CUDAGuard g(rowptr.get_device());
+  at::DeviceGuard g(rowptr.device());
 
   // Convert indices to int
   rowptr = rowptr.toType(torch::kInt);

@@ -1,3 +1,5 @@
+#include "sparse_norm.h"
+
 #include <torch/extension.h>
 #include <math.h>
 
@@ -26,7 +28,7 @@ static inline void calc_norm_sq(
 
 
 torch::Tensor norm_sq(torch::Tensor indexptr, torch::Tensor data,
-                      torch::optional<torch::Tensor> out=torch::nullopt) {
+                      torch::optional<torch::Tensor> out/*=torch::nullopt*/) {
     ASSERT_IS_CPU(indexptr);
     AT_ASSERTM(indexptr.dim() == 1, "indexptr must be 1D");
     AT_ASSERTM(indexptr.stride(0) == 1, "indexptr must be memory-contiguous");
@@ -85,7 +87,7 @@ static inline void calc_norm(
 
 
 torch::Tensor norm(torch::Tensor indexptr, torch::Tensor data,
-                   torch::optional<torch::Tensor> out=torch::nullopt) {
+                   torch::optional<torch::Tensor> out/*=torch::nullopt*/) {
     ASSERT_IS_CPU(indexptr);
     AT_ASSERTM(indexptr.dim() == 1, "indexptr must be 1D");
     AT_ASSERTM(indexptr.stride(0) == 1, "indexptr must be memory-contiguous");

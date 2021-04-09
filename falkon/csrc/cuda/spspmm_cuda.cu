@@ -1,11 +1,10 @@
 #include "spspmm_cuda.cuh"
+#include "utils.cuh"
 
 #include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
 #include <torch/extension.h>
 #include <cusparse.h>
 
-#define CHECK_CUDA(x) AT_ASSERTM(x.device().is_cuda(), #x " must be CUDA tensor")
 #define CHECK_INPUT(x) AT_ASSERTM(x, "Input mismatch")
 #define DISPATCH_SPSPMM_TYPES(TYPE, ...)                                       \
   [&] {                                                                        \
@@ -33,7 +32,7 @@
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
 spspmm_cuda(torch::Tensor rowptrA, torch::Tensor colA, torch::Tensor valA,
             torch::Tensor rowptrB, torch::Tensor colB, torch::Tensor valB, 
-	    int64_t K) {
+	        int64_t K) {
   /* Input checks: all matrices should be in CSR format, matrix `D` is not used.
    * C = alpha*A*B + beta*D
    * A: m x k
@@ -69,8 +68,7 @@ spspmm_cuda(torch::Tensor rowptrA, torch::Tensor colA, torch::Tensor valA,
   auto handle = at::cuda::getCurrentCUDASparseHandle();
   cusparseStatus_t status;
   cudaError_t cuda_status;
-  auto device = rowptrA.get_device();
-  c10::cuda::CUDAGuard g(device);
+  at::DeviceGuard g(rowptrA.get_device());
 
   // Creates default matrix descriptor (0-based and GENERAL matrix)
   cusparseMatDescr_t descr;
