@@ -9,16 +9,16 @@
 #include <pybind11/stl.h>
 #include <cusolverDn.h>
 // OOC operations
-#include "cuda/multigpu_potrf.cuh"
-#include "cuda/lauum.cuh"
+#include "cuda/multigpu_potrf.h"
+#include "cuda/lauum.h"
 // Utilities
 #include "cuda/copy_transpose_cuda.h"
 #include "cuda/copy_triang_cuda.h"
 #include "cuda/mul_triang_cuda.h"
 #include "cuda/vec_mul_triang_cuda.h"
 // Sparse
-#include "cuda/spspmm_cuda.cuh"
-#include "cuda/csr2dense_cuda.cuh"
+#include "cuda/spspmm_cuda.h"
+#include "cuda/csr2dense_cuda.h"
 #endif
 
 #ifdef WITH_CUDA
@@ -148,7 +148,7 @@ torch::Tensor csr2dense(
     torch::Tensor out
 ) {
 #ifdef WITH_CUDA
-    return csr2dense_cuda(rowptr, col, val, out)
+    return csr2dense_cuda(rowptr, col, val, out);
 #else
     AT_ERROR("Not compiled with CUDA support");
 #endif

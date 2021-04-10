@@ -1,9 +1,12 @@
-#include "spspmm_cuda.cuh"
+#include "spspmm_cuda.h"
+
+#include <cusparse.h>
+#include <torch/extension.h>
+#include <ATen/cuda/CUDAContext.h>
+#include <ATen/cuda/Exceptions.h>
+
 #include "utils.cuh"
 
-#include <ATen/cuda/CUDAContext.h>
-#include <torch/extension.h>
-#include <cusparse.h>
 
 #define CHECK_INPUT(x) AT_ASSERTM(x, "Input mismatch")
 #define DISPATCH_SPSPMM_TYPES(TYPE, ...)                                       \
@@ -68,7 +71,7 @@ spspmm_cuda(torch::Tensor rowptrA, torch::Tensor colA, torch::Tensor valA,
   auto handle = at::cuda::getCurrentCUDASparseHandle();
   cusparseStatus_t status;
   cudaError_t cuda_status;
-  at::DeviceGuard g(rowptrA.get_device());
+  at::DeviceGuard g(rowptrA.device());
 
   // Creates default matrix descriptor (0-based and GENERAL matrix)
   cusparseMatDescr_t descr;

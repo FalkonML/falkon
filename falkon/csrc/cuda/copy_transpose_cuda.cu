@@ -1,13 +1,13 @@
 #include "copy_transpose_cuda.h"
-#include "utils.cuh"
 
 #include <torch/extension.h>
-#include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
-#include <ATen/cuda/Exceptions.h>
+
+#include "utils.cuh"
 
 
 #define NB 32
+#define BLOCK_ROWS 8
 
 template<typename scalar_t>
 __global__

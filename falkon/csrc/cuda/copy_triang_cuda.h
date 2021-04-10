@@ -20,4 +20,4 @@
  *     A tensor which shares the same memory as the input.
  */
 torch::Tensor copy_triang_cuda(torch::Tensor &A,
-                               const bool upper)
+                               const bool upper);

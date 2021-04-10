@@ -58,15 +58,18 @@ def get_extensions():
     # All C/CUDA routines are compiled into a single extension
     extension_cls = CppExtension
     ext_dir = osp.join(CURRENT_DIR, 'falkon', 'csrc')
-    ext_files = [osp.join(ext_dir, 'pytorch_bindings.cpp')]
-    ext_files.extend(glob.glob(osp.join(ext_dir, 'cpp', '*.cpp')))
+    ext_files = [
+        'pytorch_bindings.cpp', 'cpp/sparse_norm.cpp',
+    ]
     compile_args = {'cxx': parallel_extra_compile_args()}
     link_args = []
     macros = []
     libraries = []
     if WITH_CUDA:
         extension_cls = CUDAExtension
-        ext_files.extend(glob.glob(osp.join(ext_dir, 'cuda', '*.cu')))
+        ext_files.extend(['cuda/vec_mul_triang_cuda.cu', 'cuda/spspmm_cuda.cu', 'cuda/multigpu_potrf.cu',
+                          'cuda/mul_triang_cuda.cu', 'cuda/lauum.cu', 'cuda/csr2dense_cuda.cu',
+                          'cuda/copy_transpose_cuda.cu', 'cuda/copy_triang_cuda.cu',])
         macros.append(('WITH_CUDA', None))
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
@@ -78,7 +81,7 @@ def get_extensions():
         libraries.extend(['cusolver', 'cublas', 'cusparse'])
     extensions.append(
         extension_cls("falkon.c_ext",
-                      sources=ext_files,
+                      sources=[osp.join(ext_dir, f) for f in ext_files],
                       include_dirs=[ext_dir],
                       define_macros=macros,
                       extra_compile_args=compile_args,
@@ -151,7 +154,7 @@ setup(
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={
-        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=False)
+        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=True)
     },
     install_requires=install_requires,
     include_package_data=True,  # Since we have a MANIFEST.in this will take all from there.

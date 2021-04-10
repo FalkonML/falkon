@@ -1,10 +1,9 @@
 #include "copy_triang_cuda.h"
-#include "utils.cuh"
 
 #include <torch/extension.h>
-#include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
-#include <ATen/cuda/Exceptions.h>
+
+#include "utils.cuh"
 
 
 #define NB 64
@@ -45,7 +44,7 @@ __global__ void copy_simple_kernel_upper(scalar_t* __restrict__ data, const size
 }
 
 
-torch::Tensor cuda_copy_triang(torch::Tensor &A, const bool upper) {
+torch::Tensor copy_triang_cuda(torch::Tensor &A, const bool upper) {
     CHECK_CUDA(A);
 
     bool needs_transpose = false;

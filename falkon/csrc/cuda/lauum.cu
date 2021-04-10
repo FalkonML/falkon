@@ -1,10 +1,10 @@
-#include "lauum.cuh"
-#include "utils.cuh"
+#include "lauum.h"
 
 #include <torch/extension.h>
 #include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
 #include <ATen/cuda/Exceptions.h>
+
+#include "utils.cuh"
 
 
 #define BLOCK_SIZE 32

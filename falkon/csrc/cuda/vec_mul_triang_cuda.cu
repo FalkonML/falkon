@@ -1,10 +1,8 @@
 #include "vec_mul_triang_cuda.h"
-#include "utils.cuh"
 
-#include <torch/extension.h>
-#include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
-#include <ATen/cuda/Exceptions.h>
+
+#include "utils.cuh"
 
 
 #define NB 32
@@ -102,7 +100,7 @@ __global__ void vec_mul_triang_kernel_v4(scalar_t* __restrict__ mat, const scala
 }
 
 
-torch::Tensor cuda_vec_mul_triang(torch::Tensor &A, torch::Tensor &v, const bool upper, const int side) {
+torch::Tensor vec_mul_triang_cuda(torch::Tensor &A, torch::Tensor &v, const bool upper, const int side) {
     if (!A.is_cuda())
         AT_ERROR("Input A must be a CUDA tensor.");
     if (!v.is_cuda())

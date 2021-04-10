@@ -1,10 +1,11 @@
 #include "mul_triang_cuda.h"
-#include "utils.cuh"
 
 #include <torch/extension.h>
 #include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/Exceptions.h>
+
+#include "utils.cuh"
 
 
 #define NB 64
@@ -71,7 +72,7 @@ __global__ void mul_lower(scalar_t* __restrict__ data, const size_t size, const 
 }
 
 
-torch::Tensor cuda_mul_triang(torch::Tensor &A, const bool upper, const bool preserve_diag, const double multiplier) {
+torch::Tensor mul_triang_cuda(torch::Tensor &A, const bool upper, const bool preserve_diag, const double multiplier) {
     CHECK_CUDA(A);
     bool bupper = upper;
     if (A.stride(0) != 1) {

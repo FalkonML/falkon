@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <torch/extension.h>
 #include <cusolverDn.h>
 
 struct blockAlloc {
@@ -18,5 +19,5 @@ struct gpuInfo {
 };
 
 torch::Tensor parallel_potrf_cuda(std::vector<gpuInfo> gpu_info,
-                             std::vector<blockAlloc> allocations,
-                             torch::Tensor &A);
+                                  std::vector<blockAlloc> allocations,
+                                  torch::Tensor &A);

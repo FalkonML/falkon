@@ -1,4 +1,4 @@
-#include "multigpu_potrf.cuh"
+#include "multigpu_potrf.h"
 
 #include <thread>
 #include <atomic>
