@@ -66,7 +66,7 @@ run_spspmm_cuda(
   TORCH_CUDASPARSE_CHECK(cusparseSpGEMM_workEstimation(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                                        &alpha, matA, matB, &beta, matC, cuda_value_type, CUSPARSE_SPGEMM_DEFAULT,
                                                        spgemmDesc, &bufferSize1, NULL));
-  at::DataPtr dataPtr1 = allocator.allocate(bufferSize1);
+  auto dataPtr1 = allocator.allocate(bufferSize1);
   dBuffer1 = dataPtr1.get();
   // Step 2. Fill buffer 1?
   TORCH_CUDASPARSE_CHECK(cusparseSpGEMM_workEstimation(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -76,7 +76,7 @@ run_spspmm_cuda(
   TORCH_CUDASPARSE_CHECK(cusparseSpGEMM_compute(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                                 &alpha, matA, matB, &beta, matC, cuda_value_type, CUSPARSE_SPGEMM_DEFAULT,
                                                 spgemmDesc, &bufferSize2, NULL));
-  at::DataPtr dataPtr2 = allocator.allocate(bufferSize2);
+  auto dataPtr2 = allocator.allocate(bufferSize2);
   dBuffer2 = dataPtr2.get();
   // Step 4. compute the intermediate product of A * B
   TORCH_CUDASPARSE_CHECK(cusparseSpGEMM_compute(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -281,7 +281,7 @@ run_spspmm_cuda(
   ));
 
   auto& allocator = c10::cuda::CUDACachingAllocator::get();
-  at::DataPtr bufferDataPtr = allocator.allocate(bufferSize);
+  auto bufferDataPtr = allocator.allocate(bufferSize);
   auto csrGemmBuffer = bufferDataPtr.get();
 
   // Step 3: Compute CSR row pointer. This will fill `rowptrC_data` and `nnzC`
