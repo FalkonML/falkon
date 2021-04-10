@@ -132,10 +132,10 @@ spspmm(
     torch::Tensor rowptrB,
     torch::Tensor colB,
     torch::Tensor valB,
-    int64_t K
+    int64_t N
 ) {
 #ifdef WITH_CUDA
-    return spspmm_cuda(rowptrA, colA, valA, rowptrB, colB, valB, K);
+    return spspmm_cuda(rowptrA, colA, valA, rowptrB, colB, valB, N);
 #else
     AT_ERROR("Not compiled with CUDA support");
 #endif

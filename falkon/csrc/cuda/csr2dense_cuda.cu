@@ -95,19 +95,25 @@ void run_csr2dense(
   TORCH_CUDASPARSE_CHECK(cusparseDestroyDnMat(dn_mat));
 }
 
-#else
-
+#else // Non-generic implementation (using legacy cuSOLVER API)
 template<typename value_t>
-cusparseStatus_t cusparseXcsr2dense(cusparseHandle_t handle, int m, int n, const cusparseMatDescr_t descrA, const value_t* csrValA, const int* csrRowPtrA,
-                        const int* csrColIndA, value_t* A, int lda) {}
+cusparseStatus_t cusparseXcsr2dense(cusparseHandle_t handle,
+                                    int m,
+                                    int n,
+                                    const cusparseMatDescr_t descrA,
+                                    const value_t* csrValA,
+                                    const int* csrRowPtrA,
+                                    const int* csrColIndA,
+                                    value_t* A,
+                                    int lda) { }
 template<>
-cusparseStatus_t cusparseXcsr2dense<float>(cusparseHandle_t handle, int m, int n, const cusparseMatDescr_t descrA, const float* csrValA, const int* csrRowPtrA,
-                        const int* csrColIndA, float* A, int lda) {
+cusparseStatus_t cusparseXcsr2dense<float>(
+      cusparseHandle_t handle, int m, int n, const cusparseMatDescr_t descrA, const float* csrValA, const int* csrRowPtrA, const int* csrColIndA, float* A, int lda) {
     return cusparseScsr2dense(handle, m, n, descrA, csrValA, csrRowPtrA, csrColIndA, A, lda);
 }
 template<>
-cusparseStatus_t cusparseXcsr2dense<double>(cusparseHandle_t handle, int m, int n, const cusparseMatDescr_t descrA, const double* csrValA, const int* csrRowPtrA,
-                        const int* csrColIndA, double* A, int lda) {
+cusparseStatus_t cusparseXcsr2dense<double>(
+      cusparseHandle_t handle, int m, int n, const cusparseMatDescr_t descrA, const double* csrValA, const int* csrRowPtrA, const int* csrColIndA, double* A, int lda) {
     return cusparseDcsr2dense(handle, m, n, descrA, csrValA, csrRowPtrA, csrColIndA, A, lda);
 }
 
@@ -129,15 +135,15 @@ void run_csr2dense(
   cusparseMatDescr_t descr;
   TORCH_CUDASPARSE_CHECK(cusparseCreateMatDescr(&descr));
   TORCH_CUDASPARSE_CHECK(cusparseXcsr2dense<value_t>(
-      handle,                      /* cuSparse handle */
-      (int)out.size(0),            /* Number of rows */
-      (int)out.size(1),            /* Number of columns */
-      descr,                       /* Descriptor for the dense matrix */
-      val.data_ptr<value_t>(),     /* Non-zero elements of sparse matrix */
-      rowptr_int.data_ptr<int>(),  /* CSR row indices */
-      col_int.data_ptr<int>(),     /* CSR column indices */
-      out.data_ptr<value_t>(),     /* Output data */
-      (int)out.stride(1)           /* Leading dimension of dense matrix */
+    handle,                      /* cuSparse handle */
+    (int)out.size(0),            /* Number of rows */
+    (int)out.size(1),            /* Number of columns */
+    descr,                       /* Descriptor for the dense matrix */
+    val.data_ptr<value_t>(),     /* Non-zero elements of sparse matrix */
+    rowptr_int.data_ptr<int>(),  /* CSR row indices */
+    col_int.data_ptr<int>(),     /* CSR column indices */
+    out.data_ptr<value_t>(),     /* Output data */
+    (int)out.stride(1)           /* Leading dimension of dense matrix */
   ));
   TORCH_CUDASPARSE_CHECK(cusparseDestroyMatDescr(descr));
 }
@@ -145,10 +151,10 @@ void run_csr2dense(
 
 
 torch::Tensor csr2dense_cuda(
-        const torch::Tensor &rowptr, 
-        const torch::Tensor &col, 
-        const torch::Tensor &val, 
-        torch::Tensor &out) {
+    const torch::Tensor &rowptr,
+    const torch::Tensor &col,
+    const torch::Tensor &val,
+    torch::Tensor &out) {
   CHECK_CUDA(rowptr);
   CHECK_CUDA(col);
   CHECK_CUDA(val);
@@ -160,13 +166,13 @@ torch::Tensor csr2dense_cuda(
   TORCH_CHECK(val.dtype() == out.dtype(), "Expected csr and output matrix with the same dtypes but found ",
     val.dtype(), " and ", out.dtype());
   TORCH_CHECK(rowptr.device() == col.device() && col.device() == val.device(),
-              "Expected all arrays of CSR matrix to be on the same device.");
+    "Expected all arrays of CSR matrix to be on the same device.");
   TORCH_CHECK(out.device() == val.device(),
-              "Expected CSR and dense matrices to be on the same device.");
+    "Expected CSR and dense matrices to be on the same device.");
 
   at::DeviceGuard g(rowptr.device());
-  AT_DISPATCH_FLOATING_TYPES(val.scalar_type(), "csr2dense_cuda", [&] {
-    AT_DISPATCH_INDEX_TYPES(col.scalar_type(), "csr2dense_cuda", [&] {
+  AT_DISPATCH_FLOATING_TYPES(val.scalar_type(), "csr2dense_cuda_value", [&] {
+    AT_DISPATCH_INDEX_TYPES(col.scalar_type(), "csr2dense_cuda_index", [&] {
       run_csr2dense<scalar_t, index_t>(rowptr, col, val, out);
     });
   });
