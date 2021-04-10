@@ -41,7 +41,7 @@ run_spspmm_cuda(
   const int64_t M = rowptrA_int.numel() - 1, K = rowptrB_int.numel() - 1;
   const int nnzA = valA.numel(), nnzB = valB.numel();
   const scalar_t alpha = (scalar_t)1.0, beta = (scalar_t)0.0;
-  auto& allocator = c10::cuda::CUDACachingAllocator::get();
+  auto& allocator = *c10::cuda::CUDACachingAllocator::get();
 
   // Convert indices to int (could be long at input)
   const torch::Tensor &rowptrA_int = rowptrA.toType(torch::kInt);
@@ -280,7 +280,7 @@ run_spspmm_cuda(
     &bufferSize /* Output */
   ));
 
-  auto& allocator = c10::cuda::CUDACachingAllocator::get();
+  auto& allocator = *c10::cuda::CUDACachingAllocator::get();
   auto bufferDataPtr = allocator.allocate(bufferSize);
   auto csrGemmBuffer = bufferDataPtr.get();
 
@@ -352,7 +352,6 @@ run_spspmm_cuda(
 }
 #endif
 
-template<typename scalar_t>
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
 spspmm_cuda(
     const torch::Tensor &rowptrA,
