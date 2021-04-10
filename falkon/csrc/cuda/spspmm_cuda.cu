@@ -134,8 +134,9 @@ cusparseStatus_t cusparseXcsrgemm2_bufferSizeExt<float>(
         const int* csrColIndA, const cusparseMatDescr_t descrB, int nnzB, const int* csrRowPtrB, const int* csrColIndB, const float* beta,
         const cusparseMatDescr_t descrD, int nnzD, const int* csrRowPtrD, const int* csrColIndD, csrgemm2Info_t info, size_t* pBufferSizeInBytes)
 {
-    return cusparseScsrgemm2_bufferSizeExt(handle, m, n, k, alpha, descrA, nnzA, csrRowPtrA, csrColIndA, cusparseMatDescr_t, descrB, nnzB,
-                                           csrRowPtrB, csrColIndB, beta, descrD, nnzD, csrRowPtrD, csrColIndD, info, pBufferSizeInBytes);
+    return cusparseScsrgemm2_bufferSizeExt(handle, m, n, k, alpha, descrA, nnzA, csrRowPtrA, csrColIndA, descrB, nnzB,
+                                           csrRowPtrB, csrColIndB, beta, descrD, nnzD, csrRowPtrD, csrColIndD, info,
+                                           pBufferSizeInBytes);
 }
 template<>
 cusparseStatus_t cusparseXcsrgemm2_bufferSizeExt<double>(
@@ -143,8 +144,9 @@ cusparseStatus_t cusparseXcsrgemm2_bufferSizeExt<double>(
         const int* csrColIndA, const cusparseMatDescr_t descrB, int nnzB, const int* csrRowPtrB, const int* csrColIndB, const double* beta,
         const cusparseMatDescr_t descrD, int nnzD, const int* csrRowPtrD, const int* csrColIndD, csrgemm2Info_t info, size_t* pBufferSizeInBytes)
 {
-    return cusparseScsrgemm2_bufferSizeExt(handle, m, n, k, alpha, descrA, nnzA, csrRowPtrA, csrColIndA, cusparseMatDescr_t, descrB, nnzB,
-                                           csrRowPtrB, csrColIndB, beta, descrD, nnzD, csrRowPtrD, csrColIndD, info, pBufferSizeInBytes);
+    return cusparseScsrgemm2_bufferSizeExt(handle, m, n, k, alpha, descrA, nnzA, csrRowPtrA, csrColIndA, descrB, nnzB,
+                                           csrRowPtrB, csrColIndB, beta, descrD, nnzD, csrRowPtrD, csrColIndD, info,
+                                           pBufferSizeInBytes);
 }
 template<typename value_t>
 cusparseStatus_t cusparseXcsrgemm2(
