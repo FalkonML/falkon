@@ -3,6 +3,7 @@
 #include <cusparse.h>
 #include <torch/extension.h>
 #include <ATen/cuda/CUDAContext.h>
+#include <ATen/cuda/Exceptions.h>
 #include <c10/cuda/CUDACachingAllocator.h>
 
 #include "utils.cuh"
@@ -16,28 +17,10 @@
 
 #if IS_GENERIC_AVAILABLE()
 #include <library_types.h>
-#else
-#define DISPATCH_CSR2DENSE_TYPES(TYPE, ...)                                    \
-  [&] {                                                                        \
-    switch (TYPE) {                                                            \
-    case torch::ScalarType::Float: {                                           \
-      using scalar_t = float;                                                  \
-      const auto &cusparseXcsr2dense = cusparseScsr2dense;                     \
-      return __VA_ARGS__();                                                    \
-    }                                                                          \
-    case torch::ScalarType::Double: {                                          \
-      using scalar_t = double;                                                 \
-      const auto &cusparseXcsr2dense = cusparseDcsr2dense;                     \
-      return __VA_ARGS__();                                                    \
-    }                                                                          \
-    default:                                                                   \
-      AT_ERROR("Not implemented for '", toString(TYPE), "'");                  \
-    }                                                                          \
-  }()
 #endif
 
-
 #if IS_GENERIC_AVAILABLE()
+template <class scalar_t>
 void run_csr2dense(
         torch::Tensor &rowptr,
         torch::Tensor &col,
@@ -45,11 +28,11 @@ void run_csr2dense(
         torch::Tensor &out,
         ) {
   auto handle = at::cuda::getCurrentCUDASparseHandle();
-  constexpr auto cusparse_value_type = std::is_same<torch::ScalarType::Float, val.scalar_type()>::value
+  constexpr auto cusparse_value_type = std::is_same<float, scalar_t>::value
                                           ? CUDA_R_32F : CUDA_R_64F;
-  constexpr auto cusparse_ind_type = std::is_same<torch::ScalarType::Int, rowptr.scalar_type()>::value
+  const auto cusparse_ind_type = torch::ScalarType::Int == rowptr.scalar_type()
                                           ? CUSPARSE_INDEX_32I : CUSPARSE_INDEX_64I;
-  constexpr auto dense_order = is_fortran_contig(out)
+  const auto dense_order = is_fortran_contig(out)
                                           ? CUSPARSE_ORDER_COL : CUSPARSE_ORDER_ROW;
 
   // Create sparse and dense matrix descriptors
@@ -92,13 +75,17 @@ void run_csr2dense(
 }
 
 #else
+template <class scalar_t>
 void run_csr2dense(
         torch::Tensor &rowptr,
         torch::Tensor &col,
         torch::Tensor &val,
         torch::Tensor &out,
         ) {
-  AT_ASSERTM(out.stride(0) == 1, "Output matrix is not F-contiguous");
+  TORCH_CHECK(out.stride(0) == 1, "Output matrix is not F-contiguous");
+
+  constexpr auto &cusparseXcsr2dense = std::is_same<float, scalar_t>::value
+                                           ? cusparseScsr2dense : cusparseDcsr2dense;
   auto handle = at::cuda::getCurrentCUDASparseHandle();
 
   // Convert indices to int TODO: This may cause problems if it doesn't fit in int!
@@ -108,20 +95,17 @@ void run_csr2dense(
   // Creates default matrix descriptor (0-based and GENERAL matrix)
   cusparseMatDescr_t descr;
   TORCH_CUDASPARSE_CHECK(cusparseCreateMatDescr(&descr));
-
-  DISPATCH_CSR2DENSE_TYPES(scalar_type, [&] {
-    TORCH_CUDASPARSE_CHECK(cusparseXcsr2dense(
-        handle,                     /* cuSparse handle */
-        out.size(0),                /* Number of rows */
-        out.size(1),                /* Number of columns */
-        descr,                      /* Descriptor for the dense matrix */
-        val.data_ptr<scalar_t>(),   /* Non-zero elements of sparse matrix */
-        rowptr.data_ptr<int>(),     /* CSR row indices */
-        col.data_ptr<int>(),        /* CSR column indices */
-        out.data_ptr<scalar_t>(),   /* Output data */
-        out.stride(1),              /* Leading dimension of dense matrix */
-    ));
-  });
+  TORCH_CUDASPARSE_CHECK(cusparseXcsr2dense(
+      handle,                     /* cuSparse handle */
+      out.size(0),                /* Number of rows */
+      out.size(1),                /* Number of columns */
+      descr,                      /* Descriptor for the dense matrix */
+      val.data_ptr<scalar_t>(),   /* Non-zero elements of sparse matrix */
+      rowptr.data_ptr<int>(),     /* CSR row indices */
+      col.data_ptr<int>(),        /* CSR column indices */
+      out.data_ptr<scalar_t>(),   /* Output data */
+      out.stride(1),              /* Leading dimension of dense matrix */
+  ));
   TORCH_CUDASPARSE_CHECK(cusparseDestroyMatDescr(descr));
 }
 #endif
@@ -144,6 +128,8 @@ torch::Tensor csr2dense_cuda(torch::Tensor &rowptr, torch::Tensor &col, torch::T
               "Expected CSR and dense matrices to be on the same device.");
 
   at::DeviceGuard g(rowptr.device());
-  run_csr2dense(rowptr, col, val, out);
+  AT_DISPATCH_FLOATING_TYPES(val.scalar_type(), "csr2dense_cuda", [&] {
+    run_csr2dense<scalar_t>(rowptr, col, val, out);
+  });
   return out;
 }
