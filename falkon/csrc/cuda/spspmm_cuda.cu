@@ -31,7 +31,8 @@ run_spspmm_cuda(
     const torch::Tensor &colB,
     const torch::Tensor &valB,
     int64_t N
-) {
+)
+{
   constexpr auto cuda_value_type = std::is_same<float, scalar_t>::value ? CUDA_R_32F : CUDA_R_64F;
   cusparseHandle_t handle = at::cuda::getCurrentCUDASparseHandle();
   cusparseSpMatDescr_t matA, matB, matC;
@@ -211,7 +212,8 @@ run_spspmm_cuda(
     const torch::Tensor &colB,
     const torch::Tensor &valB,
     int64_t N
-) {
+)
+{
   /* Input checks: all matrices should be in CSR format, matrix `D` is not used.
    * C = alpha*A*B + beta*D
    * A: m x k
@@ -386,6 +388,6 @@ spspmm_cuda(
   at::DeviceGuard g(rowptrA.device());
 
   AT_DISPATCH_FLOATING_TYPES(valA.scalar_type(), "csr2dense_cuda", [&] {
-    return run_spspmm_cuda(rowptrA, colA, valA, rowptrB, colB, valB, N);
+    return run_spspmm_cuda<scalar_t>(rowptrA, colA, valA, rowptrB, colB, valB, N);
   });
 }
