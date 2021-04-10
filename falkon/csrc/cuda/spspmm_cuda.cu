@@ -38,7 +38,7 @@ run_spspmm_cuda(
   cusparseSpMatDescr_t matA, matB, matC;
   void*  dBuffer1 = NULL, *dBuffer2 = NULL;
   size_t bufferSize1 = 0, bufferSize2 = 0;
-  const int64_t M = rowptrA_int.numel() - 1, K = rowptrB_int.numel() - 1;
+  const int64_t M = rowptrA.numel() - 1, K = rowptrB.numel() - 1;
   const int nnzA = valA.numel(), nnzB = valB.numel();
   const scalar_t alpha = (scalar_t)1.0, beta = (scalar_t)0.0;
   auto& allocator = *c10::cuda::CUDACachingAllocator::get();
@@ -383,10 +383,12 @@ spspmm_cuda(
   TORCH_CHECK(valA.dtype() == valB.dtype(), "Expected A, B with equal dtypes but found ",
     valA.dtype(), ", ", valB.dtype());
 
+  std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> out;
   auto scalar_type = valA.scalar_type();
   at::DeviceGuard g(rowptrA.device());
 
   AT_DISPATCH_FLOATING_TYPES(valA.scalar_type(), "csr2dense_cuda", [&] {
-    return run_spspmm_cuda<scalar_t>(rowptrA, colA, valA, rowptrB, colB, valB, N);
+    out = run_spspmm_cuda<scalar_t>(rowptrA, colA, valA, rowptrB, colB, valB, N);
   });
+  return out;
 }
