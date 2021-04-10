@@ -110,7 +110,6 @@ torch::Tensor vec_mul_triang_cuda(torch::Tensor &A, torch::Tensor &v, const bool
     int64_t mat_stride = A.stride(1), mat_size = A.size(0);
     bool bside = (bool)side, bupper = upper;
     // Flip operation if C-contiguous
-    const bool fortran_contig = ;
     if (!is_fortran_contig(A)) {
         bupper = !upper;
         bside = !bside;

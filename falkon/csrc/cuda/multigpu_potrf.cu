@@ -18,6 +18,46 @@
 
 //#define DEBUG 1
 
+#ifndef TORCH_CUSOLVER_CHECK
+#define TORCH_CUSOLVER_CHECK(EXPR)                              \
+  do {                                                          \
+    cusolverStatus_t __err = EXPR;                              \
+    TORCH_CHECK(__err == CUSOLVER_STATUS_SUCCESS,               \
+                "CUDA error: ",                                 \
+                cusolverGetErrorString(__err),                  \
+                " when calling `" #EXPR "`");                   \
+  } while (0)
+
+const char* cusolverGetErrorString(cusolverStatus_t error) {
+  if (error == CUSOLVER_STATUS_SUCCESS) {
+    return "CUBLAS_STATUS_SUCCESS";
+  }
+  if (error == CUSOLVER_STATUS_NOT_INITIALIZED) {
+    return "CUSOLVER_STATUS_NOT_INITIALIZED";
+  }
+  if (error == CUSOLVER_STATUS_ALLOC_FAILED) {
+    return "CUSOLVER_STATUS_ALLOC_FAILED";
+  }
+  if (error == CUSOLVER_STATUS_INVALID_VALUE) {
+    return "CUSOLVER_STATUS_INVALID_VALUE";
+  }
+  if (error == CUSOLVER_STATUS_ARCH_MISMATCH) {
+    return "CUSOLVER_STATUS_ARCH_MISMATCH";
+  }
+  if (error == CUSOLVER_STATUS_EXECUTION_FAILED) {
+    return "CUSOLVER_STATUS_EXECUTION_FAILED";
+  }
+  if (error == CUSOLVER_STATUS_INTERNAL_ERROR) {
+    return "CUSOLVER_STATUS_INTERNAL_ERROR";
+  }
+  if (error == CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED) {
+    return "CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED";
+  }
+  return "<unknown>";
+}
+#endif
+
+
 
 /* CUDA CallBacks */
 struct callBackData {
