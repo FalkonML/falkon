@@ -145,7 +145,7 @@ cusparseStatus_t cusparseXcsrgemm2_bufferSizeExt<double>(
         const int* csrColIndA, const cusparseMatDescr_t descrB, int nnzB, const int* csrRowPtrB, const int* csrColIndB, const double* beta,
         const cusparseMatDescr_t descrD, int nnzD, const int* csrRowPtrD, const int* csrColIndD, csrgemm2Info_t info, size_t* pBufferSizeInBytes)
 {
-    return cusparseScsrgemm2_bufferSizeExt(handle, m, n, k, alpha, descrA, nnzA, csrRowPtrA, csrColIndA, descrB, nnzB,
+    return cusparseDcsrgemm2_bufferSizeExt(handle, m, n, k, alpha, descrA, nnzA, csrRowPtrA, csrColIndA, descrB, nnzB,
                                            csrRowPtrB, csrColIndB, beta, descrD, nnzD, csrRowPtrD, csrColIndD, info,
                                            pBufferSizeInBytes);
 }
