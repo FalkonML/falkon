@@ -101,25 +101,17 @@ __global__ void vec_mul_triang_kernel_v4(scalar_t* __restrict__ mat, const scala
 
 
 torch::Tensor vec_mul_triang_cuda(torch::Tensor &A, torch::Tensor &v, const bool upper, const int side) {
-    if (!A.is_cuda())
-        AT_ERROR("Input A must be a CUDA tensor.");
-    if (!v.is_cuda())
-        AT_ERROR("Input v must be a CUDA tensor.");
-    if (device_of(v) != device_of(A))
-        AT_ERROR("Inputs A, v must be on the same CUDA device.");
-    if (A.size(0) != A.size(1))
-        AT_ERROR("Input A must be square.");
-    if (A.size(0) != v.size(0))
-        AT_ERROR("Input v must be of the same dimension as matrix A.");
+    CHECK_CUDA(A);
+    CHECK_CUDA(v);
+    TORCH_CHECK(device_of(v) == device_of(A), "A and v must be on the same CUDA device.");
+    TORCH_CHECK(A.size(0) == A.size(1), "A must be a square 2D matrix.");
+    TORCH_CHECK(A.size(0) == v.size(0), "v must be a vector with size matching A.");
 
-    int mat_stride = A.stride(1);
-    const auto mat_size = A.size(0);
-    const auto scalar_type = A.scalar_type();
+    int64_t mat_stride = A.stride(1), mat_size = A.size(0);
+    bool bside = (bool)side, bupper = upper;
     // Flip operation if C-contiguous
-    const bool fortran_contig = is_fortran_contig(A);
-    bool bside = (bool)side;
-    bool bupper = upper;
-    if (!fortran_contig) {
+    const bool fortran_contig = ;
+    if (!is_fortran_contig(A)) {
         bupper = !upper;
         bside = !bside;
         mat_stride = A.stride(0);
@@ -129,7 +121,7 @@ torch::Tensor vec_mul_triang_cuda(torch::Tensor &A, torch::Tensor &v, const bool
     const dim3 dimGrid(grid_height * (grid_height + 1) / 2, 1);
     const dim3 dimBlock(NB, NB);
 
-    AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch_vec_mul_triang", [&] {
+    AT_DISPATCH_FLOATING_TYPES(A.scalar_type(), "dispatch_vec_mul_triang", [&] {
         at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
         at::DeviceGuard g(A.device());
         // Choose correct kernel

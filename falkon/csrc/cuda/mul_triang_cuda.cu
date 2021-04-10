@@ -74,17 +74,14 @@ __global__ void mul_lower(scalar_t* __restrict__ data, const size_t size, const 
 
 torch::Tensor mul_triang_cuda(torch::Tensor &A, const bool upper, const bool preserve_diag, const double multiplier) {
     CHECK_CUDA(A);
-    bool bupper = upper;
-    if (A.stride(0) != 1) {
-        bupper = !bupper;
-    }
+    TORCH_CHECK(A.size(0) == A.size(1), "A must be a square 2D matrix.");
 
-    const auto nx = A.size(0);
-    const auto scalar_type = A.scalar_type();
+    const bool bupper = is_fortran_contig(A) ? upper : !upper;
+    const int64_t nx = A.size(0);
     const dim3 dimGrid(ceildiv(nx, NB));
     const dim3 dimBlock(NB);
 
-    AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
+    AT_DISPATCH_FLOATING_TYPES(A.scalar_type(), "dispatch_mul_triang", [&] {
     const scalar_t mul = (scalar_t)multiplier;
     at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
     at::DeviceGuard g(A.device());

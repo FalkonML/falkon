@@ -14,91 +14,9 @@
 #include <cusolverDn.h>
 #include <cublas_v2.h>
 
+#include "utils.cuh"
+
 //#define DEBUG 1
-
-#define CUSOLVER_CHECK(EXPR)                                    \
-  do {                                                          \
-    cusolverStatus_t __err = EXPR;                              \
-    TORCH_CHECK(__err == CUSOLVER_STATUS_SUCCESS,               \
-                "CUDA error: ",                                 \
-                cusolverGetErrorString(__err),                  \
-                " when calling `" #EXPR "`");                   \
-  } while (0)
-
-#define CUBLAS_CHECK(EXPR)                                      \
-  do {                                                          \
-    cublasStatus_t __err = EXPR;                              \
-    TORCH_CHECK(__err == CUBLAS_STATUS_SUCCESS,                 \
-                "CuBLAS error: ",                               \
-                cublasGetErrorString(__err),                    \
-                " when calling `" #EXPR "`");                   \
-  } while (0)
-
-
-const char* cusolverGetErrorString(cusolverStatus_t error) {
-  if (error == CUSOLVER_STATUS_SUCCESS) {
-    return "CUBLAS_STATUS_SUCCESS";
-  }
-  if (error == CUSOLVER_STATUS_NOT_INITIALIZED) {
-    return "CUSOLVER_STATUS_NOT_INITIALIZED";
-  }
-  if (error == CUSOLVER_STATUS_ALLOC_FAILED) {
-    return "CUSOLVER_STATUS_ALLOC_FAILED";
-  }
-  if (error == CUSOLVER_STATUS_INVALID_VALUE) {
-    return "CUSOLVER_STATUS_INVALID_VALUE";
-  }
-  if (error == CUSOLVER_STATUS_ARCH_MISMATCH) {
-    return "CUSOLVER_STATUS_ARCH_MISMATCH";
-  }
-  if (error == CUSOLVER_STATUS_EXECUTION_FAILED) {
-    return "CUSOLVER_STATUS_EXECUTION_FAILED";
-  }
-  if (error == CUSOLVER_STATUS_INTERNAL_ERROR) {
-    return "CUSOLVER_STATUS_INTERNAL_ERROR";
-  }
-  if (error == CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED) {
-    return "CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED";
-  }
-  return "<unknown>";
-}
-
-
-const char* cublasGetErrorString(cublasStatus_t error) {
-  if (error == CUBLAS_STATUS_SUCCESS) {
-    return "CUBLAS_STATUS_SUCCESS";
-  }
-  if (error == CUBLAS_STATUS_NOT_INITIALIZED) {
-    return "CUBLAS_STATUS_NOT_INITIALIZED";
-  }
-  if (error == CUBLAS_STATUS_ALLOC_FAILED) {
-    return "CUBLAS_STATUS_ALLOC_FAILED";
-  }
-  if (error == CUBLAS_STATUS_INVALID_VALUE) {
-    return "CUBLAS_STATUS_INVALID_VALUE";
-  }
-  if (error == CUBLAS_STATUS_ARCH_MISMATCH) {
-    return "CUBLAS_STATUS_ARCH_MISMATCH";
-  }
-  if (error == CUBLAS_STATUS_MAPPING_ERROR) {
-    return "CUBLAS_STATUS_MAPPING_ERROR";
-  }
-  if (error == CUBLAS_STATUS_EXECUTION_FAILED) {
-    return "CUBLAS_STATUS_EXECUTION_FAILED";
-  }
-  if (error == CUBLAS_STATUS_INTERNAL_ERROR) {
-    return "CUBLAS_STATUS_INTERNAL_ERROR";
-  }
-  if (error == CUBLAS_STATUS_NOT_SUPPORTED) {
-    return "CUBLAS_STATUS_NOT_SUPPORTED";
-  }
-#ifdef CUBLAS_STATUS_LICENSE_ERROR
-  if (error == CUBLAS_STATUS_LICENSE_ERROR) {
-    return "CUBLAS_STATUS_LICENSE_ERROR";
-  }
-#endif
-  return "<unknown>";
-}
 
 
 /* CUDA CallBacks */
@@ -130,7 +48,7 @@ inline int potrf_buffer_size(const cusolverDnHandle_t cusolver_handle, const int
 template<>
 inline int potrf_buffer_size<double>(const cusolverDnHandle_t cusolver_handle, const int mbs) {
     int potrf_buf_size;
-    CUSOLVER_CHECK(cusolverDnDpotrf_bufferSize(
+    TORCH_CUSOLVER_CHECK(cusolverDnDpotrf_bufferSize(
         /*handle=*/cusolver_handle,
         /*uplo=*/CUBLAS_FILL_MODE_LOWER,
         /*n=*/mbs,
@@ -143,7 +61,7 @@ inline int potrf_buffer_size<double>(const cusolverDnHandle_t cusolver_handle, c
 template<>
 inline int potrf_buffer_size<float>(const cusolverDnHandle_t cusolver_handle, const int mbs) {
     int potrf_buf_size;
-    CUSOLVER_CHECK(cusolverDnSpotrf_bufferSize(
+    TORCH_CUSOLVER_CHECK(cusolverDnSpotrf_bufferSize(
         /*handle=*/cusolver_handle,
         /*uplo=*/CUBLAS_FILL_MODE_LOWER,
         /*n=*/mbs,
@@ -173,7 +91,7 @@ inline void potrf<double>(
            int &potrf_info_h,
            cudaStream_t stream)
 {
-    CUSOLVER_CHECK(cusolverDnDpotrf(
+    TORCH_CUSOLVER_CHECK(cusolverDnDpotrf(
         /*handle=*/cusolver_handle,
         /*uplo=*/CUBLAS_FILL_MODE_LOWER,
         /*n=*/block_alloc.size,
@@ -198,7 +116,7 @@ inline void potrf<float>(
            int &potrf_info_h,
            cudaStream_t stream)
 {
-    CUSOLVER_CHECK(cusolverDnSpotrf(
+    TORCH_CUSOLVER_CHECK(cusolverDnSpotrf(
         /*handle=*/cusolver_handle,
         /*uplo=*/CUBLAS_FILL_MODE_LOWER,
         /*n=*/block_alloc.size,
@@ -228,7 +146,7 @@ inline void trsm<double>(
           double* b_block,
           const int mbs)
 {
-    CUBLAS_CHECK(cublasDtrsm(
+    TORCH_CUDABLAS_CHECK(cublasDtrsm(
         /*handle=*/cublas_handle, /*side=*/CUBLAS_SIDE_RIGHT, /*uplo=*/CUBLAS_FILL_MODE_LOWER,
         /*trans=*/CUBLAS_OP_T, /*diag=*/CUBLAS_DIAG_NON_UNIT,
         /*m=*/b_alloc.size, /*n=*/i_alloc.size, /*alpha=*/&oned,
@@ -244,7 +162,7 @@ inline void trsm<float>(
           float* b_block,
           const int mbs)
 {
-    CUBLAS_CHECK(cublasStrsm(
+    TORCH_CUDABLAS_CHECK(cublasStrsm(
         /*handle=*/cublas_handle, /*side=*/CUBLAS_SIDE_RIGHT, /*uplo=*/CUBLAS_FILL_MODE_LOWER,
         /*trans=*/CUBLAS_OP_T, /*diag=*/CUBLAS_DIAG_NON_UNIT,
         /*m=*/b_alloc.size, /*n=*/i_alloc.size, /*alpha=*/&onef,
@@ -270,7 +188,7 @@ inline void gemm<double>(
         double*           out_buf,
         const int         mbs)
 {
-    CUBLAS_CHECK(cublasDgemm(
+    TORCH_CUDABLAS_CHECK(cublasDgemm(
         /*handle=*/cublas_handle,
         /*transa=*/CUBLAS_OP_N,
         /*transb=*/CUBLAS_OP_T,
@@ -298,7 +216,7 @@ inline void gemm<float>(
         float*            out_buf,
         const int         mbs)
 {
-    CUBLAS_CHECK(cublasSgemm(
+    TORCH_CUDABLAS_CHECK(cublasSgemm(
         /*handle=*/cublas_handle,
         /*transa=*/CUBLAS_OP_N,
         /*transb=*/CUBLAS_OP_T,
@@ -332,7 +250,7 @@ inline void syrk<double>(
         double*           out_buf,
         const int         mbs)
 {
-    CUBLAS_CHECK(cublasDsyrk(
+    TORCH_CUDABLAS_CHECK(cublasDsyrk(
         /*handle=*/cublas_handle,
         /*uplo=*/CUBLAS_FILL_MODE_LOWER,
         /*trans=*/CUBLAS_OP_N,
@@ -355,7 +273,7 @@ inline void syrk<float>(
         float*            out_buf,
         const int         mbs)
 {
-    CUBLAS_CHECK(cublasSsyrk(
+    TORCH_CUDABLAS_CHECK(cublasSsyrk(
         /*handle=*/cublas_handle,
         /*uplo=*/CUBLAS_FILL_MODE_LOWER,
         /*trans=*/CUBLAS_OP_N,
@@ -385,7 +303,7 @@ static inline void load_block(
     const int64_t sj = data_h.stride(1);
     scalar_t *data_h_ptr = data_h.data_ptr<scalar_t>();
     const uint64_t offset = si * alloc_i.start + sj * alloc_j.start;
-    CUBLAS_CHECK(cublasSetMatrixAsync(
+    TORCH_CUDABLAS_CHECK(cublasSetMatrixAsync(
         /*rows=*/alloc_i.size,
         /*cols=*/alloc_j.size,
         /*elem_size=*/sizeof(scalar_t),
@@ -410,7 +328,7 @@ static inline void get_block(
     const int64_t sj = data_h.stride(1);
     scalar_t *data_h_ptr = data_h.data_ptr<scalar_t>();
     const uint64_t offset = si * alloc_i.start + sj * alloc_j.start;
-    CUBLAS_CHECK(cublasGetMatrixAsync(
+    TORCH_CUDABLAS_CHECK(cublasGetMatrixAsync(
         /*rows=*/alloc_i.size,
         /*cols=*/alloc_j.size,
         /*elem_size=*/sizeof(scalar_t),
@@ -460,12 +378,12 @@ void parallel_potrf_runner(int device_id,
     // Fetch cuBLAS handle and set cuBLAS, cuSOLVER streams to s1
     const auto cublas_handle = at::cuda::getCurrentCUDABlasHandle();
     cudaStream_t orig_cublas_stream;
-    CUBLAS_CHECK(cublasGetStream_v2(cublas_handle, &orig_cublas_stream));
-    CUBLAS_CHECK(cublasSetStream_v2(cublas_handle, s1_c));
+    TORCH_CUDABLAS_CHECK(cublasGetStream_v2(cublas_handle, &orig_cublas_stream));
+    TORCH_CUDABLAS_CHECK(cublasSetStream_v2(cublas_handle, s1_c));
 
     cudaStream_t orig_cusolver_stream;
-    CUSOLVER_CHECK(cusolverDnGetStream(cusolver_handle, &orig_cusolver_stream));
-    CUSOLVER_CHECK(cusolverDnSetStream(cusolver_handle, s1_c));
+    TORCH_CUSOLVER_CHECK(cusolverDnGetStream(cusolver_handle, &orig_cusolver_stream));
+    TORCH_CUSOLVER_CHECK(cusolverDnSetStream(cusolver_handle, s1_c));
 
     const auto scalar_type = A.scalar_type();
     const int k = allocs.size();
@@ -503,7 +421,7 @@ void parallel_potrf_runner(int device_id,
         .requires_grad(false);
     const auto data_buf = torch::empty(buf_size, buf_opt);
 
-    AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
+    AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch_parallel_potrf", [&] {
     scalar_t *A_data = A.data_ptr<scalar_t>();
 
     // How much workspace does potrf need:
@@ -666,13 +584,16 @@ void parallel_potrf_runner(int device_id,
     C10_CUDA_CHECK(cudaStreamSynchronize(s3_c));
     });
 
-    CUBLAS_CHECK(cublasSetStream_v2(cublas_handle, orig_cublas_stream));
-    CUSOLVER_CHECK(cusolverDnSetStream(cusolver_handle, orig_cusolver_stream));
+    TORCH_CUDABLAS_CHECK(cublasSetStream_v2(cublas_handle, orig_cublas_stream));
+    TORCH_CUSOLVER_CHECK(cusolverDnSetStream(cusolver_handle, orig_cusolver_stream));
 }
 
-torch::Tensor parallel_potrf_cuda(std::vector<gpuInfo> gpu_info,
-                             std::vector<blockAlloc> allocations,
-                             torch::Tensor &A) {
+torch::Tensor parallel_potrf_cuda(
+                  std::vector<gpuInfo> gpu_info,
+                  std::vector<blockAlloc> allocations,
+                  torch::Tensor &A)
+{
+    CHECK_CPU(A);
     // Initialize the atomic table
     int k = allocations.size();
     std::vector<std::vector<std::atomic<int>>> work(k);

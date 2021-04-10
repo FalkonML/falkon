@@ -387,7 +387,7 @@ spspmm_cuda(
   auto scalar_type = valA.scalar_type();
   at::DeviceGuard g(rowptrA.device());
 
-  AT_DISPATCH_FLOATING_TYPES(valA.scalar_type(), "csr2dense_cuda", [&] {
+  AT_DISPATCH_FLOATING_TYPES(valA.scalar_type(), "dispatch_spspmm", [&] {
     out = run_spspmm_cuda<scalar_t>(rowptrA, colA, valA, rowptrB, colB, valB, N);
   });
   return out;

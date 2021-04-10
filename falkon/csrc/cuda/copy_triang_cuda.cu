@@ -46,25 +46,18 @@ __global__ void copy_simple_kernel_upper(scalar_t* __restrict__ data, const size
 
 torch::Tensor copy_triang_cuda(torch::Tensor &A, const bool upper) {
     CHECK_CUDA(A);
+    TORCH_CHECK(A.size(0) == A.size(1), "A must be a square 2D matrix.");
 
-    bool needs_transpose = false;
-    bool bupper = upper;
-    if (A.stride(0) != 1) {
-        // Not F-contig (assume C-contig)
-        A = torch::transpose(A, 0, 1);
-        bupper = !bupper;
-        needs_transpose = true;
-    }
-
-    const auto nx = A.size(0);
-    const auto ny = A.size(1);
-    const auto scalar_type = A.scalar_type();
-
+    // Transpose matrix, and flip upper if matrix is C-contiguous.
+    const bool fContig = is_fortran_contig(A);
+    if (!fContig)
+      A = torch::transpose(A, 0, 1);
+    const bool bupper = fContig ? upper : !upper;
+    const int64_t nx = A.size(0);
     const dim3 dimGrid(ceildiv(nx, NB));
     const dim3 dimBlock(NB);
 
-    /* Run CUDA kernel */
-    AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
+    AT_DISPATCH_FLOATING_TYPES(A.scalar_type(), "dispatch_copy_triang", [&] {
         at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
         at::DeviceGuard g(A.device());
         if (bupper) {
@@ -74,8 +67,7 @@ torch::Tensor copy_triang_cuda(torch::Tensor &A, const bool upper) {
         }
     });
 
-    if (needs_transpose) {
+    if (!fContig)
         A = torch::transpose(A, 0, 1);
-    }
     return A;
 }

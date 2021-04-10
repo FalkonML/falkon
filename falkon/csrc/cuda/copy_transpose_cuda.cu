@@ -84,21 +84,18 @@ void matrix_transpose_c(scalar_t* __restrict__ out, const scalar_t* __restrict__
 torch::Tensor copy_transpose_cuda(torch::Tensor &input, torch::Tensor &output) {
     CHECK_CUDA(input);
     CHECK_CUDA(output);
-    if (input.size(0) != output.size(1) || input.size(1) != output.size(0)) {
-        AT_ERROR("Input and output matrices must be of the same size.");
-    }
+    TORCH_CHECK(input.size(0) == output.size(1) && input.size(1) == output.size(0),
+                "Input and output matrices shapes must be consistent.");
     // TODO: Check strides are consistent
 
-    const auto nx = input.size(0);
-    const auto ny = input.size(1);
-    const auto scalar_type = input.scalar_type();
+    const int64_t nx = input.size(0), ny = input.size(1);
     const bool fortran_contig = is_fortran_contig(input);
 
     const dim3 dimGrid(ceildiv(nx, NB), ceildiv(ny, NB), 1);
 
-    AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch", [&] {
-        at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
+    AT_DISPATCH_FLOATING_TYPES(input.scalar_type(), "dispatch_copy_transpose", [&] {
         at::DeviceGuard g(input.device());
+        at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
         if (fortran_contig) {
             const dim3 dimBlock(NB, BLOCK_ROWS, 1);
             matrix_transpose_f<scalar_t><<<dimGrid, dimBlock, 0, stream.stream()>>>(
