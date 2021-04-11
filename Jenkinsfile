@@ -30,13 +30,15 @@ pipeline {
     }
     stages {
         stage('pre-install') {
-            script {
-                print(env.GIT_COMMIT)
-                print(env.HAS_TAG)
-                do_docs = env.GIT_BRANCH == 'docs' || env.GIT_COMMIT =~ '.*[docs].*'
-                env.DOCS = do_docs ? 'TRUE' : 'FALSE'
-                do_deploy = env.GIT_COMMIT =~ '.*[ci-deploy].*' || env.HAS_TAG
-                env.DEPLOY = do_deploy ? 'TRUE' : 'FALSE'
+            steps {
+                script {
+                    print(env.GIT_COMMIT)
+                    print(env.HAS_TAG)
+                    do_docs = env.GIT_BRANCH == 'docs' || env.GIT_COMMIT =~ '.*[docs].*'
+                    env.DOCS = do_docs ? 'TRUE' : 'FALSE'
+                    do_deploy = env.GIT_COMMIT =~ '.*[ci-deploy].*' || env.HAS_TAG
+                    env.DEPLOY = do_deploy ? 'TRUE' : 'FALSE'
+                }
             }
         }
         stage('build-test') {
@@ -126,11 +128,11 @@ pipeline {
                             sh 'python setup.py bdist_wheel --dist-dir=dist'
                             sh 'ls -lah dist/'
                         }
-                        post {
-                            success {
-
-                            }
-                        }
+//                         post {
+//                             success {
+//
+//                             }
+//                         }
                     }
                     stage('docs') {
                         when {
