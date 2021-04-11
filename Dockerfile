@@ -1,6 +1,8 @@
 FROM continuumio/miniconda3
 
 # GCC
+RUN apt-get -qqy update && apt-get -qqy install software-properties-common \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 RUN add-apt-repository ppa:ubuntu-toolchain-r/test --yes
 RUN apt-get -qqy update && apt-get -qqy install gcc-7 g++-7 \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
