@@ -168,8 +168,6 @@ torch::Tensor sparse_row_norm_sq(
     return norm_sq(indexptr, data, out);
 }
 
-
-
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("parallel_potrf", &parallel_potrf, "GPU-Parallel Cholesky Factorization");
 
