@@ -319,8 +319,10 @@ class TestKeops:
 
 
 class TestSparse:
+    # FIXME: We cannot control GPU-memory usage due to large buffers
+    #        allocated inside spspmm_cuda!
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
-                                  max_cpu_mem=max_mem_sparse, max_gpu_mem=max_mem_sparse)
+                                  max_cpu_mem=max_mem_sparse, max_gpu_mem=np.inf)
     # sparse_dim and sparse_density result in sparse matrices with m and n non-zero entries.
     sparse_dim = 10_000
     sparse_density = 1e-4

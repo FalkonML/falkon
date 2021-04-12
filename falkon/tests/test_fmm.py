@@ -214,8 +214,10 @@ class TestDenseFmm:
 ])
 class TestSparseFmm:
     max_mem = 50 * 2**20
+    # FIXME: We cannot control GPU-memory usage due to large buffers
+    #        allocated inside spspmm_cuda!
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False, no_single_kernel=True,
-                                  max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+                                  max_cpu_mem=max_mem, max_gpu_mem=np.inf)
     _RTOL = {
         torch.float32: 1e-5,
         torch.float64: 1e-12
