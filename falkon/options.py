@@ -74,6 +74,12 @@ never_store_kernel
     True may (in case there would be enough RAM to store the kernel), increase the
     training time for Falkon since the K_NM matrix must be recomputed at every
     conjugate gradient iteration.
+store_kernel_d_threshold
+    `default 1200` - The minimum data-dimensionality (`d`) for which to consider whether to store
+    the full Knm kernel matrix (between the data-points and the Nystrom centers). The final decision
+    on whether the matrix is stored or not is based on the amount of memory available.
+    Storing the Knm matrix may greatly reduce training and inference times, especially if `d` is
+    large, or for kernels which are costly to compute. 
 num_fmm_streams
     `default 2` - The number of CUDA streams to use for evaluating kernels when CUDA is available.
     This number should be increased from its default value when the number of Nystroem centers is
@@ -162,6 +168,7 @@ class BaseOptions():
     min_cuda_iter_size_32: int = 10_000 * 10 * 3_000
     min_cuda_iter_size_64: int = 30_000 * 10 * 3_000
     never_store_kernel: bool = False
+    store_kernel_d_threshold: int = 1200
     num_fmm_streams: int = 2
 
     def get_base_options(self):
@@ -175,7 +182,8 @@ class BaseOptions():
                            min_cuda_pc_size_64=self.min_cuda_pc_size_64,
                            min_cuda_iter_size_32=self.min_cuda_iter_size_32,
                            min_cuda_iter_size_64=self.min_cuda_iter_size_64,
-                           never_store_kernel=self.never_store_kernel)
+                           never_store_kernel=self.never_store_kernel,
+                           store_kernel_d_threshold=self.store_kernel_d_threshold)
 
 
 @dataclass
