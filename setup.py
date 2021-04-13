@@ -108,7 +108,7 @@ def get_extensions():
     # LA Helpers
     if WITH_CUDA:
         la_helper_dir = osp.join(CURRENT_DIR, 'falkon', 'la_helpers')
-        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu']
+        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu', 'cuda/square_norm.cpp', 'cuda/square_norm.cu']
         la_helper_macros = [('WITH_CUDA', None)]
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
