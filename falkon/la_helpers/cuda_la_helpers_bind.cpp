@@ -1,12 +1,20 @@
 #include <torch/extension.h>
 
 #include "cuda/utils.cuh"
+
+#if (TORCH_VERSION_MAJOR >= 1) && (TORCH_VERSION_MINOR >= 7)
+#define NEW_TORCH
+#endif
+
+#ifdef NEW_TORCH
 #include "cpu/square_norm_cpu.h"
 #ifdef WITH_CUDA
 #include "cuda/square_norm_cuda.h"
 #endif
+#endif
 
 torch::Tensor square_norm_call(torch::Tensor input, int dim, torch::optional<bool> opt_keepdim) {
+#ifdef NEW_TORCH
     if (input.device().is_cuda()) {
 #ifdef WITH_CUDA
         return square_norm_cuda(input, dim, opt_keepdim);
@@ -16,6 +24,9 @@ torch::Tensor square_norm_call(torch::Tensor input, int dim, torch::optional<boo
     } else {
         return square_norm_cpu(input, dim, opt_keepdim);
     }
+#else
+    return at::pow(at::norm(input, 2, dim, opt_keepdim.value_or(false)), 2);
+#endif
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

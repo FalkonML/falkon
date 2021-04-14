@@ -90,6 +90,8 @@ class TestNormSquare():
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
         exp = torch.norm(mat, p=2, dim=1, keepdim=False).pow_(2)
         act = square_norm(mat, dim=1, keepdim=False)
+        print(exp)
+        print(act)
         torch.testing.assert_allclose(exp, act)
 
 

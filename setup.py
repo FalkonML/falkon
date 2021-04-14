@@ -51,6 +51,19 @@ def parallel_extra_compile_args():
     return []
 
 
+def torch_version():
+    version = torch.__version__
+    split_version = version.split(".")
+    return [int(v) for v in split_version]
+
+
+def torch_version_macros():
+    int_version = torch_version()
+    return [('TORCH_VERSION_MAJOR', int_version[0]),
+            ('TORCH_VERSION_MINOR', int_version[1]),
+            ('TORCH_VERSION_PATCH', int_version[2])]
+
+
 def get_extensions():
     extensions = []
 
@@ -108,8 +121,11 @@ def get_extensions():
     # LA Helpers
     if WITH_CUDA:
         la_helper_dir = osp.join(CURRENT_DIR, 'falkon', 'la_helpers')
-        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu', 'cuda/square_norm_cuda.cu', 'cpu/square_norm_cpu.cpp']
-        la_helper_macros = [('WITH_CUDA', None)]
+        torch_v = torch_version()
+        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu']
+        if torch_v[0] >= 1 and torch_v[1] >= 7:
+            la_helper_files.extend(['cuda/square_norm_cuda.cu', 'cpu/square_norm_cpu.cpp'])
+        la_helper_macros = [('WITH_CUDA', None)] + torch_version_macros()
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
         nvcc_flags += ['--expt-relaxed-constexpr', '--extended-lambda']
