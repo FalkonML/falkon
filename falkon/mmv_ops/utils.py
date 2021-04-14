@@ -67,3 +67,14 @@ def _gpu_tns_same_memory(A: torch.Tensor, B: torch.Tensor) -> bool:
            (A.shape == B.shape) and \
            (A.data_ptr() == B.data_ptr()) and \
            (A.stride() == B.stride())
+
+def ensure_batch_dim(*args: Optional[torch.Tensor]):
+    for tensor in args:
+        if tensor is None:
+            yield tensor
+        elif tensor.dim() == 3:
+            yield tensor
+        elif tensor.dim() == 2:
+            yield tensor.unsqueeze(0)
+        else:
+            raise ValueError("Cannot ensure batch dimension on tensor with %d dimensions" % (tensor.dim()))

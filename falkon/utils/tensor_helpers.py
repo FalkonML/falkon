@@ -88,7 +88,7 @@ def copy_same_stride(tensor: torch.Tensor, pin_memory: bool = False) -> torch.Te
     return new
 
 
-def create_fortran(size: Union[Tuple[int, int], Tuple[int]],
+def create_fortran(size: Union[Tuple[int, ...]],
                    dtype: torch.dtype,
                    device: Union[str, torch.device],
                    pin_memory: bool = False) -> torch.Tensor:
@@ -112,14 +112,8 @@ def create_fortran(size: Union[Tuple[int, int], Tuple[int]],
     t : torch.Tensor
         The allocated tensor
     """
-    if len(size) == 1:
-        stride = (1,)
-    elif len(size) == 2:
-        stride = (1, size[0])
-    else:
-        raise ValueError("create_fortran can only create 1 or 2D tensors.")
-
-    return _new_strided_tensor(tuple(size), stride, dtype, device, pin_memory)
+    strides = [1] + np.cumprod(size)[:-1].tolist()
+    return _new_strided_tensor(tuple(size), strides, dtype, device, pin_memory)
 
 
 def create_C(size: Union[Tuple[int, int], Tuple[int]],
@@ -146,14 +140,8 @@ def create_C(size: Union[Tuple[int, int], Tuple[int]],
     t : torch.Tensor
         The allocated tensor
     """
-    if len(size) == 1:
-        stride = (1,)
-    elif len(size) == 2:
-        stride = (size[1], 1)
-    else:
-        raise ValueError("create_C can only create 1 or 2D tensors.")
-
-    return _new_strided_tensor(tuple(size), stride, dtype, device, pin_memory)
+    strides = np.cumprod(size[1:][::-1])[::-1].tolist() + [1]
+    return _new_strided_tensor(tuple(size), strides, dtype, device, pin_memory)
 
 
 def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
@@ -178,23 +166,24 @@ def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
     fortran : bool
         Whether the input tensor is column-contiguous
     """
-    if len(tensor.shape) > 2:
-        raise RuntimeError(
-            "Cannot check F-contiguity of tensor with %d dimensions" % (len(tensor.shape)))
-    if len(tensor.shape) == 1:
-        return tensor.stride(0) == 1
+    #if len(tensor.shape) > 2:
+    #    raise RuntimeError(
+    #        "Cannot check F-contiguity of tensor with %d dimensions" % (len(tensor.shape)))
+    strides = tensor.stride()
+    if tensor.dim() == 1:
+        return strides[0] == 1
     # 2 checks for 1D tensors which look 2D
-    if tensor.shape[0] == 1:
+    if tensor.shape[-2] == 1:
         if strict:
-            return tensor.stride(0) == 1
-        return tensor.stride(1) == 1 or tensor.stride(0) == 1
-    if tensor.shape[1] == 1:
+            return strides[-2] == 1
+        return strides[-1] == 1 or strides[-2] == 1
+    if tensor.shape[-1] == 1:
         if strict:
-            return tensor.stride(0) == 1 and tensor.stride(1) >= tensor.size(0)
-        return tensor.stride(0) == 1
+            return strides[-2] == 1 and strides[-1] >= tensor.shape[-2]
+        return strides[-2] == 1
     # 2D tensors must have the stride on the first
     # dimension equal to 1 (columns are stored contiguously).
-    if tensor.stride(0) != 1 or tensor.stride(1) < tensor.size(0):
+    if strides[-2] != 1 or strides[-1] < strides[-2]:
         return False
     return True
 

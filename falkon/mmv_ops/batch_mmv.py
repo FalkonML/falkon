@@ -1,0 +1,210 @@
+from typing import Optional
+
+import torch
+import torch.cuda as tcd
+from falkon.kernels import GaussianKernel
+
+from falkon.options import BaseOptions
+
+from falkon.utils.tensor_helpers import (
+    create_same_stride,
+    extract_same_stride,
+)
+
+from falkon.utils.helpers import (
+    calc_gpu_block_sizes,
+    sizeof_dtype,
+    select_dim_over_bnm,
+)
+
+from falkon.mmv_ops.utils import (
+    _get_gpu_info,
+    _call_direct,
+    _start_wait_processes,
+    _setup_opt,
+    _check_contiguity,
+    ensure_batch_dim,
+)
+
+from falkon.mmv_ops.fmmv_cuda import ArgsFmmv
+
+def _extract_flat(flat_tn, size, other, offset):
+    struct_tn = extract_same_stride(flat_tn, size=size, other=other, offset=offset)
+    offset += np.prod(struct_tn.shape)
+    return struct_tn, offset
+
+
+def mmv_run_thread(m1, m2, v, vout, kernel, b0, b1, b2, dev):
+    dt = m1.dtype
+    # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
+    incore = dev.type == m1.device
+    B, N, D = m1.shape
+    M = m2.shape[-2]
+    T = v.shape[-1]
+    b0, b1, b2 = min(b0, B), min(b1, N), min(b2, M)
+
+    """ Initialize extra buffers """
+    flat_offset = 0
+    total_memory = b0 * b1 * b2
+    if not incore:
+        total_memory += (b0 * b1 * D) + (b0 * b2 * D) + (b0 * b2 * T) + (b0 * b1 * T)
+    flat_dev_t = torch.empty(size=(total_memory,), dtype=dt, device=dev)
+    dev_nm_temp, flat_offset = _extract_flat(flat_dev_t, size=(b0, b1, b2), other=m1, offset=flat_offset)
+    if incore:
+        dev_vout = vout
+    else:
+        dev_m1, flat_offset = _extract_flat(flat_dev_t, size=(b0, b1, D), other=m1, offset=flat_offset)
+        dev_m2, flat_offset = _extract_flat(flat_dev_t, size=(b0, b2, D), other=m2, offset=flat_offset)
+        dev_v, flat_offset = _extract_flat(flat_dev_t, size=(b0, b2, T), other=v, offset=flat_offset)
+        dev_vout, flat_offset = _extract_flat(flat_dev_t, size=(b0, b1, T), other=vout, offset=flat_offset)
+
+    """ Run splitting along B, N, M """
+    with ExitStack() as stack:
+        if dev.type == 'cuda':
+            stack.enter_context(tcd.device(dev))
+            stack.enter_context(tcd.stream(tcd.current_stream(dev)))
+        for a in range(0, B, b0):
+            lena = min(b0, B - a)
+            for b in range(0, N, b1):
+                lenb = min(b1, N - b)
+                if incore:
+                    c_dev_m1 = m1[a:lena, b:lenb, :]
+                    c_dev_vout = dev_vout[a:lena, b:lenb]
+                else:
+                    c_dev_m1 = dev_m1[:lena, :lenb, :]
+                    c_dev_m1.copy_(m1[a:lena, b:lenb, :], non_blocking=True)
+                    c_dev_vout = dev_vout[:lena, :lenb]
+
+                c_dev_vout.fill_(0.0)
+                for c in range(0, M, b2):
+                    lenc = min(b2, M - c)
+                    c_dev_nm = dev_nm_temp[:lena, :lenb, :lenc]
+                    if incore:
+                        c_dev_m2 = m2[a:lena, c:lenc, :]
+                        c_dev_v = v[a:lena, c:lenc, :]
+                    else:
+                        c_dev_m2 = dev_m2[:lena, :lenc, :]
+                        c_dev_m2.copy_(m2[a:lena, c:lenc, :], non_blocking=True)
+                        c_dev_v = dev_v[:lena, :lenc, :]
+                        c_dev_v.copy_(v[a:lena, c:lenc, :], non_blocking=True)
+
+                    # Compute kernel sub-matrix
+                    kernel.compute(c_dev_m1, c_dev_m2, c_dev_nm)
+                    # Multiply kernel sub-matrix by a vector: b*n*m @ b*n*t = b*n*t
+                    c_dev_vout.baddbmm_(c_dev_nm, c_dev_v)
+                # end iter over M
+                if not incore:
+                    c_host_vout = vout[a:lena, b:lenb]
+                    c_host_vout.copy_(c_dev_vout, non_blocking=True)
+            # end iter over N
+        # end iter over B
+    # exit context manager (device, stream)
+
+
+def mmv_run_starter(proc_idx, queue, device_id):
+    a: ArgsFmmv = queue.get()
+
+    X1, X2, v, out = a.X1, a.X2, a.v, a.out
+    kernel: GaussianKernel = a.kernel
+    max_mem = a.max_mem
+    if device_id == 0:
+        dev = torch.device('cpu')
+    else:
+        dev = torch.device('cuda:%d' % device_id)
+
+    ooc = 1 if dev.type != m1.device else 0
+    T = v.shape[-1]
+
+    # Choose batch sizes
+    avail_mem = max_mem / sizeof_dtype(X1.dtype)
+    extra_mem = kernel.extra_mem()
+    b, n, m = select_dim_over_bnm(
+        max_b=X1.shape[0],
+        max_n=X1.shape[-2],
+        max_m=X2.shape[-2],
+        d=X1.shape[-1],
+        coef_bnd=1 * ooc + extra_mem.get('nd', 0),
+        coef_bmd=1 * ooc + extra_mem.get('md', 0),
+        coef_bnm=1 + extra_mem.get('nm', 0),
+        coef_bn=T * ooc + extra_mem.get('bn', 0),
+        coef_bm=T * ooc + extra_mem.get('bm', 0),
+        rest=extra_mem.get('d', 0),
+        max_mem=avail_mem
+    )
+
+    # Run
+    mmv_run_thread(X1, X2, v, out, kernel, b, n, m, dev)
+
+
+def batch_fmmv(X1: torch.Tensor,
+               X2: torch.Tensor,
+               v: torch.Tensor,
+               kernel,
+               comp_dev: torch.device,
+               out: Optional[torch.Tensor] = None,
+               opt: Optional[BaseOptions] = None) -> torch.Tensor:
+    """
+    X1 : N x D
+    X2 : M x D
+    v  : M x T
+
+    performs  fnc(X1*X2', X1, X2) * v   : N x T
+    in blocks on multiple GPUs
+    """
+    opt = _setup_opt(opt)
+    _check_contiguity((X1, 'X1'), (X2, 'X2'), (v, 'v'), (out, 'out'))
+    X1, X2, v, out = ensure_batch_dim(X1, X2, v, out)
+    data_dev = X1.device
+
+    B, N, D = X1.shape
+    M = X2.shape[-2]
+    T = v.shape[-1]
+    # Create output matrix
+    if out is None:
+        out = create_same_stride((B, N, T), X1, v.dtype, device=data_dev,
+                                 pin_memory=data_dev.type != 'cuda')
+    out.fill_(0.0)
+
+    if comp_dev.type == 'cuda':
+        gpu_info = _get_gpu_info(opt, slack=0.9)
+
+    if comp_dev.type == 'cuda' and data_dev.type == 'cuda':
+        single_gpu_info = [g for g in gpu_info if g.Id == comp_dev.index][0]
+        args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel,
+                        max_mem=single_gpu_info.usable_ram)
+        _call_direct(mmv_run_starter, (args, comp_dev.index))
+    elif comp_dev.type == 'cuda' and data_dev.type == 'cpu':
+        args = []  # Arguments passed to each subprocess
+        if B == 1:
+            block_sizes = calc_gpu_block_sizes(gpu_info, N)
+            for i, g in enumerate(gpu_info):
+                bwidth = block_sizes[i + 1] - block_sizes[i]
+                if bwidth <= 0:
+                    continue
+                args.append((ArgsFmmv(
+                    X1=X1.narrow(1, block_sizes[i], bwidth),
+                    X2=X2, v=v,
+                    out=out.narrow(1, block_sizes[i], bwidth),
+                    kernel=kernel, max_mem=g.usable_ram), g.Id))
+        else:
+            block_sizes = calc_gpu_block_sizes(gpu_info, B)
+            for i, g in enumerate(gpu_info):
+                bwidth = block_sizes[i + 1] - block_sizes[i]
+                if bwidth <= 0:
+                    continue
+                args.append((ArgsFmmv(
+                    X1=X1.narrow(0, block_sizes[i], bwidth),
+                    X2=X2.narrow(0, block_sizes[i], bwidth),
+                    v=v.narrow(0, block_sizes[i], bwidth),
+                    out=out.narrow(0, block_sizes[i], bwidth),
+                    kernel=kernel, max_mem=g.usable_ram), g.Id))
+        _start_wait_processes(mmv_run_starter, args)
+    elif comp_dev.type == 'cpu' and data_dev.type == 'cpu':
+        args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel,
+                        max_mem=opt.max_cpu_mem)
+        _call_direct(mmv_run_starter, (args, 0))
+    else:
+        raise RuntimeError("Requested CPU computations with CUDA data. "
+                           "This should not happen, please file a bug.")
+    return out
+
