@@ -1,7 +1,7 @@
 #include <torch/extension.h>
 
 #include "cuda/utils.cuh"
-#include "cuda/square_norm.h"
+#include "square_norm.h"
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("cuda_copy_triang", &cuda_copy_triang, "Make a CUDA tensor symmetric",
@@ -16,5 +16,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("cuda_vec_mul_triang", &cuda_vec_mul_triang, "Multiply a triangular matrix by a vector",
         py::arg("A"), py::arg("v"), py::arg("upper"), py::arg("side"));
 
-  m.def("square_norm", &square_norm, "Squared norm");
+  m.def("square_norm", &square_norm, "Squared norm", 
+        py::arg("input"), py::arg("dim"), py::arg("keepdim"));
 }

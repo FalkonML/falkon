@@ -108,11 +108,11 @@ def get_extensions():
     # LA Helpers
     if WITH_CUDA:
         la_helper_dir = osp.join(CURRENT_DIR, 'falkon', 'la_helpers')
-        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu', 'cuda/square_norm.cpp', 'cuda/square_norm.cu']
+        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu', 'square_norm.cpp', 'cuda/square_norm_cuda.cu', 'cpu/square_norm_cpu.cpp']
         la_helper_macros = [('WITH_CUDA', None)]
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
-        nvcc_flags += ['--expt-relaxed-constexpr']
+        nvcc_flags += ['--expt-relaxed-constexpr', '--extended-lambda', ]
         la_helper_compile_args = {'nvcc': nvcc_flags, 'cxx': []}
         la_helper_link_args = []
         extensions.append(
@@ -191,7 +191,7 @@ setup(
     ext_modules=get_extensions(),
     packages=find_packages(),
     cmdclass={
-        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=False)
+        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=True)
     },
     install_requires=install_requires,
     include_package_data=True,  # Since we have a MANIFEST.in this will take all from there.

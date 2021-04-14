@@ -1,22 +1,18 @@
 #pragma once
 
-#include <type_traits>
+#include <torch/extension.h>
+
 #include <c10/macros/Macros.h>
 
 #if defined(__CUDACC__)
 #include <THC/THCDeviceUtils.cuh>
 #endif
 
-#if defined(__CUDACC__)
-void square_vector_norm_cuda_impl(TensorIterator& iter);
+#ifdef WITH_CUDA
+template <typename scalar_t>
+void square_vector_norm_cuda_impl(at::TensorIterator iter);
 #endif
 
-torch::Tensor square_norm(torch::Tensor input, int opt_dim, bool keepdim);
-
-// This accumulator template is used to calculate the order two norm of the
-// absolute value of a set of numbers.
-// `scalar_t` is the type of the input and `acc_t` is the type of the accumulated
-// value. These types differ for complex number input support.
 template <typename scalar_t, typename acc_t=scalar_t>
 struct NormTwoSquareOps {
   inline C10_DEVICE acc_t reduce(acc_t acc, scalar_t data, int64_t /*idx*/) const {
