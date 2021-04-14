@@ -1,4 +1,6 @@
 """ Handles various initialization routines for GPU """
+import threading
+
 import torch
 
 import falkon.cuda.cusolver_gpu as cusolver
@@ -34,42 +36,32 @@ _cusolver_handles = {}
 
 def cublas_handle(device=None):
     device = _normalize_device(device)
+    thread = threading.current_thread().name
+    name = f"{device}_{thread}"
     global _cublas_handles
     try:
-        return _cublas_handles[device]
+        return _cublas_handles[name]
     except KeyError:
-        raise RuntimeError(
-            "Device %d is not initialized properly. CuBLAS handle missing." % (device))
+        handle = cublasCreate()
+        _cublas_handles[name] = handle
+        return handle
 
 
 def cusolver_handle(device=None):
     device = _normalize_device(device)
+    thread = threading.current_thread().name
+    name = f"{device}_{thread}"
     global _cusolver_handles
     try:
-        return _cusolver_handles[device]
+        return _cusolver_handles[name]
     except KeyError:
-        raise RuntimeError(
-            "Device %d is not initialized properly. CuSOLVER handle missing." % (device))
+        handle = cusolver.cusolverDnCreate()
+        _cusolver_handles[name] = handle
+        return handle
 
 
 def init(opt: BaseOptions):
-    if opt.use_cpu:
-        return
-
-    device_ids = [k for k in get_device_info(opt).keys() if k >= 0]
-
-    global _cublas_handles
-    global _cusolver_handles
-    for i in device_ids:
-        with torch.cuda.device(i):
-            # CuBLAS handle
-            if _cublas_handles.get(i, None) is None:
-                handle = cublasCreate()
-                _cublas_handles[i] = handle
-            # CuSOLVER (Dense) handle
-            if _cusolver_handles.get(i, None) is None:
-                handle = cusolver.cusolverDnCreate()
-                _cusolver_handles[i] = handle
+    pass
 
 
 def shutdown():
