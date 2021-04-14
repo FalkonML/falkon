@@ -12,6 +12,14 @@ __all__ = (
 )
 
 
+def _fcontig_strides(sizes) -> Tuple[int, ...]:
+    return tuple([1] + np.cumprod(sizes)[:-1].tolist())
+
+
+def _ccontig_strides(sizes) -> Tuple[int, ...]:
+    return tuple(np.cumprod(sizes[1:][::-1])[::-1].tolist() + [1])
+
+
 def _new_strided_tensor(
         size: Tuple[int],
         stride: Tuple[int],
@@ -32,63 +40,28 @@ def _new_strided_tensor(
 
 
 def extract_fortran(from_tns: torch.Tensor,
-                    size: Union[Tuple[int, int], Tuple[int]],
+                    size: Tuple[int, ...],
                     offset: int) -> torch.Tensor:
-    if len(size) == 1:
-        stride = (1,)
-    elif len(size) == 2:
-        stride = (1, size[0])
-    else:
-        raise ValueError("extract_fortran can only extract 1 or 2D tensors.")
-    return from_tns.as_strided(size=size, stride=stride, storage_offset=int(offset))
+    strides = _fcontig_strides(size)
+    return from_tns.as_strided(size=size, stride=strides, storage_offset=int(offset))
 
 
 def extract_C(from_tns: torch.Tensor,
-              size: Union[Tuple[int, int], Tuple[int]],
+              size: Tuple[int, ...],
               offset: int) -> torch.Tensor:
-    if len(size) == 1:
-        stride = (1,)
-    elif len(size) == 2:
-        stride = (size[1], 1)
-    else:
-        raise ValueError("extract_C can only extract 1 or 2D tensors.")
-    return from_tns.as_strided(size=size, stride=stride, storage_offset=int(offset))
+    strides = _ccontig_strides(size)
+    return from_tns.as_strided(size=size, stride=strides, storage_offset=int(offset))
 
 
 def extract_same_stride(from_tns: torch.Tensor,
-                        size: Union[Tuple[int, int], Tuple[int]],
+                        size: Tuple[int, ...],
                         other: torch.Tensor,
                         offset: int = 0) -> torch.Tensor:
-    if is_f_contig(other, strict=True):
-        return extract_fortran(from_tns, size, offset)
-    else:
-        return extract_C(from_tns, size, offset)
+    # noinspection PyArgumentList
+    return from_tns.as_strided(size=size, stride=other.stride(), storage_offset=int(offset))
 
 
-def create_same_stride(size: Union[Tuple[int, int], Tuple[int]],
-                       other: torch.Tensor,
-                       dtype: torch.dtype,
-                       device: Union[str, torch.device],
-                       pin_memory: bool = False) -> torch.Tensor:
-    if is_f_contig(other, strict=True):
-        return create_fortran(size, dtype, device, pin_memory)
-    else:
-        return create_C(size, dtype, device, pin_memory)
-
-
-def copy_same_stride(tensor: torch.Tensor, pin_memory: bool = False) -> torch.Tensor:
-    size = tensor.shape
-    dtype = tensor.dtype
-    device = tensor.device
-    if is_f_contig(tensor, strict=True):
-        new = create_fortran(size, dtype, device, pin_memory)
-    else:
-        new = create_C(size, dtype, device, pin_memory)
-    new.copy_(tensor)
-    return new
-
-
-def create_fortran(size: Union[Tuple[int, ...]],
+def create_fortran(size: Tuple[int, ...],
                    dtype: torch.dtype,
                    device: Union[str, torch.device],
                    pin_memory: bool = False) -> torch.Tensor:
@@ -112,11 +85,11 @@ def create_fortran(size: Union[Tuple[int, ...]],
     t : torch.Tensor
         The allocated tensor
     """
-    strides = [1] + np.cumprod(size)[:-1].tolist()
-    return _new_strided_tensor(tuple(size), strides, dtype, device, pin_memory)
+    strides = _fcontig_strides(size)
+    return _new_strided_tensor(size, strides, dtype, device, pin_memory)
 
 
-def create_C(size: Union[Tuple[int, int], Tuple[int]],
+def create_C(size: Tuple[int, ...],
              dtype: torch.dtype,
              device: Union[str, torch.device],
              pin_memory: bool = False) -> torch.Tensor:
@@ -140,8 +113,23 @@ def create_C(size: Union[Tuple[int, int], Tuple[int]],
     t : torch.Tensor
         The allocated tensor
     """
-    strides = np.cumprod(size[1:][::-1])[::-1].tolist() + [1]
-    return _new_strided_tensor(tuple(size), strides, dtype, device, pin_memory)
+    strides = _ccontig_strides(size)
+    return _new_strided_tensor(size, strides, dtype, device, pin_memory)
+
+
+def create_same_stride(size: Tuple[int, ...],
+                       other: torch.Tensor,
+                       dtype: torch.dtype,
+                       device: Union[str, torch.device],
+                       pin_memory: bool = False) -> torch.Tensor:
+    # noinspection PyArgumentList
+    return _new_strided_tensor(size, other.stride(), dtype, device, pin_memory)
+
+
+def copy_same_stride(tensor: torch.Tensor, pin_memory: bool = False) -> torch.Tensor:
+    new = create_same_stride(tensor.shape, tensor, tensor.dtype, tensor.device, pin_memory)
+    new.copy_(tensor)
+    return new
 
 
 def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
@@ -166,20 +154,19 @@ def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
     fortran : bool
         Whether the input tensor is column-contiguous
     """
-    #if len(tensor.shape) > 2:
-    #    raise RuntimeError(
-    #        "Cannot check F-contiguity of tensor with %d dimensions" % (len(tensor.shape)))
+    # noinspection PyArgumentList
     strides = tensor.stride()
-    if tensor.dim() == 1:
+    sizes = tensor.shape
+    if len(sizes) == 1:
         return strides[0] == 1
     # 2 checks for 1D tensors which look 2D
-    if tensor.shape[-2] == 1:
+    if sizes[-2] == 1:
         if strict:
             return strides[-2] == 1
         return strides[-1] == 1 or strides[-2] == 1
-    if tensor.shape[-1] == 1:
+    if sizes[-1] == 1:
         if strict:
-            return strides[-2] == 1 and strides[-1] >= tensor.shape[-2]
+            return strides[-2] == 1 and strides[-1] >= sizes[-2]
         return strides[-2] == 1
     # 2D tensors must have the stride on the first
     # dimension equal to 1 (columns are stored contiguously).
@@ -189,6 +176,7 @@ def is_f_contig(tensor: torch.Tensor, strict: bool = False) -> bool:
 
 
 def is_contig(tensor: torch.Tensor) -> bool:
+    # noinspection PyArgumentList
     stride = tensor.stride()
     for s in stride:
         if s == 1:
