@@ -4,14 +4,8 @@
 
 #include <c10/macros/Macros.h>
 
-#if defined(__CUDACC__)
-#include <THC/THCDeviceUtils.cuh>
-#endif
+torch::Tensor square_norm_cuda(const torch::Tensor input, int dim, torch::optional<bool> opt_keepdim);
 
-#ifdef WITH_CUDA
-template <typename scalar_t>
-void square_vector_norm_cuda_impl(at::TensorIterator iter);
-#endif
 
 template <typename scalar_t, typename acc_t=scalar_t>
 struct NormTwoSquareOps {

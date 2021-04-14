@@ -108,18 +108,18 @@ def get_extensions():
     # LA Helpers
     if WITH_CUDA:
         la_helper_dir = osp.join(CURRENT_DIR, 'falkon', 'la_helpers')
-        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu', 'square_norm.cpp', 'cuda/square_norm_cuda.cu', 'cpu/square_norm_cpu.cpp']
+        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu', 'cuda/square_norm_cuda.cu', 'cpu/square_norm_cpu.cpp']
         la_helper_macros = [('WITH_CUDA', None)]
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
-        nvcc_flags += ['--expt-relaxed-constexpr', '--extended-lambda', ]
+        nvcc_flags += ['--expt-relaxed-constexpr', '--extended-lambda']
         la_helper_compile_args = {'nvcc': nvcc_flags, 'cxx': []}
         la_helper_link_args = []
         extensions.append(
             CUDAExtension(
                 "falkon.la_helpers.cuda_la_helpers",
                 sources=[osp.join(la_helper_dir, f) for f in la_helper_files],
-                include_dirs=[la_helper_dir],
+                include_dirs=[la_helper_dir, osp.join(la_helper_dir, 'cuda'), osp.join(la_helper_dir, 'cpu')],
                 define_macros=la_helper_macros,
                 extra_compile_args=la_helper_compile_args,
                 extra_link_args=la_helper_link_args,

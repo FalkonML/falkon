@@ -65,7 +65,7 @@ class TestCudaTranspose:
 @pytest.mark.parametrize("device", [
     "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestNormSquare():
-    t = 5
+    t = 100
 
     @pytest.fixture(scope="class")
     def mat(self):
@@ -73,11 +73,25 @@ class TestNormSquare():
 
     def test_simple(self, mat, order, dtype, device):
         from falkon.la_helpers.cuda_la_helpers import square_norm
-        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False)
-        exp = torch.norm(mat, p=2, dim=0, keepdim=False).pow_(2)
-
-        act = square_norm(mat, dim=0, keepdim=False)
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=0, keepdim=True).pow_(2)
+        act = square_norm(mat, dim=0, keepdim=True)
         torch.testing.assert_allclose(exp, act)
+
+    def test_negdim(self, mat, order, dtype, device):
+        from falkon.la_helpers.cuda_la_helpers import square_norm
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=-1, keepdim=True).pow_(2)
+        act = square_norm(mat, dim=-1, keepdim=True)
+        torch.testing.assert_allclose(exp, act)
+
+    def test_nokeep(self, mat, order, dtype, device):
+        from falkon.la_helpers.cuda_la_helpers import square_norm
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=1, keepdim=False).pow_(2)
+        act = square_norm(mat, dim=1, keepdim=False)
+        torch.testing.assert_allclose(exp, act)
+
 
 
 @pytest.mark.parametrize("order", ["F", "C"])
