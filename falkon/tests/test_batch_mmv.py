@@ -87,7 +87,7 @@ class TestBatchMmv:
         opt = dataclasses.replace(self.basic_options)
         with memory_checker(opt) as new_opt:
             out = batch_fmmv_incore(A, B, v, kernel, o, new_opt)
-        torch.testing.assert_allclose(expected.to(dtype=out.dtype), out.cpu(), rtol=rtol[dtype])
+        torch.testing.assert_allclose(expected.to(dtype=out.dtype), out.cpu(), rtol=rtol[dtype], atol=0)
         if o is not None:
             assert _gpu_tns_same_memory(out, o), "output tensor was not used correctly"
 
@@ -110,7 +110,7 @@ class TestBatchMmv:
         opt = dataclasses.replace(self.basic_options)
         with memory_checker(opt) as new_opt:
             out = batch_fmmv_ooc(A, B, v, kernel, o, new_opt)
-        torch.testing.assert_allclose(expected.to(dtype=out.dtype), out.cpu(), rtol=rtol[dtype])
+        torch.testing.assert_allclose(expected.to(dtype=out.dtype), out.cpu(), rtol=rtol[dtype], atol=0)
         if o is not None:
             assert _gpu_tns_same_memory(out, o), "output tensor was not used correctly"
 
