@@ -129,8 +129,12 @@ def create_same_stride(size: Tuple[int, ...],
                        dtype: torch.dtype,
                        device: Union[str, torch.device],
                        pin_memory: bool = False) -> torch.Tensor:
-    # noinspection PyArgumentList
-    return _new_strided_tensor(size, other.stride(), dtype, device, pin_memory)
+    if is_f_contig(other, strict=True):
+        return create_fortran(size=size, dtype=dtype, device=device, pin_memory=pin_memory)
+    elif is_contig(other):
+        return create_C(size=size, dtype=dtype, device=device, pin_memory=pin_memory)
+    else:
+        raise ValueError("Desired stride is not contiguous, cannot create.")
 
 
 def copy_same_stride(tensor: torch.Tensor, pin_memory: bool = False) -> torch.Tensor:
