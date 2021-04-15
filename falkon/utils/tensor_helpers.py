@@ -26,10 +26,13 @@ def _new_strided_tensor(
         dtype: torch.dtype,
         device: Union[str, torch.device],
         pin_memory: bool) -> torch.Tensor:
-    if isinstance(device, torch.device):
-        pin_memory &= device.type == 'cpu'
+    if not torch.cuda.is_available():
+        pin_memory = False
     else:
-        pin_memory &= device.lower() == 'cpu'
+        if isinstance(device, torch.device):
+            pin_memory &= device.type == 'cpu'
+        else:
+            pin_memory &= device.lower() == 'cpu'
 
     # noinspection PyArgumentList
     return torch.empty_strided(
@@ -57,8 +60,12 @@ def extract_same_stride(from_tns: torch.Tensor,
                         size: Tuple[int, ...],
                         other: torch.Tensor,
                         offset: int = 0) -> torch.Tensor:
-    # noinspection PyArgumentList
-    return from_tns.as_strided(size=size, stride=other.stride(), storage_offset=int(offset))
+    if is_f_contig(other, strict=True):
+        return extract_fortran(from_tns, size, offset)
+    elif is_contig(other):
+        return extract_C(from_tns, size, offset)
+    else:
+        raise ValueError("Desired stride is not contiguous, cannot extract.")
 
 
 def create_fortran(size: Tuple[int, ...],

@@ -96,8 +96,8 @@ def rbf_core(sigmas, mat1, mat2, out):
     norm_sq_mat1 = square_norm(mat1_div_sig, dim=-1, keepdim=True)  # b*n*1
     norm_sq_mat2 = square_norm(mat2_div_sig, dim=-1, keepdim=True)  # b*m*1
 
-    torch.baddbmm(None, mat1_div_sig, mat2_div_sig.transpose(-2, -1), alpha=-2, beta=0, out=out)  # b*n*m
-    out.add_(norm_sq_mat1).add_(norm_sq_mat2.transpose(-2, -1))
+    torch.baddbmm(norm_sq_mat1, mat1_div_sig, mat2_div_sig.transpose(-2, -1), alpha=-2, beta=1, out=out)  # b*n*m
+    out.add_(norm_sq_mat2.transpose(-2, -1))
     out.clamp_min_(1e-30)
     out.mul_(-0.5)
     out.exp_()

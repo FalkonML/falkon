@@ -4,8 +4,6 @@ import torch
 
 from .helpers import sizeof_dtype
 from .tensor_helpers import is_f_contig, is_contig
-from falkon.cuda.cublas_gpu import (cublasSetMatrix, cublasSetMatrixAsync,
-                                    cublasGetMatrix, cublasGetMatrixAsync)
 
 
 __all__ = (
@@ -17,6 +15,7 @@ __all__ = (
 
 
 def copy_to_device(rows, cols, H, Hi, Hj, D, Di, Dj, s=None, check=False):
+    from falkon.cuda.cublas_gpu import cublasSetMatrix, cublasSetMatrixAsync
     if check:
         if not is_f_contig(H):
             raise ValueError("Tensor 'H' must be F-contiguous")
@@ -75,6 +74,7 @@ def copy_to_device_noorder(rows, cols, H, Hi, Hj, D, Di, Dj, s=None, check=False
 
 
 def copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, s=None, check=False):
+    from falkon.cuda.cublas_gpu import cublasGetMatrix, cublasGetMatrixAsync
     if check:
         if not is_f_contig(H):
             raise ValueError("Tensor 'H' must be F-contiguous")

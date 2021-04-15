@@ -77,12 +77,12 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
             for b in range(0, N, b1):
                 lenb = min(b1, N - b)
                 if incore:
-                    c_dev_m1 = m1[a:lena, b:lenb, :]
-                    c_dev_vout = dev_vout[a:lena, b:lenb]
+                    c_dev_m1 = m1[a:a + lena, b:b + lenb, :]
+                    c_dev_vout = dev_vout[a:a + lena, b:b + lenb]
                 else:
                     # noinspection PyUnboundLocalVariable
                     c_dev_m1 = dev_m1[:lena, :lenb, :]
-                    c_dev_m1.copy_(m1[a:lena, b:lenb, :], non_blocking=True)
+                    c_dev_m1.copy_(m1[a:a + lena, b:b + lenb, :], non_blocking=True)
                     c_dev_vout = dev_vout[:lena, :lenb]
 
                 c_dev_vout.fill_(0.0)
@@ -90,15 +90,15 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
                     lenc = min(b2, M - c)
                     c_dev_nm = dev_nm_temp[:lena, :lenb, :lenc]
                     if incore:
-                        c_dev_m2 = m2[a:lena, c:lenc, :]
-                        c_dev_v = v[a:lena, c:lenc, :]
+                        c_dev_m2 = m2[a:a + lena, c:c + lenc, :]
+                        c_dev_v = v[a:a + lena, c:c + lenc, :]
                     else:
                         # noinspection PyUnboundLocalVariable
                         c_dev_m2 = dev_m2[:lena, :lenc, :]
-                        c_dev_m2.copy_(m2[a:lena, c:lenc, :], non_blocking=True)
+                        c_dev_m2.copy_(m2[a:a + lena, c:c + lenc, :], non_blocking=True)
                         # noinspection PyUnboundLocalVariable
                         c_dev_v = dev_v[:lena, :lenc, :]
-                        c_dev_v.copy_(v[a:lena, c:lenc, :], non_blocking=True)
+                        c_dev_v.copy_(v[a:a + lena, c:c + lenc, :], non_blocking=True)
 
                     # Compute kernel sub-matrix
                     kernel.compute(c_dev_m1, c_dev_m2, c_dev_nm)
@@ -106,7 +106,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
                     c_dev_vout.baddbmm_(c_dev_nm, c_dev_v)
                 # end iter over M
                 if not incore:
-                    c_host_vout = vout[a:lena, b:lenb]
+                    c_host_vout = vout[a:a + lena, b:b + lenb]
                     c_host_vout.copy_(c_dev_vout, non_blocking=True)
             # end iter over N
         # end iter over B
