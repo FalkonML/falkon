@@ -118,7 +118,7 @@ def mmv_run_starter(proc_idx, queue, device_id):
     X1, X2, v, out = a.X1, a.X2, a.v, a.out
     kernel: GaussianKernel = a.kernel
     max_mem = a.max_mem
-    if device_id == 0:
+    if device_id < 0:
         dev = torch.device('cpu')
     else:
         dev = torch.device('cuda:%d' % device_id)
@@ -189,7 +189,7 @@ def _batch_fmmv(X1: torch.Tensor,
 
     if comp_dev_type == 'cpu' and data_dev.type == 'cpu':
         args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel, max_mem=opt.max_cpu_mem)
-        _call_direct(mmv_run_starter, (args, 0))
+        _call_direct(mmv_run_starter, (args, -1))
     elif comp_dev_type == 'cuda' and data_dev.type == 'cuda':
         gpu_info = _get_gpu_info(opt, slack=0.9)
         single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
