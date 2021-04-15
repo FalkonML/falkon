@@ -1,5 +1,6 @@
 import os
 import os.path as osp
+from typing import Any, Tuple, List
 
 import numpy
 from setuptools import setup, find_packages, Extension
@@ -119,29 +120,33 @@ def get_extensions():
         )
 
     # LA Helpers
+    extension_cls = CppExtension
+    la_helper_dir = osp.join(CURRENT_DIR, 'falkon', 'la_helpers')
+    torch_v = torch_version()
+    la_helper_files = ['cuda_la_helpers_bind.cpp']
+    if torch_v[0] >= 1 and torch_v[1] >= 7:
+        la_helper_files.extend(['cpu/square_norm_cpu.cpp'])
+    la_helper_macros: List[Tuple[str, Any]] = torch_version_macros()
+    la_helper_compile_args = {'cxx': []}
+    la_helper_link_args = []
     if WITH_CUDA:
-        la_helper_dir = osp.join(CURRENT_DIR, 'falkon', 'la_helpers')
-        torch_v = torch_version()
-        la_helper_files = ['cuda_la_helpers_bind.cpp', 'cuda/utils.cu']
+        extension_cls = CUDAExtension
+        la_helper_files.append('cuda/utils.cu')
         if torch_v[0] >= 1 and torch_v[1] >= 7:
-            la_helper_files.extend(['cuda/square_norm_cuda.cu', 'cpu/square_norm_cpu.cpp'])
-        la_helper_macros = [('WITH_CUDA', None)] + torch_version_macros()
+            la_helper_files.append('cuda/square_norm_cuda.cu')
+        la_helper_macros.append(('WITH_CUDA', None))
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
-        nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
-        nvcc_flags += ['--expt-relaxed-constexpr', '--extended-lambda']
-        la_helper_compile_args = {'nvcc': nvcc_flags, 'cxx': []}
-        la_helper_link_args = []
-        extensions.append(
-            CUDAExtension(
-                "falkon.la_helpers.cuda_la_helpers",
-                sources=[osp.join(la_helper_dir, f) for f in la_helper_files],
-                include_dirs=[la_helper_dir, osp.join(la_helper_dir, 'cuda'), osp.join(la_helper_dir, 'cpu')],
-                define_macros=la_helper_macros,
-                extra_compile_args=la_helper_compile_args,
-                extra_link_args=la_helper_link_args,
-                libraries=[],
-            )
-        )
+        la_helper_compile_args['nvcc'] = [] if nvcc_flags == '' else nvcc_flags.split(' ')
+        la_helper_compile_args['nvcc'].extend(['--expt-relaxed-constexpr', '--extended-lambda'])
+    extensions.append(extension_cls(
+        "falkon.la_helpers.cuda_la_helpers",
+        sources=[osp.join(la_helper_dir, f) for f in la_helper_files],
+        include_dirs=[la_helper_dir],
+        define_macros=la_helper_macros,
+        extra_compile_args=la_helper_compile_args,
+        extra_link_args=la_helper_link_args,
+        libraries=[],
+    ))
 
     # Cyblas helpers
     file_ext = '.pyx' if WITH_CYTHON else '.c'
