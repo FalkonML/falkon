@@ -1,4 +1,5 @@
 import dataclasses
+import time
 
 import pytest
 
@@ -123,9 +124,66 @@ class TestBatchMmv:
             batch_fmmv_ooc(A, B, v, kernel, o, self.basic_options)
 
 
-def test_different_dtypes():
-    pass
+def test_different_dtypes(kernel):
+    data = gen_data(b=20, n=100, d=10, m=400, t=5)
+    A = fix_mat(data[0], dtype=np.float32, order="F", device="cpu")
+    B = fix_mat(data[1], dtype=np.float64, order="F", device="cpu")
+    v = fix_mat(data[2], dtype=np.float32, order="F", device="cpu")
+    opt = FalkonOptions()
+    with pytest.raises(RuntimeError) as err_info:
+        batch_fmmv_incore(A, B, v, kernel, None, opt)
+    assert str(err_info.value).endswith(
+        "expected scalar type Float but found Double")
 
 
-def test_single_bnm():
-    pass
+def test_single_bnm(kernel, rtol):
+    data = gen_data(b=1, n=1, d=1, m=1, t=1)
+    A = fix_mat(data[0], dtype=np.float32, order="F", device="cpu")
+    B = fix_mat(data[1], dtype=np.float32, order="F", device="cpu")
+    v = fix_mat(data[2], dtype=np.float32, order="F", device="cpu")
+    opt = FalkonOptions()
+
+    K = naive_batch_kernel(kernel, A, B, opt)
+    exp = torch.bmm(K, v)
+    out = batch_fmmv_incore(A, B, v, kernel, None, opt)
+
+    torch.testing.assert_allclose(exp.to(dtype=out.dtype), out.cpu(), rtol=rtol[A.dtype], atol=0)
+
+
+@pytest.mark.benchmark
+class TestBenchmark:
+    num_rep = 25
+    max_mem = 5 * 2**30
+    data = gen_data(b=15, n=20000, d=2000, m=2000, t=15)
+    basic_options = FalkonOptions(max_gpu_mem=max_mem, max_cpu_mem=max_mem)
+
+    def fix_mats(self, oa, ob, ov, oo, dt, dev, out=False):
+        A = fix_mat(TestBatchMmv.data[0], dtype=dt, order=oa, device=dev)
+        B = fix_mat(TestBatchMmv.data[1], dtype=dt, order=ob, device=dev)
+        v = fix_mat(TestBatchMmv.data[2], dtype=dt, order=ov, device=dev)
+        o = None
+        if out:
+            o = fix_mat(TestBatchMmv.data[3], dtype=dt, order=oo, device=dev)
+        return A, B, v, o
+
+    def test_f_contig(self, kernel):
+        A, B, v, o = self.fix_mats("F", "F", "F", "F", np.float32, "cpu", True)
+
+        times = []
+        for i in range(self.num_rep):
+            t_s = time.time()
+            batch_fmmv_incore(A, B, v, kernel, o, self.basic_options)
+            times.append(time.time() - t_s)
+
+        print("Timings: %.4f +- %.4f s" % (np.mean(times), np.std(times)))
+
+    def test_C_contig(self, kernel):
+        A, B, v, o = self.fix_mats("C", "C", "C", "C", np.float32, "cpu", True)
+
+        times = []
+        for i in range(self.num_rep):
+            t_s = time.time()
+            batch_fmmv_incore(A, B, v, kernel, o, self.basic_options)
+            times.append(time.time() - t_s)
+
+        print("Timings: %.4f +- %.4f s" % (np.mean(times), np.std(times)))
