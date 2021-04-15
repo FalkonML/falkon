@@ -54,8 +54,9 @@ class TestDimSelect():
 
 @pytest.mark.parametrize("orderA,orderB,orderV,orderO", [
     ("F", "F", "F", "F"),
-    ("C", "C", "C", "F"),
-    ("F", "C", "F", "C")
+    ("C", "C", "C", "C"),
+    ("C", "C", "F", "C"),
+    ("F", "C", "F", "C"),
 ])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("out", [True, False], ids=["out", "no-out"])
@@ -117,7 +118,7 @@ class TestBatchMmv:
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_cpu_ooc(self, orderA, orderB, orderV, orderO, dtype, out, kernel, expected, rtol):
-        A, B, v, o = self.fix_mats(orderA, orderB, orderV, orderO, dtype, "cpu", out)
+        A, B, v, o = self.fix_mats(orderA, orderB, orderV, orderO, dtype, "cuda", out)
 
         with pytest.raises(RuntimeError):
             batch_fmmv_ooc(A, B, v, kernel, o, self.basic_options)
