@@ -1,11 +1,7 @@
 import os
 
-import torch
-
 
 init_dir = os.path.dirname(os.path.abspath(__file__))
-# Load custom falkon ops
-torch.ops.load_library(os.path.join(init_dir, 'la_helpers', 'cuda_la_helpers.so'))
 # Set __version__ attribute on the package
 with open(os.path.join(init_dir, 'VERSION')) as version_file:
     __version__ = version_file.read().strip()

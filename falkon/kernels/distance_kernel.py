@@ -10,6 +10,7 @@ from falkon.kernels import Kernel, KeopsKernelMixin
 from falkon.options import BaseOptions, FalkonOptions
 from falkon.sparse import sparse_ops
 from falkon.sparse.sparse_tensor import SparseTensor
+from falkon.la_helpers.cuda_la_helpers import square_norm
 
 
 __all__ = (
@@ -88,12 +89,11 @@ class L2DistanceKernel(Kernel, ABC):
         pass
 
 
-@torch.jit.script
 def rbf_core(sigmas, mat1, mat2, out):
     mat1_div_sig = mat1 / sigmas
     mat2_div_sig = mat2 / sigmas
-    norm_sq_mat1 = torch.ops.my_ops.square_norm(mat1_div_sig, -1, True)  # b*n*1
-    norm_sq_mat2 = torch.ops.my_ops.square_norm(mat2_div_sig, -1, True)  # b*m*1
+    norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1
+    norm_sq_mat2 = square_norm(mat2_div_sig, -1, True)  # b*m*1
 
     torch.baddbmm(norm_sq_mat1, mat1_div_sig, mat2_div_sig.transpose(-2, -1), alpha=-2, beta=1, out=out)  # b*n*m
     out.add_(norm_sq_mat2.transpose(-2, -1))

@@ -1,5 +1,4 @@
 #include <torch/extension.h>
-#include <torch/script.h>
 
 #if (TORCH_VERSION_MAJOR >= 1) && (TORCH_VERSION_MINOR >= 7)
 #define NEW_TORCH
@@ -58,11 +57,6 @@ torch::Tensor vec_mul_triang_call(torch::Tensor &A, torch::Tensor &v, bool upper
 #else
     AT_ERROR("Not compiled with CUDA support");
 #endif
-}
-
-
-TORCH_LIBRARY(my_ops, m) {
-  m.def("square_norm", square_norm_call);
 }
 
 
