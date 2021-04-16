@@ -6,20 +6,23 @@
 
 #ifdef NEW_TORCH
 #include "cpu/square_norm_cpu.h"
-#ifdef WITH_CUDA
-#include "cuda/square_norm_cuda.h"
-#include "cuda/utils.cuh"
 #endif
+
+#ifdef WITH_CUDA
+    #ifdef NEW_TORCH
+#include "cuda/square_norm_cuda.h"
+    #endif
+#include "cuda/utils.cuh"
 #endif
 
 torch::Tensor square_norm_call(const torch::Tensor &input, int64_t dim, torch::optional<bool> opt_keepdim) {
 #ifdef NEW_TORCH
     if (input.device().is_cuda()) {
-#ifdef WITH_CUDA
+    #ifdef WITH_CUDA
         return square_norm_cuda(input, dim, opt_keepdim);
-#else
+    #else
        TORCH_CHECK(false, "Not compiled with CUDA support");
-#endif
+    #endif
     } else {
         return square_norm_cpu(input, dim, opt_keepdim);
     }
