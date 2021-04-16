@@ -148,6 +148,49 @@ def mmv_run_starter(proc_idx, queue, device_id):
 def batch_fmmv_incore(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor,
                       kernel, out: Optional[torch.Tensor] = None,
                       opt: Optional[BaseOptions] = None) -> torch.Tensor:
+    """
+    In-core batch kernel-vector multiplication.
+
+    Batched kernel-vector multiplication may be faster than running multiple individual
+    kernel-vector multiplications whenever each individual operation cannot saturate the available
+    GPUs.
+    Data matrices and the vector batch must be supplied in contiguous memory. This function will
+    be more efficient with row-contiguous (C-order) data, since the data is split preferentially
+    along the batch dimension.
+
+    The dimensions of the input tensors follow a common naming convention: The data matrices
+    must be of size `(b, n, d)` and `(b, m, d)` and the vector must be of size `(b, m, t)`.
+    The output of this function will have size `(b, n, t)`.
+
+    This function will work in-core, so if the data passed is on the CPU, all operations will run
+    on the CPU. If the data passed is on the GPU, all operations will run on the GPU. All matrices
+    must be on the same device.
+
+    Parameters
+    ----------
+    X1 : (b, n, d) tensor
+        Batched data matrix. CPU or CUDA.
+    X2 : (b, m, d) tensor
+        Batched data matrix. CPU or CUDA.
+    v : (b, m, t) tensor
+        Batched 'vector'. Commonly `t` is equal to 1, but it may also be greater than 1 so `v` is
+        really a batched matrix. CPU or CUDA.
+    kernel
+        The falkon kernel used for calculating sub-kernel matrices. The kernel must have a
+        `compute` function (currently only for the `GaussianKernel`).
+    out : (b, n, t) tensor or None
+        Optional tensor into which the output will be stored. If `None` is passed, the function will
+        allocate the output tensor.
+    opt
+        Additional options passed to the function. Especially useful are the `max_cpu_mem` and
+        `max_gpu_mem` keys.
+
+    Returns
+    -------
+    out : (b, n, t) tensor
+        The result of the kernel-vector multiplication. Will be on the same device as the input
+        data.
+    """
     comp_dev_type = 'cuda' if X1.device.type == 'cuda' else 'cpu'
     return _batch_fmmv(X1, X2, v, kernel, comp_dev_type, out, opt)
 
@@ -155,6 +198,50 @@ def batch_fmmv_incore(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor,
 def batch_fmmv_ooc(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor,
                    kernel, out: Optional[torch.Tensor] = None,
                    opt: Optional[BaseOptions] = None) -> torch.Tensor:
+    """
+    Out-of-core batch kernel-vector multiplication.
+
+    Batched kernel-vector multiplication may be faster than running multiple individual
+    kernel-vector multiplications whenever each individual operation cannot saturate the available
+    GPUs.
+    Data matrices and the vector batch must be supplied in contiguous memory. This function will
+    be more efficient with row-contiguous (C-order) data, since the data is split preferentially
+    along the batch dimension.
+
+    The dimensions of the input tensors follow a common naming convention: The data matrices
+    must be of size `(b, n, d)` and `(b, m, d)` and the vector must be of size `(b, m, t)`.
+    The output of this function will have size `(b, n, t)`.
+
+    This function will work out-of-core, so the input data must be on the CPU, and all computations
+    will run on the GPU taking care of splitting the data so that it fits in memory. Passing
+    GPU data to this function will result in an error. For the same reason, calling this function
+    on a CPU-only installation of falkon will result in an error. In both these cases, the
+    :func:`batch_fmmv_incore` function can be used to run batched kernel-vector multiplication.
+
+    Parameters
+    ----------
+    X1 : (b, n, d) tensor
+        Batched data matrix. CPU.
+    X2 : (b, m, d) tensor
+        Batched data matrix. CPU.
+    v : (b, m, t) tensor
+        Batched 'vector'. Commonly `t` is equal to 1, but it may also be greater than 1 so `v` is
+        really a batched matrix. CPU.
+    kernel
+        The falkon kernel used for calculating sub-kernel matrices. The kernel must have a
+        `compute` function (currently only for the `GaussianKernel`).
+    out : (b, n, t) tensor or None
+        Optional tensor into which the output will be stored. If `None` is passed, the function will
+        allocate the output tensor.
+    opt
+        Additional options passed to the function. Especially useful are the `max_cpu_mem` and
+        `max_gpu_mem` keys.
+
+    Returns
+    -------
+    out : (b, n, t) tensor
+        The result of the kernel-vector multiplication.
+    """
     comp_dev_type = 'cpu' if X1.device.type == 'cuda' else 'cuda'
     return _batch_fmmv(X1, X2, v, kernel, comp_dev_type, out, opt)
 
