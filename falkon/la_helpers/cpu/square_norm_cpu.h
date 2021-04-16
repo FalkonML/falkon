@@ -3,7 +3,7 @@
 #include <torch/extension.h>
 #include <c10/macros/Macros.h>
 
-torch::Tensor square_norm_cpu(const torch::Tensor input, int dim, torch::optional<bool> opt_keepdim);
+torch::Tensor square_norm_cpu(const torch::Tensor &input, int64_t dim, torch::optional<bool> opt_keepdim);
 
 template <typename acc_t>
 struct NormTwoSquareOpsCPU {

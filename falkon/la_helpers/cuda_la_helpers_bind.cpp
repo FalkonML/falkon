@@ -1,4 +1,5 @@
 #include <torch/extension.h>
+#include <torch/script.h>
 
 #if (TORCH_VERSION_MAJOR >= 1) && (TORCH_VERSION_MINOR >= 7)
 #define NEW_TORCH
@@ -12,7 +13,7 @@
 #endif
 #endif
 
-torch::Tensor square_norm_call(torch::Tensor input, int dim, torch::optional<bool> opt_keepdim) {
+torch::Tensor square_norm_call(const torch::Tensor &input, int64_t dim, torch::optional<bool> opt_keepdim) {
 #ifdef NEW_TORCH
     if (input.device().is_cuda()) {
 #ifdef WITH_CUDA
@@ -59,6 +60,10 @@ torch::Tensor vec_mul_triang_call(torch::Tensor &A, torch::Tensor &v, bool upper
 #endif
 }
 
+
+TORCH_LIBRARY(my_ops, m) {
+  m.def("square_norm", square_norm_call);
+}
 
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

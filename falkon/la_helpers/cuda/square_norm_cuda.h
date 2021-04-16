@@ -4,7 +4,7 @@
 
 #include <c10/macros/Macros.h>
 
-torch::Tensor square_norm_cuda(const torch::Tensor input, int dim, torch::optional<bool> opt_keepdim);
+torch::Tensor square_norm_cuda(const torch::Tensor& input, int64_t dim, torch::optional<bool> opt_keepdim);
 
 
 template <typename scalar_t, typename acc_t=scalar_t>

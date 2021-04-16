@@ -137,7 +137,7 @@ def get_extensions():
         la_helper_macros.append(('WITH_CUDA', None))
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         la_helper_compile_args['nvcc'] = [] if nvcc_flags == '' else nvcc_flags.split(' ')
-        la_helper_compile_args['nvcc'].extend(['--expt-relaxed-constexpr', '--extended-lambda'])
+        la_helper_compile_args['nvcc'].extend(['--expt-relaxed-constexpr', '--expt-extended-lambda'])
     extensions.append(extension_cls(
         "falkon.la_helpers.cuda_la_helpers",
         sources=[osp.join(la_helper_dir, f) for f in la_helper_files],
