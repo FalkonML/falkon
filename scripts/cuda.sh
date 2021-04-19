@@ -1,13 +1,16 @@
 #!/bin/bash
 
 if [ "${CUDA_VERSION}" = "92" ]; then
-  export TOOLKIT_PATH="cuda9.2"
+  export TOOLKIT_PATH="/opt/cuda9.2"
+  export TOOLKIT="cudatoolkit=9.2"
 fi
 if [ "${CUDA_VERSION}" = "101" ]; then
-  export TOOLKIT_PATH="cuda10.1"
+  export TOOLKIT_PATH="/opt/cuda10.1"
+  export TOOLKIT="cudatoolkit=10.1"
 fi
 if [ "${CUDA_VERSION}" = "102" ]; then
-  export TOOLKIT_PATH="cuda10.2"
+  export TOOLKIT_PATH="/opt/cuda10.2"
+  export TOOLKIT="cudatoolkit=10.2"
   # Fix cublas on CUDA 10.2:
   if [ -d "${TOOLKIT_PATH}/targets/x86_64-linux/include" ]; then
     cp -r "${TOOLKIT_PATH}/x86_64-linux/include/*" "${TOOLKIT_PATH}/include/"
@@ -17,10 +20,12 @@ if [ "${CUDA_VERSION}" = "102" ]; then
   fi
 fi
 if [ "${CUDA_VERSION}" = "110" ]; then
-  export TOOLKIT_PATH="cuda11.0"
+  export TOOLKIT_PATH="/opt/cuda11.0"
+  export TOOLKIT="cudatoolkit=11.0"
 fi
 if [ "${CUDA_VERSION}" = "111" ]; then
-  export TOOLKIT_PATH="cuda111"
+  export TOOLKIT_PATH="/opt/cuda111"
+  export TOOLKIT="cudatoolkit=11.1"
 fi
 
 if [ "${CUDA_VERSION}" != "cpu" ]; then
