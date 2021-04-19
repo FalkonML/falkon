@@ -1,7 +1,7 @@
 def getGitCommit() {
     return sh(script: "git log -1 --pretty=%B", returnStdout: true)
 }
-
+ 
 def getCommitTag() {
     return sh(
         returnStdout: true,
