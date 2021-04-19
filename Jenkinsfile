@@ -9,6 +9,21 @@ def getCommitTag() {
     ).trim()
 }
 
+def getToolkitPackage(cuda_version) {
+    if (cuda_version == 'cpu') {
+        return 'cpuonly'
+    } else if (cuda_version == '92') {
+        return 'cudatoolkit=9.2'
+    } else if (cuda_version == '102') {
+        return 'cudatoolkit=10.2'
+    } else if (cuda_version == '110') {
+        return 'cudatoolkit=11.0'
+    } else if (cuda_version == '111') {
+        return 'cudatoolkit=11.1'
+    }
+    return ''
+}
+
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '92', '102', '110', '111']
 String[] torch_version_list = ['1.7.0', '1.8.1']
@@ -63,9 +78,13 @@ pipeline {
                                     }
                                 }
                                 stage("build-${env.CONDA_ENV}") {
+                                    def toolkit = getToolkitPackage(cuda_version)
                                     sh 'bash ./scripts/cuda.sh'
                                     sh 'bash ./scripts/conda.sh'
-                                    sh "conda install pytorch=${env.TORCH_VERSION} ${env.TOOLKIT} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}"
+                                    println env.PATH
+                                    println env.CUDA_HOME
+                                    println env.LD_LIBRARY_PATH
+                                    sh "conda install pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}"
                                     sh "conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/"
                                     sh "conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]"
                                 }
