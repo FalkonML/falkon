@@ -98,15 +98,15 @@ pipeline {
                         steps {
                             sh 'bash ./scripts/cuda.sh'
                             sh 'bash ./scripts/conda.sh'
-                            sh 'conda install pytorch=${TORCH_VERSION} ${TOOLKIT} -c pytorch -c conda-forge --yes'
-                            sh 'pip install --no-cache-dir --editable ./keops/'
-                            sh 'pip install -v --editable .[test,doc]'
+                            sh 'conda install pytorch=${TORCH_VERSION} ${TOOLKIT} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}'
+                            sh 'conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/'
+                            sh 'conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]'
                         }
                     }
                     stage('test') {
                         steps {
-                            sh 'flake8 --count falkon'
-                            sh 'pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg'
+                            sh 'conda run -n ${env.CONDA_ENV} flake8 --count falkon'
+                            sh 'conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg'
                         }
                         post {
                             success {  // post test-coverage results to codecov website

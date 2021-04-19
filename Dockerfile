@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.2.2-devel-ubuntu18.04
+FROM nvidia/cuda:10.2-devel-ubuntu18.04
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
@@ -11,7 +11,7 @@ RUN apt-get -qqy update \
     wget \
     xvfb \
     git  \
-    libxml2 \
+    libxml2 \  # CUDA > 10.1
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 # Configure gcc 7
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
