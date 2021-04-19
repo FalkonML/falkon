@@ -32,7 +32,7 @@ RUN conda install --yes --channel anaconda cmake
 # Install various CUDA versions
 RUN wget https://developer.nvidia.com/compute/cuda/9.2/Prod2/local_installers/cuda_9.2.148_396.37_linux \
     && chmod +x cuda_9.2.148_396.37_linux \
-    && bash cuda_9.2.148_396.37_linux --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="./cuda9.2"
+    && bash cuda_9.2.148_396.37_linux --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="./cuda9.2" \
     && rm cuda_9.2.148_396.37_linux
 
 RUN wget https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run \
