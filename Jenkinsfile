@@ -24,6 +24,21 @@ def getToolkitPackage(cuda_version) {
     return ''
 }
 
+def setupCuda() {
+    def toolkit_path = sh(
+        returnStdout: true,
+        script: './scripts/cuda.sh'
+    ).trim()
+    env.CUDA_HOME = "${toolkit_path}"
+    env.PATH = "${toolkit_path}/bin:${env.PATH}"
+    env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/:${env.LD_LIBRARY_PATH}"
+    def nvcc_version = sh(
+        returnStdout: true,
+        script: 'nvcc --version'
+    )
+    println nvcc_version
+}
+
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '92', '102', '110', '111']
 String[] torch_version_list = ['1.7.0', '1.8.1']
@@ -79,7 +94,8 @@ pipeline {
                                 }
                                 stage("build-${env.CONDA_ENV}") {
                                     def toolkit = getToolkitPackage(cuda_version)
-                                    sh 'bash ./scripts/cuda.sh'
+                                    //sh 'bash ./scripts/cuda.sh'
+                                    setupCuda()
                                     sh 'bash ./scripts/conda.sh'
                                     println env.PATH
                                     println env.CUDA_HOME
@@ -88,9 +104,9 @@ pipeline {
                                     sh "conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/"
                                     sh "conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]"
                                 }
-                                stage('test') {
-                                    sh 'conda run -n ${env.CONDA_ENV} flake8 --count falkon'
-                                    sh 'conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg'
+                                stage("test-${env.CONDA_ENV}") {
+                                    sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
+                                    sh "conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg"
                                 }
                                 /*post {
                                     success {  // post test-coverage results to codecov website

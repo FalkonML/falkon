@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euxo pipefail
 
 if [ "${CUDA_VERSION}" = "92" ]; then
   TOOLKIT_PATH="/opt/cuda9.2"
@@ -23,16 +24,18 @@ if [ "${CUDA_VERSION}" = "111" ]; then
   TOOLKIT_PATH="/opt/cuda11.1"
 fi
 
-if [ "${CUDA_VERSION}" != "cpu" ]; then
-  export CUDA_HOME="${TOOLKIT_PATH}"
-  export PATH="${TOOLKIT_PATH}/bin:${PATH}"
-  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${TOOLKIT_PATH}/lib64/"
-  nvcc --version
-fi
-
-echo "CUDA_HOME"
-echo $CUDA_HOME
-echo "PATH"
-echo $PATH
-echo "LD_LIBRARY_PATH"
-echo $LD_LIBRARY_PATH
+echo "${TOOLKIT_PATH}"
+#
+#if [ "${CUDA_VERSION}" != "cpu" ]; then
+#  export CUDA_HOME="${TOOLKIT_PATH}"
+#  export PATH="${TOOLKIT_PATH}/bin:${PATH}"
+#  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${TOOLKIT_PATH}/lib64/"
+#  nvcc --version
+#fi
+#
+#echo "CUDA_HOME"
+#echo $CUDA_HOME
+#echo "PATH"
+#echo $PATH
+#echo "LD_LIBRARY_PATH"
+#echo $LD_LIBRARY_PATH
