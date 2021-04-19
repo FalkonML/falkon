@@ -96,8 +96,8 @@ pipeline {
                 stages {
                     stage('build') {
                         steps {
-                            sh 'scripts/cuda.sh'
-                            sh 'scripts/conda.sh'
+                            sh 'bash ./scripts/cuda.sh'
+                            sh 'bash ./scripts/conda.sh'
                             sh 'conda install pytorch=${TORCH_VERSION} ${TOOLKIT} -c pytorch -c conda-forge --yes'
                             sh 'pip install --no-cache-dir --editable ./keops/'
                             sh 'pip install -v --editable .[test,doc]'
