@@ -34,3 +34,10 @@ if [ "${CUDA_VERSION}" != "cpu" ]; then
   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${TOOLKIT_PATH}/lib64/"
   nvcc --version
 fi
+
+echo "CUDA_HOME"
+echo $CUDA_HOME
+echo "PATH"
+echo $PATH
+echo "LD_LIBRARY_PATH"
+echo $LD_LIBRARY_PATH
