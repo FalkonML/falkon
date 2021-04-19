@@ -1,7 +1,7 @@
 def getGitCommit() {
     return sh(script: "git log -1 --pretty=%B", returnStdout: true)
 }
- 
+
 def getCommitTag() {
     return sh(
         returnStdout: true,
@@ -95,6 +95,9 @@ pipeline {
                 }
                 stages {
                     stage('build') {
+                        environment {
+                            CONDA_ENV = "${env.PY_VERSION}_${env.TORCH_VERSION}_${env.CUDA_VERSION}"
+                        }
                         steps {
                             sh 'bash ./scripts/cuda.sh'
                             sh 'bash ./scripts/conda.sh'
@@ -104,6 +107,9 @@ pipeline {
                         }
                     }
                     stage('test') {
+                        environment {
+                            CONDA_ENV = "${env.PY_VERSION}_${env.TORCH_VERSION}_${env.CUDA_VERSION}"
+                        }
                         steps {
                             sh 'conda run -n ${env.CONDA_ENV} flake8 --count falkon'
                             sh 'conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg'
