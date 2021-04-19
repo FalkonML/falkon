@@ -81,7 +81,7 @@ void matrix_transpose_c(scalar_t* __restrict__ out, const scalar_t* __restrict__
 }
 
 
-torch::Tensor copy_transpose_cuda(torch::Tensor &input, torch::Tensor &output) {
+torch::Tensor copy_transpose_cuda(const torch::Tensor &input, torch::Tensor &output) {
     CHECK_CUDA(input);
     CHECK_CUDA(output);
     TORCH_CHECK(input.size(0) == output.size(1) && input.size(1) == output.size(0),

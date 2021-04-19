@@ -14,6 +14,8 @@ from falkon.utils import decide_cuda
 from falkon.utils.tensor_helpers import create_same_stride, move_tensor
 
 
+
+
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -55,6 +57,42 @@ class TestCopyTranspose:
         mat_out = move_tensor(mat_out, "cpu").numpy()
         assert mat_out.strides == exp_mat_out.strides
         np.testing.assert_allclose(exp_mat_out, mat_out)
+
+
+@pytest.mark.parametrize("order", ["F", "C"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("device", [
+    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+class TestNormSquare():
+    t = 100
+
+    @pytest.fixture(scope="class")
+    def mat(self):
+        return np.random.random((self.t, self.t))
+
+    def test_simple(self, mat, order, dtype, device):
+        from falkon.la_helpers.cuda_la_helpers import square_norm
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=0, keepdim=True).pow_(2)
+        act = square_norm(mat, dim=0, keepdim=True)
+        torch.testing.assert_allclose(exp, act)
+
+    def test_negdim(self, mat, order, dtype, device):
+        from falkon.la_helpers.cuda_la_helpers import square_norm
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=-1, keepdim=True).pow_(2)
+        act = square_norm(mat, dim=-1, keepdim=True)
+        torch.testing.assert_allclose(exp, act)
+
+    def test_nokeep(self, mat, order, dtype, device):
+        from falkon.la_helpers.cuda_la_helpers import square_norm
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=1, keepdim=False).pow_(2)
+        act = square_norm(mat, dim=1, keepdim=False)
+        print(exp)
+        print(act)
+        torch.testing.assert_allclose(exp, act)
+
 
 
 @pytest.mark.parametrize("order", ["F", "C"])

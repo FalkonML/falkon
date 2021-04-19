@@ -10,6 +10,7 @@ from falkon.kernels import Kernel, KeopsKernelMixin
 from falkon.options import BaseOptions, FalkonOptions
 from falkon.sparse import sparse_ops
 from falkon.sparse.sparse_tensor import SparseTensor
+from falkon.c_ext import square_norm
 
 
 __all__ = (
@@ -86,6 +87,20 @@ class L2DistanceKernel(Kernel, ABC):
     @abstractmethod
     def _transform(self, A: torch.Tensor):
         pass
+
+
+def rbf_core(sigmas, mat1, mat2, out):
+    mat1_div_sig = mat1 / sigmas
+    mat2_div_sig = mat2 / sigmas
+    norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1
+    norm_sq_mat2 = square_norm(mat2_div_sig, -1, True)  # b*m*1
+
+    torch.baddbmm(norm_sq_mat1, mat1_div_sig, mat2_div_sig.transpose(-2, -1), alpha=-2, beta=1, out=out)  # b*n*m
+    out.add_(norm_sq_mat2.transpose(-2, -1))
+    out.clamp_min_(1e-30)
+    out.mul_(-0.5)
+    out.exp_()
+    return out
 
 
 class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
@@ -273,7 +288,15 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
             out.addmm_(X1 @ sigma, X2)
 
     def extra_mem(self) -> Dict[str, float]:
-        if self.gaussian_type == 'single':
+        return {
+            # Data-matrix / sigma in prepare + Data-matrix / sigma in apply
+            'nd': 2,
+            'md': 1,
+            # Norm results in prepare
+            'm': 1,
+            'n': 1,
+        }
+        if False and self.gaussian_type == 'single':
             # Only norms in prepare
             return {'m': 1, 'n': 1}
         elif self.gaussian_type in {'diag', 'full'}:
@@ -305,6 +328,10 @@ class GaussianKernel(L2DistanceKernel, KeopsKernelMixin):
             A.mul_(-0.5)
             A.exp_()
             return A
+
+    def compute(self, X1, X2, out):
+        sigma = self.sigma.to(X1)
+        return rbf_core(sigma, X1, X2, out)
 
     def __repr__(self):
         return f"GaussianKernel(sigma={self.sigma})"

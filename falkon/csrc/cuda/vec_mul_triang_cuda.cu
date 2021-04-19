@@ -100,7 +100,7 @@ __global__ void vec_mul_triang_kernel_v4(scalar_t* __restrict__ mat, const scala
 }
 
 
-torch::Tensor vec_mul_triang_cuda(torch::Tensor &A, torch::Tensor &v, const bool upper, const int side) {
+torch::Tensor vec_mul_triang_cuda(torch::Tensor &A, const torch::Tensor &v, const bool upper, const int side) {
     CHECK_CUDA(A);
     CHECK_CUDA(v);
     TORCH_CHECK(device_of(v) == device_of(A), "A and v must be on the same CUDA device.");

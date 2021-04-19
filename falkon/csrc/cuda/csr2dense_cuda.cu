@@ -19,6 +19,7 @@
 #include <library_types.h>
 #endif
 
+// Helpers for dispatching int32 and int64 (indices). Only available in newer pytorch versions
 #ifndef AT_PRIVATE_CASE_TYPE_USING_HINT
 #define AT_PRIVATE_CASE_TYPE_USING_HINT(NAME, enum_type, type, HINT, ...)        \
   case enum_type: {                                                              \

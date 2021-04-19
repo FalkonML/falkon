@@ -18,5 +18,5 @@
  *     A tensor which shares the same memory as `output`, and contains the elements of `input`
  *     transposed.
  */
-torch::Tensor copy_transpose_cuda(torch::Tensor &input,
+torch::Tensor copy_transpose_cuda(const torch::Tensor &input,
                                   torch::Tensor &output);

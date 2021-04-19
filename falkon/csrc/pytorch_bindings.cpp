@@ -3,7 +3,15 @@
 
 #include <torch/extension.h>
 
-#include "cpp/sparse_norm.h"
+#if (TORCH_VERSION_MAJOR >= 1) && (TORCH_VERSION_MINOR >= 7)
+#define NEW_TORCH
+#endif
+
+
+#include "cpu/sparse_norm.h"
+#ifdef NEW_TORCH
+#include "cpu/square_norm_cpu.h"
+#endif
 
 #ifdef WITH_CUDA
 #include <pybind11/stl.h>
@@ -19,6 +27,10 @@
 // Sparse
 #include "cuda/spspmm_cuda.h"
 #include "cuda/csr2dense_cuda.h"
+// squared-norm
+#ifdef NEW_TORCH
+#include "cuda/square_norm_cuda.h"
+#endif
 #endif
 
 #ifdef WITH_CUDA
@@ -76,7 +88,8 @@ torch::Tensor parallel_potrf(
 #endif
 }
 
-torch::Tensor lauum(const int n, const torch::Tensor &A, const int lda, torch::Tensor &B, const int ldb, const bool lower) {
+torch::Tensor lauum(const int n, const torch::Tensor &A, const int lda, torch::Tensor &B, const int ldb, const bool lower)
+{
 #ifdef WITH_CUDA
     return lauum_cuda(n, A, lda, B, ldb, lower);
 #else
@@ -85,7 +98,8 @@ torch::Tensor lauum(const int n, const torch::Tensor &A, const int lda, torch::T
 }
 
 torch::Tensor copy_triang(torch::Tensor &A,
-                          const bool upper) {
+                          const bool upper)
+{
 #ifdef WITH_CUDA
     return copy_triang_cuda(A, upper);
 #else
@@ -96,7 +110,8 @@ torch::Tensor copy_triang(torch::Tensor &A,
 torch::Tensor mul_triang(torch::Tensor &A,
                          const bool upper,
                          const bool preserve_diag,
-                         const double multiplier) {
+                         const double multiplier)
+{
 #ifdef WITH_CUDA
     return mul_triang_cuda(A, upper, preserve_diag, multiplier);
 #else
@@ -104,8 +119,9 @@ torch::Tensor mul_triang(torch::Tensor &A,
 #endif
 }
 
-torch::Tensor copy_transpose(torch::Tensor &input,
-                                  torch::Tensor &output) {
+torch::Tensor copy_transpose(const torch::Tensor &input,
+                             torch::Tensor &output)
+{
 #ifdef WITH_CUDA
     return copy_transpose_cuda(input, output);
 #else
@@ -114,9 +130,10 @@ torch::Tensor copy_transpose(torch::Tensor &input,
 }
 
 torch::Tensor vec_mul_triang(torch::Tensor &A,
-                             torch::Tensor &v,
+                             const torch::Tensor &v,
                              const bool upper,
-                             const int side) {
+                             const int side)
+{
 #ifdef WITH_CUDA
     return vec_mul_triang_cuda(A, v, upper, side);
 #else
@@ -124,14 +141,31 @@ torch::Tensor vec_mul_triang(torch::Tensor &A,
 #endif
 }
 
+torch::Tensor square_norm_call(const torch::Tensor &input, int64_t dim, torch::optional<bool> opt_keepdim)
+{
+#ifdef NEW_TORCH
+    if (input.device().is_cuda()) {
+    #ifdef WITH_CUDA
+        return square_norm_cuda(input, dim, opt_keepdim);
+    #else
+       TORCH_CHECK(false, "Not compiled with CUDA support");
+    #endif
+    } else {
+        return square_norm_cpu(input, dim, opt_keepdim);
+    }
+#else
+    return at::pow(at::norm(input, 2, dim, opt_keepdim.value_or(false)), 2);
+#endif
+}
+
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
 spspmm(
-    torch::Tensor rowptrA,
-    torch::Tensor colA,
-    torch::Tensor valA,
-    torch::Tensor rowptrB,
-    torch::Tensor colB,
-    torch::Tensor valB,
+    const torch::Tensor &rowptrA,
+    const torch::Tensor &colA,
+    const torch::Tensor &valA,
+    const torch::Tensor &rowptrB,
+    const torch::Tensor &colB,
+    const torch::Tensor &valB,
     int64_t N
 ) {
 #ifdef WITH_CUDA
@@ -142,10 +176,10 @@ spspmm(
 }
 
 torch::Tensor csr2dense(
-    torch::Tensor rowptr,
-    torch::Tensor col,
-    torch::Tensor val,
-    torch::Tensor out
+    const torch::Tensor &rowptr,
+    const torch::Tensor &col,
+    const torch::Tensor &val,
+    torch::Tensor &out
 ) {
 #ifdef WITH_CUDA
     return csr2dense_cuda(rowptr, col, val, out);
@@ -189,10 +223,16 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def("spspmm", &spspmm, "Sparse*Sparse -> Sparse matrix multiplication (CUDA tensors)",
         py::call_guard<py::gil_scoped_release>());
+
   m.def("csr2dense", &csr2dense, "Convert CSR matrix to dense matrix (CUDA tensors)",
         py::call_guard<py::gil_scoped_release>());
+
   m.def("sparse_row_norm_sq", &sparse_row_norm_sq, "Squared row-wise norm of a sparse CPU matrix",
         py::call_guard<py::gil_scoped_release>());
+
   m.def("sparse_row_norm", &sparse_row_norm, "Row-wise norm of a sparse CPU matrix",
         py::call_guard<py::gil_scoped_release>());
+
+  m.def("square_norm", &square_norm_call, "Squared l2 norm squared. Supports both CUDA and CPU inputs.",
+        py::arg("input"), py::arg("dim"), py::arg("keepdim"));
 }

@@ -1,6 +1,6 @@
-import glob
 import os
 import os.path as osp
+from typing import Any, Tuple, List
 
 import numpy
 from setuptools import setup, find_packages, Extension
@@ -15,6 +15,7 @@ WITH_CUDA = torch.cuda.is_available() and CUDA_HOME is not None
 try:
     from Cython.Build import cythonize
 except ImportError:
+    cythonize = None
     WITH_CYTHON = False
 else:
     WITH_CYTHON = True
@@ -52,42 +53,63 @@ def parallel_extra_compile_args():
     return []
 
 
+def torch_version():
+    version = torch.__version__
+    split_version = version.split(".")
+    return [int(v) for v in split_version]
+
+
+def torch_version_macros():
+    int_version = torch_version()
+    return [('TORCH_VERSION_MAJOR', int_version[0]),
+            ('TORCH_VERSION_MINOR', int_version[1]),
+            ('TORCH_VERSION_PATCH', int_version[2])]
+
+
 def get_extensions():
     extensions = []
+    torch_v = torch_version()
 
     # All C/CUDA routines are compiled into a single extension
     extension_cls = CppExtension
     ext_dir = osp.join(CURRENT_DIR, 'falkon', 'csrc')
     ext_files = [
-        'pytorch_bindings.cpp', 'cpp/sparse_norm.cpp',
+        'pytorch_bindings.cpp', 'cpu/sparse_norm.cpp'
     ]
+    if torch_v[0] >= 1 and torch_v[1] >= 7:
+        ext_files.append('cpu/square_norm_cpu.cpp')
     compile_args = {'cxx': parallel_extra_compile_args()}
     link_args = []
-    macros = []
+    macros: List[Tuple[str, Any]] = torch_version_macros()
     libraries = []
     if WITH_CUDA:
         extension_cls = CUDAExtension
-        ext_files.extend(['cuda/vec_mul_triang_cuda.cu', 'cuda/spspmm_cuda.cu', 'cuda/multigpu_potrf.cu',
-                          'cuda/mul_triang_cuda.cu', 'cuda/lauum.cu', 'cuda/csr2dense_cuda.cu',
-                          'cuda/copy_transpose_cuda.cu', 'cuda/copy_triang_cuda.cu',])
+        ext_files.extend([
+            'cuda/vec_mul_triang_cuda.cu', 'cuda/spspmm_cuda.cu', 'cuda/multigpu_potrf.cu',
+            'cuda/mul_triang_cuda.cu', 'cuda/lauum.cu', 'cuda/csr2dense_cuda.cu',
+            'cuda/copy_transpose_cuda.cu', 'cuda/copy_triang_cuda.cu',
+        ])
+        if torch_v[0] >= 1 and torch_v[1] >= 7:
+            ext_files.append('cuda/square_norm_cuda.cu')
         macros.append(('WITH_CUDA', None))
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
-        nvcc_flags += ['--expt-relaxed-constexpr']
+        nvcc_flags += ['--expt-relaxed-constexpr', '--expt-extended-lambda']
         compile_args['nvcc'] = nvcc_flags
         link_args += ['-lcusparse', '-l', 'cusparse',
                       '-lcublas', '-l', 'cublas',
                       '-lcusolver', '-l', 'cusolver']
         libraries.extend(['cusolver', 'cublas', 'cusparse'])
     extensions.append(
-        extension_cls("falkon.c_ext",
-                      sources=[osp.join(ext_dir, f) for f in ext_files],
-                      include_dirs=[ext_dir],
-                      define_macros=macros,
-                      extra_compile_args=compile_args,
-                      extra_link_args=link_args,
-                      libraries=libraries,
-                      )
+        extension_cls(
+            "falkon.c_ext",
+            sources=[osp.join(ext_dir, f) for f in ext_files],
+            include_dirs=[ext_dir],
+            define_macros=macros,
+            extra_compile_args=compile_args,
+            extra_link_args=link_args,
+            libraries=libraries,
+        )
     )
 
     # Cyblas helpers

@@ -10,7 +10,8 @@ from falkon.utils.fake_queue import FakeQueue
 from falkon.utils.tensor_helpers import is_contig
 
 __all__ = ("_setup_opt", "_check_contiguity", "_get_gpu_info", "_get_cpu_ram",
-           "_start_wait_processes", "_gpu_tns_same_memory", "_call_direct",)
+           "_start_wait_processes", "_gpu_tns_same_memory", "_call_direct",
+           "ensure_batch_dim")
 
 
 def _setup_opt(opt: Optional[BaseOptions], is_cpu=False) -> BaseOptions:
@@ -63,7 +64,20 @@ def _call_direct(target, arg):
 
 
 def _gpu_tns_same_memory(A: torch.Tensor, B: torch.Tensor) -> bool:
+    # noinspection PyArgumentList
     return (A.dtype == B.dtype) and \
            (A.shape == B.shape) and \
            (A.data_ptr() == B.data_ptr()) and \
            (A.stride() == B.stride())
+
+
+def ensure_batch_dim(*args: Optional[torch.Tensor]):
+    for tensor in args:
+        if tensor is None:
+            yield tensor
+        elif tensor.dim() == 3:
+            yield tensor
+        elif tensor.dim() == 2:
+            yield tensor.unsqueeze(0)
+        else:
+            raise ValueError("Cannot ensure batch dimension on tensor with %d dimensions" % (tensor.dim()))
