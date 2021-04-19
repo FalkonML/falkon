@@ -65,7 +65,7 @@ pipeline {
                                 stage('build') {
                                     sh 'bash ./scripts/cuda.sh'
                                     sh 'bash ./scripts/conda.sh'
-                                    sh 'conda install pytorch=${TORCH_VERSION} ${TOOLKIT} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}'
+                                    sh 'conda install pytorch=${env.TORCH_VERSION} ${env.TOOLKIT} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}'
                                     sh 'conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/'
                                     sh 'conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]'
                                 }
