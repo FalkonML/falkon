@@ -27,7 +27,7 @@ def getToolkitPackage(cuda_version) {
 def setupCuda() {
     def toolkit_path = sh(
         returnStdout: true,
-        script: './scripts/cuda.sh'
+        script: 'bash ./scripts/cuda.sh'
     ).trim()
     env.CUDA_HOME = "${toolkit_path}"
     env.PATH = "${toolkit_path}/bin:${env.PATH}"
