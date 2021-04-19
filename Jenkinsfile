@@ -32,11 +32,11 @@ pipeline {
         stage('pre-install') {
             steps {
                 script {
-                    echo env.GIT_COMMIT
-                    echo env.HAS_TAG
-                    def do_docs = env.GIT_BRANCH == 'docs' || env.GIT_COMMIT =~ '.*[docs].*'
+                    println env.GIT_COMMIT
+                    println env.HAS_TAG
+                    def do_docs = env.GIT_BRANCH == 'docs' || env.GIT_COMMIT =~ '.*\[docs\].*'
                     env.DOCS = do_docs ? 'TRUE' : 'FALSE'
-                    def do_deploy = env.GIT_COMMIT =~ '.*[ci-deploy].*' || env.HAS_TAG
+                    def do_deploy = env.GIT_COMMIT =~ '.*\[ci-deploy\].*' || env.HAS_TAG
                     env.DEPLOY = do_deploy ? 'TRUE' : 'FALSE'
                 }
             }
