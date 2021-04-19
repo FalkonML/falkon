@@ -5,15 +5,13 @@ import pytest
 
 import numpy as np
 import torch
-from falkon.kernels import GaussianKernel
-
-from falkon.utils import decide_cuda
-
-from falkon.mmv_ops.utils import _gpu_tns_same_memory
-
-from falkon.mmv_ops.batch_mmv import batch_fmmv_incore, batch_fmmv_ooc
 
 from falkon import FalkonOptions
+from falkon.kernels import GaussianKernel
+from falkon.utils import decide_cuda
+from falkon.mmv_ops.utils import _gpu_tns_same_memory
+from falkon.mmv_ops.batch_mmv import batch_fmmv_incore, batch_fmmv_ooc
+from falkon.utils.helpers import sizeof_dtype
 from falkon.tests.conftest import fix_mat, memory_checker
 from falkon.tests.gen_random import gen_random_multi
 
@@ -85,9 +83,12 @@ class TestBatchMmv:
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_cuda_incore(self, orderA, orderB, orderV, orderO, dtype, out, kernel, expected, rtol):
         A, B, v, o = self.fix_mats(orderA, orderB, orderV, orderO, dtype, "cuda:0", out)
+        extra_mem = 0
+        if not out:
+            extra_mem += A.shape[0] * A.shape[1] * v.shape[2] * sizeof_dtype(dtype)
 
         opt = dataclasses.replace(self.basic_options)
-        with memory_checker(opt) as new_opt:
+        with memory_checker(opt, extra_mem=extra_mem) as new_opt:
             out = batch_fmmv_incore(A, B, v, kernel, o, new_opt)
         torch.testing.assert_allclose(expected.to(dtype=out.dtype), out.cpu(), rtol=rtol[dtype], atol=0)
         if o is not None:
@@ -99,8 +100,6 @@ class TestBatchMmv:
         opt = dataclasses.replace(self.basic_options, use_cpu=True)
         with memory_checker(opt) as new_opt:
             out = batch_fmmv_incore(A, B, v, kernel, o, new_opt)
-        print(out[:, 0, 0])
-        print(expected[:, 0, 0])
         torch.testing.assert_allclose(expected.to(dtype=out.dtype), out.cpu(), rtol=rtol[dtype], atol=0)
         if o is not None:
             assert _gpu_tns_same_memory(out, o), "output tensor was not used correctly"
@@ -134,6 +133,22 @@ def test_different_dtypes(kernel):
         batch_fmmv_incore(A, B, v, kernel, None, opt)
     assert str(err_info.value).endswith(
         "expected scalar type Float but found Double")
+
+
+def test_compare_cudaic_serial(kernel, rtol):
+    data = gen_data(b=10, n=100, d=100, m=100, t=3)
+    A = fix_mat(data[0], dtype=np.float32, order="F", device="cuda")
+    B = fix_mat(data[1], dtype=np.float32, order="F", device="cuda")
+    v = fix_mat(data[2], dtype=np.float32, order="F", device="cuda")
+    o = fix_mat(data[3], dtype=np.float32, order="F", device="cuda")
+    opt = FalkonOptions()
+
+    for i in range(A.shape[0]):
+        o[i] = kernel.mmv(A[i], B[i], v[i], opt=opt)
+
+    out = batch_fmmv_incore(A, B, v, kernel, opt=opt)
+
+    torch.testing.assert_allclose(o, out, rtol=rtol[dtype], atol=0)
 
 
 def test_single_bnm(kernel, rtol):
