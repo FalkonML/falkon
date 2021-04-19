@@ -9,11 +9,11 @@ def commitHasTag() {
             script: 'git fetch --tags && git tag --points-at HEAD | awk NF'
         ).trim()
         if (TAG) {
-            return True
+            return true
         }
-        return False
+        return false
     }
-    return False
+    return false
 }
 
 pipeline {
