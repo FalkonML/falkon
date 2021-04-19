@@ -32,8 +32,8 @@ pipeline {
         stage('pre-install') {
             steps {
                 script {
-                    print(env.GIT_COMMIT)
-                    print(env.HAS_TAG)
+                    echo env.GIT_COMMIT
+                    echo env.HAS_TAG
                     do_docs = env.GIT_BRANCH == 'docs' || env.GIT_COMMIT =~ '.*[docs].*'
                     env.DOCS = do_docs ? 'TRUE' : 'FALSE'
                     do_deploy = env.GIT_COMMIT =~ '.*[ci-deploy].*' || env.HAS_TAG
