@@ -62,12 +62,12 @@ pipeline {
                                         continue
                                     }
                                 }
-                                stage('build-${env.CONDA_ENV}') {
+                                stage("build-${env.CONDA_ENV}") {
                                     sh 'bash ./scripts/cuda.sh'
                                     sh 'bash ./scripts/conda.sh'
-                                    sh 'conda install pytorch=${env.TORCH_VERSION} ${env.TOOLKIT} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}'
-                                    sh 'conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/'
-                                    sh 'conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]'
+                                    sh "conda install pytorch=${env.TORCH_VERSION} ${env.TOOLKIT} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}"
+                                    sh "conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/"
+                                    sh "conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]"
                                 }
                                 stage('test') {
                                     sh 'conda run -n ${env.CONDA_ENV} flake8 --count falkon'
