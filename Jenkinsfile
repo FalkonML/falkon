@@ -51,7 +51,7 @@ pipeline {
                             env.TORCH_VERSION = torch_version
                             for (cuda_version in cuda_version_list) {
                                 env.CUDA_VERSION = cuda_version
-                                env.CONDA_ENV = "${env.PY_VERSION}_${env.TORCH_VERSION}_${env.CUDA_VERSION}"
+                                env.CONDA_ENV = "PY${env.PY_VERSION}_TORCH${env.TORCH_VERSION}_CU${env.CUDA_VERSION}"
                                 if ((torch_version == '1.7.0' && cuda_version == '111') ||
                                     (torch_version == '1.8.0' && cuda_version == '92')) {
                                     continue;
@@ -62,7 +62,7 @@ pipeline {
                                         continue
                                     }
                                 }
-                                stage('build') {
+                                stage('build-${env.CONDA_ENV}') {
                                     sh 'bash ./scripts/cuda.sh'
                                     sh 'bash ./scripts/conda.sh'
                                     sh 'conda install pytorch=${env.TORCH_VERSION} ${env.TOOLKIT} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}'

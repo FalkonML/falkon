@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "${CUDA_VERSION}" = "cpu" ]; then
+  export TOOLKIT="cpuonly"
+fi
+
 if [ "${CUDA_VERSION}" = "92" ]; then
   export TOOLKIT_PATH="/opt/cuda9.2"
   export TOOLKIT="cudatoolkit=9.2"
