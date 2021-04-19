@@ -2,24 +2,17 @@ def getGitCommit() {
     return sh(script: "git log -1 --pretty=%B", returnStdout: true)
 }
 
-def commitHasTag() {
-    if (env.BRANCH_NAME == 'master') {
-        TAG = sh (
-            returnStdout: true,
-            script: 'git fetch --tags && git tag --points-at HEAD | awk NF'
-        ).trim()
-        if (TAG) {
-            return true
-        }
-        return false
-    }
-    return false
+def getCommitTag() {
+    return sh(
+        returnStdout: true,
+        script: 'git fetch --tags && git tag --points-at HEAD | awk NF'
+    ).trim()
 }
 
 pipeline {
     environment {
         GIT_COMMIT = getGitCommit()
-        HAS_TAG = commitHasTag()
+        GIT_TAG = getCommitTag()
     }
     agent {
         dockerfile {
@@ -30,16 +23,18 @@ pipeline {
         stage('pre-install') {
             steps {
                 script {
-                    println env.GIT_COMMIT
-                    println env.HAS_TAG
-                    def do_docs = env.GIT_BRANCH ==~ /docs/ || env.GIT_COMMIT =~ /.*\[docs\].*/
-                    println do_docs
-                    env.DOCS = do_docs ? 'TRUE' : 'FALSE'
-                    println env.DOCS
-                    def do_deploy = env.GIT_COMMIT =~ /.*\[ci\-deploy\].*/ || env.HAS_TAG
-                    println do_deploy
-                    env.DEPLOY = do_deploy ? 'TRUE' : 'FALSE'
-                    println env.DEPLOY
+                    println "inputs:  ${env.GIT_COMMIT} - ${env.GIT_TAG} - ${env.BRANCH_NAME}"
+                    if (env.BRANCH_NAME =~ /docs/ || env.GIT_COMMIT =~ /\[docs\]/) {
+                        env.DOCS = 'TRUE'
+                    } else {
+                        env.DOCS = 'FALSE'
+                    }
+                    if (env.BRANCH_NAME == 'master' && (env.GIT_COMMIT =~ /.*\[ci\-deploy\].*/ || env.GIT_TAG)) {
+                        env.DEPLOY = 'TRUE'
+                    } else {
+                        env.DEPLOY = 'FALSE'
+                    }
+                    println "outputs ${env.DOCS} - ${env.DEPLOY}"
                 }
             }
         }
