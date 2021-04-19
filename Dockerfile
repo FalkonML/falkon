@@ -11,7 +11,7 @@ RUN apt-get -qqy update \
     wget \
     xvfb \
     git  \
-    libxml2 \  # CUDA > 10.1
+    libxml2 \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 # Configure gcc 7
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
