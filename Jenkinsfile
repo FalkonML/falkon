@@ -36,8 +36,10 @@ pipeline {
                     println env.HAS_TAG
                     def do_docs = env.GIT_BRANCH == 'docs' || env.GIT_COMMIT =~ /.*\[docs\].*/
                     env.DOCS = do_docs ? 'TRUE' : 'FALSE'
+                    println env.DOCS
                     def do_deploy = env.GIT_COMMIT =~ /.*\[ci\-deploy\].*/ || env.HAS_TAG
                     env.DEPLOY = do_deploy ? 'TRUE' : 'FALSE'
+                    println env.DEPLOY
                 }
             }
         }
