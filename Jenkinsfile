@@ -24,13 +24,13 @@ def getToolkitPackage(cuda_version) {
     return ''
 }
 
-def setupCuda(original_path) {
+def setupCuda(start_path) {
     def toolkit_path = sh(
         returnStdout: true,
         script: 'bash ./scripts/cuda.sh'
     ).trim()
     env.CUDA_HOME = "${toolkit_path}"
-    env.PATH = "${toolkit_path}/bin:${original_path}"
+    env.PATH = "${toolkit_path}/bin:${start_path}"
     env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/"
     def nvcc_version = sh(
         returnStdout: true,
