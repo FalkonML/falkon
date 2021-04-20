@@ -99,23 +99,15 @@ pipeline {
 
                                 stage("build-${env.CONDA_ENV}") {
                                     def toolkit = getToolkitPackage(cuda_version)
-                                    //sh 'bash ./scripts/cuda.sh'
                                     sh 'bash ./scripts/conda.sh'
                                     def new_path = setupCuda(original_path)
-//                                     println env.PATH
-                                    println env.CUDA_HOME
-                                    println env.LD_LIBRARY_PATH
-                                    withEnv(["PATH+CUDA=/opt/cuda11.0/bin"]) {
-                                        sh """
-                                        export PATH=${new_path}
-                                        nvcc --version
-                                        printenv
-                                        """
-                                        sh "nvcc --version"
-                                        sh "conda install pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}"
-                                        sh "conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/"
-                                        sh "conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]"
-                                    }
+                                    // We need this trick since otherwise it's impossible to modify PATH!
+                                    sh """
+                                    export PATH=${new_path}
+                                    conda install pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}
+                                    conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/
+                                    conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]
+                                    """
                                 }
                                 stage("test-${env.CONDA_ENV}") {
                                     sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
