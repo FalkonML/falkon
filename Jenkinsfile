@@ -30,7 +30,7 @@ def setupCuda() {
         script: 'bash ./scripts/cuda.sh'
     ).trim()
     env.CUDA_HOME = "${toolkit_path}"
-    env.PATH = "${toolkit_path}/bin:${env.PATH}"
+    env.PATH = "${toolkit_path}/bin:${original_path}"
     env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/"
     def nvcc_version = sh(
         returnStdout: true,
@@ -44,6 +44,8 @@ def setupCuda() {
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '92', '102', '110', '111']
 String[] torch_version_list = ['1.7.0', '1.8.1']
+String original_path = '/opt/conda/bin:/usr/locl/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+env.PATH = original_path
 
 pipeline {
     environment {
