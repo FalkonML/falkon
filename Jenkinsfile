@@ -1,6 +1,3 @@
-def original_path = '/opt/conda/bin:/usr/locl/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
-
-
 def getGitCommit() {
     return sh(script: "git log -1 --pretty=%B", returnStdout: true)
 }
@@ -27,7 +24,7 @@ def getToolkitPackage(cuda_version) {
     return ''
 }
 
-def setupCuda() {
+def setupCuda(original_path) {
     def toolkit_path = sh(
         returnStdout: true,
         script: 'bash ./scripts/cuda.sh'
@@ -47,6 +44,7 @@ def setupCuda() {
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '92', '102', '110', '111']
 String[] torch_version_list = ['1.7.0', '1.8.1']
+def original_path = '/opt/conda/bin:/usr/locl/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 env.PATH = original_path
 
 pipeline {
@@ -101,7 +99,7 @@ pipeline {
                                 stage("build-${env.CONDA_ENV}") {
                                     def toolkit = getToolkitPackage(cuda_version)
                                     //sh 'bash ./scripts/cuda.sh'
-                                    setupCuda()
+                                    setupCuda(original_path)
                                     sh 'bash ./scripts/conda.sh'
                                     println env.PATH
                                     println env.CUDA_HOME
