@@ -106,8 +106,12 @@ pipeline {
                                     println env.CUDA_HOME
                                     println env.LD_LIBRARY_PATH
                                     withEnv(["PATH+CUDA=/opt/cuda11.0/bin"]) {
+                                        sh """
+                                        export PATH=${new_path}
+                                        echo nvcc --version
+                                        printenv
+                                        """
                                         sh "nvcc --version"
-                                        sh "printenv"
                                         sh "conda install pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}"
                                         sh "conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/"
                                         sh "conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]"
