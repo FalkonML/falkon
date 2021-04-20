@@ -31,12 +31,14 @@ def setupCuda() {
     ).trim()
     env.CUDA_HOME = "${toolkit_path}"
     env.PATH = "${toolkit_path}/bin:${env.PATH}"
-    env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/:${env.LD_LIBRARY_PATH}"
+    env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/"
     def nvcc_version = sh(
         returnStdout: true,
         script: 'nvcc --version'
     )
     println nvcc_version
+    sh 'printenv'
+    sh 'which nvcc'
 }
 
 String[] py_version_list = ['3.6', '3.7', '3.8']
