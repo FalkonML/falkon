@@ -91,7 +91,7 @@ pipeline {
                                     continue;
                                 }
                                 if (env.DEPLOY == 'FALSE') {
-                                    if (py_version == '3.6' && (cuda_version == '9.2') {//(cuda_version == '110' || cuda_version == '111')) {
+                                    if (py_version == '3.6' && (cuda_version == '9.2')) { //(cuda_version == '110' || cuda_version == '111')) {
                                     } else {
                                         continue
                                     }
@@ -106,7 +106,7 @@ pipeline {
                                     export PATH=${new_path}
                                     conda install -q pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}
                                     conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/
-                                    conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]
+                                    conda run -n ${env.CONDA_ENV} pip install --editable .[test,doc]
                                     """
                                 }
                                 stage("test-${env.CONDA_ENV}") {
