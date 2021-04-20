@@ -105,7 +105,7 @@ pipeline {
                                     println env.PATH
                                     println env.CUDA_HOME
                                     println env.LD_LIBRARY_PATH
-                                    withEnv(["PATH=${env.PATH}"]) {
+                                    withEnv(["PATH+CUDA=/opt/cuda11.0/bin"]) {
                                         sh "nvcc --version"
                                         sh "printenv"
                                         sh "conda install pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}"
