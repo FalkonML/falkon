@@ -91,7 +91,7 @@ pipeline {
                                     continue;
                                 }
                                 if (env.DEPLOY == 'FALSE') {
-                                    if (py_version == '3.6' && (cuda_version == '9.2')) { //(cuda_version == '110' || cuda_version == '111')) {
+                                    if (py_version == '3.6' && (cuda_version == '92')) { //(cuda_version == '110' || cuda_version == '111')) {
                                     } else {
                                         continue
                                     }
