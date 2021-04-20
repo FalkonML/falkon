@@ -108,7 +108,7 @@ pipeline {
                                     withEnv(["PATH+CUDA=/opt/cuda11.0/bin"]) {
                                         sh """
                                         export PATH=${new_path}
-                                        echo nvcc --version
+                                        nvcc --version
                                         printenv
                                         """
                                         sh "nvcc --version"
