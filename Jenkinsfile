@@ -32,13 +32,13 @@ def setupCuda(start_path) {
     env.CUDA_HOME = "${toolkit_path}"
     env.PATH = "${toolkit_path}/bin:${start_path}"
     env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/"
-    def nvcc_version = sh(
+    /*def nvcc_version = sh(
         returnStdout: true,
         script: 'nvcc --version'
     )
     println nvcc_version
     sh 'printenv'
-    sh 'which nvcc'
+    sh 'which nvcc'*/
 }
 
 String[] py_version_list = ['3.6', '3.7', '3.8']
@@ -96,17 +96,22 @@ pipeline {
                                         continue
                                     }
                                 }
+
                                 stage("build-${env.CONDA_ENV}") {
                                     def toolkit = getToolkitPackage(cuda_version)
                                     //sh 'bash ./scripts/cuda.sh'
-                                    setupCuda(original_path)
                                     sh 'bash ./scripts/conda.sh'
+                                    setupCuda(original_path)
                                     println env.PATH
                                     println env.CUDA_HOME
                                     println env.LD_LIBRARY_PATH
-                                    sh "conda install pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}"
-                                    sh "conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/"
-                                    sh "conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]"
+                                    withEnv(["PATH=${env.PATH}"]) {
+                                        sh "nvcc --version"
+                                        sh "printenv"
+                                        sh "conda install pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}"
+                                        sh "conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/"
+                                        sh "conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]"
+                                    }
                                 }
                                 stage("test-${env.CONDA_ENV}") {
                                     sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
