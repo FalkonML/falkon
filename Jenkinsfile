@@ -32,20 +32,12 @@ def setupCuda(start_path) {
     env.CUDA_HOME = "${toolkit_path}"
     env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/"
     return "${toolkit_path}/bin:${start_path}"
-    /*def nvcc_version = sh(
-        returnStdout: true,
-        script: 'nvcc --version'
-    )
-    println nvcc_version
-    sh 'printenv'
-    sh 'which nvcc'*/
 }
 
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '92', '102', '110', '111']
 String[] torch_version_list = ['1.7.0', '1.8.1']
 original_path = '/opt/conda/bin:/usr/locl/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
-// env.PATH = original_path
 
 pipeline {
     environment {
@@ -91,7 +83,7 @@ pipeline {
                                     continue;
                                 }
                                 if (env.DEPLOY == 'FALSE') {
-                                    if (py_version == '3.6' && (cuda_version == '92')) { //(cuda_version == '110' || cuda_version == '111')) {
+                                    if (py_version == '3.6' && (cuda_version == '102')) { //(cuda_version == '110' || cuda_version == '111')) {
                                     } else {
                                         continue
                                     }
@@ -109,24 +101,29 @@ pipeline {
                                     conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]
                                     """
                                 }
-                                stage("test-${env.CONDA_ENV}") {
-                                    sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
-                                    sh "conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg"
-                                }
-                                /*post {
-                                    success {  // post test-coverage results to codecov website
+                                /* TESTING */
+                                try {
+                                    stage("test-${env.CONDA_ENV}") {
+                                        sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
+                                        sh "conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg"
+                                    }
+                                } finally {
+                                    def currentResult = currentBuild.result ?: 'SUCCESS'
+                                    if (currentResult == 'SUCCESS') { // post test-coverage results to codecov website
                                         junit 'junit.xml'
                                         withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
                                             sh 'curl -s https://codecov.io/bash | bash -s -- -c -f coverage.xml -t $CODECOV_TOKEN'
                                         }
                                     }
-                                }*/
+                                }
+                                /* DEPLOYMENT */
                                 if (env.DEPLOY == 'TRUE') {
-                                    stage('deploy') {
+                                    stage("deploy-${env.CONDA_ENV}") {
                                         sh 'python setup.py bdist_wheel --dist-dir=dist'
                                         sh 'ls -lah dist/'
                                     }
                                 }
+                                /* DOCUMENTATION DEPLOYMENT */
                                 if (env.DEPLOY == 'TRUE' || env.DOCS == 'TRUE') {
                                     stage('docs') {
                                         sh 'python -m pip install --upgrade --progress-bar off ghp-import'
