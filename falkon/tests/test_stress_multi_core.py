@@ -75,7 +75,7 @@ class TestStressOocLauum:
                                          'fname_A': A_file,
                                          'fname_out': out_files[i],
                                          'num_rep': num_rep,
-                                         'gpu_num': i % num_gpus, #'0,1',
+                                         'gpu_num': i % num_gpus,
                                      },
                                      daemon=False)
                 threads.append(t)
@@ -106,7 +106,6 @@ class TestStressOocLauum:
                     print(f"Result {j} from process {i} is incorrect")
                     wrong += 1
         assert wrong == 0, "%d results were not equal" % (wrong)
-
 
 
 def _runner_str(fname_X, fname_Y, fname_out, num_centers, num_rep, max_iter, gpu_num):

@@ -123,7 +123,6 @@ class TestOOCLauum:
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
     def test_diff_blk_sizes(self, dtype, order, get_mat, device):
-        omat = get_mat(order=order, dtype=dtype)
         mat = get_mat(order=order, dtype=dtype, device=device)
 
         # For cuda inputs we must add to available GPU memory the amount used by the
@@ -132,11 +131,11 @@ class TestOOCLauum:
         if device.startswith("cuda"):
             mgpu_slack = mat.shape[0]**2 * sizeof_dtype(mat.dtype)
 
-        opt_v1 = dataclasses.replace(self.basic_opt, max_gpu_mem=2*2**20 + mgpu_slack)
+        opt_v1 = dataclasses.replace(self.basic_opt, max_gpu_mem=2 * 2 ** 20 + mgpu_slack)
         act_up_v1 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v1)
-        opt_v2 = dataclasses.replace(self.basic_opt, max_gpu_mem=4*2**20 + mgpu_slack)
+        opt_v2 = dataclasses.replace(self.basic_opt, max_gpu_mem=4 * 2 ** 20 + mgpu_slack)
         act_up_v2 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v2)
-        opt_v3 = dataclasses.replace(self.basic_opt, max_gpu_mem=6*2**20 + mgpu_slack)
+        opt_v3 = dataclasses.replace(self.basic_opt, max_gpu_mem=6 * 2 ** 20 + mgpu_slack)
         act_up_v3 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v3)
 
         np.testing.assert_allclose(act_up_v3.cpu().numpy(), act_up_v1.cpu().numpy(), rtol=self.rtol[dtype])

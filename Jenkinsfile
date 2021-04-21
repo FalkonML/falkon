@@ -106,7 +106,7 @@ pipeline {
                                     export PATH=${new_path}
                                     conda install -q pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}
                                     conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/
-                                    conda run -n ${env.CONDA_ENV} pip install --editable .[test,doc]
+                                    conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]
                                     """
                                 }
                                 stage("test-${env.CONDA_ENV}") {

@@ -14,8 +14,6 @@ from falkon.utils import decide_cuda
 from falkon.utils.tensor_helpers import create_same_stride, move_tensor
 
 
-
-
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -90,7 +88,6 @@ class TestNormSquare():
         exp = torch.norm(mat, p=2, dim=1, keepdim=False).pow_(2)
         act = square_norm(mat, dim=1, keepdim=False)
         torch.testing.assert_allclose(exp, act)
-
 
 
 @pytest.mark.parametrize("order", ["F", "C"])
