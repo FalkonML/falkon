@@ -10,12 +10,12 @@ fi
 if [ "${CUDA_VERSION}" = "102" ]; then
   TOOLKIT_PATH="/opt/cuda10.2"
   # Fix cublas on CUDA 10.2:
-  if [ -d "${TOOLKIT_PATH}/targets/x86_64-linux/include" ]; then
-    cp -r $TOOLKIT_PATH/targets/x86_64-linux/include/* "${TOOLKIT_PATH}/include/"
-  fi
-  if [ -d "${TOOLKIT_PATH}/targets/x86_64-linux/lib" ]; then
-    cp -r $TOOLKIT_PATH/targets/x86_64-linux/lib/* "${TOOLKIT_PATH}/lib/"
-  fi
+#  if [ -d "${TOOLKIT_PATH}/targets/x86_64-linux/include" ]; then
+#    cp -r $TOOLKIT_PATH/targets/x86_64-linux/include/* "${TOOLKIT_PATH}/include/"
+#  fi
+#  if [ -d "${TOOLKIT_PATH}/targets/x86_64-linux/lib" ]; then
+#    cp -r $TOOLKIT_PATH/targets/x86_64-linux/lib/* "${TOOLKIT_PATH}/lib/"
+#  fi
 fi
 if [ "${CUDA_VERSION}" = "110" ]; then
   TOOLKIT_PATH="/opt/cuda11.0"
