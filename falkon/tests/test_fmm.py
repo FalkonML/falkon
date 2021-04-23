@@ -21,7 +21,7 @@ d = 11
 s_n = 500
 s_m = 550
 s_d = 20000
-density = 1e-4
+density = 1e-5
 
 
 def _run_fmm_test(k_class, k_exp, A, B, out, dtype, rtol, opt):
@@ -146,8 +146,8 @@ def B(request):
 
 @pytest.mark.parametrize("k_class,k_exp", [
     pytest.param('k1', 'expected1', marks=pytest.mark.usefixtures('k1', 'expected1')),
-    pytest.param('k2', 'expected2', marks=pytest.mark.usefixtures('k2', 'expected2')),
-    pytest.param('k3', 'expected3', marks=pytest.mark.usefixtures('k3', 'expected3')),
+    pytest.param('k2', 'expected2', marks=[pytest.mark.usefixtures('k2', 'expected2'), pytest.mark.full()]),
+    pytest.param('k3', 'expected3', marks=[pytest.mark.usefixtures('k3', 'expected3'), pytest.mark.full()]),
 ], indirect=True)
 @pytest.mark.parametrize("cpu,input_device", [
     pytest.param(True, "cpu"),
@@ -166,8 +166,8 @@ class TestDenseFmm:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("A,B", [
         pytest.param('Ac', 'Bc', marks=pytest.mark.usefixtures('Ac', 'Bc')),
-        pytest.param('Af', 'Bf', marks=pytest.mark.usefixtures('Af', 'Bf')),
-        pytest.param('Ac', 'Bf', marks=pytest.mark.usefixtures('Ac', 'Bf')),
+        pytest.param('Af', 'Bf', marks=[pytest.mark.usefixtures('Af', 'Bf'), pytest.mark.full()]),
+        pytest.param('Ac', 'Bf', marks=[pytest.mark.usefixtures('Ac', 'Bf'), pytest.mark.full()]),
     ], indirect=True)
     def test(self, A, B, k_class, k_exp, dtype, cpu, input_device):
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
@@ -179,7 +179,7 @@ class TestDenseFmm:
 
         _run_fmm_test(k_class, k_exp, A, B, out=None, dtype=dtype, opt=opt, rtol=self._RTOL[A.dtype])
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
     def test_with_out(self, Ac: np.ndarray, Bc: np.ndarray, k_class, k_exp, dtype, cpu, input_device):
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
 
@@ -190,7 +190,7 @@ class TestDenseFmm:
         _run_fmm_test(k_class, k_exp, Ac, Bc, out=out, dtype=dtype, opt=opt, rtol=self._RTOL[Ac.dtype])
 
     @pytest.mark.parametrize("A,B", [
-        pytest.param('Af', 'Bf', marks=pytest.mark.usefixtures('Af', 'Bf')),
+        pytest.param('Af', 'Bf', marks=[pytest.mark.usefixtures('Af', 'Bf'), pytest.mark.full()]),
         pytest.param('Ac', 'Bf', marks=pytest.mark.usefixtures('Ac', 'Bf')),
     ], indirect=True)
     def test_precise_kernel(self, A, B, k_class, k_exp, cpu, input_device):
@@ -205,8 +205,8 @@ class TestDenseFmm:
 
 @pytest.mark.parametrize("k_class,k_exp", [
     pytest.param('k1', 's_expected1', marks=pytest.mark.usefixtures('k1', 's_expected1')),
-    pytest.param('k2', 's_expected2', marks=pytest.mark.usefixtures('k2', 's_expected2')),
-    pytest.param('k3', 's_expected3', marks=pytest.mark.usefixtures('k3', 's_expected3')),
+    pytest.param('k2', 's_expected2', marks=[pytest.mark.usefixtures('k2', 's_expected2'), pytest.mark.full()]),
+    pytest.param('k3', 's_expected3', marks=[pytest.mark.usefixtures('k3', 's_expected3'), pytest.mark.full()]),
 ], indirect=True)
 @pytest.mark.parametrize("cpu", [
     pytest.param(True),
@@ -223,7 +223,7 @@ class TestSparseFmm:
         torch.float64: 1e-12
     }
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
     def test_sparse(self, k_class, k_exp, s_A, s_B, dtype, cpu):
         opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
 

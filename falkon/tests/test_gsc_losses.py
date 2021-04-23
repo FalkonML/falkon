@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import torch
 
@@ -66,3 +67,7 @@ def test_weighted_bce_derivative():
     wbce_loss = WeightedCrossEntropyLoss(kernel, neg_weight=neg_weight)
 
     derivative_test(lambda t, p: naive_bce(t, p, neg_weight), wbce_loss, pred, true)
+
+
+if __name__ == "__main__":
+    pytest.main()

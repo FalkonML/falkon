@@ -50,7 +50,7 @@ def run_potrf_test(np_data, dtype, order, opt, input_device, upper, clean, overw
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 @pytest.mark.parametrize("upper", [True, False])
 @pytest.mark.parametrize("overwrite", [True, False])
 class TestInCorePyTest:
@@ -63,6 +63,7 @@ class TestInCorePyTest:
         run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
                        overwrite=overwrite, input_device=input_device, opt=self.basic_options)
 
+    @pytest.mark.full
     @pytest.mark.parametrize("clean,order,input_device", [pytest.param(False, "F", "cpu")])
     def test_ic_mem(self, pd_data, dtype, order, upper, clean, overwrite, input_device):
         if input_device.startswith("cuda"):
@@ -75,6 +76,7 @@ class TestInCorePyTest:
         run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
                        overwrite=overwrite, input_device=input_device, opt=opt)
 
+    @pytest.mark.full
     @pytest.mark.parametrize("clean,order,input_device", [pytest.param(False, "F", "cpu")])
     def test_ic_mem_fail(self, pd_data, dtype, order, upper, clean, overwrite, input_device):
         if input_device.startswith("cuda"):
@@ -89,7 +91,7 @@ class TestInCorePyTest:
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 @pytest.mark.parametrize("overwrite", [True, False])
 class TestOutOfCorePyTest():
     basic_options = FalkonOptions(debug=True, chol_force_ooc=True)
@@ -121,3 +123,7 @@ class TestOutOfCorePyTest():
         opt = dataclasses.replace(self.basic_options, max_gpu_mem=max_mem)
         run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
                        overwrite=overwrite, input_device="cpu", opt=opt)
+
+
+if __name__ == "__main__":
+    pytest.main()

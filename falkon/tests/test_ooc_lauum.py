@@ -96,7 +96,7 @@ class TestOOCLauum:
     max_mem = 2 * 2**20
     basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=max_mem)
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
     def test_no_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper, device):
@@ -119,7 +119,7 @@ class TestOOCLauum:
             np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
         np.testing.assert_allclose(omat, mat.cpu())
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
     def test_diff_blk_sizes(self, dtype, order, get_mat, device):
@@ -141,7 +141,7 @@ class TestOOCLauum:
         np.testing.assert_allclose(act_up_v3.cpu().numpy(), act_up_v1.cpu().numpy(), rtol=self.rtol[dtype])
         np.testing.assert_allclose(act_up_v3.cpu().numpy(), act_up_v2.cpu().numpy(), rtol=self.rtol[dtype])
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
     def test_overwrite(self, dtype, order, get_mat, expected_lower, expected_upper, device):
@@ -155,7 +155,7 @@ class TestOOCLauum:
             act_lo = gpu_lauum(mat, upper=False, overwrite=True, opt=new_opt)
         np.testing.assert_allclose(expected_lower, act_lo.cpu().numpy(), rtol=self.rtol[dtype])
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
     def test_write_opposite(self, dtype, order, get_mat, expected_lower, expected_upper, device):
@@ -183,7 +183,7 @@ class TestOOCLauum:
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
-@pytest.mark.parametrize("dtype", [np.float32, np.float64], ids=["float32", "float64"])
+@pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 @pytest.mark.parametrize("lower", [True, False], ids=["lower", "upper"])
 class TestLauumKernel:
     rtol = {np.float64: 1e-12, np.float32: 1e-5}
@@ -206,6 +206,7 @@ class TestLauumKernel:
         else:
             np.testing.assert_allclose(np.triu(expected_upper), gpu_out.cpu().numpy(), rtol=self.rtol[dtype])
 
+    @pytest.mark.full
     def test_strided(self, dtype, get_mat, expected_lower, expected_upper, lower):
         device = torch.device("cuda:0")
 
@@ -229,3 +230,7 @@ class TestLauumKernel:
             np.testing.assert_allclose(np.tril(expected_lower), gpu_out_strided.cpu().numpy(), rtol=self.rtol[dtype])
         else:
             np.testing.assert_allclose(np.triu(expected_upper), gpu_out_strided.cpu().numpy(), rtol=self.rtol[dtype])
+
+
+if __name__ == "__main__":
+    pytest.main()

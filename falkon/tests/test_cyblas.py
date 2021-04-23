@@ -18,7 +18,7 @@ from falkon.utils.tensor_helpers import create_same_stride, move_tensor
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 class TestCopyTranspose:
-    t = 600
+    t = 200
 
     @pytest.fixture(scope="class")
     def mat(self):
@@ -160,7 +160,7 @@ class TestCopyTriang:
 @pytest.mark.parametrize("clean", [True, False], ids=["clean", "dirty"])
 @pytest.mark.parametrize("overwrite", [True, False], ids=["overwrite", "copy"])
 @pytest.mark.parametrize("order", ["F", "C"])
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 class TestPotrf:
     t = 50
     rtol = {
@@ -233,7 +233,7 @@ def test_potrf_speed():
 @pytest.mark.parametrize("device", [
     "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestMulTriang:
-    t = 5
+    t = 50
 
     @pytest.fixture(scope="class")
     def mat(self):
@@ -337,17 +337,15 @@ class TestTrsm:
 
 
 class TestVecMulTriang:
-    MAT_SIZE = 120
+    t = 120
 
     @pytest.fixture(scope="class")
     def mat(self):
-        return torch.from_numpy(gen_random(
-            TestVecMulTriang.MAT_SIZE, TestVecMulTriang.MAT_SIZE, 'float64', False, seed=91))
+        return torch.from_numpy(gen_random(self.t, self.t, 'float64', False, seed=91))
 
     @pytest.fixture(scope="class")
     def vec(self):
-        return torch.from_numpy(gen_random(
-            TestVecMulTriang.MAT_SIZE, 1, 'float64', False, seed=91))
+        return torch.from_numpy(gen_random(self.t, 1, 'float64', False, seed=91))
 
     @staticmethod
     def exp_vec_mul_triang(mat, vec, upper, side):

@@ -50,6 +50,7 @@ with open('{fname_out}', 'wb') as fh:
     os.remove(py_fname)
 
 
+@pytest.mark.full
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 class TestStressOocLauum:
     def test_multiple_ooc_lauums(self):
@@ -146,6 +147,7 @@ with open('{fname_out}', 'wb') as fh:
     os.remove(py_fname)
 
 
+@pytest.mark.full
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 class TestStressInCore:
     def test_multiple_falkons(self):

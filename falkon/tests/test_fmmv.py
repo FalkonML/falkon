@@ -79,7 +79,12 @@ def w():
     return torch.from_numpy(gen_random(n, t, 'float64', False, seed=92))
 
 
-@pytest.fixture(scope="module", params=[1, 2, 3, 4], ids=["Gaussian", "Linear", "Polynomial", "Matern"])
+@pytest.fixture(scope="module", params=[
+    pytest.param(1, marks=[]),
+    pytest.param(2, marks=pytest.mark.full()),
+    pytest.param(3, marks=pytest.mark.full()),
+    pytest.param(4, marks=pytest.mark.full()),
+    ], ids=["Gaussian", "Linear", "Polynomial", "Matern"])
 def kernel(request):
     if request.param == 1:
         return GaussianKernel(sigma=1)
@@ -129,11 +134,11 @@ class TestDense:
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt", [
         ("F", np.float32, "F", np.float32, "F", np.float32),
         ("C", np.float32, "C", np.float32, "C", np.float32),
-        ("F", np.float64, "F", np.float64, "F", np.float64),
-        ("C", np.float64, "C", np.float64, "C", np.float64),
+        pytest.param("F", np.float64, "F", np.float64, "F", np.float64, marks=pytest.mark.full()),
+        pytest.param("C", np.float64, "C", np.float64, "C", np.float64, marks=pytest.mark.full()),
         # A few mixed-contiguity examples
-        ("F", np.float32, "C", np.float32, "F", np.float32),
-        ("F", np.float32, "C", np.float32, "C", np.float32),
+        pytest.param("F", np.float32, "C", np.float32, "F", np.float32, marks=pytest.mark.full()),
+        pytest.param("F", np.float32, "C", np.float32, "C", np.float32, marks=pytest.mark.full()),
     ], ids=["AF32-BF32-vF32", "AC32-BC32-vC32", "AF64-BF64-vF64", "AC64-BC64-vC64",
             "AF32-BC32-vF32", "AF32-BC32-vC32"])
     @pytest.mark.parametrize("cpu", cpu_params, ids=["cpu", "gpu"])
@@ -174,29 +179,29 @@ class TestDense:
     @pytest.mark.parametrize("cpu", cpu_params, ids=["cpu", "gpu"])
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt,wo,wdt,e_dfmmv", [
         pytest.param("F", n32, "F", n32, "F", n32, "F", n32, "e_dfmmv1",
-                     marks=mark.usefixtures("e_dfmmv1")),
+                     marks=[mark.usefixtures("e_dfmmv1"), mark.full()]),
         pytest.param("C", n32, "C", n32, "C", n32, "C", n32, "e_dfmmv1",
                      marks=mark.usefixtures("e_dfmmv1")),
         pytest.param("F", n64, "F", n64, "F", n64, "F", n64, "e_dfmmv1",
-                     marks=mark.usefixtures("e_dfmmv1")),
+                     marks=[mark.usefixtures("e_dfmmv1"), mark.full()]),
         pytest.param("C", n64, "C", n64, "C", n64, "C", n64, "e_dfmmv1",
-                     marks=mark.usefixtures("e_dfmmv1")),
+                     marks=[mark.usefixtures("e_dfmmv1"), mark.full()]),
         pytest.param("F", n32, "F", n32, "F", n32, None, None, "e_dfmmv2",
-                     marks=mark.usefixtures("e_dfmmv2")),
+                     marks=[mark.usefixtures("e_dfmmv2"), mark.full()]),
         pytest.param("C", n32, "C", n32, "C", n32, None, None, "e_dfmmv2",
                      marks=mark.usefixtures("e_dfmmv2")),
         pytest.param("F", n64, "F", n64, "F", n64, None, None, "e_dfmmv2",
-                     marks=mark.usefixtures("e_dfmmv2")),
+                     marks=[mark.usefixtures("e_dfmmv2"), mark.full()]),
         pytest.param("C", n64, "C", n64, "C", n64, None, None, "e_dfmmv2",
-                     marks=mark.usefixtures("e_dfmmv2")),
+                     marks=[mark.usefixtures("e_dfmmv2"), mark.full()]),
         pytest.param("F", n32, "F", n32, None, None, "F", n32, "e_dfmmv3",
-                     marks=mark.usefixtures("e_dfmmv3")),
+                     marks=[mark.usefixtures("e_dfmmv3"), mark.full()]),
         pytest.param("C", n32, "C", n32, None, None, "C", n32, "e_dfmmv3",
                      marks=mark.usefixtures("e_dfmmv3")),
         pytest.param("F", n64, "F", n64, None, None, "F", n64, "e_dfmmv3",
-                     marks=mark.usefixtures("e_dfmmv3")),
+                     marks=[mark.usefixtures("e_dfmmv3"), mark.full()]),
         pytest.param("C", n64, "C", n64, None, None, "C", n64, "e_dfmmv3",
-                     marks=mark.usefixtures("e_dfmmv3")),
+                     marks=[mark.usefixtures("e_dfmmv3"), mark.full()]),
         # A few mixed-contiguity examples
         pytest.param("F", n32, "C", n32, "C", n32, "F", n32, "e_dfmmv1",
                      marks=mark.usefixtures("e_dfmmv1")),
@@ -224,9 +229,9 @@ class TestDense:
         pytest.param("F", n32, "F", n32, "F", n32, "F", n32, "e_dfmmv1",
                      marks=mark.usefixtures("e_dfmmv1")),
         pytest.param("F", n32, "F", n32, "F", n32, None, None, "e_dfmmv2",
-                     marks=mark.usefixtures("e_dfmmv2")),
+                     marks=[mark.usefixtures("e_dfmmv2"), mark.full()]),
         pytest.param("F", n32, "F", n32, None, None, "F", n32, "e_dfmmv3",
-                     marks=mark.usefixtures("e_dfmmv3"))
+                     marks=[mark.usefixtures("e_dfmmv3"), mark.full()])
     ], ids=["F32-F32-vF32-wF32", "F32-F32-vF32", "F32-F32-wF32"], indirect=["e_dfmmv"])
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_dfmmv_input_device(
@@ -247,6 +252,7 @@ class TestDense:
         _run_fmmv_test(kernel.dmmv, e_dfmmv, (A, B, v, w), out=out, rtol=rtol, opt=opt)
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
+    @pytest.mark.full
     def test_incorrect_dev_setting(self, A, B, v, w, kernel, e_dfmmv1, expected_fmmv):
         # tests when use_cpu = True, but CUDA input tensors
         A = A.cuda()
@@ -271,11 +277,12 @@ class TestKeops:
 
     @pytest.mark.parametrize("Ao,Adt,Bo,Bdt,vo,vdt", [
         ("C", np.float32, "C", np.float32, "C", np.float32),
-        ("C", np.float64, "C", np.float64, "C", np.float64),
+        pytest.param("C", np.float64, "C", np.float64, "C", np.float64,
+                     marks=[pytest.mark.full()]),
         pytest.param("F", np.float32, "F", np.float32, "F", np.float32,
-                     marks=[pytest.mark.xfail(reason="KeOps only C")]),
+                     marks=[pytest.mark.xfail(reason="KeOps only C"), pytest.mark.full()]),
         pytest.param("F", np.float32, "C", np.float32, "C", np.float32,
-                     marks=[pytest.mark.xfail(reason="KeOps only C")]),
+                     marks=[pytest.mark.xfail(reason="KeOps only C"), pytest.mark.full()]),
     ], ids=["AC32-BC32-vC32", "AC64-BC64-vC64", "AF32-BF32-vF32", "AF32-BC32-vC32"])
     @pytest.mark.parametrize("cpu", cpu_params, ids=["cpu", "gpu"])
     def test_fmmv(self, A, B, v, Ao, Adt, Bo, Bdt, vo, vdt, kernel,
@@ -366,10 +373,10 @@ class TestSparse:
 
     @pytest.mark.parametrize("cpu", cpu_params, ids=["cpu", "gpu"])
     @pytest.mark.parametrize("Adt,Bdt,vo,vdt", [
-        (np.float32, np.float32, "F", np.float32),
-        (np.float32, np.float32, "C", np.float32),
-        (np.float64, np.float64, "F", np.float64),
-        (np.float64, np.float64, "C", np.float64),
+        pytest.param(np.float32, np.float32, "F", np.float32, marks=[pytest.mark.full()]),
+        pytest.param(np.float32, np.float32, "C", np.float32),
+        pytest.param(np.float64, np.float64, "F", np.float64, marks=[pytest.mark.full()]),
+        pytest.param(np.float64, np.float64, "C", np.float64, marks=[pytest.mark.full()]),
     ], ids=["A32-B32-vF32", "A32-B32-vC32", "A64-B64-vF64", "A64-B64-vC64"])
     def test_fmmv(self, s_A, s_B, v, Adt, Bdt, vo, vdt, kernel, s_expected_fmmv, cpu):
         A = fix_sparse_mat(s_A[0], dtype=Adt)
@@ -407,32 +414,32 @@ class TestSparse:
     @pytest.mark.parametrize("cpu", cpu_params, ids=["cpu", "gpu"])
     @pytest.mark.parametrize("Adt,Bdt,vo,vdt,wo,wdt,s_e_dfmmv", [
         pytest.param(n32, n32, "F", n32, "F", n32, "s_e_dfmmv1",
-                     marks=mark.usefixtures("s_e_dfmmv1")),
+                     marks=[mark.usefixtures("s_e_dfmmv1"), mark.full()]),
         pytest.param(n32, n32, "C", n32, "C", n32, "s_e_dfmmv1",
                      marks=mark.usefixtures("s_e_dfmmv1")),
         pytest.param(n64, n64, "F", n64, "F", n64, "s_e_dfmmv1",
-                     marks=mark.usefixtures("s_e_dfmmv1")),
+                     marks=[mark.usefixtures("s_e_dfmmv1"), mark.full()]),
         pytest.param(n64, n64, "C", n64, "C", n64, "s_e_dfmmv1",
-                     marks=mark.usefixtures("s_e_dfmmv1")),
+                     marks=[mark.usefixtures("s_e_dfmmv1"), mark.full()]),
         pytest.param(n32, n32, "F", n32, None, None, "s_e_dfmmv2",
-                     marks=mark.usefixtures("s_e_dfmmv2")),
+                     marks=[mark.usefixtures("s_e_dfmmv2"), mark.full()]),
         pytest.param(n32, n32, "C", n32, None, None, "s_e_dfmmv2",
                      marks=mark.usefixtures("s_e_dfmmv2")),
         pytest.param(n64, n64, "F", n64, None, None, "s_e_dfmmv2",
-                     marks=mark.usefixtures("s_e_dfmmv2")),
+                     marks=[mark.usefixtures("s_e_dfmmv2"), mark.full()]),
         pytest.param(n64, n64, "C", n64, None, None, "s_e_dfmmv2",
-                     marks=mark.usefixtures("s_e_dfmmv2")),
+                     marks=[mark.usefixtures("s_e_dfmmv2"), mark.full()]),
         pytest.param(n32, n32, None, None, "F", n32, "s_e_dfmmv3",
-                     marks=mark.usefixtures("s_e_dfmmv3")),
+                     marks=[mark.usefixtures("s_e_dfmmv3"), mark.full()]),
         pytest.param(n32, n32, None, None, "C", n32, "s_e_dfmmv3",
                      marks=mark.usefixtures("s_e_dfmmv3")),
         pytest.param(n64, n64, None, None, "F", n64, "s_e_dfmmv3",
-                     marks=mark.usefixtures("s_e_dfmmv3")),
+                     marks=[mark.usefixtures("s_e_dfmmv3"), mark.full()]),
         pytest.param(n64, n64, None, None, "C", n64, "s_e_dfmmv3",
-                     marks=mark.usefixtures("s_e_dfmmv3")),
+                     marks=[mark.usefixtures("s_e_dfmmv3"), mark.full()]),
         # A few mixed-contiguity examples
         pytest.param(n32, n32, "C", n32, "F", n32, "s_e_dfmmv1",
-                     marks=mark.usefixtures("s_e_dfmmv1")),
+                     marks=[mark.usefixtures("s_e_dfmmv1"), mark.full()]),
     ], ids=["32-32-vF32-wF32", "32-32-vC32-wC32", "64-64-vF64-wF64", "64-64-vC64-wC64",
             "32-32-vF32", "32-32-vC32", "64-64-vF64", "64-64-vC64",
             "32-32-wF32", "32-32-wC32", "64-64-wF64", "64-64-wC64",
@@ -459,9 +466,9 @@ class TestSparse:
         pytest.param(n32, n32, "F", n32, "F", n32, "s_e_dfmmv1",
                      marks=mark.usefixtures("s_e_dfmmv1")),
         pytest.param(n32, n32, "F", n32, None, None, "s_e_dfmmv2",
-                     marks=mark.usefixtures("s_e_dfmmv2")),
+                     marks=[mark.usefixtures("s_e_dfmmv2"), mark.full()]),
         pytest.param(n32, n32, None, None, "F", n32, "s_e_dfmmv3",
-                     marks=mark.usefixtures("s_e_dfmmv3")),
+                     marks=[mark.usefixtures("s_e_dfmmv3"), mark.full()]),
     ], ids=["32-32-vF32-wF32", "32-32-vF32", "32-32-wF32"], indirect=["s_e_dfmmv"])
     def test_dfmmv_input_devices(
             self, s_A, s_B, v, w, Adt, Bdt, vo, vdt, wo, wdt, kernel, s_e_dfmmv):
@@ -479,3 +486,7 @@ class TestSparse:
         # Test with out
         out = torch.empty(m, t, dtype=A.dtype, device=input_device)
         _run_fmmv_test(kernel.dmmv, s_e_dfmmv, (A, B, v, w), out=out, rtol=rtol, opt=opt)
+
+
+if __name__ == "__main__":
+    pytest.main()
