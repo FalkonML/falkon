@@ -39,7 +39,7 @@ def assert_sparse_equal(s1: SparseTensor, s2: SparseTensor):
 
 @pytest.mark.parametrize(
     "dtype",
-     [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
+    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
     ids=["float32", "float64"])
 def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
     orig, _ = sparse1

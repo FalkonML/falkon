@@ -84,7 +84,7 @@ def w():
     pytest.param(2, marks=pytest.mark.full()),
     pytest.param(3, marks=pytest.mark.full()),
     pytest.param(4, marks=pytest.mark.full()),
-    ], ids=["Gaussian", "Linear", "Polynomial", "Matern"])
+], ids=["Gaussian", "Linear", "Polynomial", "Matern"])
 def kernel(request):
     if request.param == 1:
         return GaussianKernel(sigma=1)

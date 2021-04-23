@@ -15,7 +15,7 @@ from falkon.tests.gen_random import gen_random, gen_random_pd
 
 
 @pytest.mark.full
-@pytest.mark.parametrize("order", ["F","C"])
+@pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("device", [
     "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestConjugateGradient():
