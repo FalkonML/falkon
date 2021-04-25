@@ -140,8 +140,8 @@ def mmv_run_starter(proc_idx, queue, device_id):
         coef_bnd=1 * ooc_mul + extra_mem.get('nd', 0),
         coef_bmd=1 * ooc_mul + extra_mem.get('md', 0),
         coef_bnm=1 + extra_mem.get('nm', 0),
-        coef_bn=v.shape[-1] * ooc_mul + extra_mem.get('bn', 0),
-        coef_bm=v.shape[-1] * ooc_mul + extra_mem.get('bm', 0),
+        coef_bn=v.shape[-1] * ooc_mul + extra_mem.get('n', 0),
+        coef_bm=v.shape[-1] * ooc_mul + extra_mem.get('m', 0),
         rest=extra_mem.get('d', 0),
         max_mem=avail_mem
     )
