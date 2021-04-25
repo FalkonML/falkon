@@ -84,6 +84,7 @@ class TestBatchMmv:
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_cuda_incore(self, orderA, orderB, orderV, orderO, dtype, out, kernel, expected, rtol):
+        print(*torch.__config__.show().split("\n"), sep="\n")
         A, B, v, o = self.fix_mats(orderA, orderB, orderV, orderO, dtype, "cuda:0", out)
 
         opt = dataclasses.replace(self.basic_options)

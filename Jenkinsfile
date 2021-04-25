@@ -107,6 +107,7 @@ pipeline {
                                         sh "conda run -n ${env.CONDA_ENV} python -c 'import torch; print(torch.cuda.is_available())'"
                                         sh "conda run -n ${env.CONDA_ENV} python -c 'import torch; print(*torch.__config__.show().split(\"\\n\"), sep=\"\\n\")'"
                                         sh "conda run -n ${env.CONDA_ENV} python -c 'import torch; t=torch.randn(50,50); tc = t.cuda()'"
+                                        sh "conda run -n ${env.CONDA_ENV} pytest falkon/tests/test_batch_mmv.py::TestBatchMmv::test_cuda_incore[out-float32-F-F-F-F]"
                                         sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
                                         sh "conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg"
                                     }
