@@ -52,9 +52,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
     total_memory = b0 * b1 * b2
     if not incore:
         total_memory += (b0 * b1 * D) + (b0 * b2 * D) + (b0 * b2 * T) + (b0 * b1 * T)
-    print(f"Before start: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
     flat_dev_t = torch.empty(size=(total_memory,), dtype=dt, device=dev)
-    print(f"Big alloc: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
     dev_nm_temp, flat_offset = _extract_flat(flat_dev_t, size=(b0, b1, b2), other=m1,
                                              offset=flat_offset)
     if incore:
@@ -103,9 +101,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
                         c_dev_v.copy_(v[a:a + lena, c:c + lenc, :], non_blocking=True)
 
                     # Compute kernel sub-matrix
-                    print(f"Before compute: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
                     kernel.compute(c_dev_m1, c_dev_m2, c_dev_nm)
-                    print(f"After compute: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
                     # Multiply kernel sub-matrix by a vector: b*n*m @ b*n*t = b*n*t
                     c_dev_vout.baddbmm_(c_dev_nm, c_dev_v)
                 # end iter over M
@@ -115,7 +111,6 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
             # end iter over N
         # end iter over B
     # exit context manager (device, stream)
-    print(f"At end: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
 
 
 def mmv_run_starter(proc_idx, queue, device_id):
@@ -145,9 +140,6 @@ def mmv_run_starter(proc_idx, queue, device_id):
         rest=extra_mem.get('d', 0),
         max_mem=avail_mem
     )
-    print(f"Start batch-mmv tracing. B={X1.shape[0]}, N={X1.shape[-2]}, D={X1.shape[-1]}, T={v.shape[-1]} -- b0 {b}, b1 {n}, b2 {m}")
-    print(f"Available memory {avail_mem / 2**20:.4f}MB")
-
 
     # Run
     mmv_run_thread(X1, X2, v, out, kernel, b, n, m, dev)
