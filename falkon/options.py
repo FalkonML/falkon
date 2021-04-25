@@ -79,7 +79,7 @@ store_kernel_d_threshold
     the full Knm kernel matrix (between the data-points and the Nystrom centers). The final decision
     on whether the matrix is stored or not is based on the amount of memory available.
     Storing the Knm matrix may greatly reduce training and inference times, especially if `d` is
-    large, or for kernels which are costly to compute. 
+    large, or for kernels which are costly to compute.
 num_fmm_streams
     `default 2` - The number of CUDA streams to use for evaluating kernels when CUDA is available.
     This number should be increased from its default value when the number of Nystroem centers is

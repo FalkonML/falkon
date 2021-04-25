@@ -14,6 +14,7 @@ from falkon.preconditioner import FalkonPreconditioner
 from falkon.tests.gen_random import gen_random, gen_random_pd
 
 
+@pytest.mark.full
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("device", [
     "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
@@ -73,7 +74,7 @@ class TestFalkonConjugateGradient:
     basic_opt = FalkonOptions(use_cpu=True, keops_active="no")
     N = 500
     M = 10
-    D = 2000
+    D = 1000
     penalty = 10
 
     @pytest.fixture()
@@ -122,7 +123,7 @@ class TestFalkonConjugateGradient:
         vec_rhs = move_tensor(vec_rhs, device)
 
         beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
-                         initial_solution=None, max_iter=200)
+                         initial_solution=None, max_iter=100)
         alpha = preconditioner.apply(beta)
 
         assert str(beta.device) == device, "Device has changed unexpectedly"

@@ -51,10 +51,10 @@ class TestDimSelect():
 
 
 @pytest.mark.parametrize("orderA,orderB,orderV,orderO", [
-    ("F", "F", "F", "F"),
-    ("C", "C", "C", "C"),
-    ("C", "C", "F", "C"),
-    ("F", "C", "F", "C"),
+    pytest.param("F", "F", "F", "F"),
+    pytest.param("C", "C", "C", "C", marks=pytest.mark.full()),
+    pytest.param("C", "C", "F", "C", marks=pytest.mark.full()),
+    pytest.param("F", "C", "F", "C", marks=pytest.mark.full()),
 ])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("out", [True, False], ids=["out", "no-out"])
@@ -82,6 +82,7 @@ class TestBatchMmv:
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_cuda_incore(self, orderA, orderB, orderV, orderO, dtype, out, kernel, expected, rtol):
+        print(*torch.__config__.show().split("\n"), sep="\n")
         A, B, v, o = self.fix_mats(orderA, orderB, orderV, orderO, dtype, "cuda:0", out)
         extra_mem = 0
         if not out:
@@ -123,6 +124,7 @@ class TestBatchMmv:
             batch_fmmv_ooc(A, B, v, kernel, o, self.basic_options)
 
 
+@pytest.mark.full
 def test_different_dtypes(kernel):
     data = gen_data(b=20, n=100, d=10, m=400, t=5)
     A = fix_mat(data[0], dtype=np.float32, order="F", device="cpu")
@@ -135,6 +137,7 @@ def test_different_dtypes(kernel):
         "expected scalar type Float but found Double")
 
 
+<<<<<<< HEAD
 def test_compare_cudaic_serial(kernel, rtol):
     data = gen_data(b=10, n=100, d=100, m=100, t=3)
     A = fix_mat(data[0], dtype=np.float32, order="F", device="cuda")
@@ -151,6 +154,7 @@ def test_compare_cudaic_serial(kernel, rtol):
     torch.testing.assert_allclose(o, out, rtol=rtol[dtype], atol=0)
 
 
+@pytest.mark.full
 def test_single_bnm(kernel, rtol):
     data = gen_data(b=1, n=1, d=1, m=1, t=1)
     A = fix_mat(data[0], dtype=np.float32, order="F", device="cpu")

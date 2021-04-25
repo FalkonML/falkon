@@ -23,7 +23,7 @@ def arr():
 
 
 @pytest.mark.parametrize("order", ["C", "F"])
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 @pytest.mark.parametrize("lower", [True, False], ids=["lower", "upper"])
 @pytest.mark.parametrize("transpose", [True, False], ids=["transpose", "no_transpose"])
 @pytest.mark.parametrize("device", [
@@ -43,3 +43,7 @@ def test_trsm_wrapper(mat, arr, dtype, order, device, lower, transpose):
     else:
         actual = trsm(n_arr, n_mat, alpha=1e-2, lower=lower, transpose=transpose)
         np.testing.assert_allclose(expected, actual.cpu().numpy(), rtol=rtol)
+
+
+if __name__ == "__main__":
+    pytest.main()
