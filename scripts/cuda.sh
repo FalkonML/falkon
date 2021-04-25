@@ -24,7 +24,7 @@ if [ "${CUDA_VERSION}" = "111" ]; then
   TOOLKIT_PATH="/opt/cuda11.1"
 fi
 
-echo $TOOLKIT_PATH
+echo "${TOOLKIT_PATH}"
 #
 #if [ "${CUDA_VERSION}" != "cpu" ]; then
 #  export CUDA_HOME="${TOOLKIT_PATH}"
