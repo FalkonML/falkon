@@ -30,7 +30,7 @@ def setupCuda(start_path) {
         script: 'bash ./scripts/cuda.sh'
     ).trim()
     env.CUDA_HOME = "${toolkit_path}"
-    env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/"
+    env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/:${toolkit_path/extras/CUPTI/lib64}"
     return "${toolkit_path}/bin:${start_path}"
 }
 
@@ -104,6 +104,7 @@ pipeline {
                                 /* TESTING */
                                 try {
                                     stage("test-${env.CONDA_ENV}") {
+                                        sh "conda run -n ${env.CONDA_ENV} python -c 'import torch; print(torch.cuda.is_available())'"
                                         sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
                                         sh "conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg"
                                     }
