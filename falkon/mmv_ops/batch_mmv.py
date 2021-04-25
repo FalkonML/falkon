@@ -52,7 +52,9 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
     total_memory = b0 * b1 * b2
     if not incore:
         total_memory += (b0 * b1 * D) + (b0 * b2 * D) + (b0 * b2 * T) + (b0 * b1 * T)
+    print(f"Before start: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
     flat_dev_t = torch.empty(size=(total_memory,), dtype=dt, device=dev)
+    print(f"Big alloc: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
     dev_nm_temp, flat_offset = _extract_flat(flat_dev_t, size=(b0, b1, b2), other=m1,
                                              offset=flat_offset)
     if incore:
@@ -111,6 +113,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
             # end iter over N
         # end iter over B
     # exit context manager (device, stream)
+    print(f"At end: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
 
 
 def mmv_run_starter(proc_idx, queue, device_id):
@@ -140,6 +143,9 @@ def mmv_run_starter(proc_idx, queue, device_id):
         rest=extra_mem.get('d', 0),
         max_mem=avail_mem
     )
+    print(f"Start batch-mmv tracing. B={B}, N={N}, D={D}, T={T} -- b0 {b0}, b1 {b1}, b2 {b2}")
+    print(f"Available memory {avail_mem / 2**20:.4f}MB")
+
 
     # Run
     mmv_run_thread(X1, X2, v, out, kernel, b, n, m, dev)
