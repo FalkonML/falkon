@@ -17,7 +17,6 @@ void square_vector_norm_cuda_impl(at::TensorIterator& iter) {
 }
 
 torch::Tensor square_norm_cuda(const torch::Tensor& input, int64_t dim, torch::optional<bool> opt_keepdim) {
-static_cast<size_t>(StatType::AGGREGATE)]
     auto device_stats = c10::cuda::CUDACachingAllocator::getDeviceStats(input.device().index());
     printf("At beginning of cuda sq-norm: %.4fMB\n", device_stats.allocated_bytes[static_cast<size_t>(
         c10::cuda::CUDACachingAllocator::StatType::AGGREGATE)].peak);
