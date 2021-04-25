@@ -99,6 +99,7 @@ def rbf_core(sigmas, mat1, mat2, out):
     norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1
     norm_sq_mat2 = square_norm(mat2_div_sig, -1, True)  # b*m*1
     torch.cuda.synchronize()
+    print("Norm shape: %s, %s" % (norm_sq_mat1, norm_sq_mat2))
     print(f"After Norms: CUDA memory usage: {torch.cuda.max_memory_allocated(mat1.device) / 2**20:.4f}MB")
 
     torch.cuda.synchronize()

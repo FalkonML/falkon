@@ -7,7 +7,7 @@
 #include "../util.h"
 
 template <typename scalar_t>
-void square_vector_norm_cuda_impl(at::TensorIterator iter) {
+void square_vector_norm_cuda_impl(at::TensorIterator& iter) {
   if (iter.numel() == 0) {
     iter.output().fill_(0);
     return;
