@@ -143,7 +143,7 @@ def mmv_run_starter(proc_idx, queue, device_id):
         rest=extra_mem.get('d', 0),
         max_mem=avail_mem
     )
-    print(f"Start batch-mmv tracing. B={B}, N={N}, D={D}, T={T} -- b0 {b0}, b1 {b1}, b2 {b2}")
+    print(f"Start batch-mmv tracing. B={X1.shape[0]}, N={X1.shape[-2]}, D={X1.shape[-1]}, T={v.shape[-1]} -- b0 {b}, b1 {n}, b2 {m}")
     print(f"Available memory {avail_mem / 2**20:.4f}MB")
 
 
