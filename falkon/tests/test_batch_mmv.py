@@ -137,23 +137,6 @@ def test_different_dtypes(kernel):
         "expected scalar type Float but found Double")
 
 
-<<<<<<< HEAD
-def test_compare_cudaic_serial(kernel, rtol):
-    data = gen_data(b=10, n=100, d=100, m=100, t=3)
-    A = fix_mat(data[0], dtype=np.float32, order="F", device="cuda")
-    B = fix_mat(data[1], dtype=np.float32, order="F", device="cuda")
-    v = fix_mat(data[2], dtype=np.float32, order="F", device="cuda")
-    o = fix_mat(data[3], dtype=np.float32, order="F", device="cuda")
-    opt = FalkonOptions()
-
-    for i in range(A.shape[0]):
-        o[i] = kernel.mmv(A[i], B[i], v[i], opt=opt)
-
-    out = batch_fmmv_incore(A, B, v, kernel, opt=opt)
-
-    torch.testing.assert_allclose(o, out, rtol=rtol[dtype], atol=0)
-
-
 @pytest.mark.full
 def test_single_bnm(kernel, rtol):
     data = gen_data(b=1, n=1, d=1, m=1, t=1)
@@ -206,3 +189,18 @@ class TestBenchmark:
             times.append(time.time() - t_s)
 
         print("Timings: %.4f +- %.4f s" % (np.mean(times), np.std(times)))
+
+    def test_compare_cudaic_serial(self, kernel, rtol):
+        data = gen_data(b=10, n=100, d=100, m=100, t=3)
+        A = fix_mat(data[0], dtype=np.float32, order="F", device="cuda")
+        B = fix_mat(data[1], dtype=np.float32, order="F", device="cuda")
+        v = fix_mat(data[2], dtype=np.float32, order="F", device="cuda")
+        o = fix_mat(data[3], dtype=np.float32, order="F", device="cuda")
+        opt = FalkonOptions()
+
+        for i in range(A.shape[0]):
+            o[i] = kernel.mmv(A[i], B[i], v[i], opt=opt)
+
+        out = batch_fmmv_incore(A, B, v, kernel, opt=opt)
+
+        torch.testing.assert_allclose(o, out, rtol=rtol[A.dtype], atol=0)
