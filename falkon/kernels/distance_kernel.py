@@ -95,7 +95,11 @@ def rbf_core(sigmas, mat1, mat2, out):
     norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1
     norm_sq_mat2 = square_norm(mat2_div_sig, -1, True)  # b*m*1
 
+    torch.cuda.synchronize()
+    print(f"Before BADDBMM: CUDA memory usage: {torch.cuda.max_memory_allocated(mat1.device) / 2**20:.4f}MB")
     torch.baddbmm(norm_sq_mat1, mat1_div_sig, mat2_div_sig.transpose(-2, -1), alpha=-2, beta=1, out=out)  # b*n*m
+    torch.cuda.synchronize()
+    print(f"After BADDBMM: CUDA memory usage: {torch.cuda.max_memory_allocated(mat1.device) / 2**20:.4f}MB")
     out.add_(norm_sq_mat2.transpose(-2, -1))
     out.clamp_min_(1e-30)
     out.mul_(-0.5)

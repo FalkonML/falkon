@@ -103,7 +103,9 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
                         c_dev_v.copy_(v[a:a + lena, c:c + lenc, :], non_blocking=True)
 
                     # Compute kernel sub-matrix
+                    print(f"Before compute: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
                     kernel.compute(c_dev_m1, c_dev_m2, c_dev_nm)
+                    print(f"After compute: CUDA memory usage: {torch.cuda.max_memory_allocated(dev) / 2**20:.4f}MB")
                     # Multiply kernel sub-matrix by a vector: b*n*m @ b*n*t = b*n*t
                     c_dev_vout.baddbmm_(c_dev_nm, c_dev_v)
                 # end iter over M
