@@ -82,32 +82,35 @@ def _get_gpu_device_info(opt: BaseOptions,
         raise ValueError("Failed to import cudart_gpu module. "
                          "Please check dependencies.") from e
 
-    mem_free, mem_total = cuda_meminfo(g)
-    mem_used = mem_total - mem_free
-    # noinspection PyUnresolvedReferences
-    cached_free_mem = tcd.memory_reserved(g) - tcd.memory_allocated(g)
+    # Some of the CUDA calls in here may change the current device,
+    # this ensures it gets reset at the end.
+    with tcd.device(g):
+        mem_free, mem_total = cuda_meminfo(g)
+        mem_used = mem_total - mem_free
+        # noinspection PyUnresolvedReferences
+        cached_free_mem = tcd.memory_reserved(g) - tcd.memory_allocated(g)
 
-    if g in data_dict:
-        data_dict[g].update_memory(
-            total_memory=mem_total,
-            used_memory=mem_used - cached_free_mem,
-            free_memory=mem_free + cached_free_mem)
-    else:
-        properties = tcd.get_device_properties(g)
-        if opt.compute_arch_speed:
-            gpu_speed = _measure_performance(g, mem_free)
+        if g in data_dict:
+            data_dict[g].update_memory(
+                total_memory=mem_total,
+                used_memory=mem_used - cached_free_mem,
+                free_memory=mem_free + cached_free_mem)
         else:
-            gpu_speed = properties.multi_processor_count
+            properties = tcd.get_device_properties(g)
+            if opt.compute_arch_speed:
+                gpu_speed = _measure_performance(g, mem_free)
+            else:
+                gpu_speed = properties.multi_processor_count
 
-        data_dict[g] = DeviceInfo(
-            Id=g,
-            speed=float(gpu_speed),
-            total_memory=mem_total,
-            used_memory=mem_used - cached_free_mem,
-            free_memory=mem_free + cached_free_mem,
-            gpu_name=properties.name)
+            data_dict[g] = DeviceInfo(
+                Id=g,
+                speed=float(gpu_speed),
+                total_memory=mem_total,
+                used_memory=mem_used - cached_free_mem,
+                free_memory=mem_free + cached_free_mem,
+                gpu_name=properties.name)
 
-    return data_dict
+        return data_dict
 
 
 def _measure_performance(g, mem):

@@ -1,3 +1,4 @@
+from contextlib import ExitStack
 import functools
 import time
 from typing import Optional
@@ -198,28 +199,31 @@ class FalkonConjugateGradient(Optimizer):
             stream = get_non_default_stream(device)
 
         # Note that if we don't have CUDA this still works with stream=None.
-        with torch.cuda.stream(stream):
-            with TicToc("ConjGrad preparation", False):
-                y_over_n = Y / n  # Cannot be in-place since Y needs to be preserved
+        with ExitStack() as stack, TicToc("ConjGrad preparation", False):
+            if cuda_inputs:
+                stack.enter_context(torch.cuda.device(device))
+                stack.enter_context(torch.cuda.stream(stream))
+            y_over_n = Y / n  # Cannot be in-place since Y needs to be preserved
 
-                if self.is_weighted:
-                    y_weights = self.weight_fn(Y)
-                    y_over_n.mul_(y_weights)  # This can be in-place since we own y_over_n
+            if self.is_weighted:
+                y_weights = self.weight_fn(Y)
+                y_over_n.mul_(y_weights)  # This can be in-place since we own y_over_n
 
-                # Compute the right hand side
-                if Knm is not None:
-                    B = incore_fmmv(Knm, y_over_n, None, transpose=True, opt=self.params)
-                else:
-                    B = self.kernel.dmmv(X, M, None, y_over_n, opt=self.params)
-                B = self.preconditioner.apply_t(B)
+            # Compute the right hand side
+            if Knm is not None:
+                B = incore_fmmv(Knm, y_over_n, None, transpose=True, opt=self.params)
+            else:
+                B = self.kernel.dmmv(X, M, None, y_over_n, opt=self.params)
+            B = self.preconditioner.apply_t(B)
 
-                if self.is_weighted:
-                    mmv = functools.partial(self.weighted_falkon_mmv, penalty=_lambda, X=X,
-                                            M=M, Knm=Knm, y_weights=y_weights)
-                else:
-                    mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm)
+            if self.is_weighted:
+                mmv = functools.partial(self.weighted_falkon_mmv, penalty=_lambda, X=X,
+                                        M=M, Knm=Knm, y_weights=y_weights)
+            else:
+                mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm)
             # Run the conjugate gradient solver
             beta = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
+
         return beta
 
     @property
