@@ -105,6 +105,7 @@ pipeline {
                                 try {
                                     stage("test-${env.CONDA_ENV}") {
                                         sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
+                                        sh "conda run -n ${env.CONDA_ENV} python falkon/fmmv_test.py"
                                         sh "conda run -n ${env.CONDA_ENV} pytest --capture=tee-sys --verbose falkon/tests/test_fmmv.py::TestKeops::test_fmmv[Gaussian-gpu-AC32-BC32-vC32]"
                                         sh "conda run -n ${env.CONDA_ENV} pytest --verbose --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg"
                                     }
