@@ -4,6 +4,7 @@ from typing import Optional, Union
 import numpy as np
 import torch
 import torch.cuda as tcd
+import torch.cuda.comm
 import torch.multiprocessing
 
 from falkon.kernels import Kernel, L2DistanceKernel
@@ -763,7 +764,7 @@ def fdmmv_cuda(X1: torch.Tensor,
             # noinspection PyTypeChecker
             fastest_device: int = np.argmax([d.speed for d in gpu_info])
             out.copy_(
-                tcd.comm.reduce_add(
+                torch.cuda.comm.reduce_add(
                     wrlk, destination=gpu_info[fastest_device].Id))
         else:
             out.copy_(wrlk[0])
