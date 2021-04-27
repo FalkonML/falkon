@@ -56,7 +56,7 @@ class TestDimSelect():
     pytest.param("C", "C", "F", "C", marks=pytest.mark.full()),
     pytest.param("F", "C", "F", "C", marks=pytest.mark.full()),
 ])
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 @pytest.mark.parametrize("out", [True, False], ids=["out", "no-out"])
 class TestBatchMmv:
     max_mem = 0.1 * 2**20

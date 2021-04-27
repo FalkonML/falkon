@@ -15,10 +15,10 @@ from falkon.utils.switches import decide_keops
 
 
 # Global data dimensions
-n = 2000
-m = 1500
-d = 10
-t = 5
+n = 1800
+m = 1300
+d = 3
+t = 2
 
 
 def _run_test(fn, exp, tensors, out, rtol, opt):
@@ -34,22 +34,22 @@ def _run_test(fn, exp, tensors, out, rtol, opt):
 
 @pytest.fixture(scope="module")
 def A() -> torch.Tensor:
-    return torch.from_numpy(gen_random(n, d, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(n, d, 'float32', False, seed=92))
 
 
 @pytest.fixture(scope="module")
 def B() -> torch.Tensor:
-    return torch.from_numpy(gen_random(m, d, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(m, d, 'float32', False, seed=92))
 
 
 @pytest.fixture(scope="module")
 def v() -> torch.Tensor:
-    return torch.from_numpy(gen_random(m, t, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(m, t, 'float32', False, seed=92))
 
 
 @pytest.fixture(scope="module")
 def w() -> torch.Tensor:
-    return torch.from_numpy(gen_random(n, t, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(n, t, 'float32', False, seed=92))
 
 
 @pytest.fixture(scope="module")
@@ -225,6 +225,7 @@ class TestGaussianKernel(AbstractKernelTester):
         # by PropagatingThread) but I'm not sure how to fetch it.
 
 
+@pytest.mark.full
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 def test_gaussian_pd():
     X = gen_random(10000, 2, 'float32', F=True, seed=12)
