@@ -4,6 +4,7 @@ FROM ubuntu:18.04
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # Base Packages
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get -qqy update \
     && apt-get -qqy --no-install-recommends install \
     gcc-7 \
@@ -13,6 +14,7 @@ RUN apt-get -qqy update \
     xvfb \
     git  \
     libxml2 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 # Configure gcc 7
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
@@ -25,17 +27,10 @@ RUN git config --global user.name jenkins-doc-updater
 
 # Install pandoc
 ARG PANDOC_VERSION=2.10
-
-RUN mkdir -p /opt/pandoc
-RUN wget -q "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz" -O /opt/pandoc/pandoc.tar.gz
-RUN tar xvzf /opt/pandoc/pandoc.tar.gz --strip-components 1 -C /opt/pandoc
-RUN ln -fs /opt/pandoc/bin/pandoc /usr/bin/pandoc
-RUN kadsjoidjasoijd
-
-#RUN mkdir -p /opt/pandoc \
-#    && wget -q "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz" -O /opt/pandoc/pandoc.tar.gz \
-#    && tar xvzf /opt/pandoc/pandoc.tar.gz --strip-components 1 -C /opt/pandoc \
-#    && ln -fs /opt/pandoc/bin/pandoc /usr/bin/pandoc
+RUN mkdir -p /opt/pandoc \
+    && wget -q "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz" -O /opt/pandoc/pandoc.tar.gz \
+    && tar xvzf /opt/pandoc/pandoc.tar.gz --strip-components 1 -C /opt/pandoc \
+    && ln -fs /opt/pandoc/bin/pandoc /usr/bin/pandoc
 
 # Install various CUDA versions
 #RUN wget --quiet https://developer.nvidia.com/compute/cuda/9.2/Prod2/local_installers/cuda_9.2.148_396.37_linux \
