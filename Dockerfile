@@ -21,6 +21,7 @@ RUN apt-get update \
 ENV CUDA_VERSION=10.2.89
 ENV CUDA_PKG_VERSION=10-2=10.2.89-1
 
+# CUDA runtime
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends cuda-cudart-$CUDA_PKG_VERSION cuda-compat-10-2 \
 	&& ln -s cuda-10.2 /usr/local/cuda \
@@ -83,15 +84,15 @@ RUN mkdir -p /opt/pandoc \
     && ln -fs /opt/pandoc/bin/pandoc /usr/bin/pandoc
 
 # Install various CUDA versions
-#RUN wget --quiet https://developer.nvidia.com/compute/cuda/9.2/Prod2/local_installers/cuda_9.2.148_396.37_linux \
-#    && chmod +x cuda_9.2.148_396.37_linux \
-#    && bash cuda_9.2.148_396.37_linux --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda9.2" \
-#    && rm cuda_9.2.148_396.37_linux
+RUN wget --quiet https://developer.nvidia.com/compute/cuda/9.2/Prod2/local_installers/cuda_9.2.148_396.37_linux \
+    && chmod +x cuda_9.2.148_396.37_linux \
+    && bash cuda_9.2.148_396.37_linux --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda9.2" \
+    && rm cuda_9.2.148_396.37_linux
 
-#RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run \
-#    && chmod +x cuda_10.1.243_418.87.00_linux.run \
-#    && bash cuda_10.1.243_418.87.00_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda10.1" \
-#    && rm cuda_10.1.243_418.87.00_linux.run
+RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run \
+    && chmod +x cuda_10.1.243_418.87.00_linux.run \
+    && bash cuda_10.1.243_418.87.00_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda10.1" \
+    && rm cuda_10.1.243_418.87.00_linux.run
 
 RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_440.33.01_linux.run \
     && chmod +x cuda_10.2.89_440.33.01_linux.run \
