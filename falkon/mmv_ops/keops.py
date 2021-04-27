@@ -147,9 +147,7 @@ def _single_gpu_method(proc_idx, queue, device_id):
     n, m = _estimate_split(N, M, D, T, R, sizeof_dtype(X1.dtype))
 
     # Process the two rounds of splitting with a nested loop.
-    print("About to run on device %d" % (device_id))
     with torch.cuda.device(device_id):
-        print("Current stream: %s, device %s" % (torch.cuda.current_stream(), torch.cuda.current_device()))
         for mi in range(0, M, m):
             ml = min(m, M - mi)
             if ml != M and mi > 0:  # Then we must create a temporary output array

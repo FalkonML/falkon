@@ -43,7 +43,6 @@ pipeline {
     environment {
         GIT_COMMIT = getGitCommit()
         GIT_TAG = getCommitTag()
-        PYKEOPS_VERBOSE = 1
     }
     agent {
         dockerfile {
@@ -89,6 +88,7 @@ pipeline {
                                         continue
                                     }
                                 }
+                                /* BUILD */
                                 def toolkit = getToolkitPackage(cuda_version)
                                 sh 'bash ./scripts/conda.sh'
                                 def new_path = setupCuda(original_path)
@@ -98,23 +98,20 @@ pipeline {
                                     sh """
                                     export PATH=${new_path}
                                     conda install -q pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}
-                                    cd keops
-                                    conda run -n ${env.CONDA_ENV} python setup.py develop
-                                    cd ..
+                                    conda run -n ${env.CONDA_ENV} pip install --no-cache-dir --editable ./keops/
                                     conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]
                                     """
                                 }
                                 /* TESTING */
                                 try {
                                     stage("test-${env.CONDA_ENV}") {
-                                        //sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
-                                        //sh "PATH=${new_path} conda run -n ${env.CONDA_ENV} python falkon/fmmv_test.py"
-                                        //sh "conda run -n ${env.CONDA_ENV} pytest --capture=tee-sys --verbose falkon/tests/test_fmmv.py::TestKeops::test_fmmv[Gaussian-gpu-AC32-BC32-vC32]"
+                                        sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
                                         sh "PATH=${new_path} conda run -n ${env.CONDA_ENV} pytest --verbose --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg"
                                     }
                                 } finally {
                                     def currentResult = currentBuild.result ?: 'SUCCESS'
-                                    if (currentResult == 'SUCCESS') { // post test-coverage results to codecov website
+                                    if (currentResult == 'SUCCESS') {
+                                        // post test-coverage results to codecov website
                                         junit 'junit.xml'
                                         withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
                                             sh 'curl -s https://codecov.io/bash | bash -s -- -c -f coverage.xml -t $CODECOV_TOKEN'
