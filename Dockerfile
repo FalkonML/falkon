@@ -25,10 +25,17 @@ RUN git config --global user.name jenkins-doc-updater
 
 # Install pandoc
 ARG PANDOC_VERSION=2.10
-RUN mkdir -p /opt/pandoc \
-    && wget -q "https://github.com/jgm/pandoc/releases/download/$PANDOC_VERSION/pandoc-$PANDOC_VERSION-linux-amd64.tar.gz" -O /opt/pandoc/pandoc.tar.gz \
-    && tar xvzf /opt/pandoc/pandoc.tar.gz --strip-components 1 -C /opt/pandoc \
-    && ln -fs /opt/pandoc/bin/pandoc /usr/bin/pandoc
+
+RUN mkdir -p /opt/pandoc
+RUN wget -q "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz" -O /opt/pandoc/pandoc.tar.gz
+RUN tar xvzf /opt/pandoc/pandoc.tar.gz --strip-components 1 -C /opt/pandoc
+RUN ln -fs /opt/pandoc/bin/pandoc /usr/bin/pandoc
+RUN kadsjoidjasoijd
+
+#RUN mkdir -p /opt/pandoc \
+#    && wget -q "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz" -O /opt/pandoc/pandoc.tar.gz \
+#    && tar xvzf /opt/pandoc/pandoc.tar.gz --strip-components 1 -C /opt/pandoc \
+#    && ln -fs /opt/pandoc/bin/pandoc /usr/bin/pandoc
 
 # Install various CUDA versions
 #RUN wget --quiet https://developer.nvidia.com/compute/cuda/9.2/Prod2/local_installers/cuda_9.2.148_396.37_linux \
