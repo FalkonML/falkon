@@ -17,9 +17,14 @@ RUN apt-get -qqy update \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 # Configure gcc 7
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
-                        --slave /usr/bin/g++ g++ /usr/bin/g++-7
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 60
+
+RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 30
+RUN update-alternatives --set c++ /usr/bin/g++
+
 RUN update-alternatives --config gcc
+RUN update-alternatives --config g++
 
 # Configure git
 RUN git config --global user.email jenkins@example.com
