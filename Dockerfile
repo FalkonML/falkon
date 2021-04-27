@@ -1,4 +1,5 @@
-FROM nvidia/cuda:10.2-devel-ubuntu18.04
+#FROM nvidia/cuda:10.2-devel-ubuntu18.04
+FROM ubuntu:18.04
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
@@ -30,30 +31,30 @@ RUN mkdir -p /opt/pandoc \
     && ln -fs /opt/pandoc/bin/pandoc /usr/bin/pandoc
 
 # Install various CUDA versions
-RUN wget --quiet https://developer.nvidia.com/compute/cuda/9.2/Prod2/local_installers/cuda_9.2.148_396.37_linux \
-    && chmod +x cuda_9.2.148_396.37_linux \
-    && bash cuda_9.2.148_396.37_linux --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda9.2" \
-    && rm cuda_9.2.148_396.37_linux
+#RUN wget --quiet https://developer.nvidia.com/compute/cuda/9.2/Prod2/local_installers/cuda_9.2.148_396.37_linux \
+#    && chmod +x cuda_9.2.148_396.37_linux \
+#    && bash cuda_9.2.148_396.37_linux --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda9.2" \
+#    && rm cuda_9.2.148_396.37_linux
 
-RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run \
-    && chmod +x cuda_10.1.243_418.87.00_linux.run \
-    && bash cuda_10.1.243_418.87.00_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda10.1" \
-    && rm cuda_10.1.243_418.87.00_linux.run
+#RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run \
+#    && chmod +x cuda_10.1.243_418.87.00_linux.run \
+#    && bash cuda_10.1.243_418.87.00_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda10.1" \
+#    && rm cuda_10.1.243_418.87.00_linux.run
 
 RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_440.33.01_linux.run \
     && chmod +x cuda_10.2.89_440.33.01_linux.run \
     && bash cuda_10.2.89_440.33.01_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda10.2" \
     && rm cuda_10.2.89_440.33.01_linux.run
 
-RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run \
-    && chmod +x cuda_11.0.3_450.51.06_linux.run \
-    && bash cuda_11.0.3_450.51.06_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda11.0" \
-    && rm cuda_11.0.3_450.51.06_linux.run
+#RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run \
+#    && chmod +x cuda_11.0.3_450.51.06_linux.run \
+#    && bash cuda_11.0.3_450.51.06_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda11.0" \
+#    && rm cuda_11.0.3_450.51.06_linux.run
 
-RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/11.1.1/local_installers/cuda_11.1.1_455.32.00_linux.run \
-    && chmod +x cuda_11.1.1_455.32.00_linux.run \
-    && bash cuda_11.1.1_455.32.00_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda11.1" \
-    && rm cuda_11.1.1_455.32.00_linux.run
+#RUN wget --quiet https://developer.download.nvidia.com/compute/cuda/11.1.1/local_installers/cuda_11.1.1_455.32.00_linux.run \
+#    && chmod +x cuda_11.1.1_455.32.00_linux.run \
+#    && bash cuda_11.1.1_455.32.00_linux.run --silent --toolkit --no-opengl-libs --no-man-page --no-drm --toolkitpath="/opt/cuda11.1" \
+#    && rm cuda_11.1.1_455.32.00_linux.run
 
 
 CMD ["/bin/bash"]
