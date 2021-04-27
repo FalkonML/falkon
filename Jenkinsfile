@@ -98,7 +98,9 @@ pipeline {
                                     sh """
                                     export PATH=${new_path}
                                     conda install -q pytorch=${env.TORCH_VERSION} ${toolkit} -c pytorch -c conda-forge --yes -n ${env.CONDA_ENV}
-                                    conda run -n ${env.CONDA_ENV} python ./keops/setup.py develop
+                                    cd keops
+                                    conda run -n ${env.CONDA_ENV} python setup.py develop
+                                    cd ..
                                     conda run -n ${env.CONDA_ENV} pip install -v --editable .[test,doc]
                                     """
                                 }
