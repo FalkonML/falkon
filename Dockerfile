@@ -32,50 +32,50 @@ RUN rm -rf /usr/local/cuda-*
 
 FROM base as conda
 # Install Anaconda
-ADD ./scripts/install_conda.sh install_conda.sh
-RUN bash ./install_conda.sh && rm install_conda.sh
+ADD scripts/install_conda.sh install_conda.sh
+RUN bash install_conda.sh && rm install_conda.sh
 
 FROM base as pandoc
 # Install pandoc
-ADD ./scripts/install_pandoc.sh install_pandoc.sh
-RUN bash ./install_pandoc.sh && rm install_pandoc.sh
+ADD scripts/install_pandoc.sh install_pandoc.sh
+RUN bash install_pandoc.sh && rm install_pandoc.sh
 
 FROM base as ghrelease
 #Install github-release
-ADD ./scripts/install_github_release.sh install_github_release.sh
-RUN bash ./install_github_release.sh && rm install_github_release.sh
+ADD scripts/install_github_release.sh install_github_release.sh
+RUN bash install_github_release.sh && rm install_github_release.sh
 
 # Install CUDA
 FROM base as cuda
 RUN rm -rf /usr/local/cuda-*
-ADD ./scripts/install_cuda.sh install_cuda.sh
+ADD scripts/install_cuda.sh install_cuda.sh
 
 FROM cuda as cuda9.2
-RUN bash ./install_cuda.sh 9.2
+RUN bash install_cuda.sh 9.2
 ENV DESIRED_CUDA=9.2
 
 FROM cuda as cuda10.1
-RUN bash ./install_cuda.sh 10.1
+RUN bash install_cuda.sh 10.1
 ENV DESIRED_CUDA=10.1
 
 FROM cuda as cuda10.2
-RUN bash ./install_cuda.sh 10.2
+RUN bash install_cuda.sh 10.2
 ENV DESIRED_CUDA=10.2
 
 FROM cuda as cuda11.0
-RUN bash ./install_cuda.sh 11.0
+RUN bash install_cuda.sh 11.0
 ENV DESIRED_CUDA=11.0
 
 FROM cuda as cuda11.1
-RUN bash ./install_cuda.sh 11.1
+RUN bash install_cuda.sh 11.1
 ENV DESIRED_CUDA=11.1
 
 FROM cuda as cuda11.2
-RUN bash ./install_cuda.sh 11.2
+RUN bash install_cuda.sh 11.2
 ENV DESIRED_CUDA=11.2
 
 FROM cuda as cuda11.3
-RUN bash ./install_cuda.sh 11.3
+RUN bash install_cuda.sh 11.3
 ENV DESIRED_CUDA=11.3
 
 FROM base as all_cuda
