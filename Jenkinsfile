@@ -46,7 +46,7 @@ pipeline {
     }
     agent {
         dockerfile {
-            args '--user 0:0 --gpus all'
+            args '--gpus all'
         }
     }
     stages {
