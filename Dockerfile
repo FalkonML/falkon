@@ -4,7 +4,6 @@ ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
 
-
 RUN yum install -y wget curl util-linux xz bzip2 git patch which unzip tar
 RUN yum install -y yum-utils centos-release-scl
 RUN yum-config-manager --enable rhel-server-rhscl-7-rpms
@@ -41,11 +40,15 @@ FROM base as pandoc
 ADD ./scripts/install_pandoc.sh install_pandoc.sh
 RUN bash ./install_pandoc.sh && rm install_pandoc.sh
 
+FROM base as ghrelease
+#Install github-release
+ADD ./scripts/install_github_release.sh install_github_release.sh
+RUN bash ./install_github_release.sh && rm install_github_release.sh
 
 # Install CUDA
 FROM base as cuda
 RUN rm -rf /usr/local/cuda-*
-ADD ./common/install_cuda.sh install_cuda.sh
+ADD ./scripts/install_cuda.sh install_cuda.sh
 
 FROM cuda as cuda9.2
 RUN bash ./install_cuda.sh 9.2
@@ -84,11 +87,11 @@ COPY --from=cuda11.1  /usr/local/cuda-11.1 /usr/local/cuda-11.1
 COPY --from=cuda11.2  /usr/local/cuda-11.2 /usr/local/cuda-11.2
 COPY --from=cuda11.3  /usr/local/cuda-11.3 /usr/local/cuda-11.3
 
-
-FROM ${BASE_TARGET} as final
+FROM all_cuda as final
 #COPY --from=openssl            /opt/openssl           /opt/openssl
 COPY --from=conda              /opt/conda             /opt/conda
 COPY --from=pandoc             /opt/pandoc            /opt/pandoc
+COPY --from=ghrelease          /opt/github_release    /opt/github_release
 ENV  PATH /opt/conda/bin:$PATH
 RUN rm -rf /usr/local/cuda
 RUN chmod o+rw /usr/local

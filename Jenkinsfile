@@ -120,13 +120,25 @@ pipeline {
                                 }
                                 /* DEPLOYMENT */
                                 if (env.DEPLOY == 'TRUE') {
-                                    stage("deploy-${env.CONDA_ENV}") {
-                                        sh 'python setup.py bdist_wheel --dist-dir=dist'
-                                        sh 'ls -lah dist/'
+                                    def dist_dir = "torch-${env.TORCH_VERSION}+${env.CUDA_VERSION}"
+                                    try {
+                                        stage("deploy-${env.CONDA_ENV}") {
+                                            sh """
+                                            export PATH=${new_path}
+                                            mkdir ./dist
+                                            conda run -n ${env.CONDA_ENV} python setup.py bdist_wheel --dist-dir=./dist/${dist_dir}
+                                            ls -lah ./dist/${dist_dir}
+                                            """
+                                        }
+                                    } finally {
+                                        def currentResult = currentBuild.result ?: 'SUCCESS'
+                                        if (currentResult == 'SUCCESS') {
+                                            archiveArtifacts artifacts: "dist/**/*.whl", fingerprint: true
+                                        }
                                     }
                                 }
                                 /* DOCUMENTATION DEPLOYMENT */
-                                if (env.DEPLOY == 'TRUE' || env.DOCS == 'TRUE') {
+                                if (env.DOCS == 'TRUE') {
                                     stage('docs') {
                                         sh 'python -m pip install --upgrade --progress-bar off ghp-import'
                                         withCredentials([string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {

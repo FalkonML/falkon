@@ -4,7 +4,9 @@ include *.txt
 include *.yml
 
 graft falkon
-graft doc
+prune doc
 
 global-exclude *.py[co]
-
+global-exclude *.so
+global-exclude .gitignore
+exclude codecov.yml
