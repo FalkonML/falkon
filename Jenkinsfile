@@ -106,6 +106,7 @@ pipeline {
                                 try {
                                     stage("test-${env.CONDA_ENV}") {
                                         sh "PATH=${new_path} conda run -n ${env.CONDA_ENV} pytest 'falkon/tests/test_kernels.py::TestLaplacianKernel::test_mmv[No KeOps-gpu]'"
+                                        sh "PATH=${new_path} conda run -n ${env.CONDA_ENV} pytest --verbose 'falkon/tests/test_kernels.py::TestLaplacianKernel::test_mmv'"
                                         sh "conda run -n ${env.CONDA_ENV} flake8 --count falkon"
                                         sh "PATH=${new_path} conda run -n ${env.CONDA_ENV} pytest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml --cov=falkon --cov-config setup.cfg"
                                     }
