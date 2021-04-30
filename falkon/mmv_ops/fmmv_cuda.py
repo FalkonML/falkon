@@ -224,7 +224,7 @@ def generic_fmmv(proc_idx, queue, device_id):
                 copy_to_host_noorder(ic, T, c_g_mmv, 0, 0, out, i, 0, s=s1)
             #print("After copy %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
         s1.synchronize()
-    print("returning %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
+    #print("returning %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
     return out
 
 
