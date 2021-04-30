@@ -91,7 +91,8 @@ pipeline {
                                 /* BUILD */
                                 def toolkit = getToolkitPackage(cuda_version)
                                 sh 'bash ./scripts/conda.sh'
-                                def new_path = setupCuda(original_path)
+                                def new_path = setupCuda(env.PATH)
+                                println "Old path ${env.PATH} -- New path ${new_path}"
 
                                 stage("build-${env.CONDA_ENV}") {
                                     // We need this trick since otherwise it's impossible to modify PATH!
