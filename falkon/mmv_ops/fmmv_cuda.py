@@ -172,7 +172,7 @@ def generic_fmmv(proc_idx, queue, device_id):
 
     ddev = torch.device('cuda:%d' % int(device_id))
     s1 = tcd.current_stream(ddev)
-    print("Usage before start, chosen n=%d, d=%d - dev %s: %.5fMB" % (n, d, dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+    print("Usage before start, chosen n=%d, d=%d - dev %s: %.5fMB" % (n, d, ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
     with tcd.device(ddev), tcd.stream(s1):
         # First collect necessary memory
         mem_needed = n * M
@@ -180,7 +180,7 @@ def generic_fmmv(proc_idx, queue, device_id):
             mem_needed += M * T + n * d + M * d + n * T
         # Create flat tensor
         flat_gpu_tn = torch.empty(size=(mem_needed,), dtype=dtype, device=ddev)
-        print("After big Alloc %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+        print("After big Alloc %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
         # Extract the sub-tensors
         flat_offset = 0
         ker_gpu, flat_offset = _extract_flat(flat_gpu_tn, size=(n, M), other=X1, offset=flat_offset)
@@ -192,14 +192,14 @@ def generic_fmmv(proc_idx, queue, device_id):
             copy_to_device_noorder(M, T, v, 0, 0, v_gpu, 0, 0, s=s1)
         else:
             v_gpu = v
-        print("After extractions %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+        print("After extractions %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
 
         for i in range(0, ntot, n):
             ic = min(n, ntot - i)
             ddd = kernel._prepare(X1.narrow(0, i, ic), X2)
             c_g_ker = ker_gpu.narrow(0, 0, ic)
             c_g_ker.fill_(0.0)
-            print("After prepare %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+            print("After prepare %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
             for k in range(0, dtot, d):
                 kc = min(d, dtot - k)
                 if cuda_inputs:
@@ -209,22 +209,22 @@ def generic_fmmv(proc_idx, queue, device_id):
                     c_g_X1s = copy_to_device_noorder(ic, kc, X1, i, k, X1s_gpu, 0, 0, s=s1)
                     c_g_X2s = copy_to_device_noorder(M, kc, X2, 0, k, X2s_gpu, 0, 0, s=s1)
                 kernel._apply(c_g_X1s, c_g_X2s.T, c_g_ker)
-                print("After apply %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+                print("After apply %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
             kernel._finalize(c_g_ker, ddd)
-            print("After finalize %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+            print("After finalize %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
             # Multiply by the vector v
             if cuda_inputs:
                 c_g_mmv = out[i:i + ic, :]
             else:
                 c_g_mmv = mmv_gpu[:ic, :]
             torch.mm(c_g_ker, v_gpu, out=c_g_mmv)  # n x T
-            print("After mm %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+            print("After mm %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
             # Copy back to host
             if not cuda_inputs:
                 copy_to_host_noorder(ic, T, c_g_mmv, 0, 0, out, i, 0, s=s1)
-            print("After copy %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+            print("After copy %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
         s1.synchronize()
-    print("returning %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
+    print("returning %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
     return out
 
 
