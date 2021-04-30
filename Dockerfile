@@ -92,7 +92,7 @@ FROM all_cuda as final
 COPY --from=conda              /opt/conda             /opt/conda
 COPY --from=pandoc             /opt/pandoc            /opt/pandoc
 COPY --from=ghrelease          /opt/github_release    /opt/github_release
-ENV  PATH /opt/conda/bin:$PATH
+ENV  PATH=/opt/conda/bin:$PATH
 RUN rm -rf /usr/local/cuda
 RUN chmod o+rw /usr/local
 RUN touch /.condarc && \
