@@ -37,7 +37,7 @@ def setupCuda(start_path) {
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '92', '102', '110', '111']
 String[] torch_version_list = ['1.7.0', '1.8.1']
-original_path = '/opt/conda/bin:/usr/locl/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+original_path = '/opt/conda/bin:/opt/rh/devtoolset-7/root/usr/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
 pipeline {
     environment {
@@ -65,7 +65,6 @@ pipeline {
                         env.DEPLOY = 'FALSE'
                     }
                     println "outputs ${env.DOCS} - ${env.DEPLOY}"
-                    println "Env: PATH ${env.PATH} - LD_LIBRARY_PATH ${env.LD_LIBRARY_PATH} - PATH 2 ${PATH}"
                 }
             }
         }
@@ -92,8 +91,7 @@ pipeline {
                                 /* BUILD */
                                 def toolkit = getToolkitPackage(cuda_version)
                                 sh 'bash ./scripts/conda.sh'
-                                def new_path = setupCuda(env.PATH)
-                                println "Old path ${env.PATH} -- New path ${new_path}"
+                                def new_path = setupCuda(original_path)
 
                                 stage("build-${env.CONDA_ENV}") {
                                     // We need this trick since otherwise it's impossible to modify PATH!
