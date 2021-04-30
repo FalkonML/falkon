@@ -65,7 +65,7 @@ pipeline {
                         env.DEPLOY = 'FALSE'
                     }
                     println "outputs ${env.DOCS} - ${env.DEPLOY}"
-                    println "Env: PATH ${env.PATH} - LD_LIBRARY_PATH ${env.LD_LIBRARY_PATH}"
+                    println "Env: PATH ${env.PATH} - LD_LIBRARY_PATH ${env.LD_LIBRARY_PATH} - PATH 2 ${PATH}"
                 }
             }
         }
