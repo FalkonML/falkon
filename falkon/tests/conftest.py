@@ -38,6 +38,7 @@ def memory_checker(opt: FalkonOptions, extra_mem=0, check_cpu=True):
             tcd.reset_peak_memory_stats(dev)
             # We have to work around buggy memory stats: sometimes reset doesn't work as expected.
             start_ram[dev] = torch.cuda.max_memory_allocated(dev)
+            print("Start RAM dev %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
     elif mem_check:
         start_ram = _cpu_used_mem(uss=True)
         opt = dataclasses.replace(opt, max_cpu_mem=opt.max_cpu_mem + start_ram)
