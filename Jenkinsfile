@@ -31,7 +31,7 @@ def setupCuda(start_path) {
     ).trim()
     if (toolkit_path == "") {
         return start_path
-    }
+     }
     env.CUDA_HOME = "${toolkit_path}"
     env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/:${toolkit_path}/extras/CUPTI/lib64:/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     return "${toolkit_path}/bin:${start_path}"
