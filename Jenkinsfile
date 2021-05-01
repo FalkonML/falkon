@@ -97,7 +97,7 @@ pipeline {
                                 if (cuda_version == 'cpu') {
                                     docker_tag = 'cpu'
                                 } else {
-                                    docker_tag = "cuda{cuda_version}"
+                                    docker_tag = "cuda${cuda_version}"
                                 }
                                 withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN'),
                                                  string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
