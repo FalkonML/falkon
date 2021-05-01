@@ -1,3 +1,5 @@
+ARG CUDA_VERSION=10.2
+ARG BASE_TARGET=cuda${CUDA_VERSION}
 FROM nvidia/cuda:9.2-devel-centos7 as base
 
 ENV LC_ALL en_US.UTF-8
@@ -87,7 +89,7 @@ COPY --from=cuda11.1  /usr/local/cuda-11.1 /usr/local/cuda-11.1
 COPY --from=cuda11.2  /usr/local/cuda-11.2 /usr/local/cuda-11.2
 COPY --from=cuda11.3  /usr/local/cuda-11.3 /usr/local/cuda-11.3
 
-FROM all_cuda as final
+FROM ${BASE_TARGET} as final
 #COPY --from=openssl            /opt/openssl           /opt/openssl
 COPY --from=conda              /opt/conda             /opt/conda
 COPY --from=pandoc             /opt/pandoc            /opt/pandoc
@@ -98,4 +100,3 @@ RUN chmod o+rw /usr/local
 RUN touch /.condarc && \
     chmod o+rw /.condarc && \
     chmod -R o+rw /opt/conda
-
