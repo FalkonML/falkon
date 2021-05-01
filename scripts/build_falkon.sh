@@ -12,13 +12,13 @@ else
   exit 1
 fi
 
-if [[ ${BUILD_DOCS:-} == "TRUE" ]]
+if [[ ${BUILD_DOCS:-} == "TRUE" ]]; then
   do_build_docs=1
 else
   do_build_docs=
 fi
 
-if [[ ${UPLOAD_CODECOV:-} == "TRUE" ]]
+if [[ ${UPLOAD_CODECOV:-} == "TRUE" ]]; then
   do_codecov=1
 else
   do_codecov=
