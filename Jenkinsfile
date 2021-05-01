@@ -119,7 +119,7 @@ pipeline {
                                             --user 0:0 \
                                             --gpus all \
                                             falkon/build:${docker_tag} \
-                                            "\${ROOT_DIR}/scripts/build_falkon.sh"
+                                            /falkon/scripts/build_falkon.sh
                                         """
                                     } finally {
                                         def currentResult = currentBuild.result ?: 'SUCCESS'
