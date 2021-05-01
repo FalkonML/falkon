@@ -16,6 +16,9 @@ fi
 if [ "${CUDA_VERSION}" = "111" ]; then
   TOOLKIT_PATH="/usr/local/cuda-11.1"
 fi
+if [ "${CUDA_VERSION}" = "cpu" ]; then
+  TOOLKIT_PATH=""
+fi
 
 echo "${TOOLKIT_PATH}"
 
