@@ -104,7 +104,7 @@ pipeline {
                                     try {
                                         sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
                                         sh """
-                                        ROOT_DIR=$(pwd)
+                                        ROOT_DIR=\$(pwd)
                                         echo \${ROOT_DIR}
                                         docker run --rm -t \
                                             -e CUDA_VERSION=${cuda_version} \
