@@ -71,7 +71,6 @@ pipeline {
         stage('main-pipeline') {
             steps {
                 script {
-                    def dockerImage = docker.build('torch-docker-image')
                     for (py_version in py_version_list) {
                         for (torch_version in torch_version_list) {
                             for (cuda_version in cuda_version_list) {
@@ -103,9 +102,9 @@ pipeline {
                                 withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN'),
                                                  string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
                                     try {
+                                        sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
                                         sh """
-                                        CUDA_VERSION=${cuda_version} scripts/build_docker.sh
-                                        docker run --rm -it \
+                                        docker run --rm -t \
                                             -e CUDA_VERSION=${cuda_version} \
                                             -e PYTHON_VERSION=${py_version} \
                                             -e PYTORCH_VERSION=${torch_version} \
@@ -118,7 +117,7 @@ pipeline {
                                             --user 0:0 \
                                             --gpus all \
                                             falkon/build:${docker_tag} \
-                                            scritps/build_falkon.sh
+                                            scripts/build_falkon.sh
                                         """
                                     } finally {
                                         def currentResult = currentBuild.result ?: 'SUCCESS'
