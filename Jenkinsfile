@@ -104,6 +104,8 @@ pipeline {
                                     try {
                                         sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
                                         sh """
+                                        ROOT_DIR=$(pwd)
+                                        echo \${ROOT_DIR}
                                         docker run --rm -t \
                                             -e CUDA_VERSION=${cuda_version} \
                                             -e PYTHON_VERSION=${py_version} \
@@ -117,7 +119,7 @@ pipeline {
                                             --user 0:0 \
                                             --gpus all \
                                             falkon/build:${docker_tag} \
-                                            scripts/build_falkon.sh
+                                            "\${ROOT_DIR}/scripts/build_falkon.sh"
                                         """
                                     } finally {
                                         def currentResult = currentBuild.result ?: 'SUCCESS'
