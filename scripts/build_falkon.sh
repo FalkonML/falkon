@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -exu
 
 # Env variables that should be set
 # CUDA_VERSION, PYTHON_VERSION, PYTORCH_VERSION
@@ -39,7 +39,7 @@ fi
 
 
 conda_env="${CUDA_VERSION}-${PYTHON_VERSION}-${PYTORCH_VERSION}"
-conda create --quiet --yes -n "${conda_env}" python="${PY_VERSION}"
+conda create --quiet --yes -n "${conda_env}" python="${PYTHON_VERSION}"
 source activate "${conda_env}"
 
 # Install Prerequisites
@@ -64,9 +64,9 @@ echo "$(date) || Falkon installed."
 
 # Test Falkon
 echo "$(date) || Testing Falkon..."
-pytest 'falkon/tests/test_kernels.py::TestLaplacianKernel::test_mmv[No KeOps-gpu]'
+#flake8 --count falkon
+#pytest 'falkon/tests/test_kernels.py::TestLaplacianKernel::test_mmv[No KeOps-gpu]'
 pytest --cov-report=term-missing --cov-report=xml:coverage.xml --cov=falkon --cov-config setup.cfg
-flake8 --count falkon
 if [ -n "${do_codecov}" ]; then
   echo "$(date) || Uploading test-data to codecov..."
   curl -s https://codecov.io/bash | bash -s -- -c -f coverage.xml -t $CODECOV_TOKEN
