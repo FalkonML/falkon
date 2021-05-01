@@ -113,7 +113,7 @@ pipeline {
                                             -e GIT_TOKEN=\${GIT_TOKEN} \
                                             -e BUILD_DOCS=${DOCS} \
                                             -e UPLOAD_CODECOV=${DOCS} \
-                                            -v .:/falkon \
+                                            -v \$(pwd):/falkon \
                                             --user 0:0 \
                                             --gpus all \
                                             falkon/build:${docker_tag} \
