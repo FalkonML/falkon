@@ -59,7 +59,7 @@ pipeline {
                     } else {
                         env.DOCS = 'FALSE'
                     }
-                    if (env.BRANCH_NAME == 'master' && (env.GIT_COMMIT =~ /\[ci\-deploy\]/ || env.GIT_TAG)) {
+                    if (env.GIT_COMMIT =~ /\[ci\-deploy\]/ || env.GIT_TAG) {
                         env.DEPLOY = 'TRUE'
                     } else {
                         env.DEPLOY = 'FALSE'
