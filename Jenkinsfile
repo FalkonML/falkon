@@ -109,8 +109,8 @@ pipeline {
                                             -e PYTHON_VERSION=${py_version} \
                                             -e PYTORCH_VERSION=${torch_version} \
                                             -e WHEEL_FOLDER=/falkon/dist \
-                                            -e CODECOV_TOKEN='${CODECOV_TOKEN}' \
-                                            -e GIT_TOKEN='${GIT_TOKEN}' \
+                                            -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
+                                            -e GIT_TOKEN=\${GIT_TOKEN} \
                                             -e BUILD_DOCS=${DOCS} \
                                             -e UPLOAD_CODECOV=${DOCS} \
                                             -v .:/falkon \
