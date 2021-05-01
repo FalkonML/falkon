@@ -24,25 +24,30 @@ else
   do_codecov=
 fi
 
+cd "$falkon_rootdir"
 
 if [[ "${CUDA_VERSION}" == 'cpu' ]]; then
   export USE_CUDA=0
   export CUDA_VERSION="0.0"
   export CUDNN_VERSION="0.0"
+  cuda_toolkit='cpuonly'
 else
   echo "Switching to CUDA version ${CUDA_VERSION}"
-  . ./switch_cuda_version.sh "${CUDA_VERSION}"
+  . scripts/switch_cuda_version.sh "${CUDA_VERSION}"
+  cuda_toolkit="${CUDA_VERSION}"
 fi
 
-cd "$falkon_rootdir"
 
 conda_env="${CUDA_VERSION}-${PYTHON_VERSION}-${PYTORCH_VERSION}"
-conda create --yes -n "${conda_env}" python="${PY_VERSION}"
+conda create --quiet --yes -n "${conda_env}" python="${PY_VERSION}"
 source activate "${conda_env}"
 
 # Install Prerequisites
 echo "Installing PyTorch version ${PYTORCH_VERSION}..."
-conda install -q pytorch=${TORCH_VERSION} -c pytorch --yes -n ${conda_env}
+conda install --quiet --yes -n ${conda_env} \
+              cudatoolkit=${cuda_toolkit} \
+              pytorch=${PYTORCH_VERSION} \
+              -c pytorch -c conda-forge
 
 echo "Installing KeOps..."
 pip install --no-cache-dir --editable ./keops
