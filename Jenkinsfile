@@ -44,6 +44,7 @@ String[] torch_version_list = ['1.7.0', '1.8.1']
 original_path = '/opt/conda/bin:/opt/rh/devtoolset-7/root/usr/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
 pipeline {
+    agent any
     environment {
         GIT_COMMIT = getGitCommit()
         GIT_TAG = getCommitTag()
