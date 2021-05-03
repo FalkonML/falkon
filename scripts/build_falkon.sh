@@ -43,14 +43,14 @@ conda create --quiet --yes -n "${conda_env}" python="${PYTHON_VERSION}"
 source activate "${conda_env}"
 
 # Install Prerequisites
-echo "Installing PyTorch version ${PYTORCH_VERSION}..."
-conda install --quiet --yes -n ${conda_env} \
-              cudatoolkit=${cuda_toolkit} \
-              pytorch=${PYTORCH_VERSION} \
-              -c pytorch -c conda-forge
+echo "$(date) || Installing PyTorch version ${PYTORCH_VERSION}..."
+time conda install --quiet --yes -n ${conda_env} \
+                  cudatoolkit=${cuda_toolkit} \
+                  pytorch=${PYTORCH_VERSION} \
+                  -c pytorch -c conda-forge
 
-echo "Installing KeOps..."
-pip install --no-cache-dir --editable ./keops
+echo "$(date) || Installing KeOps..."
+time pip install --no-cache-dir --editable ./keops
 
 # Install Falkon
 echo "$(date) || Installing Falkon..."
@@ -79,7 +79,7 @@ echo "$(date) || Building wheel..."
 dist_name="torch-${PYTORCH_VERSION}+cuda${CUDA_VERSION}"
 current_build_folder="${WHEEL_FOLDER}/${dist_name}"
 mkdir -p current_build_folder
-python setup.py bdist_wheel --dist-dir="${current_build_folder}"
+time python setup.py bdist_wheel --dist-dir="${current_build_folder}"
 ls -lah "${current_build_folder}"
 echo "$(date) || Wheel built."
 

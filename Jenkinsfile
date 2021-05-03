@@ -40,7 +40,7 @@ def setupCuda(start_path) {
 
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '9.2', '10.2', '11.0', '11.1']
-String[] torch_version_list = ['1.7.0', '1.8.1']
+String[] torch_version_list = ['1.7.1', '1.8.1']
 original_path = '/opt/conda/bin:/opt/rh/devtoolset-7/root/usr/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
 pipeline {
@@ -78,56 +78,62 @@ pipeline {
                                 env.TORCH_VERSION = torch_version
                                 env.CUDA_VERSION = cuda_version
                                 env.CONDA_ENV = "PY${env.PY_VERSION}_TORCH${env.TORCH_VERSION}_CU${env.CUDA_VERSION}"
-                                /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
-                                if ((torch_version == '1.7.0' && cuda_version == '11.1') ||
-                                    (torch_version == '1.8.1' && cuda_version == '9.2')) {
-                                    continue;
-                                }
-                                if (env.DEPLOY == 'FALSE') {
-                                    if (py_version == '3.6' && (cuda_version == '9.2')) {
-                                    } else {
-                                        continue
+
+                                stage("filter-${env.CONDA_ENV}") {
+                                    /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
+                                    if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
+                                        (torch_version == '1.8.1' && cuda_version == '9.2') ||   // CUDA too old, not supported
+                                        (torch_version == '1.8.1' && cuda_version == '11.0')     // No point using 11.0 when 11.1 is available.
+                                    {
+                                        continue;
                                     }
-                                } else { // TODO: Temporary filters
-                                    if ((py_version == '3.6' && cuda_version == '10.2') || (py_version == '3.6' && cuda_version == 'cpu')) {}
-                                    else { continue }
+                                    if (env.DEPLOY == 'FALSE') {
+                                        if (py_version == '3.6' && (cuda_version == '9.2')) {
+                                        } else {
+                                            continue
+                                        }
+                                    } else { // TODO: Temporary filters
+                                        if ((torch_version == '1.7.1' && py_version == '3.6')) {}
+                                        else { continue }
+                                    }
                                 }
 
-                                def docker_tag = ''
-                                if (cuda_version == 'cpu') {
-                                    docker_tag = 'cpu'
-                                } else {
-                                    docker_tag = "cuda${cuda_version}"
-                                }
-
-                                withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN'),
-                                                 string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
-                                    try {
-                                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                            sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
-                                        }
-                                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                                            sh """
-                                            docker run --rm -t \
-                                                -e CUDA_VERSION=${cuda_version} \
-                                                -e PYTHON_VERSION=${py_version} \
-                                                -e PYTORCH_VERSION=${torch_version} \
-                                                -e WHEEL_FOLDER=/falkon/dist \
-                                                -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
-                                                -e GIT_TOKEN=\${GIT_TOKEN} \
-                                                -e BUILD_DOCS=${DOCS} \
-                                                -e UPLOAD_CODECOV=${DOCS} \
-                                                -v \$(pwd):/falkon \
-                                                --user 0:0 \
-                                                --gpus all \
-                                                falkon/build:${docker_tag} \
-                                                /falkon/scripts/build_falkon.sh
-                                            """
-                                        }
-                                    } finally {
-                                        def currentResult = currentBuild.result ?: 'SUCCESS'
-                                        if (currentResult == 'SUCCESS') {
-                                            archiveArtifacts artifacts: "dist/**/*.whl", fingerprint: true
+                                stage("build-${env.CONDA_ENV}") {
+                                    def docker_tag = ''
+                                    if (cuda_version == 'cpu') {
+                                        docker_tag = 'cpu'
+                                    } else {
+                                        docker_tag = "cuda${cuda_version}"
+                                    }
+                                    withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN'),
+                                                     string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
+                                        try {
+                                            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                                                sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
+                                            }
+                                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                                                sh """
+                                                docker run --rm -t \
+                                                    -e CUDA_VERSION=${cuda_version} \
+                                                    -e PYTHON_VERSION=${py_version} \
+                                                    -e PYTORCH_VERSION=${torch_version} \
+                                                    -e WHEEL_FOLDER=/falkon/dist \
+                                                    -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
+                                                    -e GIT_TOKEN=\${GIT_TOKEN} \
+                                                    -e BUILD_DOCS=${DOCS} \
+                                                    -e UPLOAD_CODECOV=${DOCS} \
+                                                    -v \$(pwd):/falkon \
+                                                    --user 0:0 \
+                                                    --gpus all \
+                                                    falkon/build:${docker_tag} \
+                                                    /falkon/scripts/build_falkon.sh
+                                                """
+                                            }
+                                        } finally {
+                                            def currentResult = currentBuild.result ?: 'SUCCESS'
+                                            if (currentResult == 'SUCCESS') {
+                                                archiveArtifacts artifacts: "dist/**/*.whl", fingerprint: true
+                                            }
                                         }
                                     }
                                 }
