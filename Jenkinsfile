@@ -87,12 +87,13 @@ pipeline {
                                 } else {
                                     env.DOCS = 'FALSE';
                                 }
+                                /*
                                 if (will_process) {
                                     println "This configuration will be processed"
                                 } else {
                                     printn "${reason}"
                                     continue
-                                }
+                                }*/
 
                                 stage("build-${env.CONDA_ENV}") {
                                     def build_success = false
