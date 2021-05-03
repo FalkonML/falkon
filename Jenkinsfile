@@ -99,28 +99,31 @@ pipeline {
                                 } else {
                                     docker_tag = "cuda${cuda_version}"
                                 }
+
                                 withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN'),
                                                  string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
                                     try {
-                                        sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
-                                        sh """
-                                        ROOT_DIR=\$(pwd)
-                                        echo \${ROOT_DIR}
-                                        docker run --rm -t \
-                                            -e CUDA_VERSION=${cuda_version} \
-                                            -e PYTHON_VERSION=${py_version} \
-                                            -e PYTORCH_VERSION=${torch_version} \
-                                            -e WHEEL_FOLDER=/falkon/dist \
-                                            -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
-                                            -e GIT_TOKEN=\${GIT_TOKEN} \
-                                            -e BUILD_DOCS=${DOCS} \
-                                            -e UPLOAD_CODECOV=${DOCS} \
-                                            -v \$(pwd):/falkon \
-                                            --user 0:0 \
-                                            --gpus all \
-                                            falkon/build:${docker_tag} \
-                                            /falkon/scripts/build_falkon.sh
-                                        """
+                                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                                            sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
+                                        }
+                                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                                            sh """
+                                            docker run --rm -t \
+                                                -e CUDA_VERSION=${cuda_version} \
+                                                -e PYTHON_VERSION=${py_version} \
+                                                -e PYTORCH_VERSION=${torch_version} \
+                                                -e WHEEL_FOLDER=/falkon/dist \
+                                                -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
+                                                -e GIT_TOKEN=\${GIT_TOKEN} \
+                                                -e BUILD_DOCS=${DOCS} \
+                                                -e UPLOAD_CODECOV=${DOCS} \
+                                                -v \$(pwd):/falkon \
+                                                --user 0:0 \
+                                                --gpus all \
+                                                falkon/build:${docker_tag} \
+                                                /falkon/scripts/build_falkon.sh
+                                            """
+                                        }
                                     } finally {
                                         def currentResult = currentBuild.result ?: 'SUCCESS'
                                         if (currentResult == 'SUCCESS') {
