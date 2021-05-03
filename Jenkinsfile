@@ -10,38 +10,11 @@ def getCommitTag() {
 }
 
 
-def getToolkitPackage(cuda_version) {
-    if (cuda_version == 'cpu') {
-        return 'cpuonly'
-    } else if (cuda_version == '92') {
-        return 'cudatoolkit=9.2'
-    } else if (cuda_version == '102') {
-        return 'cudatoolkit=10.2'
-    } else if (cuda_version == '110') {
-        return 'cudatoolkit=11.0'
-    } else if (cuda_version == '111') {
-        return 'cudatoolkit=11.1'
-    }
-    return ''
-}
-
-def setupCuda(start_path) {
-    def toolkit_path = sh(
-        returnStdout: true,
-        script: 'bash ./scripts/cuda.sh'
-    ).trim()
-    if (toolkit_path == "") {
-        return start_path
-     }
-    env.CUDA_HOME = "${toolkit_path}"
-    env.LD_LIBRARY_PATH = "${toolkit_path}/lib64/:${toolkit_path}/extras/CUPTI/lib64:/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
-    return "${toolkit_path}/bin:${start_path}"
-}
-
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '9.2', '10.2', '11.0', '11.1']
 String[] torch_version_list = ['1.7.1', '1.8.1']
-original_path = '/opt/conda/bin:/opt/rh/devtoolset-7/root/usr/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+build_docs = false
+full_deploy = false
 
 pipeline {
     agent any
@@ -53,18 +26,16 @@ pipeline {
         stage('pre-install') {
             steps {
                 script {
-                    println "inputs:  ${env.GIT_COMMIT} - ${env.GIT_TAG} - ${env.BRANCH_NAME}"
                     if (env.BRANCH_NAME =~ /docs/ || env.GIT_COMMIT =~ /\[docs\]/) {
-                        env.DOCS = 'TRUE'
+                        build_docs = true      
                     } else {
-                        env.DOCS = 'FALSE'
+                        build_docs = false
                     }
                     if (env.GIT_COMMIT =~ /\[ci\-deploy\]/ || env.GIT_TAG) {
-                        env.DEPLOY = 'TRUE'
+                        full_deploy = true
                     } else {
-                        env.DEPLOY = 'FALSE'
+                        full_deploy = false
                     }
-                    println "outputs ${env.DOCS} - ${env.DEPLOY}"
                 }
             }
         }
@@ -80,25 +51,46 @@ pipeline {
                                 env.CONDA_ENV = "PY${env.PY_VERSION}_TORCH${env.TORCH_VERSION}_CU${env.CUDA_VERSION}"
 
                                 stage("filter-${env.CONDA_ENV}") {
+                                    def will_process = true
+                                    def reason = ""
                                     /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
                                     if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
                                         (torch_version == '1.8.1' && cuda_version == '9.2') ||   // CUDA too old, not supported
                                         (torch_version == '1.8.1' && cuda_version == '11.0'))     // No point using 11.0 when 11.1 is available.
                                     {
-                                        continue;
+                                        will_process = false
+                                        reason = "This configuration is invalid"
                                     }
-                                    if (env.DEPLOY == 'FALSE') {
-                                        if (py_version == '3.6' && (cuda_version == '9.2')) {
+                                    if (!full_deploy) {
+                                        if (py_version == '3.8' && (cuda_version == '11.1')) {
                                         } else {
-                                            continue
+                                            will_process = false
+                                            reason = "This configuration is only processed when running a full deploy"
                                         }
                                     } else { // TODO: Temporary filters
-                                        if ((torch_version == '1.7.1' && py_version == '3.6')) {}
-                                        else { continue }
+                                        if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.0')) {}
+                                        else {  
+                                            will_process = false
+                                            reason = "This configuration has been temporarily excluded from full-deploy"
+                                        }
+                                    }
+
+                                    // Docs should only be built once
+                                    if (build_docs && torch_version == '1.8.1' && py_version == '3.8' && cuda_version == '11.1') {
+                                        env.DOCS = 'TRUE';
+                                    } else {
+                                        env.DOCS = 'FALSE';
+                                    }
+                                    if (will_process) {
+                                        sh "echo 'This configuration will be processed'";
+                                    } else {
+                                        sh "echo '${reason}'";
+                                        continue;
                                     }
                                 }
 
                                 stage("build-${env.CONDA_ENV}") {
+                                    def build_success = false
                                     def docker_tag = ''
                                     if (cuda_version == 'cpu') {
                                         docker_tag = 'cpu'
@@ -108,9 +100,13 @@ pipeline {
                                     withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN'),
                                                      string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
                                         try {
+                                            sh "which cmake"
+                                            sh "cmake --version"
+                                            // If this fails abort immediately
                                             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                                 sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
                                             }
+                                            // If this fails, we can keep going to the next configuration.
                                             catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                                                 sh """
                                                 docker run --rm -t \
@@ -120,18 +116,18 @@ pipeline {
                                                     -e WHEEL_FOLDER=/falkon/dist \
                                                     -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
                                                     -e GIT_TOKEN=\${GIT_TOKEN} \
-                                                    -e BUILD_DOCS=${DOCS} \
-                                                    -e UPLOAD_CODECOV=${DOCS} \
+                                                    -e BUILD_DOCS=${env.DOCS} \
+                                                    -e UPLOAD_CODECOV=${env.DOCS} \
                                                     -v \$(pwd):/falkon \
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
                                                     /falkon/scripts/build_falkon.sh
                                                 """
+                                                build_success = true
                                             }
                                         } finally {
-                                            def currentResult = currentBuild.result ?: 'SUCCESS'
-                                            if (currentResult == 'SUCCESS') {
+                                            if (build_success) {
                                                 archiveArtifacts artifacts: "dist/**/*.whl", fingerprint: true
                                             }
                                         }

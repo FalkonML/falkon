@@ -26,19 +26,28 @@ fi
 
 cd "$falkon_rootdir"
 
+
 if [[ "${CUDA_VERSION}" == 'cpu' ]]; then
+  is_cpu_only=1
+else
+  is_cpu_only=
+fi
+
+
+if [ -n $is_cpu_only ]; then
   export USE_CUDA=0
   export CUDA_VERSION="0.0"
   export CUDNN_VERSION="0.0"
   cuda_toolkit='cpuonly'
+  cuda_name="cpu"
 else
   echo "Switching to CUDA version ${CUDA_VERSION}"
   . scripts/switch_cuda_version.sh "${CUDA_VERSION}"
   cuda_toolkit="cudatoolkit=${CUDA_VERSION}"
+  cuda_name="cuda${CUDA_VERSION}"
 fi
 
-
-conda_env="${CUDA_VERSION}-${PYTHON_VERSION}-${PYTORCH_VERSION}"
+conda_env="${cuda_name}-${PYTHON_VERSION}-${PYTORCH_VERSION}"
 conda create --quiet --yes -n "${conda_env}" python="${PYTHON_VERSION}"
 source activate "${conda_env}"
 
@@ -76,7 +85,7 @@ echo "$(date) || Falkon tested."
 
 # Build wheel
 echo "$(date) || Building wheel..."
-dist_name="torch-${PYTORCH_VERSION}+cuda${CUDA_VERSION}"
+dist_name="torch-${PYTORCH_VERSION}+${cuda_name}"
 current_build_folder="${WHEEL_FOLDER}/${dist_name}"
 mkdir -p current_build_folder
 time python setup.py bdist_wheel --dist-dir="${current_build_folder}"
