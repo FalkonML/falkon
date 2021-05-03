@@ -13,8 +13,8 @@ def getCommitTag() {
 String[] py_version_list = ['3.6', '3.7', '3.8']
 String[] cuda_version_list = ['cpu', '9.2', '10.2', '11.0', '11.1']
 String[] torch_version_list = ['1.7.1', '1.8.1']
-build_docs = false
-full_deploy = false
+//build_docs = false
+//full_deploy = false
 
 pipeline {
     agent any
