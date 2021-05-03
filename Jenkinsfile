@@ -49,9 +49,9 @@ pipeline {
                                 env.TORCH_VERSION = torch_version
                                 env.CUDA_VERSION = cuda_version
                                 env.CONDA_ENV = "PY${env.PY_VERSION}_TORCH${env.TORCH_VERSION}_CU${env.CUDA_VERSION}"
+                                def will_process = true
 
                                 stage("filter-${env.CONDA_ENV}") {
-                                    def will_process = true
                                     def reason = ""
                                     /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
                                     if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
@@ -85,8 +85,10 @@ pipeline {
                                         sh "echo 'This configuration will be processed'";
                                     } else {
                                         sh "echo '${reason}'";
-                                        continue;
                                     }
+                                }
+                                if (!will_process) {
+                                    continue;
                                 }
 
                                 stage("build-${env.CONDA_ENV}") {
