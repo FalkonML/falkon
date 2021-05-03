@@ -59,7 +59,7 @@ if [ -n "${do_build_docs}" ]; then
   install_modifiers="${install_modifiers},doc"
 fi
 install_modifiers="${install_modifiers}]"
-time pip install --editable ".${install_modifiers}"
+time pip install --quiet --editable ".${install_modifiers}"
 echo "$(date) || Falkon installed."
 
 # Test Falkon
