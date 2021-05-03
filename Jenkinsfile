@@ -52,7 +52,7 @@ pipeline {
                                 env.CONDA_ENV = "PY${env.PY_VERSION}_TORCH${env.TORCH_VERSION}_CU${env.CUDA_VERSION}"
 
                                 def will_process = true
-                                stage("filter-${CUDA_ENV}") {
+                                stage("filter-${CONDA_ENV}") {
                                     def reason = ""
                                     /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
                                     if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
@@ -82,8 +82,7 @@ pipeline {
                                     } else {
                                         env.DOCS = 'FALSE';
                                     }
-                                    if (will_process) {
-                                    } else {
+                                    if (!will_process) {
                                         unstable("${reason}")
                                     }
                                 }
