@@ -76,7 +76,7 @@ echo "$(date) || Falkon tested."
 
 # Build wheel
 echo "$(date) || Building wheel..."
-dist_name="torch-${PYTORCH_VERSION}+${CUDA_VERSION}"
+dist_name="torch-${PYTORCH_VERSION}+cuda${CUDA_VERSION}"
 current_build_folder="${WHEEL_FOLDER}/${dist_name}"
 mkdir -p current_build_folder
 python setup.py bdist_wheel --dist-dir="${current_build_folder}"
@@ -95,10 +95,10 @@ if [ -n "${do_build_docs}" ]; then
     make clean && make html && make install
     popd
     echo "$(date) || Docs built."
-}
+fi
 
 # Clean-up
 echo "Cleaning up..."
 source deactivate
-conda env remove -yn "$conda_env"
+conda env remove --quiet -yn "$conda_env"
 rm -rf "build/"
