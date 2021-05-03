@@ -2,6 +2,11 @@
 
 set -exu
 
+
+echo $PATH
+which cmake
+cmake --version
+
 # Env variables that should be set
 # CUDA_VERSION, PYTHON_VERSION, PYTORCH_VERSION
 # WHEEL_FOLDER

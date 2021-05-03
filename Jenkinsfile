@@ -100,8 +100,6 @@ pipeline {
                                     withCredentials([string(credentialsId: 'CODECOV_TOKEN', variable: 'CODECOV_TOKEN'),
                                                      string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
                                         try {
-                                            sh "which cmake"
-                                            sh "cmake --version"
                                             // If this fails abort immediately
                                             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                                 sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
