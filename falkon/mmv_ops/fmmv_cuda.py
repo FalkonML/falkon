@@ -179,7 +179,7 @@ def generic_fmmv(proc_idx, queue, device_id):
         if not cuda_inputs:
             mem_needed += M * T + n * d + M * d + n * T
         # Create flat tensor
-        torch.cuda.synchronize()
+        #torch.cuda.synchronize()
         print("Usage before big alloc, chosen n=%d, d=%d, m=%d, t=%d - dev %s: %.5fMB" % (n, d, M, T, ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))
         flat_gpu_tn = torch.empty(size=(mem_needed,), dtype=dtype, device=ddev)
         print("After big Alloc %s: %.5fMB" % (ddev, torch.cuda.max_memory_allocated(ddev) / 2**20))

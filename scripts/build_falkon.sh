@@ -76,7 +76,7 @@ echo "$(date) || Falkon tested."
 
 # Build wheel
 echo "$(date) || Building wheel..."
-dist_name="torch-${TORCH_VERSION}+${CUDA_VERSION}"
+dist_name="torch-${PYTORCH_VERSION}+${CUDA_VERSION}"
 current_build_folder="${WHEEL_FOLDER}/${dist_name}"
 mkdir -p current_build_folder
 python setup.py bdist_wheel --dist-dir="${current_build_folder}"
