@@ -87,11 +87,11 @@ pipeline {
                                         sh "echo '${reason}'";
                                     }
                                 }
-                                if (!will_process) {
-                                    continue;
-                                }
 
                                 stage("build-${env.CONDA_ENV}") {
+                                    if (!will_process) {
+                                        unstable()
+                                    }
                                     def build_success = false
                                     def docker_tag = ''
                                     if (cuda_version == 'cpu') {
