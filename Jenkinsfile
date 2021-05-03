@@ -21,23 +21,28 @@ pipeline {
     environment {
         GIT_COMMIT = getGitCommit()
         GIT_TAG = getCommitTag()
-        DOCS = 'FALSE'
     }
     stages {
         stage('pre-install') {
             steps {
                 script {
+                    println "inputs:  ${env.GIT_COMMIT} - ${env.GIT_TAG} - ${env.BRANCH_NAME}"
                     if (env.BRANCH_NAME =~ /docs/ || env.GIT_COMMIT =~ /\[docs\]/) {
-                        build_docs = true      
+                        env.DOCS = 'TRUE'
+                        //build_docs = true
                     } else {
-                        build_docs = false
+                        env.DOCS = 'FALSE'
+                        //build_docs = false
                     }
                     if (env.GIT_COMMIT =~ /\[ci\-deploy\]/ || env.GIT_TAG) {
-                        full_deploy = true
+                        env.DEPLOY = 'TRUE'
+                        //full_deploy = true
                     } else {
-                        full_deploy = false
+                        env.DEPLOY = 'FALSE'
+                        // full_deploy = false
                     }
-                    println "Build-docs is ${build_docs} -- Full-deploy is ${full_deploy}"
+                    //println "Build-docs is ${build_docs} -- Full-deploy is ${full_deploy}"
+                    println "outputs ${env.DOCS} - ${env.DEPLOY}"
                 }
             }
         }
@@ -63,13 +68,13 @@ pipeline {
                                     reason = "This configuration is invalid"
                                 }
                                 if (!full_deploy) {
-                                    if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.1')) {}
+                                    if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.0')) {}
                                     else {
                                         will_process = false
                                         reason = "This configuration is only processed when running a full deploy"
                                     }
                                 } else { // TODO: Temporary filters
-                                    if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.1')) {}
+                                    if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.0')) {}
                                     else {  
                                         will_process = false
                                         reason = "This configuration has been temporarily excluded from full deploy"
