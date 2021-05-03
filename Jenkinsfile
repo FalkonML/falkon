@@ -52,44 +52,41 @@ pipeline {
                                 env.CUDA_VERSION = cuda_version
                                 env.CONDA_ENV = "PY${env.PY_VERSION}_TORCH${env.TORCH_VERSION}_CU${env.CUDA_VERSION}"
 
-
-                                stage("filter-${env.CONDA_ENV}") {
-                                    def will_process = true
-                                    def reason = ""
-                                    /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
-                                    if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
-                                        (torch_version == '1.8.1' && cuda_version == '9.2') ||   // CUDA too old, not supported
-                                        (torch_version == '1.8.1' && cuda_version == '11.0'))     // No point using 11.0 when 11.1 is available.
-                                    {
+                                def will_process = true
+                                def reason = ""
+                                /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
+                                if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
+                                    (torch_version == '1.8.1' && cuda_version == '9.2') ||   // CUDA too old, not supported
+                                    (torch_version == '1.8.1' && cuda_version == '11.0'))     // No point using 11.0 when 11.1 is available.
+                                {
+                                    will_process = false
+                                    reason = "This configuration is invalid"
+                                }
+                                if (!full_deploy) {
+                                    if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.1')) {}
+                                    else {
                                         will_process = false
-                                        reason = "This configuration is invalid"
+                                        reason = "This configuration is only processed when running a full deploy"
                                     }
-                                    if (!full_deploy) {
-                                        if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.1')) {}
-                                        else {
-                                            will_process = false
-                                            reason = "This configuration is only processed when running a full deploy"
-                                        }
-                                    } else { // TODO: Temporary filters
-                                        if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.1')) {}
-                                        else {  
-                                            will_process = false
-                                            reason = "This configuration has been temporarily excluded from full deploy"
-                                        }
+                                } else { // TODO: Temporary filters
+                                    if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.1')) {}
+                                    else {  
+                                        will_process = false
+                                        reason = "This configuration has been temporarily excluded from full deploy"
                                     }
+                                }
 
-                                    // Docs should only be built once
-                                    if (build_docs && torch_version == '1.8.1' && py_version == '3.8' && cuda_version == '11.1') {
-                                        env.DOCS = 'TRUE';
-                                    } else {
-                                        env.DOCS = 'FALSE';
-                                    }
-                                    if (will_process) {
-                                        sh "echo 'This configuration will be processed'";
-                                    } else {
-                                        sh "echo '${reason}'";
-                                        continue
-                                    }
+                                // Docs should only be built once
+                                if (build_docs && torch_version == '1.8.1' && py_version == '3.8' && cuda_version == '11.1') {
+                                    env.DOCS = 'TRUE';
+                                } else {
+                                    env.DOCS = 'FALSE';
+                                }
+                                if (will_process) {
+                                    println "This configuration will be processed"
+                                } else {
+                                    printn "${reason}"
+                                    continue
                                 }
 
                                 stage("build-${env.CONDA_ENV}") {
