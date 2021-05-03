@@ -102,6 +102,8 @@ COPY --from=pandoc             /opt/pandoc            /opt/pandoc
 COPY --from=ghrelease          /opt/github_release    /opt/github_release
 COPY --from=cmake              /opt/cmake             /opt/cmake
 ENV  PATH=/opt/conda/bin:$PATH
+ENV  PATH=/opt/cmake/bin:$PATH
+ENV  PATH=/opt/pandoc/bin:$PATH
 RUN rm -rf /usr/local/cuda
 RUN chmod o+rw /usr/local
 RUN touch /.condarc && \
