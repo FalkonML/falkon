@@ -14,14 +14,14 @@ RUN yum install -y devtoolset-7-gcc devtoolset-7-gcc-c++ devtoolset-7-gcc-gfortr
 RUN git config --global user.email jenkins@example.com
 RUN git config --global user.name jenkins-doc-updater
 # EPEL for cmake
-RUN wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
-    rpm -ivh epel-release-latest-7.noarch.rpm && \
-    rm -f epel-release-latest-7.noarch.rpm
+#RUN wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
+#    rpm -ivh epel-release-latest-7.noarch.rpm && \
+#    rm -f epel-release-latest-7.noarch.rpm
 # cmake
-RUN yum install -y cmake3 && \
-    ln -s /usr/bin/cmake3 /usr/bin/cmake
-ENV PATH=/opt/rh/devtoolset-7/root/usr/bin:$PATH
-ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:$LD_LIBRARY_PATH
+#RUN yum install -y cmake3 && \
+#    ln -s /usr/bin/cmake3 /usr/bin/cmake
+#ENV PATH=/opt/rh/devtoolset-7/root/usr/bin:$PATH
+#ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:$LD_LIBRARY_PATH
 
 RUN yum install -y autoconf aclocal automake make sudo
 RUN rm -rf /usr/local/cuda-*
@@ -31,6 +31,11 @@ RUN rm -rf /usr/local/cuda-*
 # Install openssl
 #ADD ./common/install_openssl.sh install_openssl.sh
 #RUN bash ./install_openssl.sh && rm install_openssl.sh
+
+FROM base as cmake
+# Install cmake 3.18 (needed by keops)
+ADD scripts/install_cmake.sh install_cmake.sh
+RUN bash install_cmake.sh && rm install_cmake.sh
 
 FROM base as conda
 # Install Anaconda
@@ -79,11 +84,6 @@ ENV DESIRED_CUDA=11.2
 FROM cuda as cuda11.3
 RUN bash install_cuda.sh 11.3
 ENV DESIRED_CUDA=11.3
-
-FROM base as cmake
-# Install cmake 3.18 (needed by keops)
-ADD scripts/install_cmake.sh install_cmake.sh
-RUN bash install_cmake.sh && rm install_cmake.sh
 
 
 FROM base as all_cuda
