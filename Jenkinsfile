@@ -85,7 +85,7 @@ pipeline {
                                             /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
                                             if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
                                                 (torch_version == '1.8.1' && cuda_version == '9.2') ||   // CUDA too old, not supported
-                                                (torch_version == '1.8.1' && cuda_version == '11.0')     // No point using 11.0 when 11.1 is available.
+                                                (torch_version == '1.8.1' && cuda_version == '11.0'))     // No point using 11.0 when 11.1 is available.
                                             {
                                                 continue;
                                             }
