@@ -39,7 +39,7 @@ else
 fi
 
 
-if [ -n $is_cpu_only ]; then
+if [ -n "${is_cpu_only}" ]; then
   export USE_CUDA=0
   export CUDA_VERSION="0.0"
   export CUDNN_VERSION="0.0"
