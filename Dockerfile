@@ -20,8 +20,6 @@ RUN git config --global user.name jenkins-doc-updater
 # cmake
 #RUN yum install -y cmake3 && \
 #    ln -s /usr/bin/cmake3 /usr/bin/cmake
-#ENV PATH=/opt/rh/devtoolset-7/root/usr/bin:$PATH
-#ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:$LD_LIBRARY_PATH
 
 RUN yum install -y autoconf aclocal automake make sudo
 RUN rm -rf /usr/local/cuda-*
@@ -101,6 +99,8 @@ COPY --from=conda              /opt/conda             /opt/conda
 COPY --from=pandoc             /opt/pandoc            /opt/pandoc
 COPY --from=ghrelease          /opt/github_release    /opt/github_release
 COPY --from=cmake              /opt/cmake             /opt/cmake
+ENV  PATH=/opt/rh/devtoolset-7/root/usr/bin:$PATH
+ENV  LD_LIBRARY_PATH=/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:$LD_LIBRARY_PATH
 ENV  PATH=/opt/conda/bin:$PATH
 ENV  PATH=/opt/cmake/bin:$PATH
 ENV  PATH=/opt/pandoc/bin:$PATH
