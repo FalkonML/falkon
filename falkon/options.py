@@ -93,6 +93,10 @@ keops_active
     'auto' (the default setting) means that KeOps will be used if it is installed correctly,
     'no' means keops will not be used, nor will it be imported, and 'force' means that if KeOps is
     not installed an error will be raised.
+keops_memory_slack
+    `default 0.7` - Controls the amount of slack used when calculating the matrix splits for KeOps.
+    Since memory usage estimation for KeOps is hard, you may need to reduce this value if running
+    out-of-GPU-memory when using KeOps. Typically this only occurs for large datasets.
     """,
     "cg":
     """
@@ -185,11 +189,14 @@ class KeopsOptions():
     keops_acc_dtype: str = "auto"
     keops_sum_scheme: str = "auto"
     keops_active: str = "auto"
+    keops_memory_slack: float = 0.7
 
     def get_keops_options(self):
         return KeopsOptions(keops_acc_dtype=self.keops_acc_dtype,
                             keops_sum_scheme=self.keops_sum_scheme,
-                            keops_active=self.keops_active)
+                            keops_active=self.keops_active,
+                            keops_memory_slack=self.keops_memory_slack,
+                            )
 
 
 @dataclass
