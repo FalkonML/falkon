@@ -3,8 +3,14 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-__all__ = ("BaseOptions", "KeopsOptions", "ConjugateGradientOptions", "PreconditionerOptions",
-           "LauumOptions", "CholeskyOptions", "FalkonOptions")
+__all__ = (
+    "BaseOptions",
+    "KeopsOptions",
+    "ConjugateGradientOptions",
+    "PreconditionerOptions",
+    "CholeskyOptions",
+    "FalkonOptions",
+)
 
 _docs = {
     "base":
@@ -126,13 +132,6 @@ cpu_preconditioner
     `default False` - Whether the preconditioner should be computed on the CPU. This setting
     overrides the :attr:`FalkonOptions.use_cpu` option.
     """,
-    "lauum":
-    """
-lauum_par_blk_multiplier
-    `default 8` - Minimum number of tiles per-GPU for the LAUUM algorithm. This can be set
-    quite high (e.g. 8) without too much performance degradation. Optimal settings will depend
-    on the number of GPUs.
-    """,
     "chol":
     """
 chol_force_in_core
@@ -251,17 +250,6 @@ class PreconditionerOptions():
 
 
 @dataclass(frozen=False)
-class LauumOptions():
-    """Options related to the out-of-core LAUUM (triangular matrix multiplication) operation
-
-    """
-    lauum_par_blk_multiplier: int = 8
-
-    def get_lauum_options(self):
-        return LauumOptions(lauum_par_blk_multiplier=self.lauum_par_blk_multiplier)
-
-
-@dataclass(frozen=False)
 class CholeskyOptions():
     """Options related to the out-of-core POTRF (Cholesky decomposition) operation
 
@@ -277,8 +265,12 @@ class CholeskyOptions():
 
 
 @dataclass()
-class FalkonOptions(BaseOptions, ConjugateGradientOptions, PreconditionerOptions, LauumOptions,
-                    CholeskyOptions, KeopsOptions):
+class FalkonOptions(
+        BaseOptions,
+        ConjugateGradientOptions,
+        PreconditionerOptions,
+        CholeskyOptions,
+        KeopsOptions,):
     """Global options for Falkon."""
     pass
 
@@ -292,7 +284,6 @@ _reset_doc(BaseOptions, _docs["base"])
 _reset_doc(KeopsOptions, _docs["keops"])
 _reset_doc(ConjugateGradientOptions, _docs["cg"])
 _reset_doc(PreconditionerOptions, _docs["pc"])
-_reset_doc(LauumOptions, _docs["lauum"])
 _reset_doc(CholeskyOptions, _docs["chol"])
 
 

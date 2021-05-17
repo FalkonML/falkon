@@ -67,7 +67,7 @@ if __name__ == "__main__":
             'repetitions': 5,
             'torch': True,
             'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-                opt=falkon.FalkonOptions(lauum_par_blk_multiplier=2, compute_arch_speed=False)),
+                opt=falkon.FalkonOptions(compute_arch_speed=False)),
         },
         {
             'name': 'OOC 32',
@@ -77,7 +77,7 @@ if __name__ == "__main__":
             'repetitions': 5,
             'torch': True,
             'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-                opt=falkon.FalkonOptions(lauum_par_blk_multiplier=2, compute_arch_speed=False)),
+                opt=falkon.FalkonOptions(compute_arch_speed=False)),
         },
         {
             'name': 'OOC 32',
@@ -87,7 +87,7 @@ if __name__ == "__main__":
             'repetitions': 3,
             'torch': True,
             'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-                opt=falkon.FalkonOptions(lauum_par_blk_multiplier=2, compute_arch_speed=False)),
+                opt=falkon.FalkonOptions( compute_arch_speed=False)),
         },
     ]
     #    {
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     #        'repetitions': 5,
     #        'torch': True,
     #        'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-    #            opt=falkon.FalkonOptions(lauum_par_blk_multiplier=2, compute_arch_speed=False)),
+    #            opt=falkon.FalkonOptions(compute_arch_speed=False)),
     #    },
     #]
     if RUN_CPU:
