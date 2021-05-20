@@ -287,6 +287,6 @@ _reset_doc(PreconditionerOptions, _docs["pc"])
 _reset_doc(CholeskyOptions, _docs["chol"])
 
 
-FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s%s\n\n%s" % (
-    FalkonOptions.__doc__, _docs["base"], _docs["keops"], _docs["cg"], _docs["pc"], _docs["lauum"],
+FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s\n\n%s" % (
+    FalkonOptions.__doc__, _docs["base"], _docs["keops"], _docs["cg"], _docs["pc"],
     _docs["chol"], _docs["extra"])
