@@ -43,7 +43,6 @@ class FalkonBase(base.BaseEstimator, ABC):
         self._keops_options = self.options.get_keops_options()
         self._pc_options = self.options.get_pc_options()
         self._cholesky_opt = self.options.get_chol_options()
-        self._lauum_opt = self.options.get_lauum_options()
         self._base_opt = self.options.get_base_options()
 
         self.use_cuda_ = decide_cuda(self.options)
