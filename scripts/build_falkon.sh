@@ -2,18 +2,16 @@
 
 set -exu
 
-
 echo $PATH
 which cmake
 cmake --version
 
 # Env variables that should be set
-# CUDA_VERSION, PYTHON_VERSION, PYTORCH_VERSION
-# WHEEL_FOLDER
-if [[ -d '/falkon' ]]; then
-  falkon_rootdir='/falkon'
+# CUDA_VERSION, PYTHON_VERSION, PYTORCH_VERSION, WHEEL_FOLDER, HOME_DIR
+if [[ -d "$HOME_DIR" ]]; then
+  falkon_rootdir="$HOME_DIR"
 else
-  echo "ERROR: Falkon root-directory not found at /falkon."
+  echo "ERROR: Falkon root-directory not found at ${HOME_DIR}."
   exit 1
 fi
 
@@ -29,15 +27,13 @@ else
   do_codecov=
 fi
 
-cd "$falkon_rootdir"
-
-
 if [[ "${CUDA_VERSION}" == 'cpu' ]]; then
   is_cpu_only=1
 else
   is_cpu_only=
 fi
 
+cd "$falkon_rootdir"
 
 if [ -n "${is_cpu_only}" ]; then
   export USE_CUDA=0

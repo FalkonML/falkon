@@ -116,7 +116,8 @@ pipeline {
                                                     -e GIT_TOKEN=\${GIT_TOKEN} \
                                                     -e BUILD_DOCS=${env.DOCS} \
                                                     -e UPLOAD_CODECOV=${env.DOCS} \
-                                                    -v \$(pwd):/falkon \
+                                                    -e HOME_DIR=\$(pwd) \
+                                                    --mount type=volume,source=${env.VOLUME_NAME},destination=/jenkins_data \
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
