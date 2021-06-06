@@ -108,8 +108,8 @@ pipeline {
                                             catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                                                 // We mount on the build-container using the same paths as the current container.
                                                 def mount_dest = "/var/jenkins_home"
-                                                def wheel_folder = "${WORKSPACE}/falkon/dist"
-                                                def entrypoint = "${WORKSPACE}/falkon/scripts/build_falkon.sh"
+                                                def wheel_folder = "${WORKSPACE}/dist"
+                                                def entrypoint = "${WORKSPACE}/scripts/build_falkon.sh"
                                                 println "Mount destination ${mount_dest}"
                                                 println "Wheel folder ${wheel_folder}"
                                                 println "Entrypoint: ${entrypoint}"
@@ -123,14 +123,13 @@ pipeline {
                                                     -e GIT_TOKEN=\${GIT_TOKEN} \
                                                     -e BUILD_DOCS=${env.DOCS} \
                                                     -e UPLOAD_CODECOV=${env.DOCS} \
-                                                    -e HOME_DIR=\$(pwd) \
+                                                    -e HOME_DIR="${WORKSPACE}" \
                                                     --mount type=volume,source=${env.VOLUME_NAME},destination=${mount_dest} \
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
-                                                    ls -lah /var/jenkins_home/workspace/falkon_merge-csrc/falkon
+                                                    ${entrypoint}
                                                 """
-                                                //${entrypoint}
                                                 build_success = true
                                             }
                                         } finally {
