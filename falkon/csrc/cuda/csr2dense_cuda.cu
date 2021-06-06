@@ -9,7 +9,8 @@
 #include "utils.cuh"
 
 
-#if defined(__CUDACC__) && (CUSPARSE_VERSION >= 11000)// || (!defined(_MSC_VER) && CUSPARSE_VERSION >= 10301))
+// TODO: Check! Seems sparseToDense not available with cusparse 11.0
+#if defined(__CUDACC__) && (CUSPARSE_VERSION >= 11100)// || (!defined(_MSC_VER) && CUSPARSE_VERSION >= 10301))
 #define IS_GENERIC_AVAILABLE() 1
 #else
 #define IS_GENERIC_AVAILABLE() 0

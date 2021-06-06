@@ -96,9 +96,10 @@ def get_extensions():
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
         nvcc_flags += ['--expt-relaxed-constexpr', '--expt-extended-lambda']
         compile_args['nvcc'] = nvcc_flags
-        link_args += ['-lcusparse', '-l', 'cusparse',
-                      '-lcublas', '-l', 'cublas',
-                      '-lcusolver', '-l', 'cusolver']
+        link_args += ['-lcusparse',
+                      '-lcublas',
+                      '-lcusolver',
+                     ]
         libraries.extend(['cusolver', 'cublas', 'cusparse'])
     extensions.append(
         extension_cls(
