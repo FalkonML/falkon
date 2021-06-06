@@ -101,28 +101,34 @@ pipeline {
                                                      string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
                                         try {
                                             // If this fails abort immediately 
-
                                             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                                 sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
                                             }
                                             // If this fails, we can keep going to the next configuration.
                                             catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                                                // We mount on the build-container using the same paths as the current container.
+                                                def mount_dest = "/var/jenkins_home"
+                                                def wheel_folder = "${WORKSPACE}/falkon/dist"
+                                                def entrypoint = "${WORKSPACE}/falkon/scripts/build_falkon.sh"
+                                                println "Mount destination ${mount_dest}"
+                                                println "Wheel folder ${wheel_folder}"
+                                                println "Entrypoint: ${entrypoint}"
                                                 sh """
                                                 docker run --rm -t \
                                                     -e CUDA_VERSION=${cuda_version} \
                                                     -e PYTHON_VERSION=${py_version} \
                                                     -e PYTORCH_VERSION=${torch_version} \
-                                                    -e WHEEL_FOLDER=/falkon/dist \
+                                                    -e WHEEL_FOLDER=${wheel_folder} \
                                                     -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
                                                     -e GIT_TOKEN=\${GIT_TOKEN} \
                                                     -e BUILD_DOCS=${env.DOCS} \
                                                     -e UPLOAD_CODECOV=${env.DOCS} \
                                                     -e HOME_DIR=\$(pwd) \
-                                                    --mount type=volume,source=${env.VOLUME_NAME},destination=/jenkins_data \
+                                                    --mount type=volume,source=${env.VOLUME_NAME},destination=${mount_dest} \
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
-                                                    /falkon/scripts/build_falkon.sh   
+                                                    ${entrypoint}
                                                 """
                                                 build_success = true
                                             }
