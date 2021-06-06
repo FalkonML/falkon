@@ -128,8 +128,9 @@ pipeline {
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
-                                                    ${entrypoint}
+                                                    ls -lah /var/jenkins_home/workspace/falkon_merge-csrc/falkon
                                                 """
+                                                //${entrypoint}
                                                 build_success = true
                                             }
                                         } finally {
