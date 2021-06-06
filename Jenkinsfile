@@ -21,6 +21,7 @@ pipeline {
         GIT_COMMIT = getGitCommit()
         GIT_TAG = getCommitTag()
     }
+
     stages {
         stage('pre-install') {
             steps {
@@ -107,18 +108,13 @@ pipeline {
                                             // If this fails, we can keep going to the next configuration.
                                             catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                                                 // We mount on the build-container using the same paths as the current container.
-                                                def mount_dest = "/var/jenkins_home"
-                                                def wheel_folder = "${WORKSPACE}/dist"
-                                                def entrypoint = "${WORKSPACE}/scripts/build_falkon.sh"
-                                                println "Mount destination ${mount_dest}"
-                                                println "Wheel folder ${wheel_folder}"
-                                                println "Entrypoint: ${entrypoint}"
+                                                def mount_dest = "/var/jenkins_home" // TODO: should make hardcoded path more robust to changes.
                                                 sh """
                                                 docker run --rm -t \
                                                     -e CUDA_VERSION=${cuda_version} \
                                                     -e PYTHON_VERSION=${py_version} \
                                                     -e PYTORCH_VERSION=${torch_version} \
-                                                    -e WHEEL_FOLDER=${wheel_folder} \
+                                                    -e WHEEL_FOLDER="${WORKSPACE}/dist" \
                                                     -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
                                                     -e GIT_TOKEN=\${GIT_TOKEN} \
                                                     -e BUILD_DOCS=${env.DOCS} \
@@ -128,7 +124,7 @@ pipeline {
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
-                                                    ${entrypoint}
+                                                    "${WORKSPACE}/scripts/build_falkon.sh"
                                                 """
                                                 build_success = true
                                             }
