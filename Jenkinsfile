@@ -101,6 +101,7 @@ pipeline {
                                                      string(credentialsId: 'GIT_TOKEN', variable: 'GIT_TOKEN')]) {
                                         try {
                                             // If this fails abort immediately 
+
                                             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                                 sh "CUDA_VERSION=${cuda_version} scripts/build_docker.sh"
                                             }
