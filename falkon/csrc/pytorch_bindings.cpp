@@ -19,7 +19,7 @@
 // OOC operations
 #include "cuda/multigpu_potrf.h"
 #include "cuda/lauum.h"
-#include "cuda/trtri.h"
+//#include "cuda/trtri.h"
 // Utilities
 #include "cuda/copy_transpose_cuda.h"
 #include "cuda/copy_triang_cuda.h"
@@ -142,6 +142,7 @@ torch::Tensor vec_mul_triang(torch::Tensor &A,
 #endif
 }
 
+/*
 torch::Tensor trtri(torch::Tensor &A, const bool lower, const bool unitdiag) {
 #ifdef WITH_CUDA
     return trtri_cuda(A, lower, unitdiag);
@@ -149,7 +150,7 @@ torch::Tensor trtri(torch::Tensor &A, const bool lower, const bool unitdiag) {
     AT_ERROR("Not compiled with CUDA support");
 #endif
 }
-
+*/
 
 torch::Tensor square_norm_call(const torch::Tensor &input, int64_t dim, torch::optional<bool> opt_keepdim)
 {
@@ -246,6 +247,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("square_norm", &square_norm_call, "Squared l2 norm squared. Supports both CUDA and CPU inputs.",
         py::arg("input"), py::arg("dim"), py::arg("keepdim"));
 
-  m.def("trtri", &trtri, "Triangular matrix inversion.",
+  /*m.def("trtri", &trtri, "Triangular matrix inversion.",
         py::arg("A"), py::arg("lower"), py::arg("unitdiag"));
+  */
 }
