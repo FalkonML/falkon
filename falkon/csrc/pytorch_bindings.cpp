@@ -19,7 +19,7 @@
 // OOC operations
 #include "cuda/multigpu_potrf.h"
 #include "cuda/lauum.h"
-#include "cuda/trtri.cuh"
+#include "cuda/trtri.h"
 // Utilities
 #include "cuda/copy_transpose_cuda.h"
 #include "cuda/copy_triang_cuda.h"
