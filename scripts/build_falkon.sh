@@ -62,6 +62,10 @@ time conda install --quiet --yes -n ${conda_env} \
 echo "$(date) || Installing KeOps..."
 time pip install --no-cache-dir --editable ./keops
 
+# DEBUG
+head -n 30 /usr/local/cuda/include/cusparse.h
+
+
 # Install Falkon
 echo "$(date) || Installing Falkon..."
 install_modifiers="[test"
