@@ -69,11 +69,11 @@ pipeline {
                                             reason = "This configuration is only processed when running a full deploy"
                                         }
                                     } else { // TODO: Temporary filters
-                                        if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.0')) {}
-                                        else {  
-                                            will_process = false
-                                            reason = "This configuration has been temporarily excluded from full deploy"
-                                        }
+                                        //if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.0')) {}
+                                        //else {  
+                                        //    will_process = false
+                                        //    reason = "This configuration has been temporarily excluded from full deploy"
+                                        //}
                                     }
 
                                     // Docs should only be built once
