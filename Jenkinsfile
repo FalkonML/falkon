@@ -63,7 +63,7 @@ pipeline {
                                         reason = "This configuration is invalid"
                                     }
                                     if (!full_deploy) {
-                                        if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.0')) {}
+                                        if ((torch_version == '1.8.1' && py_version == '3.8' && cuda_version == '11.1')) {}
                                         else {
                                             will_process = false
                                             reason = "This configuration is only processed when running a full deploy"
