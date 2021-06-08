@@ -70,6 +70,7 @@ if [ -n "${do_build_docs}" ]; then
   install_modifiers="${install_modifiers},doc"
 fi
 install_modifiers="${install_modifiers}]"
+export CC=g++
 time pip install --quiet --editable ".${install_modifiers}"
 echo "$(date) || Falkon installed."
 
@@ -90,6 +91,7 @@ echo "$(date) || Building wheel..."
 dist_name="torch-${PYTORCH_VERSION}+${cuda_name}"
 current_build_folder="${WHEEL_FOLDER}/${dist_name}"
 mkdir -p current_build_folder
+export CC=g++
 time python setup.py bdist_wheel --dist-dir="${current_build_folder}"
 ls -lah "${current_build_folder}"
 echo "$(date) || Wheel built."
@@ -110,6 +112,6 @@ fi
 
 # Clean-up
 echo "Cleaning up..."
-source deactivate
+conda deactivate
 conda env remove --quiet -yn "$conda_env"
 rm -rf "build/"
