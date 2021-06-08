@@ -151,10 +151,12 @@ class TestNarrow():
 class TestMatMul():
     @pytest.fixture(scope="class")
     def mat1(self):
+        torch.manual_seed(10)
         return torch.randn(200, 10)
 
     @pytest.fixture(scope="class")
     def mat2(self):
+        torch.manual_seed(11)
         return torch.randn(10, 100)
 
     @pytest.fixture(scope="class")

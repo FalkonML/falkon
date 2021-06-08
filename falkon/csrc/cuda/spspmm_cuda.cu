@@ -49,6 +49,8 @@ run_spspmm_cuda(
   const torch::Tensor &rowptrB_int = rowptrB.toType(torch::kInt);
   const torch::Tensor &colB_int = colB.toType(torch::kInt);
 
+  printf("M: %d, K: %d, N: %d -- nnzA: %d, nnzB: %d\n", M, K, N, nnzA, nnzB);
+
   TORCH_CUDASPARSE_CHECK(cusparseCreateCsr(&matA, M, K, nnzA, rowptrA_int.data_ptr<int>(), colA_int.data_ptr<int>(),
                                            valA.data_ptr<scalar_t>(), CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
                                            CUSPARSE_INDEX_BASE_ZERO, cuda_value_type));
