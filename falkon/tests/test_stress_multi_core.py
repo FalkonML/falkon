@@ -31,8 +31,7 @@ initialization.init(FalkonOptions())
 with open('{fname_A}', 'rb') as fh:
     A = pickle.load(fh)
 
-opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2**20,
-                    lauum_par_blk_multiplier=6)
+opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2**20)
 out = []
 for rep in range({num_rep}):
     act_up = gpu_lauum(A, upper=True, overwrite=False, opt=opt)
@@ -93,8 +92,7 @@ class TestStressOocLauum:
 
         # Expected result
         torch.cuda.empty_cache()
-        opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2**20,
-                            lauum_par_blk_multiplier=6)
+        opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=2 * 2**20)
         expected = gpu_lauum(A, upper=True, overwrite=False, opt=opt).cpu()
         # Compare actual vs expected
         wrong = 0

@@ -8,14 +8,14 @@ from falkon.utils.tensor_helpers import copy_same_stride
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import is_f_contig, is_contig
 from falkon.utils.stream_utils import sync_current_stream
-from falkon.options import FalkonOptions, LauumOptions
+from falkon.options import FalkonOptions
 from .ooc_utils import calc_block_sizes3
 from .parallel_lauum import par_lauum_f_lower, par_lauum_c_lower, BlockAlloc
 
 __all__ = ("gpu_lauum",)
 
 
-def _parallel_lauum_runner(A, write_opposite: bool, opt: LauumOptions, gpu_info):
+def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
     # Choose target:
     if is_f_contig(A):
         target = par_lauum_f_lower
@@ -129,7 +129,7 @@ def gpu_lauum(A, upper, overwrite=True, write_opposite=False, opt: Optional[Falk
         transposed = True
 
     # The parallel runner chooses based on the contiguity pattern of the inputs.
-    _parallel_lauum_runner(A, write_opposite, opt, gpu_info)
+    _parallel_lauum_runner(A, write_opposite, gpu_info)
 
     if transposed:
         A = A.T

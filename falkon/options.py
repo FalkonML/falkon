@@ -3,8 +3,14 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-__all__ = ("BaseOptions", "KeopsOptions", "ConjugateGradientOptions", "PreconditionerOptions",
-           "LauumOptions", "CholeskyOptions", "FalkonOptions")
+__all__ = (
+    "BaseOptions",
+    "KeopsOptions",
+    "ConjugateGradientOptions",
+    "PreconditionerOptions",
+    "CholeskyOptions",
+    "FalkonOptions",
+)
 
 _docs = {
     "base":
@@ -99,6 +105,10 @@ keops_active
     'auto' (the default setting) means that KeOps will be used if it is installed correctly,
     'no' means keops will not be used, nor will it be imported, and 'force' means that if KeOps is
     not installed an error will be raised.
+keops_memory_slack
+    `default 0.7` - Controls the amount of slack used when calculating the matrix splits for KeOps.
+    Since memory usage estimation for KeOps is hard, you may need to reduce this value if running
+    out-of-GPU-memory when using KeOps. Typically this only occurs for large datasets.
     """,
     "cg":
     """
@@ -127,13 +137,6 @@ pc_epsilon_64
 cpu_preconditioner
     `default False` - Whether the preconditioner should be computed on the CPU. This setting
     overrides the :attr:`FalkonOptions.use_cpu` option.
-    """,
-    "lauum":
-    """
-lauum_par_blk_multiplier
-    `default 8` - Minimum number of tiles per-GPU for the LAUUM algorithm. This can be set
-    quite high (e.g. 8) without too much performance degradation. Optimal settings will depend
-    on the number of GPUs.
     """,
     "chol":
     """
@@ -193,11 +196,14 @@ class KeopsOptions():
     keops_acc_dtype: str = "auto"
     keops_sum_scheme: str = "auto"
     keops_active: str = "auto"
+    keops_memory_slack: float = 0.7
 
     def get_keops_options(self):
         return KeopsOptions(keops_acc_dtype=self.keops_acc_dtype,
                             keops_sum_scheme=self.keops_sum_scheme,
-                            keops_active=self.keops_active)
+                            keops_active=self.keops_active,
+                            keops_memory_slack=self.keops_memory_slack,
+                            )
 
 
 @dataclass
@@ -252,17 +258,6 @@ class PreconditionerOptions():
 
 
 @dataclass(frozen=False)
-class LauumOptions():
-    """Options related to the out-of-core LAUUM (triangular matrix multiplication) operation
-
-    """
-    lauum_par_blk_multiplier: int = 8
-
-    def get_lauum_options(self):
-        return LauumOptions(lauum_par_blk_multiplier=self.lauum_par_blk_multiplier)
-
-
-@dataclass(frozen=False)
 class CholeskyOptions():
     """Options related to the out-of-core POTRF (Cholesky decomposition) operation
 
@@ -278,8 +273,12 @@ class CholeskyOptions():
 
 
 @dataclass()
-class FalkonOptions(BaseOptions, ConjugateGradientOptions, PreconditionerOptions, LauumOptions,
-                    CholeskyOptions, KeopsOptions):
+class FalkonOptions(
+        BaseOptions,
+        ConjugateGradientOptions,
+        PreconditionerOptions,
+        CholeskyOptions,
+        KeopsOptions,):
     """Global options for Falkon."""
     pass
 
@@ -293,10 +292,9 @@ _reset_doc(BaseOptions, _docs["base"])
 _reset_doc(KeopsOptions, _docs["keops"])
 _reset_doc(ConjugateGradientOptions, _docs["cg"])
 _reset_doc(PreconditionerOptions, _docs["pc"])
-_reset_doc(LauumOptions, _docs["lauum"])
 _reset_doc(CholeskyOptions, _docs["chol"])
 
 
-FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s%s\n\n%s" % (
-    FalkonOptions.__doc__, _docs["base"], _docs["keops"], _docs["cg"], _docs["pc"], _docs["lauum"],
+FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s\n\n%s" % (
+    FalkonOptions.__doc__, _docs["base"], _docs["keops"], _docs["cg"], _docs["pc"],
     _docs["chol"], _docs["extra"])

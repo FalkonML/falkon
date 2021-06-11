@@ -31,7 +31,7 @@ np.random.seed(RANDOM_SEED)
 
 def run(exp_num, dset, show_intermediate_errors: bool = False):
     opt = falkon.FalkonOptions(
-        lauum_par_blk_multiplier=16, debug=True,
+        debug=True,
         pc_epsilon_32=1e-6, pc_epsilon_64=1e-13,
         compute_arch_speed=False)
     params = {

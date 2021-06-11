@@ -213,7 +213,7 @@ def run_keops_mmv(X1: torch.Tensor,
 
     if backend.startswith("GPU") and device.type == 'cpu':
         # slack is high due to imprecise memory usage estimates for keops
-        gpu_info = _get_gpu_info(opt, slack=0.7)
+        gpu_info = _get_gpu_info(opt, slack=opt.keops_memory_slack)
         block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
         # Create queues
