@@ -40,7 +40,6 @@ pipeline {
                 }
             }
         }
-     
         stage('main-pipeline') {
             steps {
                 script {
