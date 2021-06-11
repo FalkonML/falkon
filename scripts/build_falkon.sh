@@ -44,7 +44,7 @@ if [ -n "${is_cpu_only}" ]; then
 else
   echo "Switching to CUDA version ${CUDA_VERSION}"
   . scripts/switch_cuda_version.sh "${CUDA_VERSION}"
-  cuda_toolkit=""#cudatoolkit=${CUDA_VERSION}"
+  cuda_toolkit="" #cudatoolkit=${CUDA_VERSION}"
   cuda_name="cuda${CUDA_VERSION}"
 fi
 
@@ -62,8 +62,7 @@ source activate "${conda_env}"
     set +u
     echo "$(date) || Installing PyTorch version ${PYTORCH_VERSION}..."
     time conda install --quiet --yes -n ${conda_env} \
-                      pytorch=${PYTORCH_VERSION} \
-                      "${cuda_toolkit}" \
+                      pytorch=${PYTORCH_VERSION} ${cuda_toolkit} \
                       -c pytorch -c conda-forge
 )
 
