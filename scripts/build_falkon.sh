@@ -44,7 +44,7 @@ if [ -n "${is_cpu_only}" ]; then
 else
   echo "Switching to CUDA version ${CUDA_VERSION}"
   . scripts/switch_cuda_version.sh "${CUDA_VERSION}"
-  cuda_toolkit="cudatoolkit=${CUDA_VERSION}"
+  cuda_toolkit=""#cudatoolkit=${CUDA_VERSION}"
   cuda_name="cuda${CUDA_VERSION}"
 fi
 
@@ -53,11 +53,19 @@ conda create --quiet --yes -n "${conda_env}" python="${PYTHON_VERSION}"
 source activate "${conda_env}"
 
 # Install Prerequisites
-echo "$(date) || Installing PyTorch version ${PYTORCH_VERSION}..."
-time conda install --quiet --yes -n ${conda_env} \
-                  pytorch=${PYTORCH_VERSION} \
-                  "${cuda_toolkit}" \
-                  -c pytorch -c conda-forge
+(
+    # For some reason conda likes to re-activate the conda environment when attempting this install
+    # which means that a deactivate is run and some variables might not exist when that happens,
+    # namely CONDA_MKL_INTERFACE_LAYER_BACKUP from libblas so let's just ignore unbound variables when
+    # it comes to the conda installation commands
+    # NOTE: This seems to only be a problem with python3.6
+    set +u
+    echo "$(date) || Installing PyTorch version ${PYTORCH_VERSION}..."
+    time conda install --quiet --yes -n ${conda_env} \
+                      pytorch=${PYTORCH_VERSION} \
+                      "${cuda_toolkit}" \
+                      -c pytorch -c conda-forge
+)
 
 echo "$(date) || Installing KeOps..."
 time pip install --no-cache-dir --editable ./keops
