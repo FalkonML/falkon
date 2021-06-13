@@ -48,9 +48,24 @@ else
   cuda_name="cuda${CUDA_VERSION}"
 fi
 
+# Create new conda env
 conda_env="${cuda_name}-${PYTHON_VERSION}-${PYTORCH_VERSION}"
 conda create --quiet --yes -n "${conda_env}" python="${PYTHON_VERSION}"
 source activate "${conda_env}"
+
+SETUPTOOLS_VERSION="=46.0.0"
+case ${PYTHON_VERSION} in
+    3.9)
+        SETUPTOOLS_VERSION=">=46.0.0"
+        NUMPY_VERSION="=1.19"
+        ;;
+    3.8)
+        NUMPY_VERSION="=1.17"
+        ;;
+    *)
+        NUMPY_VERSION="1.11.3"
+        ;;
+esac
 
 # Install Prerequisites
 (
@@ -64,11 +79,14 @@ source activate "${conda_env}"
     time conda install --quiet --yes -n ${conda_env} \
                       pytorch=${PYTORCH_VERSION} ${cuda_toolkit} \
                       -c pytorch -c conda-forge
+    echo "$(date) || Pytorch installed. Installing other dependencies..."
 )
-
-echo "$(date) || Installing KeOps..."
+time conda install --quiet --yes -n ${conda_env} \
+                  "numpy${NUMPY_VERSION}" nomkl "setuptools${SETUPTOOLS_VERSION}"
+time conda install --quiet --yes -n ${conda_env} \
+                  mkl-include==2020.1 mkl-static==2020.1 -c intel
 time pip install --no-cache-dir --editable ./keops
-
+time pip install --quiet cython~=0.29
 
 # Install Falkon
 echo "$(date) || Installing Falkon..."
@@ -84,7 +102,6 @@ echo "$(date) || Falkon installed."
 # Test Falkon
 echo "$(date) || Testing Falkon..."
 #flake8 --count falkon
-#pytest 'falkon/tests/test_kernels.py::TestLaplacianKernel::test_mmv[No KeOps-gpu]'
 pytest --cov-report=term-missing --cov-report=xml:coverage.xml --cov=falkon --cov-config setup.cfg
 if [ -n "${do_codecov}" ]; then
   echo "$(date) || Uploading test-data to codecov..."
