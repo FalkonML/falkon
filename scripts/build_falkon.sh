@@ -54,18 +54,7 @@ conda create --quiet --yes -n "${conda_env}" python="${PYTHON_VERSION}"
 source activate "${conda_env}"
 
 SETUPTOOLS_VERSION="=46.0.0"
-case ${PYTHON_VERSION} in
-    3.9)
-        SETUPTOOLS_VERSION=">=46.0.0"
-        NUMPY_VERSION="=1.19"
-        ;;
-    3.8)
-        NUMPY_VERSION="=1.17"
-        ;;
-    *)
-        NUMPY_VERSION="1.11.3"
-        ;;
-esac
+NUMPY_VERSION="=1.19"
 
 # Install Prerequisites
 (
