@@ -44,7 +44,7 @@ if [ -n "${is_cpu_only}" ]; then
 else
   echo "Switching to CUDA version ${CUDA_VERSION}"
   . scripts/switch_cuda_version.sh "${CUDA_VERSION}"
-  cuda_toolkit="" #cudatoolkit=${CUDA_VERSION}"
+  cuda_toolkit="cudatoolkit=${CUDA_VERSION}"
   cuda_name="cuda${CUDA_VERSION}"
 fi
 
