@@ -43,6 +43,7 @@ if [ -n "${is_cpu_only}" ]; then
   cuda_name="cpu"
 else
   echo "Switching to CUDA version ${CUDA_VERSION}"
+  # will export CUDA_VERSION, CUDNN_VERSION
   . scripts/switch_cuda_version.sh "${CUDA_VERSION}"
   cuda_toolkit="cudatoolkit=${CUDA_VERSION}"
   cuda_name="cuda${CUDA_VERSION}"
@@ -53,29 +54,27 @@ conda_env="${cuda_name}-${PYTHON_VERSION}-${PYTORCH_VERSION}"
 conda create --quiet --yes -n "${conda_env}" python="${PYTHON_VERSION}"
 source activate "${conda_env}"
 
+echo "$(date) || Installing dependencies..."
 SETUPTOOLS_VERSION="=46.0.0"
 NUMPY_VERSION="=1.19"
-
-# Install Prerequisites
-(
-    # For some reason conda likes to re-activate the conda environment when attempting this install
-    # which means that a deactivate is run and some variables might not exist when that happens,
-    # namely CONDA_MKL_INTERFACE_LAYER_BACKUP from libblas so let's just ignore unbound variables when
-    # it comes to the conda installation commands
-    # NOTE: This seems to only be a problem with python3.6
-    set +u
-    echo "$(date) || Installing PyTorch version ${PYTORCH_VERSION}..."
-    time conda install --quiet --yes -n ${conda_env} \
-                      pytorch=${PYTORCH_VERSION} ${cuda_toolkit} \
-                      -c pytorch -c conda-forge
-    echo "$(date) || Pytorch installed. Installing other dependencies..."
-)
+CYTHON_VERSION="=0.29"
+MKL_VERSION="==2020.1"
+# numpy (no mkl), setuptools, cython
 time conda install --quiet --yes -n ${conda_env} \
-                  "numpy${NUMPY_VERSION}" nomkl "setuptools${SETUPTOOLS_VERSION}"
+                  "numpy${NUMPY_VERSION}" nomkl \
+                  "setuptools${SETUPTOOLS_VERSION}" \
+                  "cython${CYTHON_VERSION}"
+# mkl
 time conda install --quiet --yes -n ${conda_env} \
-                  mkl-include==2020.1 mkl-static==2020.1 -c intel
+                  "mkl-include${MKL_VERSION}" "mkl-static${MKL_VERSION}" -c intel
+# pytorch (via pip)
+TORCH_CUDA_VERSION="cu$(echo ${CUDA_VERSION} | tr -d'.')"
+TORCH_PYTHON_VERSION="$(echo $PYTHON_VERSION | tr -d'.')"
+TORCH_WHEEL_NAME="${TORCH_CUDA_VERSION}/torch-${PYTORCH_VERSION}+${TORCH_CUDA_VERSION}-cp${TORCH_PYTHON_VERSION}-cp${TORCH_PYTHON_VERSION}m-linux_x86_64.whl"
+time pip install --no-cache-dir "https://download.pytorch.org/whl/${TORCH_WHEEL_NAME}"
+# keops (via pip)
 time pip install --no-cache-dir --editable ./keops
-time pip install --quiet cython~=0.29
+echo "$(date) || Dependencies installed."
 
 # Install Falkon
 echo "$(date) || Installing Falkon..."
