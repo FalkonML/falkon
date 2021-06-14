@@ -99,7 +99,7 @@ time pip install --quiet --editable ".${install_modifiers}"
 echo "$(date) || Falkon installed."
 
 # DEBUG
-ldconfig -p | grep cusolver
+ldd falkon/c_ext.so
 
 # Test Falkon
 echo "$(date) || Testing Falkon..."
