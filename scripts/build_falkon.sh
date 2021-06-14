@@ -68,8 +68,8 @@ time conda install --quiet --yes -n ${conda_env} \
 time conda install --quiet --yes -n ${conda_env} \
                   "mkl-include${MKL_VERSION}" "mkl-static${MKL_VERSION}" -c intel
 # pytorch (via pip)
-TORCH_CUDA_VERSION="cu$(echo ${CUDA_VERSION} | tr -d'.')"
-TORCH_PYTHON_VERSION="$(echo $PYTHON_VERSION | tr -d'.')"
+TORCH_CUDA_VERSION="cu$(echo ${CUDA_VERSION} | tr -d '.')"
+TORCH_PYTHON_VERSION="$(echo $PYTHON_VERSION | tr -d '.')"
 TORCH_WHEEL_NAME="${TORCH_CUDA_VERSION}/torch-${PYTORCH_VERSION}+${TORCH_CUDA_VERSION}-cp${TORCH_PYTHON_VERSION}-cp${TORCH_PYTHON_VERSION}m-linux_x86_64.whl"
 time pip install --no-cache-dir "https://download.pytorch.org/whl/${TORCH_WHEEL_NAME}"
 # keops (via pip)
