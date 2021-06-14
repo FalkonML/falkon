@@ -81,8 +81,8 @@ else
 fi
 TORCH_WHEEL_NAME="${TORCH_CUDA_VERSION}/torch-${PYTORCH_VERSION}+${TORCH_CUDA_VERSION}-cp${TORCH_PYTHON_VERSION}-cp${TORCH_PYTHON_VERSION_2}-linux_x86_64.whl"
 TORCH_WHEEL_ALT_NAME="${TORCH_CUDA_VERSION}/torch-${PYTORCH_VERSION}-cp${TORCH_PYTHON_VERSION}-cp${TORCH_PYTHON_VERSION_2}-linux_x86_64.whl"
-time pip install --no-cache-dir "https://download.pytorch.org/whl/${TORCH_WHEEL_NAME}" || \
-     pip install --no-cache-dir "https://download.pytorch.org/whl/${TORCH_WHEEL_ALT_NAME}"
+time pip install --quiet --no-cache-dir "https://download.pytorch.org/whl/${TORCH_WHEEL_NAME}" || \
+     pip install --quiet --no-cache-dir "https://download.pytorch.org/whl/${TORCH_WHEEL_ALT_NAME}"
 # keops (via pip)
 time pip install --no-cache-dir --editable ./keops
 echo "$(date) || Dependencies installed."
@@ -97,6 +97,9 @@ install_modifiers="${install_modifiers}]"
 export CC=g++
 time pip install --quiet --editable ".${install_modifiers}"
 echo "$(date) || Falkon installed."
+
+# DEBUG
+ldconfig -p | grep cusolver
 
 # Test Falkon
 echo "$(date) || Testing Falkon..."

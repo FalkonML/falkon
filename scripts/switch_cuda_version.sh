@@ -18,6 +18,8 @@ ln -s "$CUDA_DIR" /usr/local/cuda
 CUDA_VERSION=$(nvcc --version | sed -n 4p | cut -f5 -d" " | cut -f1 -d",")
 CUDNN_VERSION=$(find /usr/local/cuda/lib64/libcudnn.so.* | sort | tac | head -1 | rev | cut -d"." -f -3 | rev)
 export CUDNN_VERSION
+# needed to see the shared objects when using pip for installing pytorch
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64/"
 
 ls -lah /usr/local/cuda
 
