@@ -68,10 +68,19 @@ time conda install --quiet --yes -n ${conda_env} \
 time conda install --quiet --yes -n ${conda_env} \
                   "mkl-include${MKL_VERSION}" "mkl-static${MKL_VERSION}" -c intel
 # pytorch (via pip)
-TORCH_CUDA_VERSION="cu$(echo ${CUDA_VERSION} | tr -d '.')"
+if [ -n "${is_cpu_only}" ]; then
+    TORCH_CUDA_VERSION="cpu"
+else
+    TORCH_CUDA_VERSION="cu$(echo ${CUDA_VERSION} | tr -d '.')"
+fi
 TORCH_PYTHON_VERSION="$(echo $PYTHON_VERSION | tr -d '.')"
-TORCH_WHEEL_NAME="${TORCH_CUDA_VERSION}/torch-${PYTORCH_VERSION}+${TORCH_CUDA_VERSION}-cp${TORCH_PYTHON_VERSION}-cp${TORCH_PYTHON_VERSION}m-linux_x86_64.whl"
-TORCH_WHEEL_ALT_NAME="${TORCH_CUDA_VERSION}/torch-${PYTORCH_VERSION}-cp${TORCH_PYTHON_VERSION}-cp${TORCH_PYTHON_VERSION}m-linux_x86_64.whl"
+if [ "$PYTHON_VERSION" == "3.6" || "$PYTHON_VERSION" == "3.7" ]; then
+    TORCH_PYTHON_VERSION_2="${TORCH_PYTHON_VERSION}m"
+else
+    TORCH_PYTHON_VERSION_2="$TORCH_PYTHON_VERSION"
+fi
+TORCH_WHEEL_NAME="${TORCH_CUDA_VERSION}/torch-${PYTORCH_VERSION}+${TORCH_CUDA_VERSION}-cp${TORCH_PYTHON_VERSION}-cp${TORCH_PYTHON_VERSION_2}-linux_x86_64.whl"
+TORCH_WHEEL_ALT_NAME="${TORCH_CUDA_VERSION}/torch-${PYTORCH_VERSION}-cp${TORCH_PYTHON_VERSION}-cp${TORCH_PYTHON_VERSION_2}-linux_x86_64.whl"
 time pip install --no-cache-dir "https://download.pytorch.org/whl/${TORCH_WHEEL_NAME}" || \
      pip install --no-cache-dir "https://download.pytorch.org/whl/${TORCH_WHEEL_ALT_NAME}"
 # keops (via pip)
