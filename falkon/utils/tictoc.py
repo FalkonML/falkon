@@ -1,6 +1,19 @@
 import multiprocessing as mpr
 import threading as thr
 import time
+from typing import List, Optional
+
+
+class Timer:
+    def __init__(self, time_list: List[float]):
+        self.times = time_list
+        self.start_time: Optional[float] = None
+
+    def __enter__(self):
+        self.start_time = time.time()
+
+    def __exit__(self, type, value, traceback):
+        self.times.append(time.time() - self.start_time)
 
 
 class TicToc:

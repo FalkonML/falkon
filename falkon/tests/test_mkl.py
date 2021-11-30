@@ -13,14 +13,14 @@ _RTOL = {torch.float32: 1e-6, torch.float64: 1e-13}
 
 @pytest.fixture(scope="module")
 def sparse1():
-    A = gen_sparse_matrix(50, 1_000_000, np.float64, 1e-6)
+    A = gen_sparse_matrix(50, 100_000, np.float64, 1e-5)
     Ad = torch.from_numpy(A.to_scipy().todense())
     return A, Ad
 
 
 @pytest.fixture(scope="module")
 def sparse2():
-    B = gen_sparse_matrix(1_000_000, 50, np.float64, 1e-6)
+    B = gen_sparse_matrix(100_000, 50, np.float64, 1e-5)
     Bd = torch.from_numpy(B.to_scipy().todense())
     return B, Bd
 
@@ -37,7 +37,10 @@ def assert_sparse_equal(s1: SparseTensor, s2: SparseTensor):
     np.testing.assert_allclose(s1.data.numpy(), s2.data.numpy())
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64], ids=["float32", "float64"])
+@pytest.mark.parametrize(
+    "dtype",
+    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
+    ids=["float32", "float64"])
 def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
     orig, _ = sparse1
     orig = orig.to(dtype=dtype)
@@ -47,7 +50,10 @@ def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
     mkl.mkl_sparse_destroy(mkl_sparse1)
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64], ids=["float32", "float64"])
+@pytest.mark.parametrize(
+    "dtype",
+    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
+    ids=["float32", "float64"])
 def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
     orig, _ = sparse1
     orig = orig.to(dtype=dtype)
@@ -58,7 +64,10 @@ def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtyp
     mkl.mkl_sparse_destroy(mkl_sparse1)
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64], ids=["float32", "float64"])
+@pytest.mark.parametrize(
+    "dtype",
+    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
+    ids=["float32", "float64"])
 def test_convert_csr(sparse2: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
     orig, dense = sparse2
     orig = orig.to(dtype=dtype)
@@ -86,7 +95,10 @@ def test_csc_creation(sparse1: Tuple[SparseTensor, torch.Tensor], mkl):
     mkl.mkl_sparse_destroy(mkl_csc)
 
 
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64], ids=["float32", "float64"])
+@pytest.mark.parametrize(
+    "dtype",
+    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
+    ids=["float32", "float64"])
 def test_spmmd(mkl, sparse1, sparse2, dtype):
     # sparse1 @ sparse2
     smat1, dmat1 = sparse1
@@ -111,3 +123,7 @@ def test_spmmd(mkl, sparse1, sparse2, dtype):
 
     mkl.mkl_sparse_destroy(mkl_As)
     mkl.mkl_sparse_destroy(mkl_Bs)
+
+
+if __name__ == "__main__":
+    pytest.main()

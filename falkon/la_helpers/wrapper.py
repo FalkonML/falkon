@@ -43,9 +43,8 @@ def zero_triang(mat: arr_type, upper: bool) -> arr_type:
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
-            # noinspection PyUnresolvedReferences
-            from falkon.la_helpers.cuda_la_helpers import cuda_mul_triang
-            return cuda_mul_triang(mat, upper=upper, preserve_diag=True, multiplier=0.0)
+            from falkon.c_ext import mul_triang
+            return mul_triang(mat, upper=upper, preserve_diag=True, multiplier=0.0)
         else:
             out_torch_convert = True
             mat = mat.numpy()
@@ -84,9 +83,8 @@ def mul_triang(mat: arr_type, upper: bool, preserve_diag: bool, multiplier: floa
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
-            # noinspection PyUnresolvedReferences
-            from falkon.la_helpers.cuda_la_helpers import cuda_mul_triang
-            return cuda_mul_triang(mat, upper=upper, preserve_diag=preserve_diag, multiplier=multiplier)
+            from falkon.c_ext import mul_triang
+            return mul_triang(mat, upper=upper, preserve_diag=preserve_diag, multiplier=multiplier)
         else:
             out_torch_convert = True
             mat = mat.numpy()
@@ -119,9 +117,8 @@ def copy_triang(mat: arr_type, upper: bool) -> arr_type:
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
-            # noinspection PyUnresolvedReferences
-            from falkon.la_helpers.cuda_la_helpers import cuda_copy_triang
-            return cuda_copy_triang(mat, upper=upper)
+            from falkon.c_ext import copy_triang
+            return copy_triang(mat, upper=upper)
         else:
             out_torch_convert = True
             mat = mat.numpy()
@@ -135,10 +132,9 @@ def vec_mul_triang(mat: arr_type, multipliers: arr_type, upper: bool, side: int)
     out_torch_convert = False
     if isinstance(mat, torch.Tensor):
         if mat.is_cuda:
-            # noinspection PyUnresolvedReferences
-            from falkon.la_helpers.cuda_la_helpers import cuda_vec_mul_triang
+            from falkon.c_ext import vec_mul_triang
             multipliers = multipliers.reshape(-1)
-            return cuda_vec_mul_triang(mat, multipliers, upper, side)
+            return vec_mul_triang(mat, multipliers, upper, side)
         else:
             out_torch_convert = True
             mat = mat.numpy()

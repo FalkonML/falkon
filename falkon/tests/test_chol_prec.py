@@ -68,7 +68,15 @@ def assert_invariant_on_prec(prec, n, kMM, la, tol=1e-8):
 
 
 M = 100
-N = 50_000
+N = 50_000  # Used only for normalization.
+
+
+@pytest.fixture()
+def rtol():
+    return {
+        np.float64: 1e-10,
+        np.float32: 1e-2
+    }
 
 
 @pytest.fixture(scope="module")
@@ -87,22 +95,18 @@ def gram(kernel, mat):
     return kernel(torch.from_numpy(mat), torch.from_numpy(mat), opt=opt)
 
 
+@pytest.mark.parametrize("cpu", [
+    pytest.param(True),
+    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
+], ids=["cpu", "gpu"])
 class TestFalkonPreconditioner:
-    rtol = {
-        np.float64: 1e-10,
-        np.float32: 1e-2
-    }
     basic_opt = FalkonOptions(compute_arch_speed=False, no_single_kernel=True)
 
     @pytest.mark.parametrize("order", ["C", "F"])
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    @pytest.mark.parametrize("cpu", [
-        pytest.param(True),
-        pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
-    ], ids=["cpu", "gpu"])
-    def test_simple(self, mat, kernel, gram, cpu, dtype, order):
+    @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
+    def test_simple(self, mat, kernel, gram, cpu, dtype, order, rtol):
         opt = dataclasses.replace(self.basic_opt, use_cpu=cpu, cpu_preconditioner=cpu)
-        rtol = self.rtol[dtype]
+        rtol = rtol[dtype]
 
         mat = fix_mat(mat, dtype=dtype, order=order, copy=True)
         gram = fix_mat(gram, dtype=dtype, order=order, copy=True)
@@ -115,11 +119,7 @@ class TestFalkonPreconditioner:
         assert_invariant_on_T(prec, gram, tol=rtol * 10)
         assert_invariant_on_prec(prec, N, gram, la, tol=rtol * 10)
 
-    @pytest.mark.parametrize("cpu", [
-        pytest.param(True),
-        pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
-    ], ids=["cpu", "gpu"])
-    def test_zero_lambda(self, mat, kernel, gram, cpu):
+    def test_zero_lambda(self, mat, kernel, gram, cpu, rtol):
         opt = dataclasses.replace(self.basic_opt, use_cpu=cpu, cpu_preconditioner=cpu)
         mat = fix_mat(mat, dtype=np.float64, order="K", copy=True)
         gram = fix_mat(gram, dtype=np.float64, order="K", copy=True)
@@ -132,37 +132,39 @@ class TestFalkonPreconditioner:
         assert_invariant_on_T(prec, gram, tol=1e-9)
         assert_invariant_on_prec(prec, N, gram, la, tol=1e-8)
 
-    @pytest.mark.parametrize("order", ["C", "F"])
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
-    def test_cuda_start(self, mat, kernel, gram, dtype, order):
-        opt = dataclasses.replace(self.basic_opt, use_cpu=False, cpu_preconditioner=False)
-        rtol = self.rtol[dtype]
 
-        mat = fix_mat(mat, dtype=dtype, order=order, copy=True)
-        gpu_mat = move_tensor(mat, "cuda:0")
-        gram = fix_mat(gram, dtype=dtype, order=order, copy=True)
-        gpu_gram = move_tensor(gram, "cuda:0")
+@pytest.mark.parametrize("order", ["C", "F"])
+@pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
+@pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
+def test_incore(mat, kernel, gram, dtype, order, rtol):
+    opt = FalkonOptions(no_single_kernel=True, use_cpu=False, cpu_preconditioner=False)
+    _rtol = rtol[dtype]
 
-        la = 1
+    mat = fix_mat(mat, dtype=dtype, order=order, copy=True)
+    gpu_mat = move_tensor(mat, "cuda:0")
+    gram = fix_mat(gram, dtype=dtype, order=order, copy=True)
+    gpu_gram = move_tensor(gram, "cuda:0")
 
-        prec = FalkonPreconditioner(la, kernel, opt)
-        prec.init(mat)
+    la = 1
 
-        gpu_prec = FalkonPreconditioner(la, kernel, opt)
-        gpu_prec.init(gpu_mat)
+    prec = FalkonPreconditioner(la, kernel, opt)
+    prec.init(mat)
 
-        np.testing.assert_allclose(prec.dT.numpy(), gpu_prec.dT.cpu().numpy(), rtol=rtol)
-        np.testing.assert_allclose(prec.dA.numpy(), gpu_prec.dA.cpu().numpy(), rtol=rtol)
-        np.testing.assert_allclose(prec.fC.numpy(), gpu_prec.fC.cpu().numpy(), rtol=rtol * 10)
-        assert gpu_prec.fC.device == gpu_mat.device, "Device changed unexpectedly"
+    gpu_prec = FalkonPreconditioner(la, kernel, opt)
+    gpu_prec.init(gpu_mat)
 
-        assert_invariant_on_TT(gpu_prec, gpu_gram, tol=rtol)
-        assert_invariant_on_AT(prec, gram, la, tol=rtol)
-        assert_invariant_on_T(prec, gram, tol=rtol * 10)
-        assert_invariant_on_prec(prec, N, gram, la, tol=rtol * 10)
+    np.testing.assert_allclose(prec.dT.numpy(), gpu_prec.dT.cpu().numpy(), rtol=_rtol)
+    np.testing.assert_allclose(prec.dA.numpy(), gpu_prec.dA.cpu().numpy(), rtol=_rtol)
+    np.testing.assert_allclose(prec.fC.numpy(), gpu_prec.fC.cpu().numpy(), rtol=_rtol * 10)
+    assert gpu_prec.fC.device == gpu_mat.device, "Device changed unexpectedly"
+
+    assert_invariant_on_TT(gpu_prec, gpu_gram, tol=_rtol)
+    assert_invariant_on_AT(prec, gram, la, tol=_rtol)
+    assert_invariant_on_T(prec, gram, tol=_rtol * 10)
+    assert_invariant_on_prec(prec, N, gram, la, tol=_rtol * 10)
 
 
+@pytest.mark.full
 @unittest.skipIf(not decide_cuda(), "No GPU found.")
 def test_cpu_gpu_equality(mat, kernel, gram):
     la = 12.3

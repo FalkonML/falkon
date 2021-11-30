@@ -256,7 +256,7 @@ class LogisticLoss(Loss):
         loss
             The logistic loss between the two input vectors.
         """
-        return torch.log(1 + torch.exp(-y1 * y2))
+        return torch.log(torch.tensor(1, dtype=y1.dtype) + torch.exp(-y1 * y2))
 
     def df(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
         r"""Compute the derivative of the logistic loss with respect to `y2`
@@ -377,8 +377,8 @@ class WeightedCrossEntropyLoss(Loss):
         loss
             The weighted BCE loss between the two input vectors.
         """
-        class1 = true * torch.log(1 + torch.exp(-pred))
-        class0 = self.neg_weight * (1 - true) * torch.log(1 + torch.exp(pred))
+        class1 = true * torch.log(torch.tensor(1, dtype=pred.dtype) + torch.exp(-pred))
+        class0 = self.neg_weight * (1 - true) * torch.log(torch.tensor(1, dtype=pred.dtype) + torch.exp(pred))
 
         return (class1 + class0)
 

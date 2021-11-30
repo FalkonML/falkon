@@ -15,6 +15,7 @@ __all__ = ("cublasSetMatrix", "cublasSetMatrixAsync",
            "cublasXtGetBlockDim", "cublasXtSetBlockDim",
            "cublasDtrmm", "cublasStrmm",
            "cublasCreate", "cublasDestroy",
+           "CUBLAS_FILL_MODE"
            )
 
 # Global variables
@@ -177,21 +178,21 @@ _libcublas.cublasSetStream_v2.argtypes = [ctypes.c_void_p,
                                           ctypes.c_void_p]
 
 
-def cublasSetStream(handle, id):
+def cublasSetStream(handle, s_id):
     """
     Set current CUBLAS library stream.
     Parameters
     ----------
     handle : id
         CUBLAS context.
-    id : int
+    s_id : int
         Stream ID.
     References
     ----------
     `cublasSetStream <http://docs.nvidia.com/cuda/cublas/#cublassetstream>`_
     """
 
-    status = _libcublas.cublasSetStream_v2(handle, id)
+    status = _libcublas.cublasSetStream_v2(handle, s_id)
     cublas_check_status(status)
 
 
@@ -216,10 +217,10 @@ def cublasGetStream(handle):
     `cublasGetStream <http://docs.nvidia.com/cuda/cublas/#cublasgetstream>`_
     """
 
-    id = ctypes.c_void_p()
-    status = _libcublas.cublasGetStream_v2(handle, ctypes.byref(id))
+    s_id = ctypes.c_void_p()
+    status = _libcublas.cublasGetStream_v2(handle, ctypes.byref(s_id))
     cublas_check_status(status)
-    return id.value
+    return s_id.value
 
 
 @contextmanager

@@ -1,12 +1,13 @@
 import dataclasses
-import warnings
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, Union
 
-from falkon.mmv_ops.fmm_cpu import fmm_cpu_sparse, fmm_cpu
-from falkon.mmv_ops.fmmv_cpu import fdmmv_cpu_sparse, fmmv_cpu_sparse, fmmv_cpu, fdmmv_cpu
+import torch
+from falkon.sparse import SparseTensor
+
+from falkon.mmv_ops.fmm import fmm
+from falkon.mmv_ops.fmmv import fdmmv, fmmv
 from falkon.utils.helpers import check_same_dtype, check_sparse, check_same_device
-from falkon.utils import decide_cuda
 from falkon.options import FalkonOptions
 
 
@@ -14,20 +15,33 @@ class Kernel(ABC):
     """Abstract kernel class. Kernels should inherit from this class, overriding appropriate methods.
 
     To extend Falkon with new kernels, you should read the documentation of this class
-    carefully. In particular, you will **need** to implement :meth:`_prepare`, :meth:`_apply` and
-    :meth:`_finalize` methods.
+    carefully, and take a look at the existing implementation of :class:`~falkon.kernels.GaussianKernel`
+    or :class:`~falkon.kernels.LinearKernel`.
 
-    Other methods which should be optionally implemented are the sparse versions
-    :meth:`_prepare_sparse` and :meth:`_apply_sparse` (note that there is no `_finalize_sparse`,
-    since the `_finalize` takes as input a partial kernel matrix, and even with sparse data,
-    kernel matrices are assumed to be dense. Therefore, even for sparse data, the :meth:`_finalize`
-    method will be used.
+    There are several abstract methods which should be implemented, depending on which kind of operations
+    which are supported by the implementing kernel.
+
+    The :meth:`compute` method should compute the kernel matrix, without concerns for differentiability,
+    :meth:`compute_diff` instead should compute the kernel matrix in such a way that the output
+    is differentiable with respect to the inputs, and to the kernel parameters. Finally the
+    :meth:`compute_sparse` method is used to compute the kernel for sparse input matrices. It need
+    not be differentiable.
+
+    Kernels may have several parameters, for example the length-scale of the Gaussian kernel, the
+    exponent of the polynomial kernel, etc. The kernel should be differentiable with respect to
+    some such parameters (the afore mentioned length-scale for example), but not with respect to
+    others (for example the nu parameter of Matern kernels). Each concrete kernel class must
+    specify the differentiable parameters with the :meth:`diff_params` method, and other parameters
+    with the :meth:`nondiff_params`.
+    Additionally kernels which implemenet the :meth:`compute_diff` method should also implement
+    the :meth:`detach` method which returns a new instance of the kernel, with its parameters
+    detached from the computation graph.
 
     To provide a KeOps implementation, you will have to inherit also from the
-    :class:`~falkon.kernels.keops_helpers.KeopsKernelMixin` class, and implement its abstract methods. In case
-    a KeOps implementation is provided, you should make sure to override the
+    :class:`~falkon.kernels.keops_helpers.KeopsKernelMixin` class, and implement its abstract methods.
+    In case a KeOps implementation is provided, you should make sure to override the
     :meth:`_decide_mmv_impl` and :meth:`_decide_dmmv_impl` so that the KeOps implementation is
-    effectively used. Have a look at the :class:`falkon.kernels.PolynomialKernel` class for
+    effectively used. Have a look at the :class:`~falkon.kernels.PolynomialKernel` class for
     an example of how to integrate KeOps in the kernel.
 
     Parameters
@@ -48,7 +62,8 @@ class Kernel(ABC):
         self.params: FalkonOptions = opt
 
     @staticmethod
-    def _check_dmmv_dimensions(X1, X2, v, w, out):
+    def _check_dmmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: Optional[torch.Tensor],
+                               w: Optional[torch.Tensor], out: Optional[torch.Tensor]):
         # Parameter validation
         if v is None and w is None:
             raise ValueError("One of v and w must be specified to run fdMMV.")
@@ -90,7 +105,8 @@ class Kernel(ABC):
         return X1, X2, v, w, out
 
     @staticmethod
-    def _check_mmv_dimensions(X1, X2, v, out):
+    def _check_mmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor,
+                              out: Optional[torch.Tensor]):
         # Parameter validation
         if X1.dim() != 2:
             raise ValueError("Matrix X1 must be 2D.")
@@ -117,7 +133,7 @@ class Kernel(ABC):
         return X1, X2, v, out
 
     @staticmethod
-    def _check_mm_dimensions(X1, X2, out):
+    def _check_mm_dimensions(X1: torch.Tensor, X2: torch.Tensor, out: Optional[torch.Tensor]):
         # Parameter validation
         if X1.dim() != 2:
             raise ValueError("Matrix X1 must be 2D.")
@@ -140,8 +156,9 @@ class Kernel(ABC):
         if not check_same_device(*args):
             raise RuntimeError("All input arguments to %s must be on the same device" % (fn_name))
 
-    def __call__(self, X1, X2, out=None, opt: Optional[FalkonOptions] = None):
-        """Compute the kernel matrix between `X1` and `X2`
+    def __call__(self, X1: torch.Tensor, X2: torch.Tensor, out: Optional[torch.Tensor] = None,
+                 opt: Optional[FalkonOptions] = None):
+        """Compute the kernel matrix between ``X1`` and ``X2``
 
         Parameters
         ----------
@@ -150,7 +167,7 @@ class Kernel(ABC):
             N samples in D dimensions.
         X2 : torch.Tensor
             The second data-matrix for computing the kernel. Of shape (M x D):
-            M samples in D dimensions. Set `X2 == X1` to compute a symmetric kernel.
+            M samples in D dimensions. Set ``X2 == X1`` to compute a symmetric kernel.
         out : torch.Tensor or None
             Optional tensor of shape (N x M) to hold the output. If not provided it will
             be created.
@@ -161,7 +178,7 @@ class Kernel(ABC):
         Returns
         -------
         out : torch.Tensor
-            The kernel between `X1` and `X2`.
+            The kernel between ``X1`` and ``X2``.
         """
         X1, X2, out = self._check_mm_dimensions(X1, X2, out)
         self._check_device_properties(X1, X2, out, fn_name="kernel", opt=opt)
@@ -169,9 +186,9 @@ class Kernel(ABC):
         if opt is not None:
             params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
         mm_impl = self._decide_mm_impl(X1, X2, params)
-        return mm_impl(X1, X2, self, out, params)
+        return mm_impl(self, params, out, X1, X2)
 
-    def _decide_mm_impl(self, X1, X2, opt: FalkonOptions):
+    def _decide_mm_impl(self, X1: torch.Tensor, X2: torch.Tensor, opt: FalkonOptions):
         """Choose which `mm` function to use for this data.
 
         Note that `mm` functions compute the kernel itself so **KeOps may not be used**.
@@ -196,31 +213,16 @@ class Kernel(ABC):
         the sparse implementations; if CUDA is detected, it will choose the CUDA implementation;
         otherwise it will simply choose the basic CPU implementation.
         """
-        use_cuda = decide_cuda(opt)
         sparsity = check_sparse(X1, X2)
         if not all(sparsity) and any(sparsity):
             raise ValueError("Either all or none of 'X1', 'X2' must be sparse.")
-        sparsity = all(sparsity)
-        if (X1.device.type == 'cuda') and (not use_cuda):
-            warnings.warn("kernel backend was chosen to be CPU, but GPU input tensors found. "
-                          "Defaulting to use the GPU (note this may cause issues later). "
-                          "To force usage of the CPU backend, please pass CPU tensors; "
-                          "to avoid this warning if the GPU backend is "
-                          "desired, check your options (i.e. set 'use_cpu=False').")
-            use_cuda = True
-        if use_cuda:
-            from falkon.mmv_ops.fmm_cuda import fmm_cuda, fmm_cuda_sparse
-            if sparsity:
-                return fmm_cuda_sparse
-            else:
-                return fmm_cuda
-        else:
-            if sparsity:
-                return fmm_cpu_sparse
-            else:
-                return fmm_cpu
+        return fmm
 
-    def mmv(self, X1, X2, v, out=None, opt: Optional[FalkonOptions] = None):
+    def mmv(self,
+            X1: Union[torch.Tensor, SparseTensor],
+            X2: Union[torch.Tensor, SparseTensor],
+            v: torch.Tensor,
+            out: Optional[torch.Tensor] = None, opt: Optional[FalkonOptions] = None):
         # noinspection PyShadowingNames
         """Compute matrix-vector multiplications where the matrix is the current kernel.
 
@@ -259,7 +261,6 @@ class Kernel(ABC):
         torch.Size([100, 1])
         """
         X1, X2, v, out = self._check_mmv_dimensions(X1, X2, v, out)
-        self._check_device_properties(X1, X2, v, out, fn_name="mmv", opt=opt)
 
         params = self.params
         if opt is not None:
@@ -267,7 +268,10 @@ class Kernel(ABC):
         mmv_impl = self._decide_mmv_impl(X1, X2, v, params)
         return mmv_impl(X1, X2, v, self, out, params)
 
-    def _decide_mmv_impl(self, X1, X2, v, opt: FalkonOptions):
+    def _decide_mmv_impl(self,
+                         X1: Union[torch.Tensor, SparseTensor],
+                         X2: Union[torch.Tensor, SparseTensor],
+                         v: torch.Tensor, opt: FalkonOptions):
         """Choose which `mmv` function to use for this data.
 
         Note that `mmv` functions compute the kernel-vector product
@@ -294,31 +298,17 @@ class Kernel(ABC):
         the sparse implementations; if CUDA is detected, it will choose the CUDA implementation;
         otherwise it will simply choose the basic CPU implementation.
         """
-        use_cuda = decide_cuda(opt)
         sparsity = check_sparse(X1, X2)
         if not all(sparsity) and any(sparsity):
             raise ValueError("Either all or none of 'X1', 'X2' must be sparse.")
-        if (X1.device.type == 'cuda') and (not use_cuda):
-            warnings.warn("kernel-vector product backend was chosen to be CPU, but GPU input "
-                          "tensors found. Defaulting to use the GPU (note this may "
-                          "cause issues later). To force usage of the CPU backend, "
-                          "please pass CPU tensors; to avoid this warning if the GPU backend is "
-                          "desired, check your options (i.e. set 'use_cpu=False').")
-            use_cuda = True
-        sparsity = all(sparsity)
-        if use_cuda:
-            from falkon.mmv_ops.fmmv_cuda import fmmv_cuda, fmmv_cuda_sparse
-            if sparsity:
-                return fmmv_cuda_sparse
-            else:
-                return fmmv_cuda
-        else:
-            if sparsity:
-                return fmmv_cpu_sparse
-            else:
-                return fmmv_cpu
+        return fmmv
 
-    def dmmv(self, X1, X2, v, w, out=None, opt: Optional[FalkonOptions] = None):
+    def dmmv(self,
+             X1: Union[torch.Tensor, SparseTensor],
+             X2: Union[torch.Tensor, SparseTensor],
+             v: Optional[torch.Tensor],
+             w: Optional[torch.Tensor], out: Optional[torch.Tensor] = None,
+             opt: Optional[FalkonOptions] = None):
         # noinspection PyShadowingNames
         """Compute double matrix-vector multiplications where the matrix is the current kernel.
 
@@ -366,14 +356,21 @@ class Kernel(ABC):
         torch.Size([150, 1])
         """
         X1, X2, v, w, out = self._check_dmmv_dimensions(X1, X2, v, w, out)
-        self._check_device_properties(X1, X2, v, w, out, fn_name="dmmv", opt=opt)
         params = self.params
         if opt is not None:
             params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
         dmmv_impl = self._decide_dmmv_impl(X1, X2, v, w, params)
-        return dmmv_impl(X1, X2, v, w, self, out, params)
+        sparsity = check_sparse(X1, X2)
+        diff = False
+        if not any(sparsity):
+            diff = any([t.requires_grad for t in [X1, X2, v, w] + list(self.diff_params.values()) if t is not None])
+        return dmmv_impl(X1, X2, v, w, self, out, diff, params)
 
-    def _decide_dmmv_impl(self, X1, X2, v, w, opt: FalkonOptions):
+    def _decide_dmmv_impl(self,
+                          X1: Union[torch.Tensor, SparseTensor],
+                          X2: Union[torch.Tensor, SparseTensor],
+                          v: Optional[torch.Tensor],
+                          w: Optional[torch.Tensor], opt: FalkonOptions):
         """Choose which `dmmv` function to use for this data.
 
         Note that `dmmv` functions compute double kernel-vector products (see :meth:`dmmv` for
@@ -403,147 +400,123 @@ class Kernel(ABC):
         the sparse implementations; if CUDA is detected, it will choose the CUDA implementation;
         otherwise it will simply choose the basic CPU implementation.
         """
-        use_cuda = decide_cuda(opt)
         sparsity = check_sparse(X1, X2)
         if not all(sparsity) and any(sparsity):
             raise ValueError("Either all or none of 'X1', 'X2' must be sparse.")
-        if (X1.device.type == 'cuda') and (not use_cuda):
-            warnings.warn("kernel-vector double product backend was chosen to be CPU, but GPU "
-                          "input tensors found. Defaulting to use the GPU (note this may "
-                          "cause issues later). To force usage of the CPU backend, "
-                          "please pass CPU tensors; to avoid this warning if the GPU backend is "
-                          "desired, check your options (i.e. set 'use_cpu=False').")
-            use_cuda = True
-        sparsity = all(sparsity)
-        if use_cuda:
-            from falkon.mmv_ops.fmmv_cuda import fdmmv_cuda, fdmmv_cuda_sparse
-            if sparsity:
-                return fdmmv_cuda_sparse
-            else:
-                return fdmmv_cuda
-        else:
-            if sparsity:
-                return fdmmv_cpu_sparse
-            else:
-                return fdmmv_cpu
+        return fdmmv
 
     @abstractmethod
-    def _prepare(self, X1, X2) -> Any:
-        """Pre-processing operations necessary to compute the kernel.
+    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor):
+        """
+        Compute the kernel matrix of ``X1`` and ``X2`` - without regards for differentiability.
 
-        This function will be called with two blocks of data which may be subsampled on the
-        first dimension (i.e. X1 may be of size `n x D` where `n << N`). The function should
-        not modify `X1` and `X2`. If necessary, it may return some data which is then made available
-        to the :meth:`_finalize` method.
-
-        For example, in the Gaussian kernel, this method is used to compute the squared norms
-        of the datasets.
+        The kernel matrix should be stored in ``out`` to ensure the correctness of allocatable
+        memory computations.
 
         Parameters
         ----------
         X1 : torch.Tensor
-            (n x D) tensor. It is a block of the `X1` input matrix, possibly subsampled in the
-            first dimension.
+            The left matrix for computing the kernel
         X2 : torch.Tensor
-            (m x D) tensor. It is a block of the `X2` input matrix, possibly subsampled in the
-            first dimension.
+            The right matrix for computing the kernel
+        out : torch.Tensor
+            The output matrix into which implementing classes should store the kernel.
 
         Returns
         -------
-        Data which may be used for the :meth:`_finalize` method. If no such information is
-        necessary, returns None.
+        out : torch.Tensor
+            The kernel matrix. Should use the same underlying storage as the parameter ``out``.
         """
         pass
 
     @abstractmethod
-    def _apply(self, X1, X2, out) -> None:
-        """Main kernel operation, usually matrix multiplication.
-
-        This function will be called with two blocks of data which may be subsampled on the
-        first and second dimension (i.e. X1 may be of size `n x d` where `n << N` and `d << D`).
-        The output shall be stored in the `out` argument, and not be returned.
+    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor):
+        """
+        Compute the kernel matrix of ``X1`` and ``X2``. The output should be differentiable with
+        respect to `X1`, `X2`, and all kernel parameters returned by the :meth:`diff_params` method.
 
         Parameters
         ----------
         X1 : torch.Tensor
-            (n x d) tensor. It is a block of the `X1` input matrix, possibly subsampled in the
-            first dimension.
+            The left matrix for computing the kernel
         X2 : torch.Tensor
-            (m x d) tensor. It is a block of the `X2` input matrix, possibly subsampled in the
-            first dimension.
+            The right matrix for computing the kernel
+
+        Returns
+        -------
         out : torch.Tensor
-            (n x m) tensor. A tensor in which the output of the operation shall be accumulated.
-            This tensor is initialized to 0 before calling `_apply`, but in case of subsampling
-            of the data along the second dimension, multiple calls will be needed to compute a
-            single (n x m) output block. In such case, the first call to this method will have
-            a zeroed tensor, while subsequent calls will simply reuse the same object.
+            The constructed kernel matrix.
         """
         pass
 
     @abstractmethod
-    def _finalize(self, A, d):
-        """Final actions to be performed on a partial kernel matrix.
-
-        All elementwise operations on the kernel matrix should be performed in this method.
-        Operations should be performed inplace by modifying the matrix `A`, to improve memory
-        efficiency. If operations are not in-place, out-of-memory errors are possible when
-        using the GPU.
+    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, **kwargs) -> torch.Tensor:
+        """
+        Compute the kernel matrix of ``X1`` and ``X2`` which are two sparse matrices, storing the output
+        in the dense matrix ``out``.
 
         Parameters
         ----------
-        A : torch.Tensor
-            A (m x n) tile of the kernel matrix, as obtained by the :meth:`_apply` method.
-        d
-            Additional data, as computed by the :meth:`_prepare` method.
+        X1 : SparseTensor
+            The left matrix for computing the kernel
+        X2 : SparseTensor
+            The right matrix for computing the kernel
+        out : torch.Tensor
+            The output matrix into which implementing classes should store the kernel.
+        kwargs
+            Additional keyword arguments which some sparse implementations might require. Currently
+            the keyword arguments passed by the :func:`falkon.mmv_ops.fmmv.sparse_mmv_run_thread`
+            and :func:`falkon.mmv_ops.fmm.sparse_mm_run_thread` functions are:
+
+            - X1_csr : the X1 matrix in CSR format
+            - X2_csr : the X2 matrix in CSR format
 
         Returns
         -------
-        A
-            The same tensor as the input, if operations are performed in-place. Otherwise
-            another tensor of the same shape.
+        out : torch.Tensor
+            The kernel matrix. Should use the same underlying storage as the parameter `out`.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def diff_params(self) -> Dict[str, torch.Tensor]:
+        """
+        A dictionary mapping parameter names to their values for all **differentiable** parameters
+        of the kernel.
+
+        Returns
+        -------
+        params :
+            A dictionary mapping parameter names to their values
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def nondiff_params(self) -> Dict[str, Any]:
+        """
+        A dictionary mapping parameter names to their values for all **non-differentiable**
+        parameters of the kernel.
+
+        Returns
+        -------
+        params :
+            A dictionary mapping parameter names to their values
         """
         pass
 
     @abstractmethod
-    def _prepare_sparse(self, X1, X2):
-        """Data preprocessing for sparse tensors.
-
-        This is an equivalent to the :meth:`_prepare` method for sparse tensors.
-
-        Parameters
-        ----------
-        X1 : falkon.sparse.sparse_tensor.SparseTensor
-            Sparse tensor of shape (n x D), with possibly n << N.
-        X2 : falkon.sparse.sparse_tensor.SparseTensor
-            Sparse tensor of shape (m x D), with possibly m << M.
+    def detach(self) -> 'Kernel':
+        """Detaches all differentiable parameters of the kernel from the computation graph.
 
         Returns
         -------
-        Data derived from `X1` and `X2` which is needed by the :meth:`_finalize` method when
-        finishing to compute a kernel tile.
+        k :
+            A new instance of the kernel sharing the same parameters, but detached from the
+            computation graph.
         """
-        raise NotImplementedError("_prepare_sparse not implemented for kernel %s" %
-                                  (self.kernel_type))
-
-    @abstractmethod
-    def _apply_sparse(self, X1, X2, out) -> None:
-        """Main kernel computation for sparse tensors.
-
-        Unlike the :meth`_apply` method, the `X1` and `X2` tensors are only subsampled along
-        the first dimension. Take note that the `out` tensor **is not sparse**.
-
-        Parameters
-        ----------
-        X1 : falkon.sparse.sparse_tensor.SparseTensor
-            Sparse tensor of shape (n x D), with possibly n << N.
-        X2 : falkon.sparse.sparse_tensor.SparseTensor
-            Sparse tensor of shape (m x D), with possibly m << M.
-        out : torch.Tensor
-            Tensor of shape (n x m) which should hold a tile of the kernel. The output of this
-            function (typically a matrix multiplication) should be placed in this tensor.
-        """
-        raise NotImplementedError("_apply_sparse not implemented for kernel %s" %
-                                  (self.kernel_type))
+        pass
 
     def extra_mem(self) -> Dict[str, float]:
         """Compute the amount of extra memory which will be needed when computing this kernel.

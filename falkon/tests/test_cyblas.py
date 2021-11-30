@@ -5,8 +5,10 @@ import numpy as np
 import pytest
 import scipy
 import torch
+from falkon.la_helpers.square_norm_fn import square_norm_diff
 
 from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang, trsm
+from falkon.c_ext import copy_transpose
 from falkon.tests.conftest import fix_mat
 from falkon.tests.gen_random import gen_random, gen_random_pd
 from falkon.utils import decide_cuda
@@ -16,8 +18,8 @@ from falkon.utils.tensor_helpers import create_same_stride, move_tensor
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-class TestCudaTranspose:
-    t = 600
+class TestCopyTranspose:
+    t = 200
 
     @pytest.fixture(scope="class")
     def mat(self):
@@ -28,7 +30,6 @@ class TestCudaTranspose:
         return gen_random(self.t, self.t * 2 - 1, np.float64, F=True, seed=12345)
 
     def test_square(self, mat, order, dtype):
-        from falkon.la_helpers.cuda_la_helpers import cuda_transpose
         mat = fix_mat(mat, order=order, dtype=dtype, copy=True, numpy=True)
         mat_out = np.copy(mat, order="K")
         exp_mat_out = np.copy(mat.T, order=order)
@@ -36,14 +37,13 @@ class TestCudaTranspose:
         mat = move_tensor(torch.from_numpy(mat), "cuda:0")
         mat_out = move_tensor(torch.from_numpy(mat_out), "cuda:0")
 
-        cuda_transpose(input=mat, output=mat_out)
+        copy_transpose(input=mat, output=mat_out)
 
         mat_out = move_tensor(mat_out, "cpu").numpy()
         assert mat_out.strides == exp_mat_out.strides
         np.testing.assert_allclose(exp_mat_out, mat_out)
 
     def test_rect(self, rect, order, dtype):
-        from falkon.la_helpers.cuda_la_helpers import cuda_transpose
         mat = fix_mat(rect, order=order, dtype=dtype, copy=True, numpy=True)
         exp_mat_out = np.copy(mat.T, order=order)
 
@@ -51,11 +51,74 @@ class TestCudaTranspose:
         mat_out = move_tensor(torch.from_numpy(exp_mat_out), "cuda:0")
         mat_out.fill_(0.0)
 
-        cuda_transpose(input=mat, output=mat_out)
+        copy_transpose(input=mat, output=mat_out)
 
         mat_out = move_tensor(mat_out, "cpu").numpy()
         assert mat_out.strides == exp_mat_out.strides
         np.testing.assert_allclose(exp_mat_out, mat_out)
+
+
+@pytest.mark.parametrize("order", ["F", "C"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("device", [
+    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+class TestNormSquare():
+    t = 3
+
+    @pytest.fixture(scope="class")
+    def mat(self):
+        return np.random.random((self.t, self.t))
+
+    def test_simple(self, mat, order, dtype, device):
+        from falkon.c_ext import square_norm
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=0, keepdim=True).pow_(2)
+        act = square_norm(mat, dim=0, keepdim=True)
+        torch.testing.assert_allclose(exp, act)
+
+    def test_simple_grad(self, mat, order, dtype, device):
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
+        exp = torch.norm(mat, p=2, dim=0, keepdim=True).pow(2)
+        act = square_norm_diff(mat, 0, True)
+        torch.testing.assert_allclose(exp, act)
+        if dtype == np.float32:
+            return
+        torch.autograd.gradcheck(lambda m: square_norm_diff(m, 0, True), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm_diff(m, 1, True), inputs=[mat])
+
+    def test_negdim(self, mat, order, dtype, device):
+        from falkon.c_ext import square_norm
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=-1, keepdim=True).pow_(2)
+        act = square_norm(mat, dim=-1, keepdim=True)
+        torch.testing.assert_allclose(exp, act)
+
+    def test_negdim_grad(self, mat, order, dtype, device):
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
+        exp = torch.norm(mat, p=2, dim=-1, keepdim=False).pow(2)
+        act = square_norm_diff(mat, dim=-1, keepdim=False)
+        torch.testing.assert_allclose(exp, act)
+        if dtype == np.float32:
+            return
+        torch.autograd.gradcheck(lambda m: square_norm_diff(m, dim=-1, keepdim=False), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm_diff(m, dim=-2, keepdim=False), inputs=[mat])
+
+    def test_nokeep(self, mat, order, dtype, device):
+        from falkon.c_ext import square_norm
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
+        exp = torch.norm(mat, p=2, dim=1, keepdim=False).pow_(2)
+        act = square_norm(mat, dim=1, keepdim=False)
+        torch.testing.assert_allclose(exp, act)
+
+    def test_nokeep_grad(self, mat, order, dtype, device):
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
+        exp = torch.norm(mat, p=2, dim=0, keepdim=False).pow(2)
+        act = square_norm_diff(mat, dim=0, keepdim=False)
+        torch.testing.assert_allclose(exp, act)
+        if dtype == np.float32:
+            return
+        torch.autograd.gradcheck(lambda m: square_norm_diff(m, dim=0, keepdim=False), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm_diff(m, dim=1, keepdim=False), inputs=[mat])
 
 
 @pytest.mark.parametrize("order", ["F", "C"])
@@ -128,7 +191,7 @@ class TestCopyTriang:
 @pytest.mark.parametrize("clean", [True, False], ids=["clean", "dirty"])
 @pytest.mark.parametrize("overwrite", [True, False], ids=["overwrite", "copy"])
 @pytest.mark.parametrize("order", ["F", "C"])
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 class TestPotrf:
     t = 50
     rtol = {
@@ -201,7 +264,7 @@ def test_potrf_speed():
 @pytest.mark.parametrize("device", [
     "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
 class TestMulTriang:
-    t = 5
+    t = 50
 
     @pytest.fixture(scope="class")
     def mat(self):
@@ -305,17 +368,15 @@ class TestTrsm:
 
 
 class TestVecMulTriang:
-    MAT_SIZE = 120
+    t = 120
 
     @pytest.fixture(scope="class")
     def mat(self):
-        return torch.from_numpy(gen_random(
-            TestVecMulTriang.MAT_SIZE, TestVecMulTriang.MAT_SIZE, 'float64', False, seed=91))
+        return torch.from_numpy(gen_random(self.t, self.t, 'float64', False, seed=91))
 
     @pytest.fixture(scope="class")
     def vec(self):
-        return torch.from_numpy(gen_random(
-            TestVecMulTriang.MAT_SIZE, 1, 'float64', False, seed=91))
+        return torch.from_numpy(gen_random(self.t, 1, 'float64', False, seed=91))
 
     @staticmethod
     def exp_vec_mul_triang(mat, vec, upper, side):

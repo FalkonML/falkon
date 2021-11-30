@@ -5,6 +5,14 @@ from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.la_helpers.cyblas import copy_triang
 
 
+def gen_random_multi(*sizes, dtype, F=False, seed=0):
+    rng = np.random.default_rng(seed)
+    out = rng.random(size=tuple(sizes), dtype=dtype)
+    if F:
+        return np.asfortranarray(out)
+    return out
+
+
 def gen_random(a, b, dtype, F=False, seed=0):
     rng = np.random.default_rng(seed)
     out = rng.random(size=(a, b), dtype=dtype)
@@ -33,6 +41,7 @@ def gen_sparse_matrix(a, b, dtype, density=0.1, seed=0, sparse_fromat='csr') -> 
 
 def random_sparse(m, n, density=0.01, sparse_format='coo', dtype=None,
                   seed=None, data_rvs=None):
+    # noinspection PyArgumentList
     dtype = np.dtype(dtype)
     mn = m * n
     tp = np.intc

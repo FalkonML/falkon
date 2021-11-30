@@ -17,7 +17,7 @@ class InCoreFalkon(FalkonBase):
     """In GPU core Falkon Kernel Ridge Regression solver.
 
     This estimator object solves approximate kernel ridge regression problems with Nystroem
-    projections and a fast optimization algorithm as described in [flkk_1]_, [flkk_2]_.
+    projections and a fast optimization algorithm as described in :ref:`[1] <flk_1>`, :ref:`[2] <flk_2>`.
 
     Multiclass and multiple regression problems can all be tackled
     with this same object, for example by encoding multiple classes
@@ -83,7 +83,7 @@ class InCoreFalkon(FalkonBase):
 
     Examples
     --------
-    Running Falkon on a random dataset
+    Running :class:`InCoreFalkon` on a randomly generated dataset
 
     >>> X = torch.randn(1000, 10).cuda()
     >>> Y = torch.randn(1000, 1).cuda()
@@ -96,11 +96,11 @@ class InCoreFalkon(FalkonBase):
 
     References
     ----------
-    .. [flkk_1] Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, "FALKON: An optimal large
+     - Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, "FALKON: An optimal large
        scale kernel method," Advances in Neural Information Processing Systems 29, 2017.
-    .. [flkk_2] Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi,
+     - Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi,
        "Kernel methods through the roof: handling billions of points efficiently,"
-       arXiv:2006.10350, 2020.
+       Advancs in Neural Information Processing Systems, 2020.
     """
 
     def __init__(self,
@@ -114,6 +114,7 @@ class InCoreFalkon(FalkonBase):
                  error_every: Optional[int] = 1,
                  weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
                  options: Optional[FalkonOptions] = None,
+                 N: int = None,
                  ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
@@ -124,6 +125,8 @@ class InCoreFalkon(FalkonBase):
                                "If CUDA is present on your system, make sure to set "
                                "'use_cpu=False' in the `FalkonOptions` object.")
         self._init_cuda()
+        self.beta_ = None
+        self.N = N
 
     def _check_fit_inputs(self, X, Y, Xts, Yts):
         if not check_same_device(X, Y, Xts, Yts) or (not X.is_cuda):
@@ -140,7 +143,8 @@ class InCoreFalkon(FalkonBase):
             X: torch.Tensor,
             Y: torch.Tensor,
             Xts: Optional[torch.Tensor] = None,
-            Yts: Optional[torch.Tensor] = None):
+            Yts: Optional[torch.Tensor] = None,
+            warm_start: Optional[torch.Tensor] = None):
         """Fits the Falkon KRR model.
 
         Parameters
@@ -169,11 +173,18 @@ class InCoreFalkon(FalkonBase):
             during the optimization iterations.
             If Yts is in Fortran order (i.e. column-contiguous) then we can avoid an
             extra copy of the data. Must be a CUDA tensor.
+        warm_start : torch.Tensor or None
+            Specify a starting point for the conjugate gradient optimizer. If not specified, the
+            initial point will be a tensor filled with zeros.
+            Be aware that the starting point should not be in the parameter space, but in the
+            preconditioner space (i.e. if initializing from a previous Falkon object, use the
+            `beta_` field, not `alpha_`).
 
         Returns
         --------
         model: InCoreFalkon
             The fitted model
+
         """
         # Fix a synchronization bug which occurs when re-using center selector.
         torch.cuda.synchronize()
@@ -185,7 +196,6 @@ class InCoreFalkon(FalkonBase):
 
         # Start training timer
         t_s = time.time()
-
         # Pick Nystrom centers
         if self.weight_fn is not None:
             # noinspection PyTupleAssignmentBalance
@@ -200,6 +210,7 @@ class InCoreFalkon(FalkonBase):
         with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug), torch.cuda.stream(pc_stream):
             precond = falkon.preconditioner.FalkonPreconditioner(
                 self.penalty, self.kernel, self.options)
+            self.precond = precond
             ny_weight_vec = None
             if self.weight_fn is not None:
                 ny_weight_vec = self.weight_fn(Y[ny_indices])
@@ -212,10 +223,9 @@ class InCoreFalkon(FalkonBase):
         # K_NM storage decision
         gpu_info = get_device_info(self.options)[X.device.index]
         available_ram = min(self.options.max_gpu_mem, gpu_info.free_memory) * 0.9
+        Knm = None
         if self._can_store_knm(X, ny_points, available_ram):
             Knm = self.kernel(X, ny_points, opt=self.options)
-        else:
-            Knm = None
         self.fit_times_.append(time.time() - t_s)  # Preparation time
 
         # Here we define the callback function which will run at the end
@@ -231,14 +241,15 @@ class InCoreFalkon(FalkonBase):
                                                          weight_fn=self.weight_fn)
             if Knm is not None:
                 beta = optim.solve(
-                    Knm, None, Y, self.penalty, initial_solution=None,
+                    Knm, None, Y, self.penalty, initial_solution=warm_start,
                     max_iter=self.maxiter, callback=validation_cback)
             else:
                 beta = optim.solve(
-                    X, ny_points, Y, self.penalty, initial_solution=None,
+                    X, ny_points, Y, self.penalty, initial_solution=warm_start,
                     max_iter=self.maxiter, callback=validation_cback)
 
             self.alpha_ = precond.apply(beta)
+            self.beta_ = beta
             self.ny_points_ = ny_points
         return self
 
@@ -247,3 +258,6 @@ class InCoreFalkon(FalkonBase):
             # Then X is the kernel itself
             return X @ alpha
         return self.kernel.mmv(X, ny_points, alpha, opt=self.options)
+
+    def _params_to_original_space(self, params, preconditioner):
+        return preconditioner.apply(params)

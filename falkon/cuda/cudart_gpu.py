@@ -7,7 +7,7 @@ import torch
 
 __all__ = ("cuda_meminfo", "cuda_device_get_attribute", "cuda_device_can_access_peer",
            "cuda_device_enable_peer_access", "cuda_memcpy2d", "cuda_memcpy2d_async",
-           "cuda_memcpy_async",
+           "cuda_memcpy", "cuda_memcpy_async",
            "cuda_memcpy_peer", "cuda_memcpy_peer_async")
 
 
@@ -348,6 +348,15 @@ _libcudart.cudaMemcpyAsync.restype = c_int
 _libcudart.cudaMemcpyAsync.argtypes = [c_void_p, c_void_p, c_size_t, c_int, c_void_p]
 
 
-def cuda_memcpy_async(dst, src, count, kind, stream):
-    status = _libcudart.cudaMemcpyAsync(dst, src, c_size_t(count), kind, stream)
+def cuda_memcpy_async(dst, src, count, stream):
+    status = _libcudart.cudaMemcpyAsync(dst, src, c_size_t(count), 4, stream)
+    cuda_check_status(status)
+
+
+_libcudart.cudaMemcpy.restype = c_int
+_libcudart.cudaMemcpy.argtypes = [c_void_p, c_void_p, c_size_t, c_int]
+
+
+def cuda_memcpy(dst, src, count):
+    status = _libcudart.cudaMemcpy(dst, src, c_size_t(count), 4)
     cuda_check_status(status)

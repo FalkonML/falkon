@@ -1,4 +1,3 @@
-import abc
 import dataclasses
 
 import numpy as np
@@ -7,281 +6,430 @@ import torch
 
 from falkon.kernels import *
 from falkon.options import FalkonOptions
-from falkon.tests.conftest import memory_checker
-from falkon.tests.naive_kernels import *
+from falkon.tests.conftest import memory_checker, fix_mats
 from falkon.tests.gen_random import gen_random
+from falkon.tests.naive_kernels import *
 from falkon.utils import decide_cuda
 from falkon.utils.switches import decide_keops
+from falkon.utils.helpers import sizeof_dtype
 
-
+cuda_mark = pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
+keops_mark = pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")
+device_marks = [
+    pytest.param("cpu", "cpu"),
+    pytest.param("cpu", "cuda", marks=[cuda_mark]),
+    pytest.param("cuda", "cuda", marks=[cuda_mark])
+]
 # Global data dimensions
-n = 2000
-m = 1500
-d = 10
-t = 5
+n = 20
+m = 5
+d = 3
+t = 2
 
-
-def _run_test(fn, exp, tensors, out, rtol, opt):
-    with memory_checker(opt) as new_opt:
-        actual = fn(*tensors, out=out, opt=new_opt)
-
-    # Check 1. Accuracy
-    np.testing.assert_allclose(exp, actual, rtol=rtol)
-    # Check 2. Output pointers
-    if out is not None:
-        assert out.data_ptr() == actual.data_ptr(), "Output data tensor was not used"
+max_mem = 2 * 2 ** 20
+basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
+                              max_cpu_mem=max_mem, max_gpu_mem=max_mem)
 
 
 @pytest.fixture(scope="module")
 def A() -> torch.Tensor:
-    return torch.from_numpy(gen_random(n, d, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(n, d, 'float32', False, seed=92))
 
 
 @pytest.fixture(scope="module")
 def B() -> torch.Tensor:
-    return torch.from_numpy(gen_random(m, d, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(m, d, 'float32', False, seed=93))
 
 
 @pytest.fixture(scope="module")
 def v() -> torch.Tensor:
-    return torch.from_numpy(gen_random(m, t, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(m, t, 'float32', False, seed=94))
 
 
 @pytest.fixture(scope="module")
 def w() -> torch.Tensor:
-    return torch.from_numpy(gen_random(n, t, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(n, t, 'float32', False, seed=95))
 
 
 @pytest.fixture(scope="module")
-def rtol() -> dict:
+def rtol():
     return {
-        torch.float32: 1e-5,
+        np.float64: 1e-12,
         torch.float64: 1e-12,
+        np.float32: 1e-4,
+        torch.float32: 1e-4
     }
 
 
-@pytest.mark.parametrize("cpu", [
-    pytest.param(True),
-    pytest.param(False, marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
-], ids=["cpu", "gpu"])
-class AbstractKernelTester(abc.ABC):
-    max_mem = 2 * 2**20
-    basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
-                                  max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+@pytest.fixture(scope="module")
+def atol():
+    return {
+        np.float64: 1e-12,
+        torch.float64: 1e-12,
+        np.float32: 1e-4,
+        torch.float32: 1e-4
+    }
+
+
+@pytest.fixture(params=["single-sigma", "vec-sigma"], scope="class")
+def sigma(request) -> torch.Tensor:
+    if request.param == "single-sigma":
+        return torch.Tensor([3.0])
+    elif request.param == "vec-sigma":
+        return torch.Tensor([3.0] * d)
+
+
+def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
+                   grad_check: bool = True, **kernel_params):
+    torch.autograd.set_detect_anomaly(True)
+
+    kernel = k_cls(**kernel_params)
+
+    m1_wgrad = m1.clone().requires_grad_()
+    m2_wgrad = m2.clone().requires_grad_()
+    v_wgrad = v.clone().requires_grad_()
+    w_wgrad = w.clone().requires_grad_()
+    kernel_params_wgrad = {k: v.clone().requires_grad_() for k, v in kernel.diff_params.items()}
+
+    kernel_wgrad = k_cls(**kernel.nondiff_params, **kernel_params_wgrad)
+
+    # FIXME: On some systems (nest but not sperone), checking memory
+    #        usage for CPU functions fails miserably due to inconsistent
+    #        memory numbers being reported at random. We simply replace CPU
+    #        with a high number to avoid checking.
+    extra_mem = 10 * 2 ** 30 if opt.use_cpu else 0
+    opt = dataclasses.replace(opt, max_cpu_mem=opt.max_cpu_mem + extra_mem)
+
+    expected_mm = naive_fn(m1, m2, **kernel_params)
+    # 1. MM
+    if opt.keops_active != "force":  # Don't test MM if keops is active
+        mm_out = torch.empty(m1.shape[0], m2.shape[0], dtype=m1.dtype, device=m1.device)
+        mm_out_wgrad = torch.empty(m1.shape[0], m2.shape[0], dtype=m1.dtype, device=m1.device)
+        with memory_checker(opt) as new_opt:
+            actual = kernel(m1, m2, out=mm_out, opt=new_opt)
+        with memory_checker(opt, extra_mem=m1.shape[0] * m2.shape[0] * sizeof_dtype(
+                m1.dtype)) as new_opt:
+            actual_noout = kernel(m1, m2, opt=new_opt)
+        with memory_checker(opt) as new_opt:
+            actual_wgrad = kernel_wgrad(m1_wgrad, m2_wgrad, out=mm_out_wgrad, opt=new_opt)
+            # torch.autograd.grad(
+            #    actual_wgrad.sum(), [m1_wgrad, m2_wgrad] + list(kernel_params_wgrad.values()))
+
+        assert mm_out.data_ptr() == actual.data_ptr(), "MM Output data tensor was not used"
+        assert mm_out_wgrad.data_ptr() == actual_wgrad.data_ptr(), "MM Output data tensor was not used"
+        torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
+                                      msg="MM Wgrad and normal return different stuff")
+        torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
+                                      msg="MM with out and without return different stuff")
+        torch.testing.assert_allclose(expected_mm, actual, rtol=rtol, atol=atol,
+                                      msg="MM result is incorrect")
+
+        # 2. MM gradients
+        if grad_check:
+            def autogradcheck_mm(_m1, _m2, *_kernel_params):
+                return k_cls(*_kernel_params, **kernel.nondiff_params, opt=opt)(_m1, _m2)
+
+            torch.autograd.gradcheck(autogradcheck_mm,
+                                     inputs=(m1_wgrad, m2_wgrad, *kernel_params_wgrad.values()))
+
+    # 3. MMV
+    mmv_out = torch.empty(m1.shape[0], v.shape[1], dtype=m1.dtype, device=m1.device)
+    mmv_out_wgrad = torch.empty(m1.shape[0], v.shape[1], dtype=m1.dtype, device=m1.device)
+    with memory_checker(opt) as new_opt:
+        actual = kernel.mmv(m1, m2, v, out=mmv_out, opt=new_opt)
+    with memory_checker(opt,
+                        extra_mem=m1.shape[0] * v.shape[1] * sizeof_dtype(m1.dtype)) as new_opt:
+        actual_noout = kernel.mmv(m1, m2, v, opt=new_opt)
+    with memory_checker(opt) as new_opt:
+        actual_wgrad = kernel_wgrad.mmv(m1_wgrad, m2_wgrad, v_wgrad, out=mmv_out_wgrad, opt=new_opt)
+        torch.autograd.grad(
+            actual_wgrad.sum(), [m1_wgrad, m2_wgrad, v_wgrad] + list(kernel_params_wgrad.values()))
+    assert mmv_out.data_ptr() == actual.data_ptr(), "MMV Output data tensor was not used"
+    assert mmv_out_wgrad.data_ptr() == actual_wgrad.data_ptr(), "MMV Output data tensor was not used"
+    torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
+                                  msg="MMV Wgrad and normal return different stuff")
+    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
+                                  msg="MMV with out and without return different stuff")
+    expected_mmv = expected_mm @ v
+    torch.testing.assert_allclose(expected_mmv, actual, rtol=rtol, atol=atol,
+                                  msg="MMV result is incorrect")
+
+    # 4. MMV gradients
+    if grad_check:
+        def autogradcheck_mmv(_m1, _m2, _v, *_kernel_params):
+            return k_cls(*_kernel_params, **kernel.nondiff_params, opt=opt).mmv(_m1, _m2, _v)
+
+        torch.autograd.gradcheck(autogradcheck_mmv, inputs=(
+            m1_wgrad, m2_wgrad, v_wgrad, *kernel_params_wgrad.values()))
+
+    # 5. Double MMV (doesn't exist for gradients)
+    dmmv_grad_allowed = True
+    dmmv_out = torch.empty(m2.shape[0], v.shape[1], dtype=m1.dtype, device=m1.device)
+    with memory_checker(opt) as new_opt:
+        actual = kernel.dmmv(m1, m2, v, w, out=dmmv_out, opt=new_opt)
+    with memory_checker(opt,
+                        extra_mem=m2.shape[0] * v.shape[1] * sizeof_dtype(m1.dtype)) as new_opt:
+        actual_noout = kernel.dmmv(m1, m2, v, w, opt=new_opt)
+    with memory_checker(opt) as new_opt:
+        try:
+            actual_wgrad = kernel_wgrad.dmmv(m1_wgrad, m2_wgrad, v_wgrad, w_wgrad, opt=new_opt)
+        except NotImplementedError as e:
+            assert new_opt.keops_active == "no", "KeOps D-MMV raise error %s unexpectedly" % (e)
+            # On the other hand it is expected that we throw a not implemented error.
+            dmmv_grad_allowed = False
+
+    assert dmmv_out.data_ptr() == actual.data_ptr(), "D-MMV Output data tensor was not used"
+    if dmmv_grad_allowed:
+        torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
+                                      msg="MMV Wgrad and normal return different stuff")
+    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
+                                  msg="D-MMV with out and without return different stuff")
+    expected_dmmv = expected_mm.T @ (expected_mmv + w)
+    torch.testing.assert_allclose(expected_dmmv, actual, rtol=rtol, atol=atol,
+                                  msg="D-MMV result is incorrect")
+
+    # 6. D-MMV gradients
+    if grad_check and dmmv_grad_allowed:
+        def autogradcheck_dmmv(_m1, _m2, _v, _w, *_kernel_params):
+            return k_cls(*_kernel_params, **kernel.nondiff_params, opt=opt).dmmv(_m1, _m2, _v, _w)
+
+        torch.autograd.gradcheck(autogradcheck_dmmv, inputs=(
+            m1_wgrad, m2_wgrad, v_wgrad, w_wgrad, *kernel_params_wgrad.values()))
+
+
+@pytest.mark.parametrize("input_dev,comp_dev", device_marks)
+class TestLaplacianKernel():
+    naive_fn = naive_diff_laplacian_kernel
+    k_class = LaplacianKernel
 
     @pytest.fixture(scope="class")
-    def exp_v(self, exp_k: np.ndarray, v: torch.Tensor) -> np.ndarray:
-        return exp_k @ v.numpy()
-
-    @pytest.fixture(scope="class")
-    def exp_dv(self, exp_k: np.ndarray, v: torch.Tensor) -> np.ndarray:
-        return exp_k.T @ (exp_k @ v.numpy())
-
-    @pytest.fixture(scope="class")
-    def exp_dw(self, exp_k: np.ndarray, w: torch.Tensor) -> np.ndarray:
-        return exp_k.T @ w.numpy()
-
-    @pytest.fixture(scope="class")
-    def exp_dvw(self, exp_k: np.ndarray, v: torch.Tensor, w: torch.Tensor) -> np.ndarray:
-        return exp_k.T @ (exp_k @ v.numpy() + w.numpy())
-
-    def test_kernel(self, kernel, A, B, exp_k, cpu, rtol):
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu)
-        _run_test(kernel, exp_k, (A, B), out=None, rtol=rtol[A.dtype], opt=opt)
-
-    @pytest.mark.parametrize("keops", [
-        pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
-        "no"
-    ], ids=["KeOps", "No KeOps"])
-    def test_mmv(self, kernel, keops, A, B, v, exp_v, cpu, rtol):
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, keops_active=keops)
-        _run_test(kernel.mmv, exp_v, (A, B, v), out=None, rtol=rtol[A.dtype], opt=opt)
-
-    @pytest.mark.parametrize("keops", [
-        pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
-        "no"
-    ], ids=["KeOps", "No KeOps"])
-    def test_dv(self, kernel, keops, A, B, v, exp_dv, cpu, rtol):
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, keops_active=keops)
-        _run_test(kernel.dmmv, exp_dv, (A, B, v, None), out=None, rtol=rtol[A.dtype], opt=opt)
-
-    @pytest.mark.parametrize("keops", [
-        pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
-        "no"
-    ], ids=["KeOps", "No KeOps"])
-    def test_dw(self, kernel, keops, A, B, w, exp_dw, cpu, rtol):
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, keops_active=keops)
-        _run_test(kernel.dmmv, exp_dw, (A, B, None, w), out=None, rtol=rtol[A.dtype], opt=opt)
-
-    @pytest.mark.parametrize("keops", [
-        pytest.param("force", marks=pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")),
-        "no"
-    ], ids=["KeOps", "No KeOps"])
-    def test_dvw(self, kernel, keops, A, B, v, w, exp_dvw, cpu, rtol):
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu, keops_active=keops)
-        _run_test(kernel.dmmv, exp_dvw, (A, B, v, w), out=None, rtol=rtol[A.dtype], opt=opt)
-
-
-# @pytest.mark.parametrize("nu", [0.5, 1.5, 2.5, np.inf])
-class TestMaternKernel(AbstractKernelTester):
-
-    @pytest.fixture(params=[0.5, 1.5, 2.5, np.inf], scope="class")
-    def nu(self, request) -> float:
-        return request.param
-
-    @pytest.fixture(scope="class")
-    def single_sigma(self) -> float:
-        return 2
-
-    @pytest.fixture(scope="class")
-    def vector_sigma(self, single_sigma: float) -> torch.Tensor:
-        return torch.tensor([single_sigma] * d, dtype=torch.float64)
-
-    @pytest.fixture(scope="class")
-    def mat_sigma(self, vector_sigma: torch.Tensor) -> torch.Tensor:
-        return torch.diag(1 / (vector_sigma ** 2))
-
-    @pytest.fixture(scope="class")
-    def exp_k(self, A: torch.Tensor, B: torch.Tensor, single_sigma: float, nu: float) -> np.ndarray:
-        return naive_matern_kernel(A.numpy(), B.numpy(), single_sigma, nu)
-
-    @pytest.fixture(params=[1, 2, 3], ids=[
-        "single-sigma", "vec-sigma", "vec-sigma-flat"],
-        scope="class")
-    def kernel(self, single_sigma, vector_sigma, nu, request):
-        if request.param == 1:
-            return MaternKernel(single_sigma, nu)
-        elif request.param == 2:
-            return MaternKernel(vector_sigma, nu)
-        elif request.param == 3:
-            return MaternKernel(vector_sigma.reshape(-1, 1), nu)
-
-    @pytest.fixture(scope="class")
-    def rtol(self, nu, rtol):
-        if nu == 0.5:
-            return {
-                torch.float32: 1e-5,
-                torch.float64: 4e-8,
-            }
-        return rtol
-
-    def test_mat_sigma_fail(self, A, B, cpu, nu, mat_sigma, rtol):
-        with pytest.raises(ValueError) as excinfo:
-            MaternKernel(sigma=mat_sigma, nu=nu)
-
-        assert "'full' covariance matrix not allowed for the MaternKernel class." in str(excinfo.value)
-
-    def test_nu_fail(self, A, B, cpu, nu, single_sigma):
-        nu = 2.1
-        with pytest.raises(ValueError) as excinfo:
-            MaternKernel(sigma=single_sigma, nu=nu)
-        assert f"The given value of nu = {nu} can only take values" in str(excinfo.value)
-
-
-class TestGaussianKernel(AbstractKernelTester):
-    @pytest.fixture(scope="class")
-    def single_sigma(self) -> float:
-        return 2
-
-    @pytest.fixture(scope="class")
-    def vector_sigma(self, single_sigma: float) -> torch.Tensor:
-        return torch.tensor([single_sigma] * d, dtype=torch.float64)
-
-    @pytest.fixture(scope="class")
-    def mat_sigma(self, vector_sigma: torch.Tensor) -> torch.Tensor:
-        return torch.diag(1 / (vector_sigma ** 2))
-
-    @pytest.fixture(scope="class")
-    def exp_k(self, A: torch.Tensor, B: torch.Tensor, single_sigma: float) -> np.ndarray:
-        return naive_gaussian_kernel(A.numpy(), B.numpy(), single_sigma)
-
-    @pytest.fixture(params=[1, 2, 3, 4], ids=[
-        "single-sigma", "vec-sigma", "vec-sigma-flat", "mat-sigma"],
-        scope="class")
-    def kernel(self, single_sigma, vector_sigma, mat_sigma, request):
-        if request.param == 1:
-            return GaussianKernel(single_sigma)
-        elif request.param == 2:
-            return GaussianKernel(vector_sigma)
-        elif request.param == 3:
-            return GaussianKernel(vector_sigma.reshape(-1, 1))
-        elif request.param == 4:
-            return GaussianKernel(mat_sigma)
-
-    def test_wrong_sigma_dims(self, A, B, cpu, rtol):
-        sigmas = torch.tensor([2.0] * (d - 1), dtype=torch.float64)
-        kernel = GaussianKernel(sigma=sigmas)
-        opt = dataclasses.replace(self.basic_options, use_cpu=cpu,
-                                  max_gpu_mem=np.inf, max_cpu_mem=np.inf)
-        with pytest.raises(RuntimeError) as excinfo:
-            _run_test(kernel, None, (A, B), out=None, rtol=rtol[A.dtype], opt=opt)
-
-        if cpu:
-            assert f"The size of tensor a ({d}) must match the size of tensor b ({d-1})" in str(excinfo.value)
-        # If on GPU the 'size mismatch' message is in the base exception (since it's reraised
-        # by PropagatingThread) but I'm not sure how to fetch it.
-
-
-@pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
-def test_gaussian_pd():
-    X = gen_random(10000, 2, 'float32', F=True, seed=12)
-    Xt = torch.from_numpy(X)
-    sigma = 10.0
-    opt = FalkonOptions(compute_arch_speed=False, max_gpu_mem=1 * 2**30, use_cpu=False,
-                        no_single_kernel=False)
-    k = GaussianKernel(sigma, opt=opt)
-    actual = k(Xt, Xt, opt=opt)
-    actual += torch.eye(Xt.shape[0]) * (1e-7 * Xt.shape[0])
-    # Test positive definite
-    np.linalg.cholesky(actual)
-
-
-class TestLaplacianKernel(AbstractKernelTester):
-    @pytest.fixture(scope="class")
-    def rtol(self, rtol):
+    def rtol(self):
         return {
             torch.float32: 1e-5,
             torch.float64: 4e-8,
         }
 
-    @pytest.fixture(scope="class")
-    def kernel(self) -> LaplacianKernel:
-        return LaplacianKernel(sigma=2)
+    @pytest.mark.parametrize("order", ["C", "F"])
+    def test_dense_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev, order):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order=order, device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestLaplacianKernel.k_class, TestLaplacianKernel.naive_fn, m1=A, m2=B,
+                       v=v, w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma,
+                       grad_check=True)
+
+    def test_not_all_grads(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
+        m1, m2, v, w, sigma = fix_mats(A, B, v, w, sigma, order="F", device=input_dev,
+                                       dtype=np.float64)
+
+        m1_wgrad = m1.clone().requires_grad_(False)
+        m2_wgrad = m2.clone().requires_grad_()
+        v_wgrad = v.clone().requires_grad_(False)
+        s_wgrad = sigma.clone().requires_grad_()
+
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+
+        def autogradcheck_mm(_m1, _m2, *_kernel_params):
+            return TestLaplacianKernel.k_class(*_kernel_params, opt=opt)(_m1, _m2)
+
+        torch.autograd.gradcheck(autogradcheck_mm, inputs=(m1_wgrad, m2_wgrad, s_wgrad))
+
+        def autogradcheck_mmv(_m1, _m2, _v, *_kernel_params):
+            return TestLaplacianKernel.k_class(*_kernel_params, opt=opt).mmv(_m1, _m2, _v)
+
+        torch.autograd.gradcheck(autogradcheck_mmv, inputs=(m1_wgrad, m2_wgrad, v_wgrad, s_wgrad))
+
+    @keops_mark
+    def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="C", device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
+        run_dense_test(TestLaplacianKernel.k_class, TestLaplacianKernel.naive_fn, m1=A, m2=B,
+                       v=v, w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma)
+
+    @keops_mark
+    def test_keops_kernel_noncontig(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="F", device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
+        run_dense_test(TestLaplacianKernel.k_class, TestLaplacianKernel.naive_fn, m1=A, m2=B,
+                       v=v, w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma)
+        # TODO: Assert warning printed
+
+
+@pytest.mark.parametrize("input_dev,comp_dev", device_marks)
+class TestGaussianKernel():
+    naive_fn = naive_diff_gaussian_kernel
+    k_class = GaussianKernel
+
+    @pytest.mark.parametrize("order", ["C", "F"])
+    def test_dense_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev, order):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order=order, device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                       w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma)
+
+    @keops_mark
+    def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="F", device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
+        run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                       w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma)
+
+    def test_wrong_sigma_dims(self, A, B, v, w, rtol, atol, input_dev, comp_dev):
+        sigma = torch.tensor([2.0] * (d - 1), dtype=torch.float64)
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="F", device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        with pytest.raises(RuntimeError) as excinfo:
+            run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                           w=w,
+                           rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma)
+        if comp_dev == "cpu":
+            assert f"The size of tensor a ({d}) must match the size of tensor b ({d - 1})" in str(
+                excinfo.value)
+        # If on GPU the 'size mismatch' message is in the base exception (since it's reraised
+        # by PropagatingThread) but I'm not sure how to fetch it.
+
+
+@pytest.mark.parametrize("input_dev,comp_dev", device_marks)
+class TestMaternKernel():
+    naive_fn = naive_diff_matern_kernel
+    k_class = MaternKernel
+
+    @pytest.fixture(params=[0.5, 1.5, 2.5, np.inf], scope="function")
+    def nu(self, request) -> torch.Tensor:
+        return torch.tensor(request.param)
+
+    @pytest.mark.parametrize("order", ["C", "F"])
+    def test_dense_kernel(self, A, B, v, w, nu, sigma, rtol, atol, input_dev, comp_dev, order):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order=order, device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestMaternKernel.k_class, TestMaternKernel.naive_fn, m1=A, m2=B, v=v, w=w,
+                       rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma, nu=nu)
+
+    @keops_mark
+    def test_keops_kernel(self, A, B, v, w, nu, sigma, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="C", device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
+        run_dense_test(TestMaternKernel.k_class, TestMaternKernel.naive_fn, m1=A, m2=B, v=v, w=w,
+                       rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma, nu=nu)
+
+    def test_nu_fail(self, A, B, v, w, rtol, atol, input_dev, comp_dev):
+        sigma = torch.tensor([1.2])
+        nu = torch.tensor(2.1)
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="F", device=input_dev,
+                                     dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        with pytest.raises(ValueError) as excinfo:
+            run_dense_test(TestMaternKernel.k_class, TestMaternKernel.naive_fn, m1=A, m2=B, v=v,
+                           w=w,
+                           rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma, nu=nu)
+        assert f"The given value of nu = {nu:.1f} can only take values" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("input_dev,comp_dev", device_marks)
+class TestLinearKernel():
+    naive_fn = naive_diff_linear_kernel
+    k_class = LinearKernel
+    beta = torch.tensor(2.0)
+    gamma = torch.tensor(2.0)
+
+    @pytest.mark.parametrize("order", ["C", "F"])
+    def test_dense_kernel(self, A, B, v, w, rtol, atol, input_dev, comp_dev, order):
+        A, B, v, w, beta, gamma = fix_mats(A, B, v, w, self.beta, self.gamma, order=order,
+                                           device=input_dev, dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestLinearKernel.k_class, TestLinearKernel.naive_fn, m1=A, m2=B, v=v, w=w,
+                       rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, beta=beta, gamma=gamma)
+
+    @keops_mark
+    def test_keops_kernel(self, A, B, v, w, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, beta, gamma = fix_mats(A, B, v, w, self.beta, self.gamma, order="C",
+                                           device=input_dev, dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
+        run_dense_test(TestLinearKernel.k_class, TestLinearKernel.naive_fn, m1=A, m2=B, v=v, w=w,
+                       rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, beta=beta, gamma=gamma)
+
+
+@pytest.mark.parametrize("input_dev,comp_dev", device_marks)
+class TestPolynomialKernel():
+    naive_fn = naive_diff_polynomial_kernel
+    k_class = PolynomialKernel
+    beta = torch.tensor(2.0)
+    gamma = torch.tensor(2.0)
+    degree = torch.tensor(1.5)
+
+    @pytest.mark.parametrize("order", ["C", "F"])
+    def test_dense_kernel(self, A, B, v, w, rtol, atol, input_dev, comp_dev, order):
+        A, B, v, w, beta, gamma, degree = fix_mats(A, B, v, w, self.beta, self.gamma, self.degree,
+                                                   order=order, device=input_dev, dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestPolynomialKernel.k_class, TestPolynomialKernel.naive_fn, m1=A, m2=B,
+                       v=v, w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt,
+                       beta=beta, gamma=gamma, degree=degree)
+
+    @keops_mark
+    def test_keops_kernel(self, A, B, v, w, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, beta, gamma, degree = fix_mats(A, B, v, w, self.beta, self.gamma, self.degree,
+                                                   order="C", device=input_dev, dtype=np.float64)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestPolynomialKernel.k_class, TestPolynomialKernel.naive_fn, m1=A, m2=B,
+                       v=v, w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt,
+                       beta=beta, gamma=gamma, degree=degree)
+
+
+@pytest.mark.parametrize("input_dev,comp_dev", device_marks)
+class TestLargeComputations():
+    naive_fn = naive_diff_gaussian_kernel
+    k_class = GaussianKernel
+    n = 1500
+    m = 250
+    d = 3
+    t = 2
+    max_mem = 1 * 2 ** 20
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
+                                  max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+    sigma = torch.Tensor([3.0])
 
     @pytest.fixture(scope="class")
-    def exp_k(self, A: torch.Tensor, B: torch.Tensor, kernel: LaplacianKernel) -> np.ndarray:
-        return naive_laplacian_kernel(A.numpy(), B.numpy(), sigma=kernel.sigma)
-
-
-class TestLinearKernel(AbstractKernelTester):
-    @pytest.fixture(scope="class")
-    def kernel(self) -> LinearKernel:
-        return LinearKernel(beta=2, sigma=2)
+    def A(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.n, self.d, 'float32', False, seed=92))
 
     @pytest.fixture(scope="class")
-    def exp_k(self, A: torch.Tensor, B: torch.Tensor, kernel: LinearKernel) -> np.ndarray:
-        return naive_linear_kernel(A.numpy(), B.numpy(), beta=kernel.beta, sigma=kernel.sigma)
-
-
-class TestSigmoidKernel(AbstractKernelTester):
-    @pytest.fixture(scope="class")
-    def kernel(self) -> SigmoidKernel:
-        return SigmoidKernel(alpha=3, beta=2)
+    def B(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.m, self.d, 'float32', False, seed=93))
 
     @pytest.fixture(scope="class")
-    def exp_k(self, A: torch.Tensor, B: torch.Tensor, kernel: SigmoidKernel) -> np.ndarray:
-        return naive_sigmoid_kernel(A.numpy(), B.numpy(), alpha=kernel.alpha.item(), beta=kernel.beta.item())
-
-
-class TestPolynomialKernel(AbstractKernelTester):
-    @pytest.fixture(scope="class", params=[1, 2], ids=["poly1.4", "poly2.0"])
-    def kernel(self, request) -> PolynomialKernel:
-        if request.param == 1:
-            return PolynomialKernel(alpha=2.0, beta=3, degree=1.4)
-        elif request.param == 2:
-            return PolynomialKernel(alpha=2.0, beta=3, degree=2.0)
+    def v(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.m, self.t, 'float32', False, seed=94))
 
     @pytest.fixture(scope="class")
-    def exp_k(self, A: torch.Tensor, B: torch.Tensor, kernel: PolynomialKernel) -> np.ndarray:
-        return naive_polynomial_kernel(A.numpy(), B.numpy(), alpha=kernel.alpha.item(),
-                                       beta=kernel.beta.item(), degree=kernel.degree.item())
+    def w(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.n, self.t, 'float32', False, seed=95))
+
+    @pytest.mark.parametrize("order", ["C", "F"])
+    def test_dense_kernel(self, A, B, v, w, rtol, atol, input_dev, comp_dev, order):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, self.sigma, order=order, device=input_dev,
+                                     dtype=np.float32)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                       w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma,
+                       grad_check=False)
+
+    @keops_mark
+    def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="C", device=input_dev,
+                                     dtype=np.float32)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
+        run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                       w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma,
+                       grad_check=False)
+
+
+if __name__ == "__main__":
+    pytest.main()

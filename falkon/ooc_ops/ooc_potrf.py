@@ -7,14 +7,13 @@ from falkon.cuda import initialization
 from falkon.cuda.cusolver_gpu import *
 from falkon.options import FalkonOptions, CholeskyOptions
 from falkon.utils import devices
-from falkon.utils.cuda_helpers import copy_to_device, copy_to_host
 from falkon.utils.devices import DeviceInfo
 from falkon.utils.helpers import choose_fn, sizeof_dtype
-# noinspection PyUnresolvedReferences
-from falkon.ooc_ops.cuda import parallel_potrf
+from falkon.c_ext import parallel_potrf
 from falkon.utils.tensor_helpers import (
     is_f_contig, copy_same_stride, extract_fortran
 )
+from falkon.utils.device_copy import copy
 from .ooc_utils import calc_block_sizes
 
 __all__ = ("gpu_cholesky",)
@@ -76,7 +75,7 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
             potrf_wspace = gpu_buf[:potrf_bsize]
             Agpu = extract_fortran(gpu_buf, (n, n), offset=potrf_bsize)
             # Copy A to device memory
-            copy_to_device(n, n, A, 0, 0, Agpu, 0, 0, s=tc_stream)
+            copy(A, Agpu, s=tc_stream)
 
         dev_info = torch.tensor(4, dtype=torch.int32, device=tc_device)
 
@@ -87,7 +86,7 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
 
         # Copy back to CPU
         if not A.is_cuda:
-            copy_to_host(n, n, Agpu, 0, 0, A, 0, 0, s=tc_stream)
+            copy(Agpu, A, s=tc_stream)
             del Agpu
         del potrf_wspace, dev_info
         tc_stream.synchronize()
@@ -207,7 +206,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
             # This should never happen!
             raise RuntimeError("Device of matrix A (%s) is not recognized" % (A.device))
     else:
-        device = max(gpu_info, key=lambda g: g.actual_free_mem)
+        device = max(gpu_info, key=lambda g_: g_.actual_free_mem)
     ic = can_do_ic(A, device) and not opt.chol_force_ooc
     if opt.chol_force_in_core and not ic:
         raise RuntimeError("Cannot run in-core POTRF but `chol_force_in_core` was specified.")

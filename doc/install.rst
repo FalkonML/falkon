@@ -70,3 +70,12 @@ To check that everything works correctly you can follow the `Kernel ridge regres
 
 .. _Kernel ridge regression:
     examples/simple_regression.ipynb
+
+
+Development install
+-------------------
+
+For development purposes the library should be installed in editable mode (i.e. `pip install -e .` from the
+falkon directory.
+
+To build the documentation go into the `doc` directory and run `make html`.

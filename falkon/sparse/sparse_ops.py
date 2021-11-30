@@ -1,7 +1,7 @@
 from typing import Optional
 
 import torch
-from falkon.sparse.sparse_helpers import norm_sq, norm_
+from falkon.c_ext import sparse_row_norm_sq, sparse_row_norm
 from falkon.utils.tensor_helpers import is_f_contig
 
 from falkon.sparse.sparse_tensor import SparseTensor
@@ -25,14 +25,9 @@ def _sparse_matmul_cpu(A, B, out):
 
     mkl = mkl_lib()
     try:
-        # For some reason assigning the 'to_scipy' to their own variables
-        # is **absolutely fundamental** for the mkl bindings to work
-        A = A.transpose_csc()
-        As = A.to_scipy()  # D * N (csc)
-        Bs = B.to_scipy()
-
-        mkl_sp_1 = mkl.mkl_create_sparse_from_scipy(As)
-        mkl_sp_2 = mkl.mkl_create_sparse_from_scipy(Bs)
+        A = A.transpose_csc()  # D * N (csc)
+        mkl_sp_1 = mkl.mkl_create_sparse(A)
+        mkl_sp_2 = mkl.mkl_create_sparse(B)
         mkl.mkl_spmmd(mkl_sp_1, mkl_sp_2, out, transposeA=True)
         return out
     finally:
@@ -67,7 +62,7 @@ def _sparse_matmul_cuda(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
     sparse*sparse->sparse multiplication and conversion of the output
     sparse matrix to a dense matrix.
     """
-    from falkon.sparse.sparse_helpers import spspmm, csr2dense
+    from falkon.c_ext import spspmm, csr2dense
 
     if not A.is_csr:
         raise ValueError("A must be CSR matrix")
@@ -147,7 +142,7 @@ def sparse_square_norm(A: SparseTensor, out: torch.Tensor) -> torch.Tensor:
     if A.shape[0] != out.shape[0]:
         raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
-    return norm_sq(A.indexptr, A.data, out)
+    return sparse_row_norm_sq(A.indexptr, A.data, out)
 
 
 def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
@@ -180,4 +175,4 @@ def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
     if A.shape[0] != out.shape[0]:
         raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
-    return norm_(A.indexptr, A.data, out)
+    return sparse_row_norm(A.indexptr, A.data, out)

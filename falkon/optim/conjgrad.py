@@ -1,15 +1,16 @@
 import functools
 import time
-from typing import Optional
+from contextlib import ExitStack
+from typing import Optional, Callable, List
 
 import torch
 
 import falkon
-from falkon.options import ConjugateGradientOptions, FalkonOptions
 from falkon.mmv_ops.fmmv_incore import incore_fdmmv, incore_fmmv
-from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
-from falkon.utils.stream_utils import get_non_default_stream
+from falkon.options import ConjugateGradientOptions, FalkonOptions
 from falkon.utils import TicToc
+from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
+
 
 # More readable 'pseudocode' for conjugate gradient.
 # function [x] = conjgrad(A, b, x)
@@ -32,7 +33,15 @@ from falkon.utils import TicToc
 # end
 
 
+class StopOptimizationException(Exception):
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+
 class Optimizer(object):
+    """Base class for optimizers. This is an empty shell at the moment.
+    """
     def __init__(self):
         pass
 
@@ -41,53 +50,136 @@ class ConjugateGradient(Optimizer):
     def __init__(self, opt: Optional[ConjugateGradientOptions] = None):
         super().__init__()
         self.params = opt or ConjugateGradientOptions()
+        self.num_iter = None
 
-    def solve(self, X0, B, mmv, max_iter, callback=None):
+    def solve(self,
+              X0: Optional[torch.Tensor],
+              B: torch.Tensor,
+              mmv: Callable[[torch.Tensor], torch.Tensor],
+              max_iter: int,
+              callback: Optional[Callable[[int, torch.Tensor, float], None]] = None) -> torch.Tensor:
+        """Conjugate-gradient solver with optional support for preconditioning via generic MMV.
+
+        This solver can be used for iterative solution of linear systems of the form $AX = B$ with
+        respect to the `X` variable. Knowledge of `A` is only needed through matrix-vector
+        multiplications with temporary solutions (must be provided through the `mmv` function).
+
+        Preconditioning can be achieved by incorporating the preconditioner matrix in the `mmv`
+        function.
+
+        Parameters
+        ----------
+        X0 : Optional[torch.Tensor]
+            Initial solution for the solver. If not provided it will be a zero-tensor.
+        B : torch.Tensor
+            Right-hand-side of the linear system to be solved.
+        mmv
+            User-provided function to perform matrix-vector multiplications with the design matrix
+            `A`. The function must accept a single argument (the vector to be multiplied), and
+            return the result of the matrix-vector multiplication.
+        max_iter : int
+            Maximum number of iterations the solver will perform. Early stopping is implemented
+            via the options passed in the constructor of this class (in particular look at
+            `cg_tolerance` options)
+            i + 1, X, e_train
+        callback
+            An optional, user-provided function which shall be called at the end of each iteration
+            with the current solution. The arguments to the function are the iteration number,
+            a tensor containing the current solution, and the total time elapsed from the beginning
+            of training (note that this time explicitly excludes any time taken by the callback
+            itself).
+        Returns
+        -------
+        The solution to the linear system `X`.
+        """
         t_start = time.time()
 
         if X0 is None:
-            R = copy_same_stride(B)
+            R = copy_same_stride(B)  # n*t
             X = create_same_stride(B.size(), B, B.dtype, B.device)
             X.fill_(0.0)
         else:
-            R = B - mmv(X0)
+            R = B - mmv(X0)  # n*t
             X = X0
 
         m_eps = self.params.cg_epsilon(X.dtype)
+        full_grad_every = self.params.cg_full_gradient_every or max_iter * 2
+        tol = self.params.cg_tolerance ** 2
+        diff_conv = self.params.cg_differential_convergence and X.shape[1] > 1
 
-        P = R
-        Rsold = torch.sum(R.pow(2), dim=0)
+        P = R.clone()
+        R0 = R.square().sum(dim=0)
+        Rsold = R0.clone()
 
         e_train = time.time() - t_start
 
-        for i in range(max_iter):
+        if diff_conv:
+            # Differential convergence: when any column of X converges we remove it from optimization.
+            # column-vectors of X which have converged
+            x_converged: List[torch.Tensor] = []
+            # indices of columns in `x_converged` as they originally appeared in `X`
+            col_idx_converged: List[int] = []
+            # indices of columns which have not converged, as they originally were in `X`
+            col_idx_notconverged: torch.Tensor = torch.arange(X.shape[1])
+            X_orig = X
+
+        for self.num_iter in range(max_iter):
             with TicToc("Chol Iter", debug=False):
                 t_start = time.time()
                 AP = mmv(P)
-                alpha = Rsold / (torch.sum(P * AP, dim=0) + m_eps)
-                X.addmm_(P, torch.diag(alpha))
+                alpha = Rsold / (torch.sum(P * AP, dim=0).add_(m_eps))
+                # X += P @ diag(alpha)
+                X.addcmul_(P, alpha.reshape(1, -1))
 
-                if (i + 1) % self.params.cg_full_gradient_every == 0:
+                if (self.num_iter + 1) % full_grad_every == 0:
+                    if X.is_cuda:
+                        # addmm_ may not be finished yet causing mmv to get stale inputs.
+                        torch.cuda.synchronize()
                     R = B - mmv(X)
                 else:
-                    R = R - torch.mm(AP, torch.diag(alpha))
-                    # R.addmm_(mat1=AP, mat2=torch.diag(alpha), alpha=-1.0)
+                    # R -= AP @ diag(alpha)
+                    R.addcmul_(AP, alpha.reshape(1, -1), value=-1.0)
 
-                Rsnew = torch.sum(R.pow(2), dim=0)
-                if Rsnew.abs().max().sqrt() < self.params.cg_tolerance:
-                    print("Stopping conjugate gradient descent at "
-                          "iteration %d. Solution has converged." % (i + 1))
+                Rsnew = R.square().sum(dim=0)  # t
+                converged = torch.less(Rsnew, tol)
+                if torch.all(converged):
                     break
+                if diff_conv and torch.any(converged):
+                    for idx in torch.where(converged)[0]:
+                        col_idx_converged.append(col_idx_notconverged[idx])
+                        x_converged.append(X[:, idx])
+                    col_idx_notconverged = col_idx_notconverged[~converged]
+                    P = P[:, ~converged]
+                    R = R[:, ~converged]
+                    B = B[:, ~converged]
+                    X = X[:, ~converged]  # These are all copies
+                    Rsnew = Rsnew[~converged]
+                    Rsold = Rsold[~converged]
 
-                P = R + torch.mm(P, torch.diag(Rsnew / (Rsold + m_eps)))
+                # P = R + P @ diag(mul)
+                multiplier = (Rsnew / Rsold.add_(m_eps)).reshape(1, -1)
+                P = P.mul_(multiplier).add_(R)
                 Rsold = Rsnew
 
                 e_iter = time.time() - t_start
                 e_train += e_iter
             with TicToc("Chol callback", debug=False):
                 if callback is not None:
-                    callback(i + 1, X, e_train)
-
+                    try:
+                        callback(self.num_iter + 1, X, e_train)
+                    except StopOptimizationException as e:
+                        print(f"Optimization stopped from callback: {e.message}")
+                        break
+        if diff_conv:
+            if len(x_converged) > 0:
+                for i, out_idx in enumerate(col_idx_converged):
+                    if X_orig[:, out_idx].data_ptr() != x_converged[i].data_ptr():
+                        X_orig[:, out_idx].copy_(x_converged[i])
+            if len(col_idx_notconverged) > 0:
+                for i, out_idx in enumerate(col_idx_notconverged):
+                    if X_orig[:, out_idx].data_ptr() != X[:, i].data_ptr():
+                        X_orig[:, out_idx].copy_(X[:, i])
+            X = X_orig
         return X
 
 
@@ -139,6 +231,7 @@ class FalkonConjugateGradient(Optimizer):
         self.preconditioner = preconditioner
         self.params = opt
         self.optimizer = ConjugateGradient(opt.get_conjgrad_options())
+
         self.weight_fn = weight_fn
 
     def falkon_mmv(self, sol, penalty, X, M, Knm):
@@ -195,32 +288,49 @@ class FalkonConjugateGradient(Optimizer):
 
         stream = None
         if cuda_inputs:
-            stream = get_non_default_stream(device)
+            stream = torch.cuda.current_stream(device)
 
         # Note that if we don't have CUDA this still works with stream=None.
-        with torch.cuda.stream(stream):
-            with TicToc("ConjGrad preparation", False):
-                y_over_n = Y / n  # Cannot be in-place since Y needs to be preserved
+        with ExitStack() as stack, TicToc("ConjGrad preparation", False):
+            if cuda_inputs:
+                stack.enter_context(torch.cuda.device(device))
+                stack.enter_context(torch.cuda.stream(stream))
+            y_over_n = Y / n  # Cannot be in-place since Y needs to be preserved
 
-                if self.is_weighted:
-                    y_weights = self.weight_fn(Y)
-                    y_over_n.mul_(y_weights)  # This can be in-place since we own y_over_n
+            if self.is_weighted:
+                y_weights = self.weight_fn(Y)
+                y_over_n.mul_(y_weights)  # This can be in-place since we own y_over_n
 
-                # Compute the right hand side
-                if Knm is not None:
-                    B = incore_fmmv(Knm, y_over_n, None, transpose=True, opt=self.params)
-                else:
-                    B = self.kernel.dmmv(X, M, None, y_over_n, opt=self.params)
-                B = self.preconditioner.apply_t(B)
+            # Compute the right hand side
+            if Knm is not None:
+                B = incore_fmmv(Knm, y_over_n, None, transpose=True, opt=self.params)
+            else:
+                B = self.kernel.mmv(M, X, y_over_n, opt=self.params)
+            B = self.preconditioner.apply_t(B)
 
-                if self.is_weighted:
-                    mmv = functools.partial(self.weighted_falkon_mmv, penalty=_lambda, X=X,
-                                            M=M, Knm=Knm, y_weights=y_weights)
-                else:
-                    mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm)
+            if self.is_weighted:
+                mmv = functools.partial(self.weighted_falkon_mmv, penalty=_lambda, X=X,
+                                        M=M, Knm=Knm, y_weights=y_weights)
+            else:
+                mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm)
             # Run the conjugate gradient solver
             beta = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
+
         return beta
+
+    def solve_val_rhs(self, Xtr, Xval, M, Y, _lambda, initial_solution, max_iter, callback=None):
+        n = Xtr.size(0)
+        prec = self.preconditioner
+
+        with TicToc("ConjGrad preparation", False):
+            B = self.kernel.mmv(M, Xval, Y / n, opt=self.params)
+            B = prec.apply_t(B)
+
+            # Define the Matrix-vector product iteration
+            capture_mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=Xtr, M=M, Knm=None)
+
+        # Run the conjugate gradient solver
+        return self.optimizer.solve(initial_solution, B, capture_mmv, max_iter, callback)
 
     @property
     def is_weighted(self):

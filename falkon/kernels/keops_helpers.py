@@ -1,6 +1,7 @@
 from typing import Optional, List, Union
 
 import torch
+
 from falkon.options import FalkonOptions, KeopsOptions
 from falkon.utils.switches import decide_keops
 from falkon.sparse import SparseTensor
@@ -70,8 +71,8 @@ class KeopsKernelMixin():
                              out=out, formula=formula, aliases=aliases, axis=1,
                              reduction='Sum', opt=opt)
 
-    def keops_dmmv_helper(self, X1, X2, v, w, kernel, out, opt, mmv_fn):
-        """
+    def keops_dmmv_helper(self, X1, X2, v, w, kernel, out, differentiable, opt, mmv_fn):
+        r"""
         performs fnc(X1*X2', X1, X2)' * ( fnc(X1*X2', X1, X2) * v  +  w )
 
         Parameters
@@ -89,6 +90,9 @@ class KeopsKernelMixin():
             structure.
         out : torch.Tensor or None
             Optional tensor in which to store the output (M x T)
+        differentiable : bool
+            Whether the inputs are intended to be differentiable. A small optimization is disabled
+            if set to ``True``.
         opt : FalkonOptions
             Options to be passed downstream
         mmv_fn : Callable
@@ -103,14 +107,17 @@ class KeopsKernelMixin():
 
         """
         if v is not None and w is not None:
-            out1 = mmv_fn(X1, X2, v, kernel, None, opt)
-            out1.add_(w)
-            return mmv_fn(X2, X1, out1, kernel, out, opt)
+            out1 = mmv_fn(X1, X2, v, kernel, out=None, opt=opt)
+            if differentiable:
+                out1 = out1.add(w)
+            else:
+                out1.add_(w)
+            return mmv_fn(X2, X1, out1, kernel, out=out, opt=opt)
         elif v is None:
-            return mmv_fn(X2, X1, w, kernel, out, opt)
+            return mmv_fn(X2, X1, w, kernel, out=out, opt=opt)
         elif w is None:
-            out1 = mmv_fn(X1, X2, v, kernel, None, opt)
-            return mmv_fn(X2, X1, out1, kernel, out, opt)
+            out1 = mmv_fn(X1, X2, v, kernel, out=None, opt=opt)
+            return mmv_fn(X2, X1, out1, kernel, out=out, opt=opt)
 
     # noinspection PyUnusedLocal
     def keops_can_handle_mm(self, X1, X2, opt) -> bool:

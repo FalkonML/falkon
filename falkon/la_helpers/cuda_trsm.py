@@ -5,8 +5,7 @@ import torch
 from falkon.cuda.initialization import cublas_handle
 from falkon.cuda.cublas_gpu import cublasStrsm, cublasDtrsm, cublas_stream
 from falkon.utils.helpers import choose_fn, check_same_device
-# noinspection PyUnresolvedReferences
-from falkon.la_helpers.cuda_la_helpers import cuda_transpose
+from falkon.c_ext import copy_transpose
 from falkon.utils.tensor_helpers import is_f_contig, create_fortran, create_C
 
 
@@ -35,7 +34,7 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
             vF.copy_(v)
             s.synchronize()  # sync is necessary here for correctness. Not sure why! TODO: Is it still needed?
         else:
-            vF = cuda_transpose(input=v, output=vF.T).T
+            vF = copy_transpose(input=v, output=vF.T).T
 
         uplo = 'L' if lower else 'U'
         trans = 'T' if transpose else 'N'
@@ -45,5 +44,5 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transp
             vout = vF
         else:
             vout = create_C(v.size(), v.dtype, device)
-            vout = cuda_transpose(input=vF, output=vout.T).T
+            vout = copy_transpose(input=vF, output=vout.T).T
     return vout

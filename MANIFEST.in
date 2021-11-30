@@ -4,13 +4,9 @@ include *.txt
 include *.yml
 
 graft falkon
-graft doc
+prune doc
 
-global-exclude *.so
-global-exclude notebooks/**
-global-exclude doc/_build/**
-global-exclude **/.ipynb_checkpoints/**
-global-exclude __pycache__
 global-exclude *.py[co]
-global-exclude keops/**
-global-exclude benchmark/**
+global-exclude *.so
+global-exclude .gitignore
+exclude codecov.yml

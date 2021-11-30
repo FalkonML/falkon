@@ -31,7 +31,7 @@ class Falkon(FalkonBase):
     """Falkon Kernel Ridge Regression solver.
 
     This estimator object solves approximate kernel ridge regression problems with Nystroem
-    projections and a fast optimization algorithm as described in [flk_1]_, [flk_2]_.
+    projections and a fast optimization algorithm as described in :ref:`[1] <flk_1>`, :ref:`[2] <flk_2>`.
 
     Multiclass and multiple regression problems can all be tackled
     with this same object, for example by encoding multiple classes
@@ -96,13 +96,19 @@ class Falkon(FalkonBase):
     >>> model.fit(X, Y)
     >>> preds = model.predict(X)
 
+    Warm restarts: run for 5 iterations, then use `warm_start` to run for 5 more iterations.
+
+    >>> model = Falkon(kernel=kernel, penalty=1e-6, M=500, maxiter=5)
+    >>> model.fit(X, Y)
+    >>> model.fit(X, Y, warm_start=model.beta_)
+
     References
     ----------
-    .. [flk_1] Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, "FALKON: An optimal large
+     - Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, "FALKON: An optimal large
        scale kernel method," Advances in Neural Information Processing Systems 29, 2017.
-    .. [flk_2] Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi,
+     - Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi,
        "Kernel methods through the roof: handling billions of points efficiently,"
-       arXiv:2006.10350, 2020.
+       Advancs in Neural Information Processing Systems, 2020.
 
     """
 
@@ -123,12 +129,14 @@ class Falkon(FalkonBase):
         self.maxiter = maxiter
         self.weight_fn = weight_fn
         self._init_cuda()
+        self.beta_ = None
 
     def fit(self,
             X: torch.Tensor,
             Y: torch.Tensor,
             Xts: Optional[torch.Tensor] = None,
-            Yts: Optional[torch.Tensor] = None):
+            Yts: Optional[torch.Tensor] = None,
+            warm_start: Optional[torch.Tensor] = None):
         """Fits the Falkon KRR model.
 
         Parameters
@@ -157,6 +165,12 @@ class Falkon(FalkonBase):
             during the optimization iterations.
             If Yts is in Fortran order (i.e. column-contiguous) then we can avoid an
             extra copy of the data.
+        warm_start : torch.Tensor or None
+            Specify a starting point for the conjugate gradient optimizer. If not specified, the
+            initial point will be a tensor filled with zeros.
+            Be aware that the starting point should not be in the parameter space, but in the
+            preconditioner space (i.e. if initializing from a previous Falkon object, use the
+            `beta_` field, not `alpha_`).
 
         Returns
         --------
@@ -168,6 +182,7 @@ class Falkon(FalkonBase):
         self.fit_times_ = []
         self.ny_points_ = None
         self.alpha_ = None
+        self.beta_ = None
 
         # Start training timer
         t_s = time.time()
@@ -203,6 +218,7 @@ class Falkon(FalkonBase):
                 print("Preconditioner will run on %s" %
                       ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
             precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
+            self.precond = precond
             ny_weight_vec = None
             if self.weight_fn is not None:
                 ny_weight_vec = self.weight_fn(Y[ny_indices])
@@ -217,10 +233,9 @@ class Falkon(FalkonBase):
         k_opt = dataclasses.replace(self.options, use_cpu=True)
         cpu_info = get_device_info(k_opt)
         available_ram = min(k_opt.max_cpu_mem, cpu_info[-1].free_memory) * 0.9
+        Knm = None
         if self._can_store_knm(X, ny_points, available_ram):
             Knm = self.kernel(X, ny_points, opt=self.options)
-        else:
-            Knm = None
         self.fit_times_.append(time.time() - t_s)  # Preparation time
 
         # Here we define the callback function which will run at the end
@@ -240,14 +255,15 @@ class Falkon(FalkonBase):
                                                          weight_fn=self.weight_fn)
             if Knm is not None:
                 beta = optim.solve(
-                    Knm, None, Y, self.penalty, initial_solution=None,
+                    Knm, None, Y, self.penalty, initial_solution=warm_start,
                     max_iter=self.maxiter, callback=validation_cback)
             else:
                 beta = optim.solve(
-                    X, ny_points, Y, self.penalty, initial_solution=None,
+                    X, ny_points, Y, self.penalty, initial_solution=warm_start,
                     max_iter=self.maxiter, callback=validation_cback)
 
             self.alpha_ = precond.apply(beta)
+            self.beta_ = beta
             self.ny_points_ = ny_points
         return self
 
@@ -265,6 +281,9 @@ class Falkon(FalkonBase):
         )
         mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
         return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
+
+    def _params_to_original_space(self, params, preconditioner):
+        return preconditioner.apply(params)
 
     def to(self, device):
         self.alpha_ = self.alpha_.to(device)

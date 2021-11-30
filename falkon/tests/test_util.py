@@ -61,3 +61,7 @@ def test_check_sparse():
 
     assert [False, True] == check_sparse(torch.tensor(0), st)
     assert [] == check_sparse()
+
+
+if __name__ == "__main__":
+    pytest.main()

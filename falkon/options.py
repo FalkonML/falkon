@@ -80,6 +80,12 @@ never_store_kernel
     True may (in case there would be enough RAM to store the kernel), increase the
     training time for Falkon since the K_NM matrix must be recomputed at every
     conjugate gradient iteration.
+store_kernel_d_threshold
+    `default 1200` - The minimum data-dimensionality (`d`) for which to consider whether to store
+    the full Knm kernel matrix (between the data-points and the Nystrom centers). The final decision
+    on whether the matrix is stored or not is based on the amount of memory available.
+    Storing the Knm matrix may greatly reduce training and inference times, especially if `d` is
+    large, or for kernels which are costly to compute.
 num_fmm_streams
     `default 2` - The number of CUDA streams to use for evaluating kernels when CUDA is available.
     This number should be increased from its default value when the number of Nystroem centers is
@@ -119,6 +125,13 @@ cg_full_gradient_every
     `default 10` - How often to calculate the full gradient in the conjugate gradient algorithm.
     Full-gradient iterations take roughly twice the time as normal iterations, but they reset
     the error introduced by the other iterations.
+cg_differential_convergence
+    `default False` - Differential convergence refers to a procedure relevant to the conjugate
+    gradient optimizer, and only applies when multiple right-hand side vectors are used (e.g.
+    in multi-class classification, or in hyperparameter optimization with the stochastic objective).
+    If this flag is set, whenever the convergence criterion is met for single right-hand-sides, 
+    they are removed from the optimization procedure. If it is not set, all vectors must have
+    converged for the optimization to stop. It is especially useful for hyperparameter optimization.
     """,
     "pc":
     """
@@ -165,6 +178,7 @@ class BaseOptions():
     min_cuda_iter_size_32: int = 10_000 * 10 * 3_000
     min_cuda_iter_size_64: int = 30_000 * 10 * 3_000
     never_store_kernel: bool = False
+    store_kernel_d_threshold: int = 1200
     num_fmm_streams: int = 2
 
     def get_base_options(self):
@@ -178,7 +192,8 @@ class BaseOptions():
                            min_cuda_pc_size_64=self.min_cuda_pc_size_64,
                            min_cuda_iter_size_32=self.min_cuda_iter_size_32,
                            min_cuda_iter_size_64=self.min_cuda_iter_size_64,
-                           never_store_kernel=self.never_store_kernel)
+                           never_store_kernel=self.never_store_kernel,
+                           store_kernel_d_threshold=self.store_kernel_d_threshold)
 
 
 @dataclass
@@ -206,6 +221,7 @@ class ConjugateGradientOptions():
     cg_epsilon_64: float = 1e-15
     cg_tolerance: float = 1e-7
     cg_full_gradient_every: int = 10
+    cg_differential_convergence: bool = False
 
     def cg_epsilon(self, dtype):
         if dtype == torch.float32:
@@ -219,7 +235,8 @@ class ConjugateGradientOptions():
         return ConjugateGradientOptions(cg_epsilon_32=self.cg_epsilon_32,
                                         cg_epsilon_64=self.cg_epsilon_64,
                                         cg_tolerance=self.cg_tolerance,
-                                        cg_full_gradient_every=self.cg_full_gradient_every)
+                                        cg_full_gradient_every=self.cg_full_gradient_every,
+                                        cg_differential_convergence=self.cg_differential_convergence)
 
 
 @dataclass

@@ -3,15 +3,14 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import torch
+
 from falkon.utils.stream_utils import sync_current_stream
 
-from falkon.mmv_ops.utils import _get_gpu_info
-
+from falkon.mmv_ops.utils import _get_gpu_info, create_output_mat, _start_wait_processes
 from falkon.options import FalkonOptions, BaseOptions
 from falkon.utils import decide_cuda
-from falkon.utils.helpers import sizeof_dtype, calc_gpu_block_sizes, check_same_device
+from falkon.utils.helpers import sizeof_dtype, calc_gpu_block_sizes
 from pykeops.torch import Genred
-from .utils import _start_wait_processes
 
 
 @dataclass(frozen=True)
@@ -123,7 +122,7 @@ def _estimate_split(N, M, D, T, R, ds):
     if N <= 0 or M <= 0:
         raise RuntimeError(
             "Insufficient available GPU "
-            "memory (available %.2fGB)" % (R * ds / 2**30))
+            "memory (available %.2fGB)" % (R * ds / 2 ** 30))
 
     return int(N), int(M)
 
@@ -142,9 +141,13 @@ def _single_gpu_method(proc_idx, queue, device_id):
     N, D = X1.shape
     M = X2.shape[0]
     T = v.shape[1]
+    device = torch.device(f"cuda:{device_id}")
 
     # Second round of subdivision (only if necessary due to RAM constraints)
     n, m = _estimate_split(N, M, D, T, R, sizeof_dtype(X1.dtype))
+
+    other_vars_dev = [ov.to(device, copy=False) for ov in other_vars]
+    out_ic = oout.device.index == device_id
 
     # Process the two rounds of splitting with a nested loop.
     with torch.cuda.device(device_id):
@@ -155,16 +158,18 @@ def _single_gpu_method(proc_idx, queue, device_id):
             else:
                 out = oout
 
-            cX2 = X2[mi:mi + ml, :]
-            cv = v[mi:mi + ml, :]
+            cX2 = X2[mi:mi + ml, :].to(device, copy=False)
+            cv = v[mi:mi + ml, :].to(device, copy=False)
 
             for ni in range(0, N, n):
                 nl = min(n, N - ni)
-                cX1 = X1[ni:ni + nl, :]
-                cout = out[ni: ni + nl, :]
+                cX1 = X1[ni:ni + nl, :].to(device, copy=False)
+                cout = out[ni: ni + nl, :].to(device, copy=False)
 
-                variables = [cX1, cX2, cv] + other_vars
+                variables = [cX1, cX2, cv] + other_vars_dev
                 fn(*variables, out=cout, device_id=device_id, backend=backend)
+                if not out_ic:
+                    out[ni: ni + nl, :].copy_(cout)
             if ml != M and mi > 0:
                 oout.add_(out)
 
@@ -188,16 +193,25 @@ def run_keops_mmv(X1: torch.Tensor,
     T = v.shape[1]
     backend = _decide_backend(opt, D)
     dtype = _keops_dtype(X1.dtype)
-    device = X1.device
+    data_devs = [X1.device, X2.device, v.device]
 
-    if not check_same_device(X1, X2, v, out, *other_vars):
-        raise RuntimeError("All input tensors must be on the same device.")
-    if (device.type == 'cuda') and (not backend.startswith("GPU")):
+    if any([ddev.type == 'cuda' for ddev in data_devs]) and (not backend.startswith("GPU")):
         warnings.warn("KeOps backend was chosen to be CPU, but GPU input tensors found. "
                       "Defaulting to 'GPU_1D' backend. To force usage of the CPU backend, "
                       "please pass CPU tensors; to avoid this warning if the GPU backend is "
                       "desired, check your options (i.e. set 'use_cpu=False').")
         backend = "GPU_1D"
+
+    differentiable = any(
+        [X1.requires_grad, X2.requires_grad, v.requires_grad] +
+        [o.requires_grad for o in other_vars]
+    )
+
+    if differentiable:
+        from falkon.kernels.tiling_red import TilingGenred
+        fn = TilingGenred(formula, aliases, reduction_op='Sum', axis=1, dtype=dtype,
+                          dtype_acc="auto", sum_scheme="auto", opt=opt)
+        return fn(X1, X2, v, *other_vars, out=out, backend=backend)
 
     # Define formula wrapper
     fn = Genred(formula, aliases,
@@ -205,13 +219,20 @@ def run_keops_mmv(X1: torch.Tensor,
                 dtype=dtype, dtype_acc=opt.keops_acc_dtype,
                 sum_scheme=opt.keops_sum_scheme)
 
-    # Create output matrix
-    if out is None:
-        # noinspection PyArgumentList
-        out = torch.empty(N, T, dtype=X1.dtype, device=device,
-                          pin_memory=(backend != 'CPU') and (device.type == 'cpu'))
+    comp_dev_type = backend[:3].lower().replace('gpu', 'cuda')  # 'cpu' or 'cuda'
+    out = create_output_mat(out, data_devs, is_sparse=False, shape=(N, T), dtype=X1.dtype,
+                            comp_dev_type=comp_dev_type, other_mat=X1, output_stride="C")
 
-    if backend.startswith("GPU") and device.type == 'cpu':
+    if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):  # incore CPU
+        variables = [X1, X2, v] + other_vars
+        out = fn(*variables, out=out, backend=backend)
+    elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):  # incore CUDA
+        variables = [X1, X2, v] + other_vars
+        device = data_devs[0]
+        with torch.cuda.device(device):
+            sync_current_stream(device)
+            out = fn(*variables, out=out, backend=backend)
+    else:  # Out of core
         # slack is high due to imprecise memory usage estimates for keops
         gpu_info = _get_gpu_info(opt, slack=opt.keops_memory_slack)
         block_sizes = calc_gpu_block_sizes(gpu_info, N)
@@ -231,16 +252,8 @@ def run_keops_mmv(X1: torch.Tensor,
                 other_vars=other_vars,
                 function=fn,
                 backend=backend,
-                gpu_ram=g.usable_ram
+                gpu_ram=g.usable_memory
             ), g.Id))
         _start_wait_processes(_single_gpu_method, args)
-    else:  # Run on CPU or GPU with CUDA inputs
-        variables = [X1, X2, v] + other_vars
-        if device.type == 'cuda':
-            with torch.cuda.device(device):
-                sync_current_stream(device)
-                out = fn(*variables, out=out, backend=backend)
-        else:
-            out = fn(*variables, out=out, backend=backend)
 
     return out
