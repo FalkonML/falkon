@@ -124,7 +124,7 @@ pipeline {
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
-                                                    /falkon/scripts/build_falkon.sh   
+                                                    \$(pwd)/scripts/build_falkon.sh   
                                                 """
                                                 build_success = true
                                             }
