@@ -114,17 +114,19 @@ pipeline {
                                                     -e CUDA_VERSION=${cuda_version} \
                                                     -e PYTHON_VERSION=${py_version} \
                                                     -e PYTORCH_VERSION=${torch_version} \
-                                                    -e WHEEL_FOLDER=/falkon/dist \
+                                                    -e WHEEL_FOLDER=/artifacts \
                                                     -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
                                                     -e GIT_TOKEN=\${GIT_TOKEN} \
                                                     -e BUILD_DOCS=${env.DOCS} \
                                                     -e UPLOAD_CODECOV=${env.DOCS} \
-                                                    -e HOME_DIR=\$(pwd) \
+                                                    -e HOME_DIR=/falkon \
                                                     --mount type=volume,source=${env.VOLUME_NAME},destination=/jenkins_data \
+                                                    --mount type=volume,source=jenkins_artifacts,destination=/artifacts \
+                                                    --mount type=bind,source=\$(pwd),destination=/falkon \
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
-                                                    \$(pwd)/scripts/build_falkon.sh   
+                                                    /falkon/scripts/build_falkon.sh   
                                                 """
                                                 build_success = true
                                             }
