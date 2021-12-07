@@ -119,14 +119,13 @@ pipeline {
                                                     -e GIT_TOKEN=\${GIT_TOKEN} \
                                                     -e BUILD_DOCS=${env.DOCS} \
                                                     -e UPLOAD_CODECOV=${env.DOCS} \
-                                                    -e HOME_DIR=/falkon \
-                                                    --mount type=volume,source=${env.VOLUME_NAME},destination=/jenkins_data \
+                                                    -e HOME_DIR=\$(pwd) \
+                                                    --mount type=volume,source=${env.VOLUME_NAME},destination=/var/jenkins_home \
                                                     --mount type=volume,source=jenkins_artifacts,destination=/artifacts \
-                                                    --mount type=bind,source=\$(pwd),destination=/falkon \
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
-                                                    /falkon/scripts/build_falkon.sh   
+                                                    \$(pwd)/scripts/build_falkon.sh   
                                                 """
                                                 build_success = true
                                             }
