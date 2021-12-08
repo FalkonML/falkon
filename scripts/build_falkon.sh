@@ -52,11 +52,12 @@ conda_env="${cuda_name}-${PYTHON_VERSION}-${PYTORCH_VERSION}"
 conda create --quiet --yes -n "${conda_env}" python="${PYTHON_VERSION}"
 source activate "${conda_env}"
 
-# Install Prerequisites
+# Install Prerequisites (PyTorch and Cython for compiling)
 echo "$(date) || Installing PyTorch version ${PYTORCH_VERSION}..."
 time conda install --quiet --yes -n ${conda_env} \
                   pytorch=${PYTORCH_VERSION} \
                   "${cuda_toolkit}" \
+                  cython \
                   -c pytorch -c conda-forge
 
 echo "$(date) || Installing KeOps..."

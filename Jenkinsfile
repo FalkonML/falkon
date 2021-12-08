@@ -120,6 +120,8 @@ pipeline {
                                                     -e BUILD_DOCS=${env.DOCS} \
                                                     -e UPLOAD_CODECOV=${env.DOCS} \
                                                     -e HOME_DIR=\$(pwd) \
+                                                    -e CONDA_PKGS_DIRS=/conda-cache \
+                                                    --mount type=volume,source=conda_cache,destination=/conda-cache \
                                                     --mount type=volume,source=${env.VOLUME_NAME},destination=/var/jenkins_home \
                                                     --mount type=volume,source=jenkins_artifacts,destination=/artifacts \
                                                     --user 0:0 \
