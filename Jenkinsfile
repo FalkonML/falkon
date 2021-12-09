@@ -10,7 +10,7 @@ def getCommitTag() {
 }
 
 String[] py_version_list = ['3.6', '3.7', '3.8']
-String[] cuda_version_list = ['cpu', '10.2', '11.0', '11.1']
+String[] cuda_version_list = ['cpu', '10.2', '11.1', '11.3']
 String[] torch_version_list = ['1.9.1', '1.10.0']
 build_docs = false
 full_deploy = false
@@ -64,7 +64,7 @@ pipeline {
                                         reason = "This configuration is invalid"
                                     }*/
                                     if (!full_deploy) {
-                                        if ((torch_version == '1.10.0' && py_version == '3.8' && cuda_version == '11.1')) {}
+                                        if ((torch_version == '1.10.0' && py_version == '3.8' && cuda_version == '11.3')) {}
                                         else {
                                             will_process = false
                                             reason = "This configuration is only processed when running a full deploy"
@@ -72,7 +72,7 @@ pipeline {
                                     } 
 
                                     // Docs should only be built once
-                                    if (build_docs && torch_version == '1.10.0' && py_version == '3.8' && cuda_version == '11.1') {
+                                    if (build_docs && torch_version == '1.10.0' && py_version == '3.8' && cuda_version == '11.3') {
                                         env.DOCS = 'TRUE';
                                     } else {
                                         env.DOCS = 'FALSE';
