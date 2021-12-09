@@ -10,12 +10,10 @@ def getCommitTag() {
 }
 
 String[] py_version_list = ['3.6', '3.7', '3.8']
-String[] cuda_version_list = ['cpu', '9.2', '10.2', '11.0', '11.1']
-String[] torch_version_list = ['1.7.1', '1.8.1']
+String[] cuda_version_list = ['cpu', '10.2', '11.1', '11.3']
+String[] torch_version_list = ['1.9.1', '1.10.0']
 build_docs = false
 full_deploy = false
-
-
 
 pipeline {
     agent any
@@ -56,29 +54,22 @@ pipeline {
                                 stage("filter-${CONDA_ENV}") {
                                     def reason = ""
                                     /* Filter out non-interesting versions. Some combos don't work, some are too long to test */
-                                    if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
-                                        (torch_version == '1.8.1' && cuda_version == '9.2') ||   // CUDA too old, not supported
+                                    /*if ((torch_version == '1.7.1' && cuda_version == '11.1') ||  // Doesn't work?
                                         (torch_version == '1.8.1' && cuda_version == '11.0'))     // No point using 11.0 when 11.1 is available.
                                     {
                                         will_process = false
                                         reason = "This configuration is invalid"
-                                    }
+                                    }*/
                                     if (!full_deploy) {
-                                        if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.0')) {}
+                                        if ((torch_version == '1.10.0' && py_version == '3.8' && cuda_version == '11.3')) {}
                                         else {
                                             will_process = false
                                             reason = "This configuration is only processed when running a full deploy"
                                         }
-                                    } else { // TODO: Temporary filters
-                                        if ((torch_version == '1.7.1' && py_version == '3.8' && cuda_version == '11.0')) {}
-                                        else {  
-                                            will_process = false
-                                            reason = "This configuration has been temporarily excluded from full deploy"
-                                        }
-                                    }
+                                    } 
 
                                     // Docs should only be built once
-                                    if (build_docs && torch_version == '1.8.1' && py_version == '3.8' && cuda_version == '11.1') {
+                                    if (build_docs && torch_version == '1.10.0' && py_version == '3.8' && cuda_version == '11.3') {
                                         env.DOCS = 'TRUE';
                                     } else {
                                         env.DOCS = 'FALSE';
@@ -113,17 +104,20 @@ pipeline {
                                                     -e CUDA_VERSION=${cuda_version} \
                                                     -e PYTHON_VERSION=${py_version} \
                                                     -e PYTORCH_VERSION=${torch_version} \
-                                                    -e WHEEL_FOLDER=/falkon/dist \
+                                                    -e WHEEL_FOLDER=/artifacts \
                                                     -e CODECOV_TOKEN=\${CODECOV_TOKEN} \
                                                     -e GIT_TOKEN=\${GIT_TOKEN} \
                                                     -e BUILD_DOCS=${env.DOCS} \
                                                     -e UPLOAD_CODECOV=${env.DOCS} \
                                                     -e HOME_DIR=\$(pwd) \
-                                                    --mount type=volume,source=${env.VOLUME_NAME},destination=/jenkins_data \
+                                                    -e CONDA_PKGS_DIRS=/conda-cache \
+                                                    --mount type=volume,source=conda_cache,destination=/conda-cache \
+                                                    --mount type=volume,source=${env.VOLUME_NAME},destination=/var/jenkins_home \
+                                                    --mount type=volume,source=jenkins_artifacts,destination=/artifacts \
                                                     --user 0:0 \
                                                     --gpus all \
                                                     falkon/build:${docker_tag} \
-                                                    /falkon/scripts/build_falkon.sh   
+                                                    \$(pwd)/scripts/build_falkon.sh   
                                                 """
                                                 build_success = true
                                             }
