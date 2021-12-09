@@ -129,7 +129,7 @@ def get_extensions():
 
 # Requirements -- TODO: We also have requirements.txt files lying around which are out of sync.
 install_requires = [
-    'torch>=1.7',
+    'torch>=1.9',
     'scipy',
     'numpy',
     'scikit-learn',
@@ -168,7 +168,7 @@ setup(
     python_requires='~=3.6',
     setup_requires=[
         # Setuptools 18.0 properly handles Cython extensions.
-        'setuptools>=18.0', 
+        'setuptools>=18.0',
         'numpy',
     ],
     tests_require=test_requires,
