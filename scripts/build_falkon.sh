@@ -58,6 +58,8 @@ time conda install --quiet --yes -n ${conda_env} \
                   pytorch=${PYTORCH_VERSION} \
                   "${cuda_toolkit}" \
                   cython \
+                  numpy \
+                  scipy \
                   -c pytorch -c conda-forge
 
 echo "$(date) || Installing KeOps..."
