@@ -83,6 +83,9 @@ FROM cuda as cuda11.3
 RUN bash install_cuda.sh 11.3
 ENV DESIRED_CUDA=11.3
 
+FROM cuda as cuda11.5
+RUN bash install_cuda.sh 11.5
+ENV DESIRED_CUDA=11.5
 
 FROM base as all_cuda
 COPY --from=cuda9.2   /usr/local/cuda-9.2  /usr/local/cuda-9.2
@@ -92,6 +95,7 @@ COPY --from=cuda11.0  /usr/local/cuda-11.0 /usr/local/cuda-11.0
 COPY --from=cuda11.1  /usr/local/cuda-11.1 /usr/local/cuda-11.1
 COPY --from=cuda11.2  /usr/local/cuda-11.2 /usr/local/cuda-11.2
 COPY --from=cuda11.3  /usr/local/cuda-11.3 /usr/local/cuda-11.3
+COPY --from=cuda11.5  /usr/local/cuda-11.5 /usr/local/cuda-11.5
 
 FROM ${BASE_TARGET} as final
 #COPY --from=openssl            /opt/openssl           /opt/openssl
