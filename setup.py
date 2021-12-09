@@ -56,6 +56,11 @@ def parallel_extra_compile_args():
 def torch_version():
     version = torch.__version__
     split_version = version.split(".")
+    # With torch 1.10.0 the version 'number' include CUDA version (e.g. '1.10.0+cu102').
+    # Here we remove the CUDA version.
+    for i in range(len(split_version)):
+        if '+' in split_version[i]:
+            split_version[i] = split_version[i].split('+')[0]
     return [int(v) for v in split_version]
 
 
