@@ -258,6 +258,8 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                 if has_gpu_bufs:
                     copy(c_dev_out, out[i: i + leni, j: j + lenj], s=stream,
                          allow_dtype_change=True)
+        if stream is not None:
+            stream.synchronize()
     return out
 
 
@@ -286,6 +288,8 @@ def mm_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                 c_dev_out = kernel.compute_diff(c_dev_m1, c_dev_m2)
                 c_out = c_dev_out.to(device=out.device, dtype=out.dtype, non_blocking=False, copy=False)
                 bwd_out = bwd_out + c_out.mul(out[i: i + leni, j: j + lenj]).sum()
+        if stream is not None:
+            stream.synchronize()
     return bwd_out
 
 
