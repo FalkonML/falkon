@@ -3,39 +3,6 @@ import torch.distributions.constraints as constraints
 import torch.nn.functional as F
 
 
-class TransformedParameter():
-    def __init__(self, value, transform):
-        self.transform = transform
-        self.value = self.transform.forward(value)
-
-    def __get__(self):
-        return self.value
-
-    def __repr__(self):
-        return self.value.__repr__()
-
-    def __str__(self):
-        return self.value.__repr__()
-
-
-class ExpTransform(torch.distributions.transforms.Transform):
-    _cache_size = 0
-    domain = constraints.real
-    codomain = constraints.positive
-
-    def __init__(self):
-        super().__init__()
-
-    def __eq__(self, other):
-        return isinstance(other, ExpTransform)
-
-    def _call(self, x):
-        return torch.exp(x)
-
-    def _inverse(self, y):
-        return torch.log(y)
-
-
 class PositiveTransform(torch.distributions.transforms.Transform):
     _cache_size = 0
     domain = constraints.real

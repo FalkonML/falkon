@@ -4,6 +4,7 @@ from typing import Optional
 import torch
 
 from falkon.hopt.objectives.transforms import PositiveTransform
+from torch.distributions.transforms import identity_transform
 
 
 class FakeTorchModelMixin(abc.ABC):
@@ -31,6 +32,59 @@ class FakeTorchModelMixin(abc.ABC):
         return list(self._named_buffers.values())
 
     def eval(self):
+        pass
+
+
+class HyperoptObjective2(torch.nn.Module):
+    def __init__(self,
+                 centers_init: torch.Tensor,
+                 sigma_init: torch.Tensor,
+                 penalty_init: torch.Tensor,
+                 opt_centers: bool,
+                 opt_sigma: bool,
+                 opt_penalty: bool,
+                 centers_transform: Optional[torch.distributions.Transform],
+                 sigma_transform: Optional[torch.distributions.Transform],
+                 pen_transform: Optional[torch.distributions.Transform],
+                 ):
+        super(HyperoptObjective2, self).__init__()
+
+        self.centers_transform = centers_transform or identity_transform
+        self.penalty_transform = pen_transform or PositiveTransform(1e-8)
+        self.sigma_transform = sigma_transform or identity_transform  #PositiveTransform(1e-4)
+
+        # Apply inverse transformations
+        centers_init = self.centers_transform.inv(centers_init)
+        penalty_init = self.penalty_transform.inv(penalty_init)
+        sigma_init = self.sigma_transform.inv(sigma_init)
+
+        if opt_centers:
+            self.register_parameter("centers_", torch.nn.Parameter(centers_init))
+        else:
+            self.register_buffer("centers_", centers_init)
+        if opt_sigma:
+            self.register_parameter("sigma_", torch.nn.Parameter(sigma_init))
+        else:
+            self.register_buffer("sigma_", sigma_init)
+        if opt_penalty:
+            self.register_parameter("penalty_", torch.nn.Parameter(penalty_init))
+        else:
+            self.register_buffer("penalty_", penalty_init)
+
+    @property
+    def penalty(self):
+        return self.penalty_transform(self.penalty_)
+
+    @property
+    def sigma(self):
+        return self.sigma_transform(self.sigma_)
+
+    @property
+    def centers(self):
+        return self.centers_
+
+    @abc.abstractmethod
+    def predict(self, X):
         pass
 
 
@@ -103,10 +157,10 @@ class NKRRHyperoptObjective(HyperoptObjective, abc.ABC):
             value = torch.tensor([value.item()], dtype=value.dtype)
         elif not isinstance(value, torch.Tensor):
             value = torch.tensor(value)
-        self.sigma_ = self.sigma_transform._inverse(value.clone().detach().to(device=self.device))
+        self.sigma_ = self.sigma_transform.inv(value.clone().detach().to(device=self.device))
 
     @penalty.setter
     def penalty(self, value):
         if not isinstance(value, torch.Tensor):
             value = torch.tensor(value)
-        self.penalty_ = self.penalty_transform._inverse(value.clone().detach().to(device=self.device))
+        self.penalty_ = self.penalty_transform.inv(value.clone().detach().to(device=self.device))
