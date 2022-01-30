@@ -1,6 +1,6 @@
 from contextlib import ExitStack
 from dataclasses import dataclass
-from typing import Optional, Union, Tuple, Dict
+from typing import Optional, Union, Tuple, Dict, Sequence
 
 import numpy as np
 import torch
@@ -299,8 +299,7 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
     N, D = m1.shape
     M, T = v.shape
 
-    kernel_params = kernel.diff_params.values()
-    inputs = [m1, m2, v] + list(kernel_params)
+    inputs = [m1, m2, v] + list(kernel.diff_params.values())
     grads = []
     for ipt in inputs:
         if ipt.requires_grad:
@@ -334,7 +333,7 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
                 if not incore:
                     s2.synchronize()
                 c_dev_mmv = c_dev_ker @ c_dev_v
-                c_inputs = [c_dev_m1, c_dev_m2, c_dev_v] + list(kernel_params)
+                c_inputs = [c_dev_m1, c_dev_m2, c_dev_v] + list(kernel.diff_params.values())
                 c_dev_grads_old = [c_dev_m1_g, c_dev_m2_g, c_dev_v_g] + grads[3:]
                 c_dev_grads = torch.autograd.grad(
                     c_dev_mmv, [c_inputs[idx] for idx in input_idxs], grad_outputs=c_dev_out)

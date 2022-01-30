@@ -37,4 +37,3 @@ def calc_grads_tensors(inputs: Sequence[torch.Tensor],
 def calc_grads(ctx, backward, num_diff_args):
     return calc_grads_tensors(ctx.saved_tensors, ctx.needs_input_grad, backward,
                               retain_graph=True, allow_unused=True)
-

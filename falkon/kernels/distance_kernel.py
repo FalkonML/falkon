@@ -28,6 +28,7 @@ def validate_sigma(sigma: Union[float, torch.Tensor]) -> torch.Tensor:
             raise ValueError("sigma must be a scalar or a vector.")
     else:
         try:
+            print("Converting sigma to float64")
             return torch.tensor([float(sigma)], dtype=torch.float64)
         except TypeError:
             raise TypeError("Sigma must be a scalar or a tensor.")
@@ -84,6 +85,8 @@ def rbf_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
     -------
 
     """
+    # Move hparams
+    sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     mat1_div_sig = mat1 / sigma
     mat2_div_sig = mat2 / sigma
     norm_sq_mat1 = square_norm_diff(mat1_div_sig, -1, True)  # b*n*1 or n*1
@@ -98,6 +101,8 @@ def rbf_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
 def rbf_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
                     mat1_csr: SparseTensor, mat2_csr: SparseTensor,
                     out: torch.Tensor, sigma) -> torch.Tensor:
+    # Move hparams
+    sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     gamma = 0.5 / (sigma ** 2)
     out = _sparse_sq_dist(X1_csr=mat1_csr, X2_csr=mat2_csr, X1=mat1, X2=mat2, out=out)
     out.mul_(-gamma)
@@ -106,6 +111,8 @@ def rbf_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
 
 
 def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
+    # Move hparams
+    sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     mat1_div_sig = mat1 / sigma
     mat2_div_sig = mat2 / sigma
     norm_sq_mat1 = square_norm_diff(mat1_div_sig, -1, True)  # b*n*1
@@ -125,6 +132,8 @@ def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
 def laplacian_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
                           mat1_csr: SparseTensor, mat2_csr: SparseTensor,
                           out: torch.Tensor, sigma) -> torch.Tensor:
+    # Move hparams
+    sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     gamma = 1 / sigma
     out = _sparse_sq_dist(X1_csr=mat1_csr, X2_csr=mat2_csr, X1=mat1, X2=mat2, out=out)
     out.sqrt_()
@@ -134,6 +143,8 @@ def laplacian_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
 
 
 def matern_core(mat1, mat2, out: Optional[torch.Tensor], sigma, nu):
+    # Move hparams
+    sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     if nu == 0.5:
         return laplacian_core(mat1, mat2, out, sigma)
     elif nu == float('inf'):
@@ -172,6 +183,8 @@ def matern_core(mat1, mat2, out: Optional[torch.Tensor], sigma, nu):
 def matern_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
                        mat1_csr: SparseTensor, mat2_csr: SparseTensor,
                        out: torch.Tensor, sigma, nu) -> torch.Tensor:
+    # Move hparams
+    sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     if nu == 0.5:
         return laplacian_core_sparse(mat1, mat2, mat1_csr, mat2_csr, out, sigma)
     elif nu == float('inf'):
@@ -268,9 +281,8 @@ class GaussianKernel(DiffKernel):
     core_fn = rbf_core
 
     def __init__(self, sigma: Union[float, torch.Tensor], opt: Optional[FalkonOptions] = None):
-        self.sigma = validate_sigma(sigma)
-
-        super().__init__(self.kernel_name, opt, core_fn=GaussianKernel.core_fn, sigma=self.sigma)
+        sigma = validate_sigma(sigma)
+        super().__init__(self.kernel_name, opt, core_fn=GaussianKernel.core_fn, sigma=sigma)
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
         formula = 'Exp(SqDist(x1 / g, x2 / g) * IntInv(-2)) * v'
@@ -295,16 +307,14 @@ class GaussianKernel(DiffKernel):
         }
 
     def detach(self) -> 'GaussianKernel':
-        detached_params = self._detach_params()
-        return GaussianKernel(detached_params["sigma"], opt=self.params)
+        return GaussianKernel(self.sigma.detach(), opt=self.params)
 
     # noinspection PyMethodOverriding
     def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
                        X1_csr: SparseTensor, X2_csr: SparseTensor) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        dev_kernel_tensor_params = self._move_kernel_params(X1)
-        return rbf_core_sparse(X1, X2, X1_csr, X2_csr, out, dev_kernel_tensor_params["sigma"])
+        return rbf_core_sparse(X1, X2, X1_csr, X2_csr, out, self.sigma)
 
     def __repr__(self):
         return f"GaussianKernel(sigma={self.sigma})"
@@ -336,9 +346,9 @@ class LaplacianKernel(DiffKernel):
     kernel_name = "laplacian"
 
     def __init__(self, sigma: Union[float, torch.Tensor], opt: Optional[FalkonOptions] = None):
-        self.sigma = validate_sigma(sigma)
+        sigma = validate_sigma(sigma)
 
-        super().__init__(self.kernel_name, opt, core_fn=laplacian_core, sigma=self.sigma)
+        super().__init__(self.kernel_name, opt, core_fn=laplacian_core, sigma=sigma)
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
         formula = 'Exp(-Sqrt(SqDist(x1 / g, x2 / g))) * v'
@@ -363,16 +373,14 @@ class LaplacianKernel(DiffKernel):
         }
 
     def detach(self) -> 'LaplacianKernel':
-        detached_params = self._detach_params()
-        return LaplacianKernel(detached_params["sigma"], opt=self.params)
+        return LaplacianKernel(self.sigma.detach(), opt=self.params)
 
     # noinspection PyMethodOverriding
     def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
                        X1_csr: SparseTensor, X2_csr: SparseTensor) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        dev_kernel_tensor_params = self._move_kernel_params(X1)
-        return laplacian_core_sparse(X1, X2, X1_csr, X2_csr, out, dev_kernel_tensor_params["sigma"])
+        return laplacian_core_sparse(X1, X2, X1_csr, X2_csr, out, self.sigma)
 
     def __repr__(self):
         return f"LaplacianKernel(sigma={self.sigma})"
@@ -414,10 +422,10 @@ class MaternKernel(DiffKernel):
                  sigma: Union[float, torch.Tensor],
                  nu: Union[float, torch.Tensor],
                  opt: Optional[FalkonOptions] = None):
-        self.sigma = validate_sigma(sigma)
-        self.nu = self.validate_nu(nu)
-        self.kernel_name = f"{self.nu:.1f}-matern"
-        super().__init__(self.kernel_name, opt, core_fn=matern_core, sigma=self.sigma, nu=self.nu)
+        sigma = validate_sigma(sigma)
+        nu = self.validate_nu(nu)
+        self.kernel_name = f"{nu:.1f}-matern"
+        super().__init__(self.kernel_name, opt, core_fn=matern_core, sigma=sigma, nu=nu)
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
         if self.nu == 0.5:
@@ -459,8 +467,7 @@ class MaternKernel(DiffKernel):
         return extra_mem
 
     def detach(self) -> 'MaternKernel':
-        detached_params = self._detach_params()
-        return MaternKernel(detached_params["sigma"], detached_params["nu"], opt=self.params)
+        return MaternKernel(self.sigma.detach(), self.nondiff_params["nu"], opt=self.params)
 
     @staticmethod
     def validate_nu(nu: Union[torch.Tensor, float]) -> float:
@@ -486,12 +493,11 @@ class MaternKernel(DiffKernel):
                        X1_csr: SparseTensor, X2_csr: SparseTensor) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        dev_kernel_tensor_params = self._move_kernel_params(X1)
-        return matern_core_sparse(X1, X2, X1_csr, X2_csr, out, dev_kernel_tensor_params["sigma"],
-                                  self.nu)
+        return matern_core_sparse(X1, X2, X1_csr, X2_csr, out, self.sigma,
+                                  self.nondiff_params['nu'])
 
     def __repr__(self):
-        return f"MaternKernel(sigma={self.sigma}, nu={self.nu:.1f})"
+        return f"MaternKernel(sigma={self.sigma}, nu={self.nondiff_params['nu']:.1f})"
 
     def __str__(self):
-        return f"Matern kernel<{self.sigma}, {self.nu:.1f}>"
+        return f"Matern kernel<{self.sigma}, {self.nondiff_params['nu']:.1f}>"

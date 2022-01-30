@@ -1,6 +1,6 @@
 from contextlib import ExitStack
 from dataclasses import dataclass
-from typing import Union, Optional
+from typing import Union, Optional, Sequence
 
 import torch
 import torch.cuda as tcd
@@ -270,6 +270,7 @@ def mm_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
 
     """ Run splitting along N, M """
     bwd_out = torch.tensor(0.0, dtype=torch.float64, device=out.device)  # On data-dev
+    stream = None
     with ExitStack() as stack:
         if dev.type == 'cuda':
             stack.enter_context(tcd.device(dev))

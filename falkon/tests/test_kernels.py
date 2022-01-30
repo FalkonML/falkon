@@ -91,14 +91,14 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
     w_wgrad = w.clone().requires_grad_()
     kernel_params_wgrad = {k: v.clone().requires_grad_() for k, v in kernel.diff_params.items()}
 
-    kernel_wgrad = k_cls(**kernel.nondiff_params, **kernel_params_wgrad)
-
     # FIXME: On some systems (nest but not sperone), checking memory
     #        usage for CPU functions fails miserably due to inconsistent
     #        memory numbers being reported at random. We simply replace CPU
     #        with a high number to avoid checking.
     extra_mem = 10 * 2 ** 30 if opt.use_cpu else 0
     opt = dataclasses.replace(opt, max_cpu_mem=opt.max_cpu_mem + extra_mem)
+
+    kernel_wgrad = k_cls(**kernel.nondiff_params, **kernel_params_wgrad, opt=opt)
 
     expected_mm = naive_fn(m1, m2, **kernel_params)
     # 1. MM
@@ -127,10 +127,9 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
         # 2. MM gradients
         if grad_check:
             def autogradcheck_mm(_m1, _m2, *_kernel_params):
-                return k_cls(*_kernel_params, **kernel.nondiff_params, opt=opt)(_m1, _m2)
-
-            torch.autograd.gradcheck(autogradcheck_mm,
-                                     inputs=(m1_wgrad, m2_wgrad, *kernel_params_wgrad.values()))
+                return kernel_wgrad(_m1, _m2, opt=opt)
+            torch.autograd.gradcheck(
+                autogradcheck_mm, inputs=(m1_wgrad, m2_wgrad, *kernel_wgrad.diff_params.values()))
 
     # 3. MMV
     mmv_out = torch.empty(m1.shape[0], v.shape[1], dtype=m1.dtype, device=m1.device)
@@ -143,7 +142,7 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
     with memory_checker(opt) as new_opt:
         actual_wgrad = kernel_wgrad.mmv(m1_wgrad, m2_wgrad, v_wgrad, out=mmv_out_wgrad, opt=new_opt)
         torch.autograd.grad(
-            actual_wgrad.sum(), [m1_wgrad, m2_wgrad, v_wgrad] + list(kernel_params_wgrad.values()))
+            actual_wgrad.sum(), [m1_wgrad, m2_wgrad, v_wgrad] + list(kernel_wgrad.diff_params.values()))
     assert mmv_out.data_ptr() == actual.data_ptr(), "MMV Output data tensor was not used"
     assert mmv_out_wgrad.data_ptr() == actual_wgrad.data_ptr(), "MMV Output data tensor was not used"
     torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
@@ -157,10 +156,9 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
     # 4. MMV gradients
     if grad_check:
         def autogradcheck_mmv(_m1, _m2, _v, *_kernel_params):
-            return k_cls(*_kernel_params, **kernel.nondiff_params, opt=opt).mmv(_m1, _m2, _v)
-
+            return kernel_wgrad.mmv(_m1, _m2, _v, opt=opt)
         torch.autograd.gradcheck(autogradcheck_mmv, inputs=(
-            m1_wgrad, m2_wgrad, v_wgrad, *kernel_params_wgrad.values()))
+            m1_wgrad, m2_wgrad, v_wgrad, *kernel_wgrad.diff_params.values()))
 
     # 5. Double MMV (doesn't exist for gradients)
     dmmv_grad_allowed = True
@@ -191,10 +189,10 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
     # 6. D-MMV gradients
     if grad_check and dmmv_grad_allowed:
         def autogradcheck_dmmv(_m1, _m2, _v, _w, *_kernel_params):
-            return k_cls(*_kernel_params, **kernel.nondiff_params, opt=opt).dmmv(_m1, _m2, _v, _w)
+            return kernel_wgrad.dmmv(_m1, _m2, _v, _w, opt=opt)
 
         torch.autograd.gradcheck(autogradcheck_dmmv, inputs=(
-            m1_wgrad, m2_wgrad, v_wgrad, w_wgrad, *kernel_params_wgrad.values()))
+            m1_wgrad, m2_wgrad, v_wgrad, w_wgrad, *kernel_wgrad.diff_params.values()))
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
@@ -229,15 +227,17 @@ class TestLaplacianKernel():
 
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
 
-        def autogradcheck_mm(_m1, _m2, *_kernel_params):
-            return TestLaplacianKernel.k_class(*_kernel_params, opt=opt)(_m1, _m2)
+        kernel = self.k_class(s_wgrad, opt=opt)
 
-        torch.autograd.gradcheck(autogradcheck_mm, inputs=(m1_wgrad, m2_wgrad, s_wgrad))
+        def autogradcheck_mm(_m1, _m2, *_kernel_params):
+            return kernel(_m1, _m2)
+
+        torch.autograd.gradcheck(autogradcheck_mm, inputs=(m1_wgrad, m2_wgrad, *kernel.diff_params.values()))
 
         def autogradcheck_mmv(_m1, _m2, _v, *_kernel_params):
-            return TestLaplacianKernel.k_class(*_kernel_params, opt=opt).mmv(_m1, _m2, _v)
+            return kernel.mmv(_m1, _m2, _v)
 
-        torch.autograd.gradcheck(autogradcheck_mmv, inputs=(m1_wgrad, m2_wgrad, v_wgrad, s_wgrad))
+        torch.autograd.gradcheck(autogradcheck_mmv, inputs=(m1_wgrad, m2_wgrad, v_wgrad, *kernel.diff_params.values()))
 
     @keops_mark
     def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):

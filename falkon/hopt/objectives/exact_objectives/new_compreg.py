@@ -30,7 +30,7 @@ class NystromCompReg(HyperoptObjective2):
         sqrt_var = torch.sqrt(variance)
         Kdiag = X.shape[0]
 
-        L, A, AAT, LB, c = self._calc_intermediates(X, Y)
+        L, A, AAT, LB, c = self._calc_intermediate(X, Y)
         C = torch.triangular_solve(A, LB, upper=False).solution  # m*n
 
         datafit = (torch.square(Y).sum() - torch.square(c / sqrt_var).sum())
@@ -45,13 +45,13 @@ class NystromCompReg(HyperoptObjective2):
         if self.x_train is None or self.y_train is None:
             raise RuntimeError("Call forward at least once before calling predict.")
         with torch.autograd.no_grad():
-            L, A, AAT, LB, c = self._calc_intermediates(self.x_train, self.y_train)
+            L, A, AAT, LB, c = self._calc_intermediate(self.x_train, self.y_train)
             tmp1 = torch.triangular_solve(c, LB, upper=False, transpose=True).solution
             tmp2 = torch.triangular_solve(tmp1, L, upper=False, transpose=True).solution
             kms = full_rbf_kernel(self.centers, X, self.sigma)
             return kms.T @ tmp2
 
-    def _calc_intermediates(self, X, Y):
+    def _calc_intermediate(self, X, Y):
         variance = self.penalty * X.shape[0]
 
         kmn = full_rbf_kernel(self.centers, X, self.sigma)

@@ -11,7 +11,7 @@ from falkon.utils.helpers import check_same_dtype, check_sparse, check_same_devi
 from falkon.options import FalkonOptions
 
 
-class Kernel(ABC):
+class Kernel(torch.nn.Module, ABC):
     """Abstract kernel class. Kernels should inherit from this class, overriding appropriate methods.
 
     To extend Falkon with new kernels, you should read the documentation of this class
@@ -55,6 +55,7 @@ class Kernel(ABC):
         Base set of options to be used for operations involving this kernel.
     """
     def __init__(self, name: str, kernel_type: str, opt: Optional[FalkonOptions]):
+        super().__init__()
         self.name = name
         self.kernel_type = kernel_type
         if opt is None:
@@ -363,7 +364,10 @@ class Kernel(ABC):
         sparsity = check_sparse(X1, X2)
         diff = False
         if not any(sparsity):
-            diff = any([t.requires_grad for t in [X1, X2, v, w] + list(self.diff_params.values()) if t is not None])
+            diff = any([
+                t.requires_grad for t in [X1, X2, v, w] + list(self.diff_params.values())
+                if t is not None
+            ])
         return dmmv_impl(X1, X2, v, w, self, out, diff, params)
 
     def _decide_dmmv_impl(self,

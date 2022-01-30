@@ -1,11 +1,11 @@
 import time
 from functools import reduce
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
 
-from falkon.hopt.objectives.objectives import HyperoptObjective, FakeTorchModelMixin
+from falkon.hopt.objectives.objectives import HyperoptObjective2
 from falkon.hopt.optimization.reporting import pred_reporting, EarlyStop, epoch_bookkeeping
 
 __all__ = [
@@ -14,18 +14,15 @@ __all__ = [
 ]
 
 
-def hp_grad(model: FakeTorchModelMixin, *loss_terms, accumulate_grads=True, verbose=True, losses_are_grads=False):
+def hp_grad(model: HyperoptObjective2, *loss_terms, accumulate_grads=True, verbose=True):
     grads = []
-    hparams = model.parameters()
-    if not losses_are_grads:
-        if verbose:
-            for loss in loss_terms:
-                grads.append(torch.autograd.grad(loss, hparams, retain_graph=True, allow_unused=True))
-        else:
-            loss = reduce(torch.add, loss_terms)
-            grads.append(torch.autograd.grad(loss, hparams, retain_graph=False))
+    hparams = list(model.parameters())
+    if verbose:
+        for loss in loss_terms:
+            grads.append(torch.autograd.grad(loss, hparams, retain_graph=True, allow_unused=True))
     else:
-        grads = loss_terms
+        loss = reduce(torch.add, loss_terms)
+        grads.append(torch.autograd.grad(loss, hparams, retain_graph=False))
 
     if accumulate_grads:
         for g in grads:
@@ -38,10 +35,10 @@ def hp_grad(model: FakeTorchModelMixin, *loss_terms, accumulate_grads=True, verb
     return grads
 
 
-def create_optimizer(opt_type: str, model: HyperoptObjective, learning_rate: float):
+def create_optimizer(opt_type: str, model: HyperoptObjective2, learning_rate: float):
     center_lr_div = 1
     schedule = None
-    named_params = model.named_parameters()
+    named_params = dict(model.named_parameters())
     print("Creating optimizer with the following parameters:")
     for k, v in named_params.items():
         print(f"\t{k} : {v.shape}")
@@ -83,12 +80,11 @@ def train_complexity_reg(
         Ytr: torch.Tensor,
         Xts: torch.Tensor,
         Yts: torch.Tensor,
-        model: HyperoptObjective,
+        model: HyperoptObjective2,
         err_fn,
         learning_rate: float,
         num_epochs: int,
         cuda: bool,
-        verbose: bool,
         loss_every: int,
         early_stop_epochs: int,
         cgtol_decrease_epochs: Optional[int],
@@ -106,16 +102,11 @@ def train_complexity_reg(
     with torch.autograd.profiler.profile(enabled=False) as prof:
         for epoch in range(num_epochs):
             t_start = time.time()
-            grads: Any = None
-            losses: Any = None
 
             def closure():
                 opt_hp.zero_grad()
-                nonlocal grads, losses
-                losses = model.hp_loss(Xtr, Ytr)
-                grads = hp_grad(model, *losses, accumulate_grads=True,
-                                losses_are_grads=model.losses_are_grads, verbose=False)
-                loss = reduce(torch.add, losses)
+                loss = model(Xtr, Ytr)
+                loss.backward()
                 return float(loss)
             try:
                 opt_hp.step(closure)
@@ -128,15 +119,13 @@ def train_complexity_reg(
             cum_time += time.time() - t_start
             try:
                 epoch_bookkeeping(epoch=epoch, model=model, data={'Xtr': Xtr, 'Ytr': Ytr, 'Xts': Xts, 'Yts': Yts},
-                                  err_fn=err_fn, grads=grads, losses=losses, loss_every=loss_every,
-                                  early_stop_patience=early_stop_epochs, schedule=schedule, minibatch=None,
-                                  logs=logs, cum_time=cum_time, verbose=verbose,
+                                  err_fn=err_fn, loss_every=loss_every,
+                                  early_stop_patience=early_stop_epochs, schedule=schedule,
+                                  minibatch=None, logs=logs, cum_time=cum_time,
                                   accuracy_increase_patience=cgtol_decrease_epochs)
             except EarlyStop as e:
                 print(e)
                 break
-            finally:
-                del grads, losses
         torch.cuda.empty_cache()
     if prof is not None:
         print(prof.key_averages().table())
@@ -156,12 +145,11 @@ def train_complexity_reg_mb(
         Ytr: torch.Tensor,
         Xts: torch.Tensor,
         Yts: torch.Tensor,
-        model: HyperoptObjective,
+        model: HyperoptObjective2,
         err_fn,
         learning_rate: float,
         num_epochs: int,
         cuda: bool,
-        verbose: bool,
         loss_every: int,
         early_stop_epochs: int,
         cgtol_decrease_epochs: Optional[int],
@@ -190,16 +178,16 @@ def train_complexity_reg_mb(
                 Xtr_batch, Ytr_batch = Xtr_batch.cuda(), Ytr_batch.cuda()
 
             opt_hp.zero_grad()
-            loss = model.hp_loss(Xtr_batch, Ytr_batch)[0]  # There is only one loss!
+            loss = model(Xtr_batch, Ytr_batch)
             loss.backward()
             opt_hp.step()
 
         cum_time += time.time() - t_start
         try:
             epoch_bookkeeping(epoch=epoch, model=model, data={'Xtr': Xtrc, 'Ytr': Ytrc, 'Xts': Xtsc, 'Yts': Ytsc},
-                              err_fn=err_fn, grads=None, losses=None, loss_every=loss_every,
-                              early_stop_patience=early_stop_epochs, schedule=schedule, minibatch=minibatch,
-                              logs=logs, cum_time=cum_time, verbose=verbose,
+                              err_fn=err_fn, loss_every=loss_every,
+                              early_stop_patience=early_stop_epochs, schedule=schedule,
+                              minibatch=minibatch, logs=logs, cum_time=cum_time,
                               accuracy_increase_patience=cgtol_decrease_epochs)
         except EarlyStop as e:
             print(e)

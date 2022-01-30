@@ -4,10 +4,12 @@ from typing import Dict, Any, Optional, List
 
 import torch
 
-from falkon.hopt.objectives.objectives import HyperoptObjective
+from falkon.hopt.objectives.objectives import HyperoptObjective2
 from falkon.hopt.optimization.reporting import pred_reporting, report_losses
 from falkon.hopt.utils import get_scalar
 
+
+# TODO: THIS IS BROKEN (due to attempting to change the parameters of a nn.Module)
 
 @dataclass
 class HPGridPoint:
@@ -15,7 +17,7 @@ class HPGridPoint:
     results: Optional[Dict[str, float]] = None
 
 
-def set_grid_point(model: HyperoptObjective, grid_point: HPGridPoint):
+def set_grid_point(model: HyperoptObjective2, grid_point: HPGridPoint):
     for attr_name, attr_val in grid_point.attributes.items():
         setattr(model, attr_name, attr_val)
 
@@ -25,7 +27,7 @@ def run_on_grid(
         Ytr: torch.Tensor,
         Xts: torch.Tensor,
         Yts: torch.Tensor,
-        model: HyperoptObjective,
+        model: HyperoptObjective2,
         grid_spec: List[HPGridPoint],
         minibatch: Optional[int],
         err_fn,

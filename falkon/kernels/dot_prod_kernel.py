@@ -25,6 +25,9 @@ def validate_diff_float(num: Union[float, torch.Tensor], param_name: str) -> tor
 
 
 def linear_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma):
+    # Move hyper-parameters
+    beta = beta.to(device=mat1.device, dtype=mat1.dtype)
+    gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
     if out is None:
         out = torch.mm(mat1, mat2.T)
     else:
@@ -36,6 +39,9 @@ def linear_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma):
 
 def linear_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor,
                        beta, gamma) -> torch.Tensor:
+    # Move hyper-parameters
+    beta = beta.to(device=mat1.device, dtype=mat1.dtype)
+    gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
     sparse.sparse_matmul(mat1, mat2, out)
     out.mul_(gamma)
     out.add_(beta)
@@ -43,6 +49,10 @@ def linear_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor
 
 
 def polynomial_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma, degree):
+    # Move hyper-parameters
+    beta = beta.to(device=mat1.device, dtype=mat1.dtype)
+    gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
+    degree = degree.to(device=mat1.device, dtype=mat1.dtype)
     if out is None:
         out = torch.mm(mat1, mat2.T)
     else:
@@ -55,6 +65,10 @@ def polynomial_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma, degree
 
 def polynomial_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor,
                            beta, gamma, degree) -> torch.Tensor:
+    # Move hyper-parameters
+    beta = beta.to(device=mat1.device, dtype=mat1.dtype)
+    gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
+    degree = degree.to(device=mat1.device, dtype=mat1.dtype)
     sparse.sparse_matmul(mat1, mat2, out)
     out.mul_(gamma)
     out.add_(beta)
@@ -63,6 +77,9 @@ def polynomial_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Te
 
 
 def sigmoid_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma):
+    # Move hyper-parameters
+    beta = beta.to(device=mat1.device, dtype=mat1.dtype)
+    gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
     if out is None:
         out = torch.mm(mat1, mat2.T)
     else:
@@ -75,6 +92,9 @@ def sigmoid_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma):
 
 def sigmoid_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor,
                         beta, gamma) -> torch.Tensor:
+    # Move hyper-parameters
+    beta = beta.to(device=mat1.device, dtype=mat1.dtype)
+    gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
     sparse.sparse_matmul(mat1, mat2, out)
     out.mul_(gamma)
     out.add_(beta)
@@ -111,9 +131,9 @@ class LinearKernel(DiffKernel):
                  beta: Union[float, torch.Tensor] = 0.0,
                  gamma: Union[float, torch.Tensor] = 1.0,
                  opt: Optional[FalkonOptions] = None):
-        self.beta = validate_diff_float(beta, param_name="beta")
-        self.gamma = validate_diff_float(gamma, param_name="gamma")
-        super().__init__("Linear", opt, linear_core, beta=self.beta, gamma=self.gamma)
+        beta = validate_diff_float(beta, param_name="beta")
+        gamma = validate_diff_float(gamma, param_name="gamma")
+        super().__init__("Linear", opt, linear_core, beta=beta, gamma=gamma)
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
         formula = '(gamma * (X | Y) + beta) * v'
@@ -134,16 +154,13 @@ class LinearKernel(DiffKernel):
         return {}
 
     def detach(self) -> 'LinearKernel':
-        detached_params = self._detach_params()
-        return LinearKernel(beta=detached_params["beta"], gamma=detached_params["gamma"],
-                            opt=self.params)
+        return LinearKernel(beta=self.beta.detach(), gamma=self.gamma.detach(), opt=self.params)
 
     def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
                        **kwargs) -> torch.Tensor:
-        dev_kernel_tensor_params = self._move_kernel_params(X1)
         return linear_core_sparse(X1, X2, out,
-                                  beta=dev_kernel_tensor_params["beta"],
-                                  gamma=dev_kernel_tensor_params["gamma"])
+                                  beta=self.beta,
+                                  gamma=self.gamma)
 
     def __str__(self):
         return f"LinearKernel(beta={self.beta}, gamma={self.gamma})"
@@ -180,11 +197,10 @@ class PolynomialKernel(DiffKernel):
                  gamma: Union[float, torch.Tensor],
                  degree: Union[float, torch.Tensor],
                  opt: Optional[FalkonOptions] = None):
-        self.beta = validate_diff_float(beta, param_name="beta")
-        self.gamma = validate_diff_float(gamma, param_name="gamma")
-        self.degree = validate_diff_float(degree, param_name="degree")
-        super().__init__("Polynomial", opt, polynomial_core, beta=self.beta, gamma=self.gamma,
-                         degree=self.degree)
+        beta = validate_diff_float(beta, param_name="beta")
+        gamma = validate_diff_float(gamma, param_name="gamma")
+        degree = validate_diff_float(degree, param_name="degree")
+        super().__init__("Polynomial", opt, polynomial_core, beta=beta, gamma=gamma, degree=degree)
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
         formula = 'Powf((gamma * (X | Y) + beta), degree) * v'
@@ -208,17 +224,13 @@ class PolynomialKernel(DiffKernel):
         return {}
 
     def detach(self) -> 'PolynomialKernel':
-        detached_params = self._detach_params()
-        return PolynomialKernel(beta=detached_params["beta"], gamma=detached_params["gamma"],
-                                degree=detached_params["degree"], opt=self.params)
+        return PolynomialKernel(beta=self.beta.detach(), gamma=self.gamma.detach(),
+                                degree=self.degree.detach(), opt=self.params)
 
     def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
                        **kwargs) -> torch.Tensor:
-        dev_kernel_tensor_params = self._move_kernel_params(X1)
-        return polynomial_core_sparse(X1, X2, out,
-                                      beta=dev_kernel_tensor_params["beta"],
-                                      gamma=dev_kernel_tensor_params["gamma"],
-                                      degree=dev_kernel_tensor_params["degree"], )
+        return polynomial_core_sparse(
+            X1, X2, out, beta=self.beta, gamma=self.gamma, degree=self.degree,)
 
     def __str__(self):
         return f"PolynomialKernel(beta={self.beta}, gamma={self.gamma}, degree={self.degree})"
@@ -252,9 +264,9 @@ class SigmoidKernel(DiffKernel):
                  beta: Union[float, torch.Tensor],
                  gamma: Union[float, torch.Tensor],
                  opt: Optional[FalkonOptions] = None):
-        self.beta = validate_diff_float(beta, param_name="beta")
-        self.gamma = validate_diff_float(gamma, param_name="gamma")
-        super().__init__("Sigmoid", opt, sigmoid_core, beta=self.beta, gamma=self.gamma)
+        beta = validate_diff_float(beta, param_name="beta")
+        gamma = validate_diff_float(gamma, param_name="gamma")
+        super().__init__("Sigmoid", opt, sigmoid_core, beta=beta, gamma=gamma)
 
     def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
         return RuntimeError("SigmoidKernel is not implemented in KeOps")
@@ -277,16 +289,11 @@ class SigmoidKernel(DiffKernel):
         return {}
 
     def detach(self) -> 'SigmoidKernel':
-        detached_params = self._detach_params()
-        return SigmoidKernel(beta=detached_params["beta"], gamma=detached_params["gamma"],
-                             opt=self.params)
+        return SigmoidKernel(beta=self.beta, gamma=self.gamma, opt=self.params)
 
     def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
                        **kwargs) -> torch.Tensor:
-        dev_kernel_tensor_params = self._move_kernel_params(X1)
-        return sigmoid_core_sparse(X1, X2, out,
-                                   beta=dev_kernel_tensor_params["beta"],
-                                   gamma=dev_kernel_tensor_params["gamma"], )
+        return sigmoid_core_sparse(X1, X2, out, beta=self.beta, gamma=self.gamma)
 
     def __str__(self):
         return f"SigmoidKernel(beta={self.beta}, gamma={self.gamma})"

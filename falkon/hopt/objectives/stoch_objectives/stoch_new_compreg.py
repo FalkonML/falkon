@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 
 import numpy as np
 import torch
@@ -12,41 +12,32 @@ from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tictoc import Timer
 from falkon.hopt.utils import full_rbf_kernel, get_scalar
 from falkon.hopt.objectives.exact_objectives.utils import cholesky
-from falkon.hopt.objectives.objectives import NKRRHyperoptObjective
+from falkon.hopt.objectives.objectives import HyperoptObjective2
 from falkon.hopt.objectives.stoch_objectives.utils import init_random_vecs, calc_grads_tensors
 
 EPS = 5e-5
 
 
-class StochasticDeffPenFitTr(NKRRHyperoptObjective):
+class StochasticNystromCompReg(HyperoptObjective2):
     def __init__(
             self,
-            sigma_init,
-            penalty_init,
-            centers_init,
-            opt_centers,
-            opt_sigma,
-            opt_penalty,
-            cuda: bool,
+            centers_init: torch.Tensor,
+            sigma_init: torch.Tensor,
+            penalty_init: torch.Tensor,
+            opt_centers: bool,
+            opt_sigma: bool,
+            opt_penalty: bool,
             flk_opt: FalkonOptions,
             flk_maxiter: int = 10,
             num_trace_est: int = 20,
+            centers_transform: Optional[torch.distributions.Transform] = None,
+            sigma_transform: Optional[torch.distributions.Transform] = None,
+            pen_transform: Optional[torch.distributions.Transform] = None,
     ):
-        super().__init__(
-            penalty=penalty_init,
-            sigma=sigma_init,
-            centers=centers_init,
-            cuda=cuda,
-            verbose=True,
-        )
-        self.opt_sigma, self.opt_centers, self.opt_penalty = opt_sigma, opt_centers, opt_penalty
-        if opt_sigma:
-            self.register_parameter("sigma", self.sigma_.requires_grad_(True))
-        if opt_penalty:
-            self.register_parameter("penalty", self.penalty_.requires_grad_(True))
-        if opt_centers:
-            self.register_parameter("centers", self.centers_.requires_grad_(True))
-
+        super(StochasticNystromCompReg, self).__init__(centers_init, sigma_init, penalty_init,
+                                                       opt_centers, opt_sigma, opt_penalty,
+                                                       centers_transform, sigma_transform,
+                                                       pen_transform)
         self.flk_opt = flk_opt
         self.num_trace_est = num_trace_est
         self.flk_maxiter = flk_maxiter
@@ -54,39 +45,42 @@ class StochasticDeffPenFitTr(NKRRHyperoptObjective):
         self.gaussian_ste = True
         self.warm_start = True
         self.trace_type = "fast"
+        self.losses: Optional[Dict[str, torch.Tensor]] = None
 
-    def hp_loss(self, X, Y):
-        loss = creg_penfit(kernel_args=self.sigma, penalty=self.penalty, centers=self.centers,
-                           X=X, Y=Y, num_estimators=self.num_trace_est, deterministic=self.deterministic_ste,
-                           solve_options=self.flk_opt, solve_maxiter=self.flk_maxiter,
-                           gaussian_random=self.gaussian_ste, warm_start=self.warm_start,
-                           trace_type=self.trace_type)
-        return [loss]
+    def forward(self, X, Y):
+        loss = stochastic_nystrom_compreg(kernel_args=self.sigma, penalty=self.penalty, centers=self.centers,
+                                          X=X, Y=Y, num_estimators=self.num_trace_est,
+                                          deterministic=self.deterministic_ste,
+                                          solve_options=self.flk_opt, solve_maxiter=self.flk_maxiter,
+                                          gaussian_random=self.gaussian_ste, warm_start=self.warm_start,
+                                          trace_type=self.trace_type)
+        self._save_losses(loss)
+        return loss
 
     def predict(self, X):
-        if RegLossAndDeffv2.last_alpha is None:
+        if NystromCompRegFn.last_alpha is None:
             raise RuntimeError("Call hp_loss before calling predict.")
 
         kernel = GaussianKernel(sigma=self.sigma.detach(), opt=self.flk_opt)
         with torch.autograd.no_grad():
-            return kernel.mmv(X, self.centers, RegLossAndDeffv2.last_alpha)
+            return kernel.mmv(X, self.centers, NystromCompRegFn.last_alpha)
 
     def print_times(self):
-        RegLossAndDeffv2.print_times()
+        NystromCompRegFn.print_times()
 
     @property
     def last_beta(self):
-        return RegLossAndDeffv2._last_solve_y
+        return NystromCompRegFn._last_solve_y
 
-    @property
-    def loss_names(self):
-        return ["stoch-creg-penfit"]
+    def _save_losses(self, loss):
+        self.losses = {
+            "compreg_loss": loss.detach(),
+        }
 
     def __repr__(self):
-        return f"StochasticDeffPenFitTr(sigma={get_scalar(self.sigma)}, " \
+        return f"StochasticNystromCompReg(sigma={get_scalar(self.sigma)}, " \
                f"penalty={get_scalar(self.penalty)}, num_centers={self.centers.shape[0]}, " \
-               f"opt_centers={self.opt_centers}, opt_sigma={self.opt_sigma}, " \
-               f"opt_penalty={self.opt_penalty}, t={self.num_trace_est}, " \
+               f"t={self.num_trace_est}, " \
                f"flk_iter={self.flk_maxiter}, det_ste={self.deterministic_ste}, " \
                f"gauss_ste={self.gaussian_ste}, warm={self.warm_start}, " \
                f"cg_tolerance={self.flk_opt.cg_tolerance}, trace_type={self.trace_type})"
@@ -152,8 +146,8 @@ def calc_trace_bwd(k_mn: Optional[torch.Tensor],
         k_subs = k_mn_zy
         norm = X.shape[0] / t
         return -norm * (
-            2 * k_subs.mul(solve2).sum() -
-            (solve2 * (kmm @ solve2)).sum()
+                2 * k_subs.mul(solve2).sum() -
+                (solve2 * (kmm @ solve2)).sum()
         )
 
 
@@ -181,8 +175,8 @@ def calc_dfit_bwd(zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve
     return dfit_bwd
 
 
-# noinspection PyMethodOverriding
-class RegLossAndDeffv2(torch.autograd.Function):
+# noinspection PyMethodOverriding,PyAbstractClass
+class NystromCompRegFn(torch.autograd.Function):
     coef_nm = 40
     _last_solve_z = None
     _last_solve_y = None
@@ -195,29 +189,31 @@ class RegLossAndDeffv2(torch.autograd.Function):
 
     @staticmethod
     def print_times():
-        num_times = len(RegLossAndDeffv2.iter_times)
+        num_times = len(NystromCompRegFn.iter_times)
         print(
-            f"Timings: Preparation {np.sum(RegLossAndDeffv2.iter_prep_times) / num_times:.2f} "
-            f"Falkon solve {np.sum(RegLossAndDeffv2.solve_times) / num_times:.2f} "
-            f"(in {np.sum(RegLossAndDeffv2.num_flk_iters) / num_times:.1f} iters) "
-            f"KMM (toCUDA) {np.sum(RegLossAndDeffv2.kmm_times) / num_times:.2f} "
-            f"Forward {np.sum(RegLossAndDeffv2.fwd_times) / num_times:.2f} "
-            f"Backward {np.sum(RegLossAndDeffv2.bwd_times) / num_times:.2f} "
-            f"Grad {np.sum(RegLossAndDeffv2.grad_times) / num_times:.2f} "
-            f"\n\tTotal {np.sum(RegLossAndDeffv2.iter_times) / num_times:.2f}"
+            f"Timings: Preparation {np.sum(NystromCompRegFn.iter_prep_times) / num_times:.2f} "
+            f"Falkon solve {np.sum(NystromCompRegFn.solve_times) / num_times:.2f} "
+            f"(in {np.sum(NystromCompRegFn.num_flk_iters) / num_times:.1f} iters) "
+            f"KMM (toCUDA) {np.sum(NystromCompRegFn.kmm_times) / num_times:.2f} "
+            f"Forward {np.sum(NystromCompRegFn.fwd_times) / num_times:.2f} "
+            f"Backward {np.sum(NystromCompRegFn.bwd_times) / num_times:.2f} "
+            f"Grad {np.sum(NystromCompRegFn.grad_times) / num_times:.2f} "
+            f"\n\tTotal {np.sum(NystromCompRegFn.iter_times) / num_times:.2f}"
         )
-        (RegLossAndDeffv2.iter_prep_times, RegLossAndDeffv2.fwd_times, RegLossAndDeffv2.bwd_times,
-         RegLossAndDeffv2.solve_times, RegLossAndDeffv2.kmm_times, RegLossAndDeffv2.grad_times,
-         RegLossAndDeffv2.iter_times, RegLossAndDeffv2.num_flk_iters) = [], [], [], [], [], [], [], []
+        (NystromCompRegFn.iter_prep_times, NystromCompRegFn.fwd_times, NystromCompRegFn.bwd_times,
+         NystromCompRegFn.solve_times, NystromCompRegFn.kmm_times, NystromCompRegFn.grad_times,
+         NystromCompRegFn.iter_times,
+         NystromCompRegFn.num_flk_iters) = [], [], [], [], [], [], [], []
 
     @staticmethod
     def direct_nosplit(X: torch.Tensor,
                        M: torch.Tensor,
                        Y: torch.Tensor,
-                       penalty: torch.Tensor, kmm, kmm_chol, zy, solve_zy, zy_solve_kmm_solve_zy, kernel,
+                       penalty: torch.Tensor, kmm, kmm_chol, zy, solve_zy, zy_solve_kmm_solve_zy,
+                       kernel,
                        t, trace_type: str):
         k_subs = None
-        with Timer(RegLossAndDeffv2.iter_prep_times), torch.autograd.enable_grad():
+        with Timer(NystromCompRegFn.iter_prep_times), torch.autograd.enable_grad():
             k_mn_zy = kernel.mmv(M, X, zy)  # M x (T+P)
             zy_knm_solve_zy = k_mn_zy.mul(solve_zy).sum(0)  # T+P
             if trace_type == "fast":
@@ -229,7 +225,7 @@ class RegLossAndDeffv2(torch.autograd.Function):
         dfit_fwd = Y.square().sum().to(M.device)
         deff_fwd = torch.tensor(0, dtype=X.dtype, device=M.device)
         trace_fwd = torch.tensor(X.shape[0], dtype=X.dtype, device=M.device)
-        with Timer(RegLossAndDeffv2.fwd_times), torch.autograd.no_grad():
+        with Timer(NystromCompRegFn.fwd_times), torch.autograd.no_grad():
             pen_n = penalty * X.shape[0]
             if trace_type == "fast":
                 _trace_fwd, solve2 = calc_trace_fwd(
@@ -247,7 +243,7 @@ class RegLossAndDeffv2(torch.autograd.Function):
             dfit_fwd -= zy_knm_solve_zy[t:].sum()
             trace_fwd = (_trace_fwd * dfit_fwd) / (pen_n * X.shape[0])
         # Backward
-        with Timer(RegLossAndDeffv2.bwd_times), torch.autograd.enable_grad():
+        with Timer(NystromCompRegFn.bwd_times), torch.autograd.enable_grad():
             zy_solve_knm_knm_solve_zy = kernel.mmv(X, M, solve_zy).square().sum(0)  # T+P
             pen_n = penalty * X.shape[0]
             # Nystrom effective dimension backward
@@ -270,7 +266,8 @@ class RegLossAndDeffv2(torch.autograd.Function):
             trace_fwd_num = (_trace_fwd * dfit_fwd).detach()
             trace_bwd_num = trace_bwd * dfit_fwd.detach() + _trace_fwd.detach() * dfit_bwd
             trace_den = pen_n * X.shape[0]
-            trace_bwd = (trace_bwd_num * trace_den.detach() - trace_fwd_num * trace_den) / (trace_den.detach()**2)
+            trace_bwd = (trace_bwd_num * trace_den.detach() - trace_fwd_num * trace_den) / (
+                        trace_den.detach() ** 2)
             bwd = (deff_bwd + dfit_bwd + trace_bwd)
         return (deff_fwd, dfit_fwd, trace_fwd), bwd
 
@@ -309,14 +306,14 @@ class RegLossAndDeffv2(torch.autograd.Function):
         optim = FalkonConjugateGradient(K, precond, solve_options)
         solve_zy_prec = optim.solve(
             X, M_, ZY, penalty_,
-            initial_solution=RegLossAndDeffv2._last_solve_zy,
+            initial_solution=NystromCompRegFn._last_solve_zy,
             max_iter=solve_maxiter,
         )
         if warm_start:
-            RegLossAndDeffv2._last_solve_zy = solve_zy_prec.detach().clone()
-            RegLossAndDeffv2._last_solve_y = RegLossAndDeffv2._last_solve_zy[:, t:].clone()
+            NystromCompRegFn._last_solve_zy = solve_zy_prec.detach().clone()
+            NystromCompRegFn._last_solve_y = NystromCompRegFn._last_solve_zy[:, t:].clone()
         solve_zy = precond.apply(solve_zy_prec)
-        RegLossAndDeffv2.last_alpha = solve_zy[:, t:].detach().clone()
+        NystromCompRegFn.last_alpha = solve_zy[:, t:].detach().clone()
         num_iters = optim.optimizer.num_iter
         return solve_zy, num_iters
 
@@ -336,11 +333,11 @@ class RegLossAndDeffv2(torch.autograd.Function):
             warm_start: bool,
             trace_type: str,
     ):
-        if RegLossAndDeffv2._last_t is not None and RegLossAndDeffv2._last_t != t:
-            RegLossAndDeffv2._last_solve_y = None
-            RegLossAndDeffv2._last_solve_z = None
-            RegLossAndDeffv2.last_alpha = None
-        RegLossAndDeffv2._last_t = t
+        if NystromCompRegFn._last_t is not None and NystromCompRegFn._last_t != t:
+            NystromCompRegFn._last_solve_y = None
+            NystromCompRegFn._last_solve_z = None
+            NystromCompRegFn.last_alpha = None
+        NystromCompRegFn._last_t = t
         if deterministic:
             torch.manual_seed(12)
 
@@ -348,24 +345,25 @@ class RegLossAndDeffv2(torch.autograd.Function):
             device, avail_mem = X.device, None
         else:
             # Only device is used
-            device, avail_mem = RegLossAndDeffv2.choose_device_mem(X.device, X.dtype, solve_options)
+            device, avail_mem = NystromCompRegFn.choose_device_mem(X.device, X.dtype, solve_options)
 
-        with Timer(RegLossAndDeffv2.iter_times):
+        with Timer(NystromCompRegFn.iter_times):
             # Initialize hutch trace estimation vectors (t of them)
             Z = init_random_vecs(X.shape[0], t, dtype=X.dtype, device=X.device,
                                  gaussian_random=gaussian_random)
             ZY = torch.cat((Z, Y), dim=1)
             M_dev = M.to(device, copy=False).requires_grad_(M.requires_grad)
-            kernel_args_dev = kernel_args.to(device, copy=False).requires_grad_(kernel_args.requires_grad)
+            kernel_args_dev = kernel_args.to(device, copy=False).requires_grad_(
+                kernel_args.requires_grad)
             penalty_dev = penalty.to(device, copy=False).requires_grad_(penalty.requires_grad)
 
-            with Timer(RegLossAndDeffv2.solve_times):
-                solve_zy, num_flk_iters = RegLossAndDeffv2.solve_flk(
+            with Timer(NystromCompRegFn.solve_times):
+                solve_zy, num_flk_iters = NystromCompRegFn.solve_flk(
                     X=X, M=M_dev, Z=Z, ZY=ZY, penalty=penalty_dev, kernel_args=kernel_args_dev,
                     solve_options=solve_options, solve_maxiter=solve_maxiter, warm_start=warm_start)
-                RegLossAndDeffv2.num_flk_iters.append(num_flk_iters)
+                NystromCompRegFn.num_flk_iters.append(num_flk_iters)
 
-            with Timer(RegLossAndDeffv2.kmm_times):
+            with Timer(NystromCompRegFn.kmm_times):
                 solve_zy_dev = solve_zy.to(device, copy=False)
 
                 with torch.autograd.enable_grad():
@@ -379,11 +377,11 @@ class RegLossAndDeffv2(torch.autograd.Function):
 
             with torch.autograd.enable_grad():
                 kernel = GaussianKernel(kernel_args_dev, solve_options)
-            fwd, bwd = RegLossAndDeffv2.direct_nosplit(
+            fwd, bwd = NystromCompRegFn.direct_nosplit(
                 X=X, M=M_dev, Y=Y, penalty=penalty_dev, kmm=kmm, kmm_chol=kmm_chol,
                 zy=ZY, solve_zy=solve_zy_dev, zy_solve_kmm_solve_zy=zy_solve_kmm_solve_zy,
                 kernel=kernel, t=t, trace_type=trace_type)
-            with Timer(RegLossAndDeffv2.grad_times):
+            with Timer(NystromCompRegFn.grad_times):
                 grads_ = calc_grads_tensors(inputs=(kernel_args_dev, penalty_dev, M_dev),
                                             inputs_need_grad=ctx.needs_input_grad, backward=bwd,
                                             retain_graph=False, allow_unused=False)
@@ -393,7 +391,7 @@ class RegLossAndDeffv2(torch.autograd.Function):
 
         deff_fwd, dfit_fwd, trace_fwd = fwd
         ctx.grads = grads
-        print(f"Stochastic: D-eff {deff_fwd:.3e} Data-Fit {dfit_fwd:.3e} Trace {trace_fwd:.3e}")
+        # print(f"Stochastic: D-eff {deff_fwd:.3e} Data-Fit {dfit_fwd:.3e} Trace {trace_fwd:.3e}")
         return (deff_fwd + dfit_fwd + trace_fwd).to(X.device)
 
     @staticmethod
@@ -416,25 +414,28 @@ class RegLossAndDeffv2(torch.autograd.Function):
         p = torch.tensor(1e-2, dtype=X.dtype).requires_grad_()
         torch.autograd.gradcheck(
             lambda sigma, pen, centers:
-            RegLossAndDeffv2.apply(
-                sigma,              # kernel_args
-                pen,                # penalty
-                centers,            # M
-                X,                  # X
-                Y,                  # Y
-                20,                 # t
-                True,               # deterministic
-                FalkonOptions(),    # solve_options
-                30,                 # solve_maxiter
-                False,              # gaussian_random
-                True,               # use_stoch_trace
-                False),             # warm_start
+            NystromCompRegFn.apply(
+                sigma,  # kernel_args
+                pen,  # penalty
+                centers,  # M
+                X,  # X
+                Y,  # Y
+                20,  # t
+                True,  # deterministic
+                FalkonOptions(),  # solve_options
+                30,  # solve_maxiter
+                False,  # gaussian_random
+                True,  # use_stoch_trace
+                False),  # warm_start
             (s, p, M))
 
 
-def creg_penfit(kernel_args, penalty, centers, X, Y, num_estimators, deterministic, solve_options,
-                solve_maxiter, gaussian_random, warm_start=True, trace_type="ste",):
-    return RegLossAndDeffv2.apply(
+def stochastic_nystrom_compreg(
+        kernel_args, penalty, centers, X, Y,
+        num_estimators, deterministic, solve_options,
+        solve_maxiter, gaussian_random, warm_start=True,
+        trace_type="ste", ):
+    return NystromCompRegFn.apply(
         kernel_args, penalty, centers, X, Y, num_estimators, deterministic, solve_options,
         solve_maxiter, gaussian_random, warm_start, trace_type
     )

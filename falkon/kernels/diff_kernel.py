@@ -3,21 +3,31 @@ import functools
 from typing import Dict, Any
 
 import torch
+from torch import nn
 
-from falkon.options import FalkonOptions
 from falkon.kernels import KeopsKernelMixin, Kernel
+from falkon.options import FalkonOptions
 
 
 class DiffKernel(Kernel, KeopsKernelMixin, abc.ABC):
     def __init__(self, name, options, core_fn, **kernel_params):
         super(DiffKernel, self).__init__(name=name, kernel_type="distance", opt=options)
         self.core_fn = core_fn
-        self._tensor_params = {k: v for k, v in kernel_params.items() if isinstance(v, torch.Tensor)}
-        self._other_params = {k: v for k, v in kernel_params.items() if not isinstance(v, torch.Tensor)}
+        self._other_params = {}
+        for k, v in kernel_params.items():
+            if isinstance(v, torch.Tensor):
+                self.register_parameter(k, nn.Parameter(v, requires_grad=v.requires_grad))
+                # self.register_buffer(k, v)
+            else:
+                self._other_params[k] = v
+                setattr(self, k, v)
+        # self._tensor_params = {k: v for k, v in kernel_params.items() if isinstance(v, torch.Tensor)}
+        # self._other_params = {k: v for k, v in kernel_params.items() if not isinstance(v, torch.Tensor)}
 
     @property
     def diff_params(self) -> Dict[str, torch.Tensor]:
-        return self._tensor_params
+        # return dict(self.named_buffers())
+        return dict(self.named_parameters())
 
     @property
     def nondiff_params(self) -> Dict[str, Any]:
@@ -39,21 +49,8 @@ class DiffKernel(Kernel, KeopsKernelMixin, abc.ABC):
         else:
             return super()._decide_dmmv_impl(X1, X2, v, w, opt)
 
-    def _move_kernel_params(self, to_mat: torch.Tensor) -> Dict[str, torch.Tensor]:
-        new_kernel_params = {}
-        for k, v in self._tensor_params.items():
-            new_kernel_params[k] = v.to(device=to_mat.device, dtype=to_mat.dtype)
-        return new_kernel_params
-
-    def _detach_params(self):
-        detached_tensor_params = {k: v.detach() for k, v in self._tensor_params.items()}
-        detached_tensor_params.update(**self._other_params)
-        return detached_tensor_params
-
     def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor):
-        dev_kernel_tensor_params = self._move_kernel_params(X1)
-        return self.core_fn(X1, X2, out, **dev_kernel_tensor_params, **self._other_params)
+        return self.core_fn(X1, X2, out, **self.diff_params, **self._other_params)
 
     def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor):
-        dev_kernel_tensor_params = self._move_kernel_params(X1)
-        return self.core_fn(X1, X2, out=None, **dev_kernel_tensor_params, **self._other_params)
+        return self.core_fn(X1, X2, out=None, **self.diff_params, **self._other_params)

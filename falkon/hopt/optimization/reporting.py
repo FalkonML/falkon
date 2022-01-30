@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, Dict
+from typing import Optional, Dict, Iterator, Sequence
 import os
 
 import numpy as np
@@ -7,7 +7,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from falkon import FalkonOptions, InCoreFalkon, Falkon
-from falkon.hopt.objectives.objectives import HyperoptObjective
+from falkon.hopt.objectives.objectives import HyperoptObjective2
 from falkon.hopt.utils import get_scalar
 
 LOG_DIR = "./logs/tensorboard"
@@ -32,7 +32,9 @@ class EarlyStop(Exception):
         super(EarlyStop, self).__init__(msg)
 
 
-def report_losses(losses, loss_names, step) -> Dict[str, float]:
+def report_losses(losses: Sequence[torch.Tensor],
+                  loss_names: Sequence[str],
+                  step: int) -> Dict[str, float]:
     assert len(losses) == len(
         loss_names), f"Found {len(losses)} losses and {len(loss_names)} loss-names."
     writer = get_writer()
@@ -53,10 +55,11 @@ def report_losses(losses, loss_names, step) -> Dict[str, float]:
     return report_dict
 
 
-def report_hps(named_hparams, step) -> Dict[str, float]:
+def report_hps(named_hparams: Iterator[tuple[str, torch.nn.Parameter]],
+               step: int) -> Dict[str, float]:
     writer = get_writer()
     report_dict = {}
-    for hp_name, hp_val in named_hparams.items():
+    for hp_name, hp_val in named_hparams:
         hp_val_ = get_scalar(hp_val)
         # Report the hparam value
         writer.add_scalar(f'hparams/{hp_name}', hp_val_, step)
@@ -64,35 +67,7 @@ def report_hps(named_hparams, step) -> Dict[str, float]:
     return report_dict
 
 
-def report_grads(named_hparams, grads, losses, loss_names, step) -> Dict[str, float]:
-    assert len(losses) == len(
-        loss_names), f"Found {len(losses)} losses and {len(loss_names)} loss-names."
-    assert len(grads) == len(losses), f"Found {len(grads)} grads and {len(losses)} losses."
-    writer = get_writer()
-    report_dict = {}
-    for i in range(len(grads)):
-        for j, (hp_name, hp_val) in enumerate(named_hparams.items()):
-            grad_ = get_scalar(grads[i][j])
-            # Report the gradient of a specific loss wrt a specific hparam
-            writer.add_scalar(f'grads/{hp_name}/{loss_names[i]}', grad_, step)
-            report_dict[f"grad_{hp_name}_{loss_names[i]}"] = grad_
-    return report_dict
-
-
-def grad_loss_reporting(named_hparams, grads, losses, loss_names, verbose, step, losses_are_grads):
-    report_dict = {}
-    # Losses
-    if not losses_are_grads and losses is not None:
-        report_dict.update(report_losses(losses, loss_names, step))
-    # Hyperparameters
-    report_dict.update(report_hps(named_hparams, step))
-    # Gradients
-    if verbose and grads is not None:
-        report_dict.update(report_grads(named_hparams, grads, losses, loss_names, step))
-    return report_dict
-
-
-def pred_reporting(model: HyperoptObjective,
+def pred_reporting(model: HyperoptObjective2,
                    Xts: torch.Tensor, Yts: torch.Tensor,
                    Xtr: torch.Tensor, Ytr: torch.Tensor,
                    err_fn: callable,
@@ -165,37 +140,37 @@ def pred_reporting(model: HyperoptObjective,
 
 def epoch_bookkeeping(
         epoch: int,
-        model: HyperoptObjective,
+        model: HyperoptObjective2,
         data: Dict[str, torch.Tensor],
         err_fn,
-        grads,
-        losses,
         loss_every: int,
         early_stop_patience: Optional[int],
         accuracy_increase_patience: Optional[int],
         schedule,
         minibatch: Optional[int],
         logs: list,
-        cum_time: float,
-        verbose):
+        cum_time: float):
     Xtr, Ytr, Xts, Yts = data['Xtr'], data['Ytr'], data['Xts'], data['Yts']
 
-    loss_dict = grad_loss_reporting(model.named_parameters(), grads, losses, model.loss_names,
-                                    verbose, epoch, losses_are_grads=model.losses_are_grads)
+    report_dict = {}
+    # Losses
+    report_dict.update(report_losses(list(model.losses.values()), list(model.losses.keys()), epoch))
+    # Hyperparameters
+    report_dict.update(report_hps(model.named_parameters(), epoch))
+    # Predictions
     if epoch != 0 and (epoch + 1) % loss_every == 0:
-        pred_dict = pred_reporting(
-            model=model, Xtr=Xtr, Ytr=Ytr, Xts=Xts, Yts=Yts,
-            err_fn=err_fn, epoch=epoch, cum_time=cum_time,
-            resolve_model=True, mb_size=minibatch)
-        if hasattr(model, "print_times"):
-            model.print_times()
-        loss_dict.update(pred_dict)
-    logs.append(loss_dict)
+        report_dict.update(
+            pred_reporting(
+                model=model, Xtr=Xtr, Ytr=Ytr, Xts=Xts, Yts=Yts,
+                err_fn=err_fn, epoch=epoch, cum_time=cum_time,
+                resolve_model=True, mb_size=minibatch)
+        )
+    logs.append(report_dict)
     # Learning rate schedule
     if schedule is not None:
         if isinstance(schedule, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            if 'train_error' in loss_dict:
-                schedule.step(loss_dict['train_error'])
+            if 'train_error' in report_dict:
+                schedule.step(report_dict['train_error'])
         else:
             schedule.step()
     # Early stop if no training-error improvement in the past `early_stop_patience` epochs.
@@ -208,10 +183,11 @@ def epoch_bookkeeping(
                     past_errs.append(abs(plog['train_error']))
             if np.argmin(past_errs) == 0:  # The minimal error in the oldest log
                 raise EarlyStop(f"Early stopped at epoch {epoch} with past errors: {past_errs}.")
-    from falkon.hopt.objectives.stoch_objectives.stoch_new_compreg import StochasticDeffPenFitTr
+    # Increase solution accuracy for the falkon solver.
+    from falkon.hopt.objectives import StochasticNystromCompReg
     if (accuracy_increase_patience is not None and
             len(logs) >= accuracy_increase_patience and
-            isinstance(model, StochasticDeffPenFitTr)):
+            isinstance(model, StochasticNystromCompReg)):
         if "train_error" in logs[-1]:
             past_errs = []
             for plog in logs[::-1]:  # Traverse logs in reverse order
