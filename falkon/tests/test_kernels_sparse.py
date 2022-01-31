@@ -60,14 +60,12 @@ def w() -> torch.Tensor:
     return torch.from_numpy(gen_random(n, t, 'float32', False, seed=95))
 
 
-#@pytest.fixture(params=["single-sigma", "vec-sigma"], scope="class")
-
 @pytest.fixture(params=[
-        "single-sigma",
-            pytest.param("vec-sigma", marks=pytest.mark.xfail(
-                        raises=NotImplementedError, strict=True,
-                                reason="Sparse kernels are not implemented for vectorial sigmas")),
-            ], scope="class")
+    "single-sigma",
+    pytest.param("vec-sigma", marks=pytest.mark.xfail(
+                raises=NotImplementedError, strict=True,
+                reason="Sparse kernels are not implemented for vectorial sigmas")),
+    ], scope="class")
 def sigma(request) -> torch.Tensor:
     if request.param == "single-sigma":
         return torch.Tensor([3.0])
@@ -142,7 +140,7 @@ def run_sparse_test(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt, 
 
 
 def run_sparse_test_wsigma(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt,
-                           comp_dev, sigma, **kernel_params):
+                           sigma, **kernel_params):
     try:
         run_sparse_test(k_cls, naive_fn,
                         s_m1=s_m1, s_m2=s_m2, m1=m1, m2=m2, v=v, w=w, rtol=rtol,
@@ -167,7 +165,7 @@ class TestLaplacianKernel():
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
         run_sparse_test_wsigma(TestLaplacianKernel.k_class, TestLaplacianKernel.naive_fn,
                                s_m1=s_A, s_m2=s_B, m1=A, m2=B, v=v, w=w, rtol=rtol[A.dtype],
-                               atol=atol[A.dtype], opt=opt, comp_dev=comp_dev, sigma=sigma)
+                               atol=atol[A.dtype], opt=opt, sigma=sigma)
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
@@ -221,7 +219,6 @@ class TestPolynomialKernel():
             s_A, d_A, s_B, d_B, v, w, self.beta, self.gamma, self.degree, order="C",
             device=input_dev, dtype=np.float32)
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
-        exc = None
         try:
             run_sparse_test(TestPolynomialKernel.k_class, TestPolynomialKernel.naive_fn,
                             s_m1=s_A, s_m2=s_B, m1=A, m2=B, v=v, w=w, rtol=rtol[A.dtype],
@@ -231,4 +228,3 @@ class TestPolynomialKernel():
             if hasattr(e, '__cause__') and e.__cause__ is not None:
                 raise e.__cause__
             raise e
-
