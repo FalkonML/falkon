@@ -17,8 +17,12 @@ cuda_mark = pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 keops_mark = pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")
 device_marks = [
     pytest.param("cpu", "cpu"),
-    pytest.param("cpu", "cuda", marks=[cuda_mark]),
-    pytest.param("cuda", "cuda", marks=[cuda_mark])
+    pytest.param("cpu", "cuda", marks=[cuda_mark, pytest.mark.xfail(
+        raises=MemoryError, strict=True,
+        reason="Sparse kernels are not respecting assigned memory (a bug)")]),
+    pytest.param("cuda", "cuda", marks=[cuda_mark, pytest.mark.xfail(
+        raises=NotImplementedError, strict=True,
+        reason="Sparse kernels are not implemented for in-core CUDA operations")]),
 ]
 # Sparse data dimensions
 n = 500
@@ -56,7 +60,14 @@ def w() -> torch.Tensor:
     return torch.from_numpy(gen_random(n, t, 'float32', False, seed=95))
 
 
-@pytest.fixture(params=["single-sigma", "vec-sigma"], scope="class")
+#@pytest.fixture(params=["single-sigma", "vec-sigma"], scope="class")
+
+@pytest.fixture(params=[
+        "single-sigma",
+            pytest.param("vec-sigma", marks=pytest.mark.xfail(
+                        raises=NotImplementedError, strict=True,
+                                reason="Sparse kernels are not implemented for vectorial sigmas")),
+            ], scope="class")
 def sigma(request) -> torch.Tensor:
     if request.param == "single-sigma":
         return torch.Tensor([3.0])
@@ -132,21 +143,15 @@ def run_sparse_test(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt, 
 
 def run_sparse_test_wsigma(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt,
                            comp_dev, sigma, **kernel_params):
-    exc = None
     try:
         run_sparse_test(k_cls, naive_fn,
                         s_m1=s_m1, s_m2=s_m2, m1=m1, m2=m2, v=v, w=w, rtol=rtol,
                         atol=atol, opt=opt, sigma=sigma, **kernel_params)
     except Exception as e:
-        exc = e
-    if exc is None:
-        assert len(sigma) == 1, "Sparse kernel worked unexpectedly with non-scalar sigma"
-    elif isinstance(exc, NotImplementedError) or (
-            hasattr(exc, '__cause__') and isinstance(exc.__cause__, NotImplementedError)):
-        assert len(sigma) > 1 or (m1.device.type == "cuda" and comp_dev == "cuda"), \
-                "NotImplementedError thrown with scalar sigma"
-    else:
-        raise exc
+        # Always raise the base exception
+        if hasattr(e, '__cause__') and e.__cause__ is not None:
+            raise e.__cause__
+        raise e
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
@@ -222,10 +227,8 @@ class TestPolynomialKernel():
                             s_m1=s_A, s_m2=s_B, m1=A, m2=B, v=v, w=w, rtol=rtol[A.dtype],
                             atol=atol[A.dtype], opt=opt, beta=beta, gamma=gamma, degree=degree)
         except Exception as e:
-            exc = e
-        if isinstance(exc, NotImplementedError) or (
-                hasattr(exc, '__cause__') and isinstance(exc.__cause__, NotImplementedError)):
-            assert (s_A.device.type == "cuda" and comp_dev == "cuda"), \
-                    "NotImplementedError thrown not in a in-core situation"
-        else:
-            raise exc
+            # Always raise the base exception
+            if hasattr(e, '__cause__') and e.__cause__ is not None:
+                raise e.__cause__
+            raise e
+

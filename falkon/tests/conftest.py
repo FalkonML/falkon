@@ -45,14 +45,16 @@ def memory_checker(opt: FalkonOptions, extra_mem=0, check_cpu=True):
         devices = list(range(torch.cuda.device_count()))
         for dev in devices:
             used_ram = tcd.max_memory_allocated(dev) - start_ram[dev] - extra_mem
-            assert used_ram <= opt.max_gpu_mem, \
-                "DEV %d - Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" % \
-                (dev, used_ram / 2 ** 20, opt.max_gpu_mem / 2 ** 20)
+            if used_ram > opt.max_gpu_mem:
+                raise MemoryError(
+                        "DEV %d - Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" %
+                        (dev, used_ram / 2 ** 20, opt.max_gpu_mem / 2 ** 20))
     elif mem_check:
         used_ram = _cpu_used_mem(uss=True) - start_ram - extra_mem
-        assert used_ram <= opt.max_cpu_mem, \
-            "Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" % \
-            (used_ram / 2 ** 20, opt.max_cpu_mem / 2 ** 20)
+        if used_ram > opt.max_cpu_mem:
+            raise MemoryError(
+                "Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" %
+                (used_ram / 2 ** 20, opt.max_cpu_mem / 2 ** 20))
 
 
 def numpy_to_torch_type(dt):
