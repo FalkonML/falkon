@@ -2,29 +2,29 @@ from typing import Optional, Dict
 
 import torch
 
+import falkon.kernels
 from falkon.hopt.objectives.exact_objectives.utils import jittering_cholesky
-from falkon.hopt.objectives.objectives import HyperoptObjective2
-from falkon.hopt.utils import full_rbf_kernel, get_scalar
+from falkon.hopt.objectives.objectives import HyperoptObjective
+from falkon.hopt.utils import get_scalar
 
 
-class HoldOut(HyperoptObjective2):
+class HoldOut(HyperoptObjective):
     def __init__(
             self,
+            kernel: falkon.kernels.DiffKernel,
             centers_init: torch.Tensor,
-            sigma_init: torch.Tensor,
             penalty_init: torch.Tensor,
             opt_centers: bool,
-            opt_sigma: bool,
             opt_penalty: bool,
             val_pct: float,
             per_iter_split: bool,
             centers_transform: Optional[torch.distributions.Transform] = None,
-            sigma_transform: Optional[torch.distributions.Transform] = None,
             pen_transform: Optional[torch.distributions.Transform] = None,
     ):
-        super(HoldOut, self).__init__(centers_init, sigma_init, penalty_init,
-                                      opt_centers, opt_sigma, opt_penalty,
-                                      centers_transform, sigma_transform, pen_transform)
+        super(HoldOut, self).__init__(centers_init, penalty_init,
+                                      opt_centers, opt_penalty,
+                                      centers_transform, pen_transform)
+        self.kernel = kernel
         self.x_train, self.y_train = None, None
         self.losses: Optional[Dict[str, torch.Tensor]] = None
         self.per_iter_split = per_iter_split
@@ -45,7 +45,7 @@ class HoldOut(HyperoptObjective2):
         Ytr = Y[self.tr_indices]
         Yval = Y[self.val_indices]
 
-        kmval = full_rbf_kernel(self.centers, Xval, self.sigma)
+        kmval = self.kernel(self.centers, Xval)
         alpha = self._calc_intermediate(Xtr, Ytr)
         val_preds = kmval.T @ alpha
         loss = torch.mean(torch.square(Yval - val_preds))
@@ -58,7 +58,7 @@ class HoldOut(HyperoptObjective2):
             raise RuntimeError("Call forward at least once before calling predict.")
         with torch.autograd.no_grad():
             alpha = self._calc_intermediate(self.x_train, self.y_train)
-            kms = full_rbf_kernel(self.centers, X, self.sigma)
+            kms = self.kernel(self.centers, X)
             return kms.T @ alpha
 
     @property
@@ -69,8 +69,8 @@ class HoldOut(HyperoptObjective2):
         variance = self.penalty * X.shape[0]
         sqrt_var = torch.sqrt(variance)
 
-        kmn = full_rbf_kernel(self.centers, X, self.sigma)
-        kmm = full_rbf_kernel(self.centers, self.centers, self.sigma)
+        kmn = self.kernel(self.centers, X)
+        kmm = self.kernel(self.centers, self.centers)
         L = jittering_cholesky(kmm)  # L @ L.T = kmm
         # A = L^{-1} K_mn / (sqrt(n*pen))
         A = torch.triangular_solve(kmn, L, upper=False).solution / sqrt_var
@@ -91,6 +91,9 @@ class HoldOut(HyperoptObjective2):
         }
 
     def __repr__(self):
-        return f"NystromHoldOut(sigma={get_scalar(self.sigma)}, penalty={get_scalar(self.penalty)}, " \
-               f"num_centers={self.centers.shape[0]}, val_pct={self.val_pct}, " \
+        return f"NystromHoldOut(" \
+               f"kernel={self.kernel}, " \
+               f"penalty={get_scalar(self.penalty)}, " \
+               f"num_centers={self.centers.shape[0]}, " \
+               f"val_pct={self.val_pct}, " \
                f"per_iter_split={self.per_iter_split})"

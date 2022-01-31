@@ -4,11 +4,11 @@ import torch
 
 import falkon.kernels
 from falkon.hopt.objectives.exact_objectives.utils import jittering_cholesky
-from falkon.hopt.objectives.objectives import HyperoptObjective2
-from falkon.hopt.utils import full_rbf_kernel, get_scalar
+from falkon.hopt.objectives.objectives import HyperoptObjective
+from falkon.hopt.utils import get_scalar
 
 
-class CompReg(HyperoptObjective2):
+class CompReg(HyperoptObjective):
     def __init__(
             self,
             kernel: falkon.kernels.DiffKernel,
@@ -52,8 +52,6 @@ class CompReg(HyperoptObjective2):
     def _calc_intermediate(self, X, Y):
         variance = self.penalty * X.shape[0]
         sqrt_var = torch.sqrt(variance)
-
-        print("FWD Kernels")
         kmn = self.kernel(self.centers, X)
         kmm = self.kernel(self.centers, self.centers)
         L = jittering_cholesky(kmm)  # L @ L.T = kmm
@@ -75,5 +73,7 @@ class CompReg(HyperoptObjective2):
         }
 
     def __repr__(self):
-        return f"CregNoTrace(sigma={get_scalar(self.sigma)}, penalty={get_scalar(self.penalty)}, " \
+        return f"CregNoTrace(" \
+               f"kernel={self.kernel}, " \
+               f"penalty={get_scalar(self.penalty)}, " \
                f"num_centers={self.centers.shape[0]})"

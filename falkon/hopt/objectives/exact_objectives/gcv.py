@@ -4,11 +4,11 @@ import torch
 
 import falkon.kernels
 from falkon.hopt.objectives.exact_objectives.utils import jittering_cholesky
-from falkon.hopt.objectives.objectives import HyperoptObjective2
+from falkon.hopt.objectives.objectives import HyperoptObjective
 from falkon.hopt.utils import get_scalar
 
 
-class GCV(HyperoptObjective2):
+class GCV(HyperoptObjective):
     r"""
     GCV objective is
 
@@ -39,19 +39,16 @@ class GCV(HyperoptObjective2):
 
     def __init__(
             self,
-            kernel: falkon.kernels.Kernel,
+            kernel: falkon.kernels.DiffKernel,
             centers_init: torch.Tensor,
-            sigma_init: torch.Tensor,
             penalty_init: torch.Tensor,
             opt_centers: bool,
-            opt_sigma: bool,
             opt_penalty: bool,
             centers_transform: Optional[torch.distributions.Transform] = None,
-            sigma_transform: Optional[torch.distributions.Transform] = None,
             pen_transform: Optional[torch.distributions.Transform] = None, ):
-        super(GCV, self).__init__(centers_init, sigma_init, penalty_init,
-                                  opt_centers, opt_sigma, opt_penalty,
-                                  centers_transform, sigma_transform, pen_transform)
+        super(GCV, self).__init__(centers_init, penalty_init,
+                                  opt_centers, opt_penalty,
+                                  centers_transform, pen_transform)
         self.kernel = kernel
         self.x_train, self.y_train = None, None
         self.losses: Optional[Dict[str, torch.Tensor]] = None
@@ -61,8 +58,8 @@ class GCV(HyperoptObjective2):
         variance = self.penalty * (X.shape[0] - 1)
         sqrt_var = torch.sqrt(variance)
 
-        kmn = self.kernel(self.centers, X, self.sigma)
-        kmm = self.kernel(self.centers, self.centers, self.sigma)
+        kmn = self.kernel(self.centers, X)
+        kmm = self.kernel(self.centers, self.centers)
         L = jittering_cholesky(kmm)  # L @ L.T = kmm
         # A = L^{-1} K_mn / (sqrt(n*pen))
         A = torch.triangular_solve(kmn, L, upper=False).solution / sqrt_var
@@ -99,7 +96,7 @@ class GCV(HyperoptObjective2):
         with torch.autograd.no_grad():
             L, A, LB, d = self._calc_intermediate(self.x_train, self.y_train)
             sqrt_var = torch.sqrt(self.penalty * (X.shape[0] - 1))
-            kms = self.kernel(self.centers, X, self.sigma)
+            kms = self.kernel(self.centers, X)
             tmp1 = torch.triangular_solve(d / sqrt_var, L, upper=False, transpose=True).solution
             return kms.T @ tmp1
 
@@ -109,5 +106,7 @@ class GCV(HyperoptObjective2):
         }
 
     def __repr__(self):
-        return f"GCV(sigma={get_scalar(self.sigma)}, penalty={get_scalar(self.penalty)}, " \
-               f"num_centers={self.centers.shape[0]}, kernel={self.kernel})"
+        return f"GCV(" \
+               f"kernel={self.kernel}, " \
+               f"penalty={get_scalar(self.penalty)}, " \
+               f"num_centers={self.centers.shape[0]})"

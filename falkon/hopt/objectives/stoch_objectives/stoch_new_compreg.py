@@ -3,52 +3,50 @@ from typing import Tuple, Optional, Dict
 import numpy as np
 import torch
 
-from falkon.la_helpers import trsm
+import falkon
 from falkon import FalkonOptions
-from falkon.kernels import GaussianKernel
+from falkon.hopt.objectives.exact_objectives.utils import cholesky
+from falkon.hopt.objectives.objectives import HyperoptObjective
+from falkon.hopt.objectives.stoch_objectives.utils import init_random_vecs, calc_grads_tensors
+from falkon.hopt.utils import get_scalar
+from falkon.la_helpers import trsm
 from falkon.optim import FalkonConjugateGradient
 from falkon.preconditioner import FalkonPreconditioner
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tictoc import Timer
-from falkon.hopt.utils import full_rbf_kernel, get_scalar
-from falkon.hopt.objectives.exact_objectives.utils import cholesky
-from falkon.hopt.objectives.objectives import HyperoptObjective2
-from falkon.hopt.objectives.stoch_objectives.utils import init_random_vecs, calc_grads_tensors
 
 EPS = 5e-5
 
 
-class StochasticNystromCompReg(HyperoptObjective2):
+class StochasticNystromCompReg(HyperoptObjective):
     def __init__(
             self,
+            kernel: falkon.kernels.DiffKernel,
             centers_init: torch.Tensor,
-            sigma_init: torch.Tensor,
             penalty_init: torch.Tensor,
             opt_centers: bool,
-            opt_sigma: bool,
             opt_penalty: bool,
             flk_opt: FalkonOptions,
             flk_maxiter: int = 10,
             num_trace_est: int = 20,
             centers_transform: Optional[torch.distributions.Transform] = None,
-            sigma_transform: Optional[torch.distributions.Transform] = None,
             pen_transform: Optional[torch.distributions.Transform] = None,
     ):
-        super(StochasticNystromCompReg, self).__init__(centers_init, sigma_init, penalty_init,
-                                                       opt_centers, opt_sigma, opt_penalty,
-                                                       centers_transform, sigma_transform,
-                                                       pen_transform)
+        super(StochasticNystromCompReg, self).__init__(centers_init, penalty_init,
+                                                       opt_centers, opt_penalty,
+                                                       centers_transform,  pen_transform)
+        self.kernel = kernel
         self.flk_opt = flk_opt
         self.num_trace_est = num_trace_est
         self.flk_maxiter = flk_maxiter
         self.deterministic_ste = True
-        self.gaussian_ste = True
+        self.gaussian_ste = False
         self.warm_start = True
         self.trace_type = "fast"
         self.losses: Optional[Dict[str, torch.Tensor]] = None
 
     def forward(self, X, Y):
-        loss = stochastic_nystrom_compreg(kernel_args=self.sigma, penalty=self.penalty, centers=self.centers,
+        loss = stochastic_nystrom_compreg(kernel=self.kernel, penalty=self.penalty, centers=self.centers,
                                           X=X, Y=Y, num_estimators=self.num_trace_est,
                                           deterministic=self.deterministic_ste,
                                           solve_options=self.flk_opt, solve_maxiter=self.flk_maxiter,
@@ -61,9 +59,8 @@ class StochasticNystromCompReg(HyperoptObjective2):
         if NystromCompRegFn.last_alpha is None:
             raise RuntimeError("Call hp_loss before calling predict.")
 
-        kernel = GaussianKernel(sigma=self.sigma.detach(), opt=self.flk_opt)
         with torch.autograd.no_grad():
-            return kernel.mmv(X, self.centers, NystromCompRegFn.last_alpha)
+            return self.kernel.mmv(X, self.centers, NystromCompRegFn.last_alpha, opt=self.flk_opt)
 
     def print_times(self):
         NystromCompRegFn.print_times()
@@ -78,7 +75,8 @@ class StochasticNystromCompReg(HyperoptObjective2):
         }
 
     def __repr__(self):
-        return f"StochasticNystromCompReg(sigma={get_scalar(self.sigma)}, " \
+        return f"StochasticNystromCompReg(" \
+               f"kernel={self.kernel}, " \
                f"penalty={get_scalar(self.penalty)}, num_centers={self.centers.shape[0]}, " \
                f"t={self.num_trace_est}, " \
                f"flk_iter={self.flk_maxiter}, det_ste={self.deterministic_ste}, " \
@@ -185,7 +183,7 @@ class NystromCompRegFn(torch.autograd.Function):
     last_alpha = None
     iter_prep_times, fwd_times, bwd_times, solve_times, kmm_times, grad_times = [], [], [], [], [], []
     iter_times, num_flk_iters = [], []
-    use_direct_for_stoch = True
+    num_nondiff_inputs = 10
 
     @staticmethod
     def print_times():
@@ -210,21 +208,22 @@ class NystromCompRegFn(torch.autograd.Function):
                        M: torch.Tensor,
                        Y: torch.Tensor,
                        penalty: torch.Tensor, kmm, kmm_chol, zy, solve_zy, zy_solve_kmm_solve_zy,
-                       kernel,
-                       t, trace_type: str):
+                       kernel: falkon.kernels.DiffKernel,
+                       t, trace_type: str,
+                       solve_options: falkon.FalkonOptions):
         k_subs = None
         with Timer(NystromCompRegFn.iter_prep_times), torch.autograd.enable_grad():
-            k_mn_zy = kernel.mmv(M, X, zy)  # M x (T+P)
+            k_mn_zy = kernel.mmv(M, X, zy, opt=solve_options)  # M x (T+P)
             zy_knm_solve_zy = k_mn_zy.mul(solve_zy).sum(0)  # T+P
             if trace_type == "fast":
                 rnd_pts = np.random.choice(X.shape[0], size=M.shape[0], replace=False)
                 x_subs = X[rnd_pts, :]
-                k_subs = kernel(M, x_subs)
+                k_subs = kernel(M, x_subs, opt=solve_options)
 
         # Forward
         dfit_fwd = Y.square().sum().to(M.device)
         deff_fwd = torch.tensor(0, dtype=X.dtype, device=M.device)
-        trace_fwd = torch.tensor(X.shape[0], dtype=X.dtype, device=M.device)
+        trace_fwd = kernel(X, X, diag=True).sum()
         with Timer(NystromCompRegFn.fwd_times), torch.autograd.no_grad():
             pen_n = penalty * X.shape[0]
             if trace_type == "fast":
@@ -244,7 +243,7 @@ class NystromCompRegFn(torch.autograd.Function):
             trace_fwd = (_trace_fwd * dfit_fwd) / (pen_n * X.shape[0])
         # Backward
         with Timer(NystromCompRegFn.bwd_times), torch.autograd.enable_grad():
-            zy_solve_knm_knm_solve_zy = kernel.mmv(X, M, solve_zy).square().sum(0)  # T+P
+            zy_solve_knm_knm_solve_zy = kernel.mmv(X, M, solve_zy, opt=solve_options).square().sum(0)  # T+P
             pen_n = penalty * X.shape[0]
             # Nystrom effective dimension backward
             deff_bwd = calc_deff_bwd(
@@ -269,6 +268,7 @@ class NystromCompRegFn(torch.autograd.Function):
             trace_bwd = (trace_bwd_num * trace_den.detach() - trace_fwd_num * trace_den) / (
                         trace_den.detach() ** 2)
             bwd = (deff_bwd + dfit_bwd + trace_bwd)
+            # bwd = dfit_bwd
         return (deff_fwd, dfit_fwd, trace_fwd), bwd
 
     @staticmethod
@@ -292,18 +292,17 @@ class NystromCompRegFn(torch.autograd.Function):
         return device, avail_mem
 
     @staticmethod
-    def solve_flk(X, M, Z, ZY, penalty, kernel_args, solve_options, solve_maxiter, warm_start):
+    def solve_flk(X, M, Z, ZY, penalty, kernel: falkon.kernels.DiffKernel, solve_options, solve_maxiter, warm_start):
         t = Z.shape[1]
 
-        kernel_args_ = kernel_args.detach()
+        kernel = kernel.detach()
         penalty_ = penalty.item()
         M_ = M.detach()
 
-        K = GaussianKernel(kernel_args_, opt=solve_options)
-        precond = FalkonPreconditioner(penalty_, K, solve_options)
+        precond = FalkonPreconditioner(penalty_, kernel, solve_options)
         precond.init(M_)
 
-        optim = FalkonConjugateGradient(K, precond, solve_options)
+        optim = FalkonConjugateGradient(kernel, precond, solve_options)
         solve_zy_prec = optim.solve(
             X, M_, ZY, penalty_,
             initial_solution=NystromCompRegFn._last_solve_zy,
@@ -318,21 +317,10 @@ class NystromCompRegFn(torch.autograd.Function):
         return solve_zy, num_iters
 
     @staticmethod
-    def forward(
-            ctx,
-            kernel_args: torch.Tensor,
-            penalty: torch.Tensor,
-            M: torch.Tensor,
-            X: torch.Tensor,
-            Y: torch.Tensor,
-            t: int,
-            deterministic: bool,
-            solve_options: FalkonOptions,
-            solve_maxiter: int,
-            gaussian_random: bool,
-            warm_start: bool,
-            trace_type: str,
-    ):
+    def forward(ctx, kernel: falkon.kernels.DiffKernel, deterministic: bool,
+                solve_options: FalkonOptions, solve_maxiter: int, gaussian_random: bool,
+                warm_start: bool, trace_type: str, t: int, X: torch.Tensor, Y: torch.Tensor,
+                penalty: torch.Tensor, M: torch.Tensor, *kernel_params):
         if NystromCompRegFn._last_t is not None and NystromCompRegFn._last_t != t:
             NystromCompRegFn._last_solve_y = None
             NystromCompRegFn._last_solve_z = None
@@ -353,13 +341,13 @@ class NystromCompRegFn(torch.autograd.Function):
                                  gaussian_random=gaussian_random)
             ZY = torch.cat((Z, Y), dim=1)
             M_dev = M.to(device, copy=False).requires_grad_(M.requires_grad)
-            kernel_args_dev = kernel_args.to(device, copy=False).requires_grad_(
-                kernel_args.requires_grad)
+            with torch.autograd.enable_grad():
+                kernel_dev = kernel.to(device)
             penalty_dev = penalty.to(device, copy=False).requires_grad_(penalty.requires_grad)
 
             with Timer(NystromCompRegFn.solve_times):
                 solve_zy, num_flk_iters = NystromCompRegFn.solve_flk(
-                    X=X, M=M_dev, Z=Z, ZY=ZY, penalty=penalty_dev, kernel_args=kernel_args_dev,
+                    X=X, M=M_dev, Z=Z, ZY=ZY, penalty=penalty_dev, kernel=kernel_dev,
                     solve_options=solve_options, solve_maxiter=solve_maxiter, warm_start=warm_start)
                 NystromCompRegFn.num_flk_iters.append(num_flk_iters)
 
@@ -367,7 +355,7 @@ class NystromCompRegFn(torch.autograd.Function):
                 solve_zy_dev = solve_zy.to(device, copy=False)
 
                 with torch.autograd.enable_grad():
-                    kmm = full_rbf_kernel(M_dev, M_dev, kernel_args_dev)
+                    kmm = kernel_dev(M_dev, M_dev, opt=solve_options)
                     zy_solve_kmm_solve_zy = (kmm @ solve_zy_dev * solve_zy_dev).sum(0)  # (T+1)
                     # The following should be identical but seems to introduce errors in the bwd pass.
                     # zy_solve_kmm_solve_zy = (kmm_chol.T @ solve_zy_dev).square().sum(0)  # (T+1)
@@ -375,16 +363,16 @@ class NystromCompRegFn(torch.autograd.Function):
                     mm_eye = torch.eye(M_dev.shape[0], device=device, dtype=M_dev.dtype) * EPS
                     kmm_chol = cholesky(kmm + mm_eye, upper=False, check_errors=False)
 
-            with torch.autograd.enable_grad():
-                kernel = GaussianKernel(kernel_args_dev, solve_options)
             fwd, bwd = NystromCompRegFn.direct_nosplit(
                 X=X, M=M_dev, Y=Y, penalty=penalty_dev, kmm=kmm, kmm_chol=kmm_chol,
                 zy=ZY, solve_zy=solve_zy_dev, zy_solve_kmm_solve_zy=zy_solve_kmm_solve_zy,
-                kernel=kernel, t=t, trace_type=trace_type)
+                kernel=kernel_dev, t=t, trace_type=trace_type, solve_options=solve_options)
             with Timer(NystromCompRegFn.grad_times):
-                grads_ = calc_grads_tensors(inputs=(kernel_args_dev, penalty_dev, M_dev),
-                                            inputs_need_grad=ctx.needs_input_grad, backward=bwd,
-                                            retain_graph=False, allow_unused=False)
+                grads_ = calc_grads_tensors(
+                    inputs=[penalty_dev, M_dev] + list(kernel_dev.diff_params.values()),
+                    inputs_need_grad=ctx.needs_input_grad, output=bwd,
+                    num_nondiff_inputs=NystromCompRegFn.num_nondiff_inputs,
+                    retain_graph=False, allow_unused=False)
                 grads = []
                 for g in grads_:
                     grads.append(g if g is None else g.to(X.device))
@@ -431,11 +419,11 @@ class NystromCompRegFn(torch.autograd.Function):
 
 
 def stochastic_nystrom_compreg(
-        kernel_args, penalty, centers, X, Y,
+        kernel, penalty, centers, X, Y,
         num_estimators, deterministic, solve_options,
         solve_maxiter, gaussian_random, warm_start=True,
         trace_type="ste", ):
     return NystromCompRegFn.apply(
-        kernel_args, penalty, centers, X, Y, num_estimators, deterministic, solve_options,
-        solve_maxiter, gaussian_random, warm_start, trace_type
-    )
+        kernel, deterministic, solve_options, solve_maxiter, gaussian_random,
+        warm_start, trace_type, num_estimators, X, Y, penalty, centers,
+        *kernel.diff_params.values())

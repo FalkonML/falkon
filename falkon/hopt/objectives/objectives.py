@@ -3,20 +3,11 @@ from typing import Optional
 
 import torch
 
-import falkon.kernels
 from falkon.hopt.objectives.transforms import PositiveTransform
 from torch.distributions.transforms import identity_transform
 
-#
-# class KernelParams():
-#     def __init__(self,
-#                  kernel: falkon.kernels.DiffKernel,
-#                  opt_kernel_params: bool,
-#
-#                  ):
 
-
-class HyperoptObjective2(torch.nn.Module):
+class HyperoptObjective(torch.nn.Module):
     def __init__(self,
                  centers_init: torch.Tensor,
                  penalty_init: torch.Tensor,
@@ -25,7 +16,7 @@ class HyperoptObjective2(torch.nn.Module):
                  centers_transform: Optional[torch.distributions.Transform],
                  pen_transform: Optional[torch.distributions.Transform],
                  ):
-        super(HyperoptObjective2, self).__init__()
+        super(HyperoptObjective, self).__init__()
 
         self.centers_transform = centers_transform or identity_transform
         self.penalty_transform = pen_transform or PositiveTransform(1e-8)
