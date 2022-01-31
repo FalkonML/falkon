@@ -134,7 +134,7 @@ class Kernel(torch.nn.Module, ABC):
         return X1, X2, v, out
 
     @staticmethod
-    def _check_mm_dimensions(X1: torch.Tensor, X2: torch.Tensor, out: Optional[torch.Tensor]):
+    def _check_mm_dimensions(X1: torch.Tensor, X2: torch.Tensor, diag: bool, out: Optional[torch.Tensor]):
         # Parameter validation
         if X1.dim() != 2:
             raise ValueError("Matrix X1 must be 2D.")
@@ -142,10 +142,20 @@ class Kernel(torch.nn.Module, ABC):
             raise ValueError("Matrix X2 must be 2D.")
         N = X1.size(0)
         M = X2.size(0)
-        if out is not None and out.shape != (N, M):
-            raise ValueError(
-                f"Output dimension is incorrect. "
-                f"Expected ({N}, {M}) found {out.shape}")
+        if not diag:
+            if out is not None and out.shape != (N, M):
+                raise ValueError(
+                    f"Output dimension is incorrect. "
+                    f"Expected ({N}, {M}) found {out.shape}.")
+        else:
+            if N != M:
+                raise ValueError(
+                    f"Cannot compute the kernel diagonal "
+                    f"between matrices with {N} and {M} samples.")
+            if out is not None and out.reshape(-1).shape[0] != N:
+                raise ValueError(
+                    f"Output dimension is incorrect. "
+                    f"Expected ({N}) found {out.shape}.")
 
         if not check_same_dtype(X1, X2, out):
             raise TypeError("Data types of input matrices must be equal.")
@@ -157,7 +167,11 @@ class Kernel(torch.nn.Module, ABC):
         if not check_same_device(*args):
             raise RuntimeError("All input arguments to %s must be on the same device" % (fn_name))
 
-    def __call__(self, X1: torch.Tensor, X2: torch.Tensor, out: Optional[torch.Tensor] = None,
+    def __call__(self,
+                 X1: torch.Tensor,
+                 X2: torch.Tensor,
+                 diag: bool = False,
+                 out: Optional[torch.Tensor] = None,
                  opt: Optional[FalkonOptions] = None):
         """Compute the kernel matrix between ``X1`` and ``X2``
 
@@ -169,6 +183,8 @@ class Kernel(torch.nn.Module, ABC):
         X2 : torch.Tensor
             The second data-matrix for computing the kernel. Of shape (M x D):
             M samples in D dimensions. Set ``X2 == X1`` to compute a symmetric kernel.
+        diag : bool
+            Whether to compute just the diagonal of the kernel matrix, or the whole matrix.
         out : torch.Tensor or None
             Optional tensor of shape (N x M) to hold the output. If not provided it will
             be created.
@@ -181,15 +197,15 @@ class Kernel(torch.nn.Module, ABC):
         out : torch.Tensor
             The kernel between ``X1`` and ``X2``.
         """
-        X1, X2, out = self._check_mm_dimensions(X1, X2, out)
+        X1, X2, out = self._check_mm_dimensions(X1, X2, diag, out)
         self._check_device_properties(X1, X2, out, fn_name="kernel", opt=opt)
         params = self.params
         if opt is not None:
             params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
-        mm_impl = self._decide_mm_impl(X1, X2, params)
-        return mm_impl(self, params, out, X1, X2)
+        mm_impl = self._decide_mm_impl(X1, X2, diag, params)
+        return mm_impl(self, params, out, diag, X1, X2)
 
-    def _decide_mm_impl(self, X1: torch.Tensor, X2: torch.Tensor, opt: FalkonOptions):
+    def _decide_mm_impl(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool, opt: FalkonOptions):
         """Choose which `mm` function to use for this data.
 
         Note that `mm` functions compute the kernel itself so **KeOps may not be used**.
@@ -200,6 +216,8 @@ class Kernel(torch.nn.Module, ABC):
             First data matrix, of shape (N x D)
         X2 : torch.Tensor
             Second data matrix, of shape (M x D)
+        diag : bool
+            Whether to compute just the diagonal of the kernel matrix, or the whole matrix.
         opt : FalkonOptions
             Falkon options. Options may be specified to force GPU or CPU usage.
 
@@ -410,7 +428,7 @@ class Kernel(torch.nn.Module, ABC):
         return fdmmv
 
     @abstractmethod
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor):
+    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool):
         """
         Compute the kernel matrix of ``X1`` and ``X2`` - without regards for differentiability.
 
@@ -434,7 +452,7 @@ class Kernel(torch.nn.Module, ABC):
         pass
 
     @abstractmethod
-    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor):
+    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool):
         """
         Compute the kernel matrix of ``X1`` and ``X2``. The output should be differentiable with
         respect to `X1`, `X2`, and all kernel parameters returned by the :meth:`diff_params` method.
@@ -454,7 +472,8 @@ class Kernel(torch.nn.Module, ABC):
         pass
 
     @abstractmethod
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, **kwargs) -> torch.Tensor:
+    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
+                       diag: bool, **kwargs) -> torch.Tensor:
         """
         Compute the kernel matrix of ``X1`` and ``X2`` which are two sparse matrices, storing the output
         in the dense matrix ``out``.

@@ -49,8 +49,8 @@ class DiffKernel(Kernel, KeopsKernelMixin, abc.ABC):
         else:
             return super()._decide_dmmv_impl(X1, X2, v, w, opt)
 
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor):
-        return self.core_fn(X1, X2, out, **self.diff_params, **self._other_params)
+    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool,):
+        return self.core_fn(X1, X2, out, **self.diff_params, diag=diag, **self._other_params)
 
-    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor):
-        return self.core_fn(X1, X2, out=None, **self.diff_params, **self._other_params)
+    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool,):
+        return self.core_fn(X1, X2, out=None, diag=diag, **self.diff_params, **self._other_params)

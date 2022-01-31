@@ -1,6 +1,6 @@
 from contextlib import ExitStack
 from dataclasses import dataclass
-from typing import Optional, Union, Tuple, Dict, Sequence
+from typing import Optional, Union, Tuple, Dict
 
 import numpy as np
 import torch
@@ -204,7 +204,7 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                     c_dev_v = copy(v[j: j + lenj], dev_v[:lenj], s=s2)
                 c_dev_ker = ker_gpu[:leni, :lenj].fill_(0.0)
 
-                c_dev_ker = kernel.compute_sparse(c_dev_m1, c_dev_m2, c_dev_ker,
+                c_dev_ker = kernel.compute_sparse(c_dev_m1, c_dev_m2, c_dev_ker, diag=False,
                                                   X1_csr=c_m1, X2_csr=c_m2)
                 if not incore:
                     s2.synchronize()
@@ -278,7 +278,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
                     c_dev_v = copy(v[j: j + lenj, :], dev_v[:lenj, :], s=s2)
                 c_dev_ker = dev_ker[:leni, :lenj].fill_(0.0)
 
-                c_dev_ker = kernel.compute(c_dev_m1, c_dev_m2, c_dev_ker)
+                c_dev_ker = kernel.compute(c_dev_m1, c_dev_m2, c_dev_ker, diag=False)
                 if not incore:
                     s2.synchronize()
                 c_dev_out.addmm_(c_dev_ker, c_dev_v)
@@ -329,7 +329,7 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
                         stack_s2.enter_context(tcd.stream(s2))
                     c_dev_v = v[j: j + lenj, :].to(dev, non_blocking=True, copy=False)
                     c_dev_v_g = None if grads[2] is None else grads[2][j: j + lenj, :].to(dev, non_blocking=True, copy=False)
-                c_dev_ker = kernel.compute_diff(c_dev_m1, c_dev_m2)
+                c_dev_ker = kernel.compute_diff(c_dev_m1, c_dev_m2, diag=False)
                 if not incore:
                     s2.synchronize()
                 c_dev_mmv = c_dev_ker @ c_dev_v
@@ -502,7 +502,7 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                 c_dev_w = copy(w[i: i + leni, :], dev_w[:leni, :], s=s1)
 
             c_dev_ker = ker_gpu[:leni].fill_(0.0)
-            c_dev_ker = kernel.compute_sparse(c_dev_m1, dev_m2, c_dev_ker,
+            c_dev_ker = kernel.compute_sparse(c_dev_m1, dev_m2, c_dev_ker, diag=False,
                                               X1_csr=c_m1, X2_csr=m2)
 
             c_dev_w.addmm_(c_dev_ker, dev_v)
@@ -568,7 +568,7 @@ def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
                 c_dev_w = dev_w[:leni, :].fill_(0.0)
 
             c_dev_ker = dev_ker[:leni, :].fill_(0.0)
-            c_dev_ker = kernel.compute(c_dev_m1, dev_m2, c_dev_ker)
+            c_dev_ker = kernel.compute(c_dev_m1, dev_m2, c_dev_ker, diag=False)
             if dev.type == 'cuda':
                 s2.synchronize()
             c_dev_w.addmm_(c_dev_ker, dev_v)

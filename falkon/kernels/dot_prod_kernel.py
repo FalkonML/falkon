@@ -24,20 +24,34 @@ def validate_diff_float(num: Union[float, torch.Tensor], param_name: str) -> tor
             raise TypeError(f"Parameter {param_name} must be a scalar or a tensor.")
 
 
-def linear_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma):
+def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor,
+                   out: Optional[torch.Tensor], diag: bool) -> torch.Tensor:
+    if diag:
+        N, D = mat1.shape
+        if out is None:
+            out = torch.bmm(mat1.view(N, 1, D), mat2.view(N, D, 1)).reshape(-1)
+        else:
+            out = torch.bmm(mat1.view(N, 1, D), mat2.view(N, D, 1), out=out.reshape(-1, 1, 1))
+            out = out.reshape(-1)
+    else:
+        if out is None:
+            out = torch.mm(mat1, mat2.T)
+        else:
+            out = torch.mm(mat1, mat2.T, out=out)
+    return out
+
+
+def linear_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamma):
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
-    if out is None:
-        out = torch.mm(mat1, mat2.T)
-    else:
-        out = torch.mm(mat1, mat2.T, out=out)
+    out = _dot_prod_calc(mat1, mat2, out, diag)
     out.mul_(gamma)
     out.add_(beta)
     return out
 
 
-def linear_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor,
+def linear_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool,
                        beta, gamma) -> torch.Tensor:
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
@@ -48,22 +62,19 @@ def linear_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor
     return out
 
 
-def polynomial_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma, degree):
+def polynomial_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamma, degree):
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
     degree = degree.to(device=mat1.device, dtype=mat1.dtype)
-    if out is None:
-        out = torch.mm(mat1, mat2.T)
-    else:
-        out = torch.mm(mat1, mat2.T, out=out)
+    out = _dot_prod_calc(mat1, mat2, out, diag)
     out.mul_(gamma)
     out.add_(beta)
     out.pow_(degree)
     return out
 
 
-def polynomial_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor,
+def polynomial_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool,
                            beta, gamma, degree) -> torch.Tensor:
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
@@ -76,21 +87,18 @@ def polynomial_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Te
     return out
 
 
-def sigmoid_core(mat1, mat2, out: Optional[torch.Tensor], beta, gamma):
+def sigmoid_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamma):
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
-    if out is None:
-        out = torch.mm(mat1, mat2.T)
-    else:
-        out = torch.mm(mat1, mat2.T, out=out)
+    out = _dot_prod_calc(mat1, mat2, out, diag)
     out.mul_(gamma)
     out.add_(beta)
     out.tanh_()
     return out
 
 
-def sigmoid_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor,
+def sigmoid_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool,
                         beta, gamma) -> torch.Tensor:
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
@@ -156,9 +164,9 @@ class LinearKernel(DiffKernel):
     def detach(self) -> 'LinearKernel':
         return LinearKernel(beta=self.beta.detach(), gamma=self.gamma.detach(), opt=self.params)
 
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
+    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
                        **kwargs) -> torch.Tensor:
-        return linear_core_sparse(X1, X2, out,
+        return linear_core_sparse(X1, X2, out, diag,
                                   beta=self.beta,
                                   gamma=self.gamma)
 
@@ -176,7 +184,7 @@ class PolynomialKernel(DiffKernel):
 
     .. math::
 
-        (\alpha * X_1^\top X_2 + \beta)^{\mathrm{degree}}
+        (\gamma * X_1^\top X_2 + \beta)^{\mathrm{degree}}
 
     Where all operations apart from the matrix multiplication are taken element-wise.
 
@@ -227,10 +235,10 @@ class PolynomialKernel(DiffKernel):
         return PolynomialKernel(beta=self.beta.detach(), gamma=self.gamma.detach(),
                                 degree=self.degree.detach(), opt=self.params)
 
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
+    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
                        **kwargs) -> torch.Tensor:
         return polynomial_core_sparse(
-            X1, X2, out, beta=self.beta, gamma=self.gamma, degree=self.degree,)
+            X1, X2, out, diag, beta=self.beta, gamma=self.gamma, degree=self.degree,)
 
     def __str__(self):
         return f"PolynomialKernel(beta={self.beta}, gamma={self.gamma}, degree={self.degree})"
@@ -291,9 +299,9 @@ class SigmoidKernel(DiffKernel):
     def detach(self) -> 'SigmoidKernel':
         return SigmoidKernel(beta=self.beta, gamma=self.gamma, opt=self.params)
 
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
+    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
                        **kwargs) -> torch.Tensor:
-        return sigmoid_core_sparse(X1, X2, out, beta=self.beta, gamma=self.gamma)
+        return sigmoid_core_sparse(X1, X2, out, diag, beta=self.beta, gamma=self.gamma)
 
     def __str__(self):
         return f"SigmoidKernel(beta={self.beta}, gamma={self.gamma})"

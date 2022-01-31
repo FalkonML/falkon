@@ -69,7 +69,15 @@ def _sparse_sq_dist(X1_csr: SparseTensor, X2_csr: SparseTensor,
     return out
 
 
-def rbf_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
+def _distancek_diag(mat1, out: Optional[torch.Tensor]):
+    if out is None:
+        return torch.ones(mat1.shape[0], device=mat1.device, dtype=mat1.dtype)
+
+    out.fill_(1.0)
+    return out
+
+
+def rbf_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
     """
     Note 1: if out is None, then this function will be differentiable wrt all three remaining inputs.
     Note 2: this function can deal with batched inputs
@@ -85,6 +93,8 @@ def rbf_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
     -------
 
     """
+    if diag:
+        return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     mat1_div_sig = mat1 / sigma
@@ -100,7 +110,9 @@ def rbf_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
 
 def rbf_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
                     mat1_csr: SparseTensor, mat2_csr: SparseTensor,
-                    out: torch.Tensor, sigma) -> torch.Tensor:
+                    out: torch.Tensor, diag: bool, sigma) -> torch.Tensor:
+    if diag:
+        return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     gamma = 0.5 / (sigma ** 2)
@@ -110,7 +122,9 @@ def rbf_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
     return out
 
 
-def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
+def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
+    if diag:
+        return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     mat1_div_sig = mat1 / sigma
@@ -131,7 +145,9 @@ def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], sigma):
 
 def laplacian_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
                           mat1_csr: SparseTensor, mat2_csr: SparseTensor,
-                          out: torch.Tensor, sigma) -> torch.Tensor:
+                          out: torch.Tensor, diag: bool, sigma) -> torch.Tensor:
+    if diag:
+        return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     gamma = 1 / sigma
@@ -142,13 +158,15 @@ def laplacian_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
     return out
 
 
-def matern_core(mat1, mat2, out: Optional[torch.Tensor], sigma, nu):
+def matern_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma, nu):
+    if diag:
+        return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     if nu == 0.5:
-        return laplacian_core(mat1, mat2, out, sigma)
+        return laplacian_core(mat1, mat2, out, diag, sigma)
     elif nu == float('inf'):
-        return rbf_core(mat1, mat2, out, sigma)
+        return rbf_core(mat1, mat2, out, diag, sigma)
     orig_out = out
     mat1_div_sig = mat1 / sigma
     mat2_div_sig = mat2 / sigma
@@ -182,13 +200,15 @@ def matern_core(mat1, mat2, out: Optional[torch.Tensor], sigma, nu):
 
 def matern_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
                        mat1_csr: SparseTensor, mat2_csr: SparseTensor,
-                       out: torch.Tensor, sigma, nu) -> torch.Tensor:
+                       out: torch.Tensor, diag: bool, sigma, nu) -> torch.Tensor:
+    if diag:
+        return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     if nu == 0.5:
-        return laplacian_core_sparse(mat1, mat2, mat1_csr, mat2_csr, out, sigma)
+        return laplacian_core_sparse(mat1, mat2, mat1_csr, mat2_csr, out, diag, sigma)
     elif nu == float('inf'):
-        return rbf_core_sparse(mat1, mat2, mat1_csr, mat2_csr, out, sigma)
+        return rbf_core_sparse(mat1, mat2, mat1_csr, mat2_csr, out, diag, sigma)
     gamma = 1 / (sigma ** 2)
     out = _sparse_sq_dist(X1_csr=mat1_csr, X2_csr=mat2_csr, X1=mat1, X2=mat2, out=out)
     out.mul_(gamma)
@@ -310,11 +330,11 @@ class GaussianKernel(DiffKernel):
         return GaussianKernel(self.sigma.detach(), opt=self.params)
 
     # noinspection PyMethodOverriding
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
+    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
                        X1_csr: SparseTensor, X2_csr: SparseTensor) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        return rbf_core_sparse(X1, X2, X1_csr, X2_csr, out, self.sigma)
+        return rbf_core_sparse(X1, X2, X1_csr, X2_csr, out, diag, self.sigma)
 
     def __repr__(self):
         return f"GaussianKernel(sigma={self.sigma})"
@@ -376,11 +396,11 @@ class LaplacianKernel(DiffKernel):
         return LaplacianKernel(self.sigma.detach(), opt=self.params)
 
     # noinspection PyMethodOverriding
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
+    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
                        X1_csr: SparseTensor, X2_csr: SparseTensor) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        return laplacian_core_sparse(X1, X2, X1_csr, X2_csr, out, self.sigma)
+        return laplacian_core_sparse(X1, X2, X1_csr, X2_csr, out, diag, self.sigma)
 
     def __repr__(self):
         return f"LaplacianKernel(sigma={self.sigma})"
@@ -489,12 +509,12 @@ class MaternKernel(DiffKernel):
         return out_nu
 
     # noinspection PyMethodOverriding
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
+    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
                        X1_csr: SparseTensor, X2_csr: SparseTensor) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        return matern_core_sparse(X1, X2, X1_csr, X2_csr, out, self.sigma,
-                                  self.nondiff_params['nu'])
+        return matern_core_sparse(X1, X2, X1_csr, X2_csr, out, diag,
+                                  self.sigma, self.nondiff_params['nu'])
 
     def __repr__(self):
         return f"MaternKernel(sigma={self.sigma}, nu={self.nondiff_params['nu']:.1f})"

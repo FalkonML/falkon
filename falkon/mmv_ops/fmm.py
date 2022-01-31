@@ -1,6 +1,6 @@
 from contextlib import ExitStack
 from dataclasses import dataclass
-from typing import Union, Optional, Sequence
+from typing import Union, Optional
 
 import torch
 import torch.cuda as tcd
@@ -192,7 +192,7 @@ def sparse_mm_run_thread(m1: SparseTensor, m2: SparseTensor, out: torch.Tensor,
                 else:
                     c_dev_out = out[i: i + leni, j: j + lenj]
                 c_dev_out.fill_(0.0)
-                c_dev_out = kernel.compute_sparse(c_dev_m1, c_dev_m2, c_dev_out,
+                c_dev_out = kernel.compute_sparse(c_dev_m1, c_dev_m2, c_dev_out, diag=False,
                                                   X1_csr=c_m1, X2_csr=c_m2)
 
                 # Copy back to host
@@ -203,7 +203,8 @@ def sparse_mm_run_thread(m1: SparseTensor, m2: SparseTensor, out: torch.Tensor,
 
 
 def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
-                  kernel, n: int, m: int, comp_dt: torch.dtype, dev: torch.device):
+                  kernel: 'falkon.kernels.Kernel', n: int, m: int, comp_dt: torch.dtype,
+                  dev: torch.device):
     is_ooc = dev.type != m1.device.type
     change_dtype = comp_dt != m1.dtype
     N, D = m1.shape
@@ -252,7 +253,7 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                 c_dev_out.fill_(0.0)
 
                 # Compute kernel sub-matrix
-                kernel.compute(c_dev_m1, c_dev_m2, c_dev_out)
+                kernel.compute(c_dev_m1, c_dev_m2, c_dev_out, diag=False)
 
                 # Copy back to host
                 if has_gpu_bufs:
@@ -264,7 +265,8 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
 
 
 def mm_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
-                       kernel, n: int, m: int, comp_dt: torch.dtype, dev: torch.device):
+                       kernel: 'falkon.kernels.Kernel', n: int, m: int, comp_dt: torch.dtype,
+                       dev: torch.device):
     N, D = m1.shape
     M = m2.shape[0]
 
@@ -286,7 +288,7 @@ def mm_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                 lenj = min(m, M - j)
                 c_dev_m2 = m2[j: j + lenj, :].to(device=dev, dtype=comp_dt, non_blocking=True,
                                                  copy=False)
-                c_dev_out = kernel.compute_diff(c_dev_m1, c_dev_m2)
+                c_dev_out = kernel.compute_diff(c_dev_m1, c_dev_m2, diag=False)
                 c_out = c_dev_out.to(device=out.device, dtype=out.dtype, non_blocking=False, copy=False)
                 bwd_out = bwd_out + c_out.mul(out[i: i + leni, j: j + lenj]).sum()
         if stream is not None:
@@ -296,7 +298,7 @@ def mm_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
 
 # noinspection PyMethodOverriding
 class KernelMmFnFull(torch.autograd.Function):
-    NUM_NON_DIFF_INPUTS = 3
+    NUM_NON_DIFF_INPUTS = 4
 
     @staticmethod
     def run_cpu_cpu(X1, X2, out, kernel, dtype, options, diff):
@@ -341,10 +343,25 @@ class KernelMmFnFull(torch.autograd.Function):
         return _call_direct(mm_run_starter, (args, data_dev.index))
 
     @staticmethod
+    def run_diag(X1, X2, out, kernel: 'falkon.kernels.Kernel', diff: bool, sparse: bool,) -> torch.Tensor:
+        if diff:
+            out_ = kernel.compute_diff(X1, X2, diag=True)
+            if not out_.requires_grad:
+                out_.requires_grad_()
+            return out_.dot(out)
+        else:
+            if sparse:
+                # pass?
+                return kernel.compute_sparse()
+            else:
+                return kernel.compute(X1, X2, out, diag=True)
+
+    @staticmethod
     def forward(ctx,
                 kernel: 'falkon.kernels.Kernel',
                 opt: Optional[BaseOptions],
                 out: Optional[torch.Tensor],
+                diag: bool,
                 X1: Union[torch.Tensor, SparseTensor],
                 X2: Union[torch.Tensor, SparseTensor],
                 *kernel_params,
@@ -361,11 +378,12 @@ class KernelMmFnFull(torch.autograd.Function):
         data_dev = X1.device
         comp_dev_type = 'cpu' if opt.use_cpu or not torch.cuda.is_available() else 'cuda'
         if out is None:
+            out_size = (N,) if diag else (N, M)
             if is_sparse:
-                out = create_fortran((N, M), dtype=X1.dtype, device=data_dev,
+                out = create_fortran(out_size, dtype=X1.dtype, device=data_dev,
                                      pin_memory=data_dev.type != 'cuda' and comp_dev_type == 'cuda')
             else:
-                out = create_same_stride((N, M), X1, X1.dtype, device=data_dev,
+                out = create_same_stride(out_size, X1, X1.dtype, device=data_dev,
                                          pin_memory=data_dev.type != 'cuda' and comp_dev_type == 'cuda')
         # If float32 we need to upcast to float64 to avoid numerical precision errors in the kernel
         comp_dtype = X1.dtype
@@ -382,7 +400,9 @@ class KernelMmFnFull(torch.autograd.Function):
             else:
                 X2d = X2
             kerneld = kernel.detach()
-            if comp_dev_type == 'cpu' and data_dev.type == 'cpu':
+            if diag:
+                out = KernelMmFnFull.run_diag(X1, X2, out, kernel, False, is_sparse)
+            elif comp_dev_type == 'cpu' and data_dev.type == 'cpu':
                 out = KernelMmFnFull.run_cpu_cpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
             elif comp_dev_type == 'cuda' and data_dev.type == 'cuda':
                 out = KernelMmFnFull.run_gpu_gpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
@@ -390,6 +410,7 @@ class KernelMmFnFull(torch.autograd.Function):
                 out = KernelMmFnFull.run_cpu_gpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
+
         if not differentiable:
             ctx.mark_non_differentiable(out)
         else:
@@ -397,6 +418,7 @@ class KernelMmFnFull(torch.autograd.Function):
             ctx.kernel = kernel
             ctx.opt = opt
             ctx.comp_dtype = comp_dtype
+            ctx.diag = diag
         return out
 
     @staticmethod
@@ -409,7 +431,9 @@ class KernelMmFnFull(torch.autograd.Function):
 
         # We must rerun MM in differentiable mode this time.
         with torch.autograd.enable_grad():
-            if comp_dev_type == 'cpu' and data_dev.type == 'cpu':
+            if ctx.diag:
+                out = KernelMmFnFull.run_diag(X1, X2, outputs, ctx.kernel, True, sparse=False)  # TODO: Handle sparsity better
+            elif comp_dev_type == 'cpu' and data_dev.type == 'cpu':
                 out = KernelMmFnFull.run_cpu_cpu(X1, X2, outputs, ctx.kernel, ctx.comp_dtype, ctx.opt, True)
             elif comp_dev_type == 'cuda' and data_dev.type == 'cuda':
                 out = KernelMmFnFull.run_gpu_gpu(X1, X2, outputs, ctx.kernel, ctx.comp_dtype, ctx.opt, True)
@@ -430,7 +454,7 @@ class KernelMmFnFull(torch.autograd.Function):
             if i >= KernelMmFnFull.NUM_NON_DIFF_INPUTS:
                 saved_idx += 1
         grads = torch.autograd.grad(
-            bwd, needs_grad, retain_graph=False, allow_unused=False)
+            bwd, needs_grad, retain_graph=False, allow_unused=True)
         grads_idx = 0
         results = []
         for i, i_grad in enumerate(ctx.needs_input_grad):
@@ -445,6 +469,7 @@ class KernelMmFnFull(torch.autograd.Function):
 def fmm(kernel: 'falkon.kernels.Kernel',
         opt: Optional[BaseOptions],
         out: Optional[torch.Tensor],
+        diag: bool,
         X1: Union[torch.Tensor, SparseTensor],
         X2: Union[torch.Tensor, SparseTensor]):
-    return KernelMmFnFull.apply(kernel, opt, out, X1, X2, *kernel.diff_params.values())
+    return KernelMmFnFull.apply(kernel, opt, out, diag, X1, X2, *kernel.diff_params.values())
