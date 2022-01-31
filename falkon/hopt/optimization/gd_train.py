@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import torch
 
-from falkon.hopt.objectives.objectives import HyperoptObjective2
+from falkon.hopt.objectives.objectives import HyperoptObjective
 from falkon.hopt.optimization.reporting import pred_reporting, EarlyStop, epoch_bookkeeping
 
 __all__ = [
@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-def hp_grad(model: HyperoptObjective2, *loss_terms, accumulate_grads=True, verbose=True):
+def hp_grad(model: HyperoptObjective, *loss_terms, accumulate_grads=True, verbose=True):
     grads = []
     hparams = list(model.parameters())
     if verbose:
@@ -35,7 +35,7 @@ def hp_grad(model: HyperoptObjective2, *loss_terms, accumulate_grads=True, verbo
     return grads
 
 
-def create_optimizer(opt_type: str, model: HyperoptObjective2, learning_rate: float):
+def create_optimizer(opt_type: str, model: HyperoptObjective, learning_rate: float):
     center_lr_div = 1
     schedule = None
     named_params = dict(model.named_parameters())
@@ -80,7 +80,7 @@ def train_complexity_reg(
         Ytr: torch.Tensor,
         Xts: torch.Tensor,
         Yts: torch.Tensor,
-        model: HyperoptObjective2,
+        model: HyperoptObjective,
         err_fn,
         learning_rate: float,
         num_epochs: int,
@@ -145,7 +145,7 @@ def train_complexity_reg_mb(
         Ytr: torch.Tensor,
         Xts: torch.Tensor,
         Yts: torch.Tensor,
-        model: HyperoptObjective2,
+        model: HyperoptObjective,
         err_fn,
         learning_rate: float,
         num_epochs: int,

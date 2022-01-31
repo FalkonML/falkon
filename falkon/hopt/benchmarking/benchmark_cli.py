@@ -19,7 +19,7 @@ from falkon.hopt.optimization.gd_train import train_complexity_reg, train_comple
 from falkon.hopt.optimization.models import init_model
 from falkon.hopt.optimization.grid_search import HPGridPoint, run_on_grid
 from falkon.hopt.optimization.reporting import get_writer
-
+from kernels import GaussianKernel
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 AUTO_PEN_MULTIPLIER = 1
@@ -124,14 +124,14 @@ def run_grid_search(
     centers_init = choose_centers_init(Xtr, metadata, num_centers, seed)
     sigma_init, penalty_init = sigma_pen_init(
         {'Xtr': Xtr}, sigma_type=sigma_type, sigma_init=sigma_init, penalty_init=penalty_init)
+    kernel = GaussianKernel(sigma=sigma_init.requires_grad_(False))
     grid_spec = read_gs_file(gs_file)
     model = init_model(model_type=model_type,
                        data={'X': Xtr, 'Y': Ytr},
+                       kernel=kernel,
                        penalty_init=penalty_init,
                        centers_init=centers_init,
-                       sigma_init=sigma_init,
                        opt_penalty=True,  # Only to avoid errors, opt is not performed
-                       opt_sigma=True,
                        opt_centers=True,
                        cuda=cuda,
                        val_pct=val_pct,
@@ -179,6 +179,7 @@ def run_optimization(
 
     sigma_init, penalty_init = sigma_pen_init(
         {'Xtr': Xtr}, sigma_type=sigma_type, sigma_init=sigma_init, penalty_init=penalty_init)
+    kernel = GaussianKernel(sigma=sigma_init.requires_grad_(opt_sigma))
     centers_init = choose_centers_init(Xtr, metadata, num_centers, seed)
     if minibatch > 0:
         num_batches = math.ceil(Xtr.shape[0] / minibatch)
@@ -187,11 +188,10 @@ def run_optimization(
 
     model = init_model(model_type=model_type,
                        data={'X': Xtr, 'Y': Ytr},
+                       kernel=kernel,
                        penalty_init=penalty_init,
                        centers_init=centers_init,
-                       sigma_init=sigma_init,
                        opt_penalty=opt_penalty,
-                       opt_sigma=opt_sigma,
                        opt_centers=opt_centers,
                        cuda=cuda,
                        val_pct=val_pct,
@@ -205,7 +205,7 @@ def run_optimization(
                                     Xts=Xts, Yts=Yts,
                                     model=model, err_fn=partial(err_fns[0], **metadata),
                                     learning_rate=learning_rate, num_epochs=num_epochs,
-                                    cuda=cuda, verbose=False, loss_every=loss_every,
+                                    cuda=cuda, loss_every=loss_every,
                                     optimizer=optimizer, early_stop_epochs=early_stop_epochs,
                                     cgtol_decrease_epochs=cgtol_decrease_epochs)
     else:
@@ -213,7 +213,7 @@ def run_optimization(
                                        Xts=Xts, Yts=Yts,
                                        model=model, err_fn=partial(err_fns[0], **metadata),
                                        learning_rate=learning_rate, num_epochs=num_epochs,
-                                       cuda=cuda, verbose=False, loss_every=loss_every,
+                                       cuda=cuda, loss_every=loss_every,
                                        optimizer=optimizer, minibatch=minibatch,
                                        early_stop_epochs=early_stop_epochs,
                                        cgtol_decrease_epochs=cgtol_decrease_epochs)

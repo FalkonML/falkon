@@ -7,7 +7,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from falkon import FalkonOptions, InCoreFalkon, Falkon
-from falkon.hopt.objectives.objectives import HyperoptObjective2
+from falkon.hopt.objectives.objectives import HyperoptObjective
 from falkon.hopt.utils import get_scalar
 
 LOG_DIR = "./logs/tensorboard"
@@ -67,7 +67,7 @@ def report_hps(named_hparams: Iterator[tuple[str, torch.nn.Parameter]],
     return report_dict
 
 
-def pred_reporting(model: HyperoptObjective2,
+def pred_reporting(model: HyperoptObjective,
                    Xts: torch.Tensor, Yts: torch.Tensor,
                    Xtr: torch.Tensor, Ytr: torch.Tensor,
                    err_fn: callable,
@@ -140,7 +140,7 @@ def pred_reporting(model: HyperoptObjective2,
 
 def epoch_bookkeeping(
         epoch: int,
-        model: HyperoptObjective2,
+        model: HyperoptObjective,
         data: Dict[str, torch.Tensor],
         err_fn,
         loss_every: int,
