@@ -170,7 +170,7 @@ setup(
     name="falkon",
     version=get_version("falkon"),
     description="Fast, GPU enabled, approximate kernel ridge regression solver.",
-    python_requires='~=3.6',
+    python_requires='~=3.7',
     setup_requires=[
         # Setuptools 18.0 properly handles Cython extensions.
         'setuptools>=18.0',
