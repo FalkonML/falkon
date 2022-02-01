@@ -32,10 +32,9 @@ class StochasticNystromCompReg(HyperoptObjective):
             centers_transform: Optional[torch.distributions.Transform] = None,
             pen_transform: Optional[torch.distributions.Transform] = None,
     ):
-        super(StochasticNystromCompReg, self).__init__(centers_init, penalty_init,
+        super(StochasticNystromCompReg, self).__init__(kernel, centers_init, penalty_init,
                                                        opt_centers, opt_penalty,
                                                        centers_transform,  pen_transform)
-        self.kernel = kernel
         self.flk_opt = flk_opt
         self.num_trace_est = num_trace_est
         self.flk_maxiter = flk_maxiter

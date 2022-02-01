@@ -3,12 +3,14 @@ from typing import Optional
 
 import torch
 
+import falkon.kernels
 from falkon.hopt.objectives.transforms import PositiveTransform
 from torch.distributions.transforms import identity_transform
 
 
 class HyperoptObjective(torch.nn.Module):
     def __init__(self,
+                 kernel: falkon.kernels.DiffKernel,
                  centers_init: torch.Tensor,
                  penalty_init: torch.Tensor,
                  opt_centers: bool,
@@ -17,6 +19,11 @@ class HyperoptObjective(torch.nn.Module):
                  pen_transform: Optional[torch.distributions.Transform],
                  ):
         super(HyperoptObjective, self).__init__()
+
+        if not isinstance(kernel, falkon.kernels.DiffKernel):
+            raise TypeError(f"Kernel must inherit from `DiffKernel` for hyperparameter "
+                            f"optimization.")
+        self.kernel = kernel
 
         self.centers_transform = centers_transform or identity_transform
         self.penalty_transform = pen_transform or PositiveTransform(1e-8)
