@@ -1,78 +1,40 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>falkon.optim &mdash; falkon 0.6.3 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>falkon.optim &mdash; falkon 0.7.2 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="falkon.ooc_ops" href="outofcore.html" />
     <link rel="prev" title="falkon.preconditioner" href="preconditioner.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> falkon
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
-                0.6.3
+                0.7.2
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -80,18 +42,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#supported-platforms">Supported Platforms</a></li>
@@ -103,6 +54,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#testing-the-installation">Testing the installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#development">Development</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../get_started.html">Getting Started</a><ul>
@@ -111,13 +63,13 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">Examples</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/simple_regression.html">Falkon Regression Tutorial</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/simple_regression.html#Introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/simple_regression.html#Load-the-data">Load the data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/simple_regression.html#Pre-process-the-data">Pre-process the data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/simple_regression.html#Create-the-Falkon-model">Create the Falkon model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/simple_regression.html#Training-the-model">Training the model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/simple_regression.html#Evaluating-model-performance">Evaluating model performance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/falkon_regression_tutorial.html">Falkon Regression Tutorial</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Pre-process-the-data">Pre-process the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Create-the-Falkon-model">Create the Falkon model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Training-the-model">Training the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Evaluating-model-performance">Evaluating model performance</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/logistic_falkon.html">Introducing Logistic Falkon</a><ul>
@@ -132,19 +84,51 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/logistic_falkon.html#Plot-predictions">Plot predictions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/hyperparameter_tuning.html">Hyperparameter Tuning with Falkon</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hyperparameter_tuning.html#Introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hyperparameter_tuning.html#Load-the-data">Load the data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hyperparameter_tuning.html#Split-into-training-and-test-sets">Split into training and test sets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hyperparameter_tuning.html#Data-Preprocessing">Data Preprocessing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hyperparameter_tuning.html#Search-for-the-optimal-parameters">Search for the optimal parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/hyperparameter_tuning.html#Evaluating-the-model">Evaluating the model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/falkon_cv.html">Hyperparameter Tuning with Falkon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Split-into-training-and-test-sets">Split into training and test sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Search-for-the-optimal-parameters">Search for the optimal parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/falkon_cv.html#Evaluating-the-model">Evaluating the model</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hyperparameter_tuning.html#Plot-grid-search-results">Plot grid-search results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Plot-grid-search-results">Plot grid-search results</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/performance_tuning.html">Training on the GPU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/custom_kernels.html">Implementing A Custom Kernel</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Setup-a-simple-problem-for-testing">Setup a simple problem for testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Basic-Kernel-Implementation">Basic Kernel Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/custom_kernels.html#Test-the-basic-kernel">Test the basic kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Differentiable-Kernel">Differentiable Kernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/custom_kernels.html#Test-the-differentiable-kernel">Test the differentiable kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Adding-KeOps-Support">Adding KeOps Support</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/custom_kernels.html#Test-the-KeOps-kernel">Test the KeOps kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Supporting-Sparse-Data">Supporting Sparse Data</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/custom_kernels.html#Testing-sparse-support">Testing sparse support</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/hyperopt.html">Automatic Hyperparameter Optimization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hyperopt.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hyperopt.html#Split-into-training-and-test-sets">Split into training and test sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hyperopt.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hyperopt.html#Hyperparameter-Optimization">Hyperparameter Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/falkon_mnist.html">MNIST Classification with Falkon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_mnist.html#Download-the-MNIST-dataset-&amp;-load-it-in-memory">Download the MNIST dataset &amp; load it in memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_mnist.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_mnist.html#Run-Falkon">Run Falkon</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">API Reference</a><ul class="current">
@@ -156,9 +140,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kernels.html">falkon.kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="kernels.html#kernel">Kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html#diffkernel">DiffKernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html#keopskernelmixin">KeopsKernelMixin</a></li>
 <li class="toctree-l3"><a class="reference internal" href="kernels.html#radial-kernels">Radial kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="kernels.html#gaussian-kernel">Gaussian kernel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="kernels.html#laplacian-kernel">Laplacian kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kernels.html#matern-kernel">Matern kernel</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="kernels.html#dot-product-kernels">Dot-Product kernels</a><ul>
@@ -204,20 +191,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="mmv_ops.html">falkon.mmv_ops</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#run-keops-mmv">run_keops_mmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmm-cpu">fmm_cpu</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmm-cpu-sparse">fmm_cpu_sparse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmm-cuda">fmm_cuda</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmm-cuda-sparse">fmm_cuda_sparse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmmv-cpu">fmmv_cpu</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmmv-cpu-sparse">fmmv_cpu_sparse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fdmmv-cpu">fdmmv_cpu</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fdmmv-cpu-sparse">fdmmv_cpu_sparse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmmv-cuda">fmmv_cuda</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmmv-cuda-sparse">fmmv_cuda_sparse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fdmmv-cuda">fdmmv_cuda</a></li>
-<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fdmmv-cuda-sparse">fdmmv_cuda_sparse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmm">fmm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmmv">fmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fdmmv">fdmmv</a></li>
 <li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#incore-fmmv">incore_fmmv</a></li>
 <li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#incore-fdmmv">incore_fdmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#low-level-functions">Low-level functions</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="sparse.html">falkon.sparse</a><ul>
@@ -231,77 +210,48 @@
 <li class="toctree-l3"><a class="reference internal" href="center_selector.html#fixedselector">FixedSelector</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="hopt.html">falkon.hopt</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hopt.html#objectives">Objectives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hopt.html#nystrom-complexity-regularization">Nystrom Complexity Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hopt.html#stochastic-nystrom-computational-regularization">Stochastic Nystrom Computational Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hopt.html#complexity-regularization">Complexity Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hopt.html#generalized-cross-validation">Generalized Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hopt.html#hold-out-cross-validation">Hold Out Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hopt.html#leave-one-out-cross-validation">Leave One Out Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hopt.html#sgpr">SGPR</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">falkon</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">API Reference</a> &raquo;</li>
-        
       <li>falkon.optim</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="../_sources/api_reference/optimization.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   
 <style>
 /* CSS overrides for sphinx_rtd_theme */
@@ -327,30 +277,65 @@
 }
 </style>
 <section id="module-falkon.optim">
-<span id="falkon-optim"></span><h1>falkon.optim<a class="headerlink" href="#module-falkon.optim" title="Permalink to this headline">¶</a></h1>
+<span id="falkon-optim"></span><h1>falkon.optim<a class="headerlink" href="#module-falkon.optim" title="Permalink to this headline"></a></h1>
 <section id="optimizer">
-<h2>Optimizer<a class="headerlink" href="#optimizer" title="Permalink to this headline">¶</a></h2>
+<h2>Optimizer<a class="headerlink" href="#optimizer" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="falkon.optim.Optimizer">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">falkon.optim.</span></code><code class="sig-name descname"><span class="pre">Optimizer</span></code><a class="headerlink" href="#falkon.optim.Optimizer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="falkon.optim.Optimizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.optim.</span></span><span class="sig-name descname"><span class="pre">Optimizer</span></span><a class="headerlink" href="#falkon.optim.Optimizer" title="Permalink to this definition"></a></dt>
+<dd><p>Base class for optimizers. This is an empty shell at the moment.</p>
+</dd></dl>
 
 </section>
 <section id="conjugate-gradient-methods">
-<h2>Conjugate gradient methods<a class="headerlink" href="#conjugate-gradient-methods" title="Permalink to this headline">¶</a></h2>
+<h2>Conjugate gradient methods<a class="headerlink" href="#conjugate-gradient-methods" title="Permalink to this headline"></a></h2>
 <section id="conjugategradient">
-<h3>ConjugateGradient<a class="headerlink" href="#conjugategradient" title="Permalink to this headline">¶</a></h3>
+<h3>ConjugateGradient<a class="headerlink" href="#conjugategradient" title="Permalink to this headline"></a></h3>
 <dl class="py class">
-<dt id="falkon.optim.ConjugateGradient">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">falkon.optim.</span></code><code class="sig-name descname"><span class="pre">ConjugateGradient</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">falkon.options.ConjugateGradientOptions</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.optim.ConjugateGradient" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="falkon.optim.ConjugateGradient">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.optim.</span></span><span class="sig-name descname"><span class="pre">ConjugateGradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">falkon.options.ConjugateGradientOptions</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.optim.ConjugateGradient" title="Permalink to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="falkon.optim.ConjugateGradient.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mmv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#falkon.optim.ConjugateGradient.solve" title="Permalink to this definition"></a></dt>
+<dd><p>Conjugate-gradient solver with optional support for preconditioning via generic MMV.</p>
+<p>This solver can be used for iterative solution of linear systems of the form $AX = B$ with
+respect to the <cite>X</cite> variable. Knowledge of <cite>A</cite> is only needed through matrix-vector
+multiplications with temporary solutions (must be provided through the <cite>mmv</cite> function).</p>
+<p>Preconditioning can be achieved by incorporating the preconditioner matrix in the <cite>mmv</cite>
+function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X0</strong> (<em>Optional</em><em>[</em><em>torch.Tensor</em><em>]</em>) – Initial solution for the solver. If not provided it will be a zero-tensor.</p></li>
+<li><p><strong>B</strong> (<em>torch.Tensor</em>) – Right-hand-side of the linear system to be solved.</p></li>
+<li><p><strong>mmv</strong> – User-provided function to perform matrix-vector multiplications with the design matrix
+<cite>A</cite>. The function must accept a single argument (the vector to be multiplied), and
+return the result of the matrix-vector multiplication.</p></li>
+<li><p><strong>max_iter</strong> (<em>int</em>) – Maximum number of iterations the solver will perform. Early stopping is implemented
+via the options passed in the constructor of this class (in particular look at
+<cite>cg_tolerance</cite> options)
+i + 1, X, e_train</p></li>
+<li><p><strong>callback</strong> – An optional, user-provided function which shall be called at the end of each iteration
+with the current solution. The arguments to the function are the iteration number,
+a tensor containing the current solution, and the total time elapsed from the beginning
+of training (note that this time explicitly excludes any time taken by the callback
+itself).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The solution to the linear system <cite>X</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
 
 </section>
 <section id="falkonconjugategradient">
-<h3>FalkonConjugateGradient<a class="headerlink" href="#falkonconjugategradient" title="Permalink to this headline">¶</a></h3>
+<h3>FalkonConjugateGradient<a class="headerlink" href="#falkonconjugategradient" title="Permalink to this headline"></a></h3>
 <dl class="py class">
-<dt id="falkon.optim.FalkonConjugateGradient">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">falkon.optim.</span></code><code class="sig-name descname"><span class="pre">FalkonConjugateGradient</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><span class="pre">falkon.kernels.kernel.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">preconditioner</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="preconditioner.html#falkon.preconditioner.preconditioner.Preconditioner" title="falkon.preconditioner.preconditioner.Preconditioner"><span class="pre">falkon.preconditioner.preconditioner.Preconditioner</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">falkon.options.FalkonOptions</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.optim.FalkonConjugateGradient" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="falkon.optim.FalkonConjugateGradient">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.optim.</span></span><span class="sig-name descname"><span class="pre">FalkonConjugateGradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><span class="pre">falkon.kernels.kernel.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">preconditioner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="preconditioner.html#falkon.preconditioner.preconditioner.Preconditioner" title="falkon.preconditioner.preconditioner.Preconditioner"><span class="pre">falkon.preconditioner.preconditioner.Preconditioner</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">falkon.options.FalkonOptions</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.optim.FalkonConjugateGradient" title="Permalink to this definition"></a></dt>
 <dd><p>Preconditioned conjugate gradient solver, optimized for the Falkon algorithm.</p>
 <p>The linear system solved is</p>
 <div class="math notranslate nohighlight">
@@ -390,50 +375,33 @@ the CG method could converge very slowly.</p></li>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="outofcore.html" class="btn btn-neutral float-right" title="falkon.ooc_ops" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="preconditioner.html" class="btn btn-neutral float-left" title="falkon.preconditioner" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="outofcore.html" class="btn btn-neutral float-right" title="falkon.ooc_ops" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2020, Giacomo Meanti.
-
-    </p>
+    <p>&#169; Copyright 2020, Giacomo Meanti, Alessandro Rudi.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

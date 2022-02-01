@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automatic Hyperparameter Optimization &mdash; falkon 0.7.2 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="MNIST Classification with Falkon" href="falkon_mnist.html" />
+    <link rel="prev" title="Implementing A Custom Kernel" href="custom_kernels.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> falkon
+          </a>
+              <div class="version">
+                0.7.2
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#supported-platforms">Supported Platforms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#testing-the-installation">Testing the installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#development">Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../get_started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../get_started.html#passing-options">Passing Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../get_started.html#more-examples">More Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="examples.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="falkon_regression_tutorial.html">Falkon Regression Tutorial</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="falkon_regression_tutorial.html#Introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_regression_tutorial.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_regression_tutorial.html#Pre-process-the-data">Pre-process the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_regression_tutorial.html#Create-the-Falkon-model">Create the Falkon model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_regression_tutorial.html#Training-the-model">Training the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_regression_tutorial.html#Evaluating-model-performance">Evaluating model performance</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="logistic_falkon.html">Introducing Logistic Falkon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logistic_falkon.html#Introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logistic_falkon.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logistic_falkon.html#Split-into-training-and-test-sets">Split into training and test sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logistic_falkon.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logistic_falkon.html#Define-the-Falkon-model">Define the Falkon model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logistic_falkon.html#Define-Logistic-Falkon-model">Define Logistic Falkon model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logistic_falkon.html#Train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logistic_falkon.html#Testing">Testing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="logistic_falkon.html#Plot-predictions">Plot predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="falkon_cv.html">Hyperparameter Tuning with Falkon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="falkon_cv.html#Introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_cv.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_cv.html#Split-into-training-and-test-sets">Split into training and test sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_cv.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_cv.html#Search-for-the-optimal-parameters">Search for the optimal parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="falkon_cv.html#Evaluating-the-model">Evaluating the model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_cv.html#Plot-grid-search-results">Plot grid-search results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="custom_kernels.html">Implementing A Custom Kernel</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="custom_kernels.html#Setup-a-simple-problem-for-testing">Setup a simple problem for testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="custom_kernels.html#Basic-Kernel-Implementation">Basic Kernel Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="custom_kernels.html#Test-the-basic-kernel">Test the basic kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="custom_kernels.html#Differentiable-Kernel">Differentiable Kernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="custom_kernels.html#Test-the-differentiable-kernel">Test the differentiable kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="custom_kernels.html#Adding-KeOps-Support">Adding KeOps Support</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="custom_kernels.html#Test-the-KeOps-kernel">Test the KeOps kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="custom_kernels.html#Supporting-Sparse-Data">Supporting Sparse Data</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="custom_kernels.html#Testing-sparse-support">Testing sparse support</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Automatic Hyperparameter Optimization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Split-into-training-and-test-sets">Split into training and test sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Hyperparameter-Optimization">Hyperparameter Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="falkon_mnist.html">MNIST Classification with Falkon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="falkon_mnist.html#Download-the-MNIST-dataset-&amp;-load-it-in-memory">Download the MNIST dataset &amp; load it in memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_mnist.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="falkon_mnist.html#Run-Falkon">Run Falkon</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/models.html">falkon.models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#falkon">Falkon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#logisticfalkon">LogisticFalkon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#incorefalkon">InCoreFalkon</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/kernels.html">falkon.kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#kernel">Kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#diffkernel">DiffKernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#radial-kernels">Radial kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#gaussian-kernel">Gaussian kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#laplacian-kernel">Laplacian kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#matern-kernel">Matern kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#dot-product-kernels">Dot-Product kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#polynomial-kernel">Polynomial kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#linear-kernel">Linear kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#sigmoid-kernel">Sigmoid kernel</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/options.html">falkon.options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/options.html#falkonoptions">FalkonOptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/gsc_losses.html">falkon.gsc_losses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#loss">Loss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#logistic-loss">Logistic loss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/preconditioner.html">falkon.preconditioner</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#preconditioner">Preconditioner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#cholesky-preconditioners">Cholesky preconditioners</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#falkonpreconditioner">FalkonPreconditioner</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#logisticpreconditioner">LogisticPreconditioner</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/optimization.html">falkon.optim</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#optimizer">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#conjugate-gradient-methods">Conjugate gradient methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#conjugategradient">ConjugateGradient</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#falkonconjugategradient">FalkonConjugateGradient</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/outofcore.html">falkon.ooc_ops</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-lauum">gpu_lauum</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/mmv_ops.html">falkon.mmv_ops</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmm">fmm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmmv">fmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fdmmv">fdmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#low-level-functions">Low-level functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/sparse.html">falkon.sparse</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparsetensor">SparseTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparse-operations">Sparse operations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/center_selector.html">falkon.center_selection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#centerselector">CenterSelector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#uniformselector">UniformSelector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#fixedselector">FixedSelector</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference/hopt.html">falkon.hopt</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/hopt.html#objectives">Objectives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#nystrom-complexity-regularization">Nystrom Complexity Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#stochastic-nystrom-computational-regularization">Stochastic Nystrom Computational Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#complexity-regularization">Complexity Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#generalized-cross-validation">Generalized Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#hold-out-cross-validation">Hold Out Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#leave-one-out-cross-validation">Leave One Out Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#sgpr">SGPR</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">falkon</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="examples.html">Examples</a> &raquo;</li>
+      <li>Automatic Hyperparameter Optimization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/hyperopt.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="Automatic-Hyperparameter-Optimization">
+<h1>Automatic Hyperparameter Optimization<a class="headerlink" href="#Automatic-Hyperparameter-Optimization" title="Permalink to this headline"></a></h1>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">model_selection</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;ggplot&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[pyKeOps]: Warning, no cuda detected. Switching to cpu only.
+</pre></div></div>
+</div>
+<section id="Load-the-data">
+<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this headline"></a></h2>
+<p>We use the <strong>digits</strong> dataset, which is distributed alongside scikit-learn.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_digits</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">plot_digit</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">)),</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Label: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_axis_off</span><span class="p">()</span>
+
+<span class="c1"># Plot three sample images from the dataset</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">ncols</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">plot_digit</span><span class="p">(</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">plot_digit</span><span class="p">(</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">plot_digit</span><span class="p">(</span><span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="mi">42</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="mi">42</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_hyperopt_4_0.png" src="../_images/examples_hyperopt_4_0.png" />
+</div>
+</div>
+</section>
+<section id="Split-into-training-and-test-sets">
+<h2>Split into training and test sets<a class="headerlink" href="#Split-into-training-and-test-sets" title="Permalink to this headline"></a></h2>
+<p>We split the data into a training set with 80% of the samples and a test set with the remaining 20%.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span> <span class="n">Y_test</span> <span class="o">=</span> <span class="n">model_selection</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Data-Preprocessing">
+<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this headline"></a></h2>
+<p>As always with Falkon we must: 1. Convert from numpy arrays to torch tensors 2. Convert data and labels to the same data-type (in this case float32)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">Y_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_train</span><span class="p">)</span>
+<span class="n">Y_test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_test</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Normalizing the data is always a good idea, and it becomes even more important with automatic hyperparameter optimization.</p>
+<p>Here we use the global mean and standard deviation of the training set for <strong>z-score normalization</strong>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># z-score normalization</span>
+<span class="n">train_mean</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">train_std</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+<span class="n">X_train</span> <span class="o">-=</span> <span class="n">train_mean</span>
+<span class="n">X_train</span> <span class="o">/=</span> <span class="n">train_std</span>
+<span class="n">X_test</span> <span class="o">-=</span> <span class="n">train_mean</span>
+<span class="n">X_test</span> <span class="o">/=</span> <span class="n">train_std</span>
+</pre></div>
+</div>
+</div>
+<p>Since Falkon optimizes with respect to the square loss, using ordinal labels (e.g. 1, 4, 5) is not ideal since closeness in the natural numbers is meaningless for classification.</p>
+<p>We therefore convert the labels to a <strong>1-hot representation</strong>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert labels to 1-hot</span>
+<span class="n">eye</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">Y_train</span> <span class="o">=</span> <span class="n">eye</span><span class="p">[</span><span class="n">Y_train</span><span class="p">]</span>
+<span class="n">Y_test</span> <span class="o">=</span> <span class="n">eye</span><span class="p">[</span><span class="n">Y_test</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;First label vector: &quot;</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
+</pre></div></div>
+</div>
+</section>
+<section id="Hyperparameter-Optimization">
+<h2>Hyperparameter Optimization<a class="headerlink" href="#Hyperparameter-Optimization" title="Permalink to this headline"></a></h2>
+<p>The Falkon algorithm has three main kinds of hyper-parameters: 1. The kernel parameters. Most commonly when using the Gaussian kernel these are the length-scales for each dimension in the data 2. The amount of regularization <span class="math notranslate nohighlight">\(\lambda\)</span> (the penalty term, which helps prevent overfitting). 3. The Nystrom centers. These are sometimes not considered hyper parameters, and they are chosen uniformly at random from the training set. However, it is possible to find better centers!</p>
+<p>In the <a class="reference internal" href="falkon_cv.html"><span class="doc">grid-search</span></a> notebook all three types of hyperparameters are considered, but only with a small number of options in each category.</p>
+<p>With automatic hyperparameter optimization, which is based on a gradient descent-type procedure, we can instead define a much larger search space for the hyperparameters.</p>
+<p>In particular, we will optimize the kernel length-scale (one for each dimension in the data), the regularization and the Nystrom centers. Optimizing the Nystrom centers is especially useful since it allows to reduce their number, thus speeding up the whole training and inference process!</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">mclass_loss</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
+    <span class="n">true</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">true</span> <span class="o">!=</span> <span class="n">pred</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<p>Several functions and classes used for hyperparameter optimization reside in the <code class="docutils literal notranslate"><span class="pre">falkon.hopt</span></code> module.</p>
+<p>Here we import the <code class="docutils literal notranslate"><span class="pre">NystromCompReg</span></code> class which defines the optimization objective.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">falkon.hopt</span>
+<span class="kn">from</span> <span class="nn">falkon</span> <span class="kn">import</span> <span class="n">FalkonOptions</span>
+<span class="kn">from</span> <span class="nn">falkon.hopt.objectives</span> <span class="kn">import</span> <span class="n">NystromCompReg</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">flk_opt</span> <span class="o">=</span> <span class="n">FalkonOptions</span><span class="p">(</span><span class="n">use_cpu</span><span class="o">=</span><span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<p>We have to initialize the hyperparameters to some default values. In particular we choose some random initial points from the dataset as the initial Nystrom centers.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sigma_init</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma_init</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="n">flk_opt</span><span class="p">)</span>
+
+<span class="n">penalty_init</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">centers_init</span> <span class="o">=</span> <span class="n">X_train</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>Now we initialize the loss function (<code class="docutils literal notranslate"><span class="pre">NystromCompReg</span></code>) and the optimization algorithm (Adam).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">NystromCompReg</span><span class="p">(</span>
+    <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">penalty_init</span><span class="o">=</span><span class="n">penalty_init</span><span class="p">,</span> <span class="n">centers_init</span><span class="o">=</span><span class="n">centers_init</span><span class="p">,</span>  <span class="c1"># The initial hp values</span>
+    <span class="n">opt_penalty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">opt_centers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Whether the various hps are to be optimized</span>
+    <span class="p">)</span>
+<span class="n">opt_hp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>And start training. Each iteration corresponds to a single gradient step over the whole dataset.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tr_loss</span><span class="p">,</span> <span class="n">tr_err</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">50</span><span class="p">):</span>
+    <span class="n">opt_hp</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">)</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+    <span class="n">opt_hp</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+    <span class="n">tr_loss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+    <span class="n">tr_err</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mclass_loss</span><span class="p">(</span><span class="n">Y_train</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_train</span><span class="p">)))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2"> Loss </span><span class="si">{</span><span class="n">tr_loss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> Error </span><span class="si">{</span><span class="n">tr_err</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Epoch 0 Loss 40310.387 Error 1.67%
+Epoch 1 Loss 35137.203 Error 1.67%
+Epoch 2 Loss 24207.420 Error 1.74%
+Epoch 3 Loss 17153.834 Error 2.02%
+Epoch 4 Loss 12490.971 Error 1.95%
+Epoch 5 Loss 9343.500 Error 1.67%
+Epoch 6 Loss 7062.557 Error 1.32%
+Epoch 7 Loss 5359.402 Error 1.18%
+Epoch 8 Loss 4108.987 Error 1.04%
+Epoch 9 Loss 3210.683 Error 0.90%
+Epoch 10 Loss 2569.709 Error 0.63%
+Epoch 11 Loss 2121.547 Error 0.49%
+Epoch 12 Loss 1814.989 Error 0.49%
+Epoch 13 Loss 1606.087 Error 0.42%
+Epoch 14 Loss 1460.298 Error 0.42%
+Epoch 15 Loss 1353.231 Error 0.21%
+Epoch 16 Loss 1269.496 Error 0.21%
+Epoch 17 Loss 1199.922 Error 0.14%
+Epoch 18 Loss 1139.733 Error 0.14%
+Epoch 19 Loss 1088.957 Error 0.07%
+Epoch 20 Loss 1043.391 Error 0.07%
+Epoch 21 Loss 1002.747 Error 0.07%
+Epoch 22 Loss 966.971 Error 0.07%
+Epoch 23 Loss 935.513 Error 0.07%
+Epoch 24 Loss 907.745 Error 0.07%
+Epoch 25 Loss 883.216 Error 0.07%
+Epoch 26 Loss 861.607 Error 0.07%
+Epoch 27 Loss 842.661 Error 0.07%
+Epoch 28 Loss 826.113 Error 0.07%
+Epoch 29 Loss 811.653 Error 0.07%
+Epoch 30 Loss 798.939 Error 0.07%
+Epoch 31 Loss 787.643 Error 0.07%
+Epoch 32 Loss 777.481 Error 0.07%
+Epoch 33 Loss 768.217 Error 0.07%
+Epoch 34 Loss 759.674 Error 0.07%
+Epoch 35 Loss 751.720 Error 0.07%
+Epoch 36 Loss 744.265 Error 0.07%
+Epoch 37 Loss 737.261 Error 0.07%
+Epoch 38 Loss 730.671 Error 0.07%
+Epoch 39 Loss 724.491 Error 0.07%
+Epoch 40 Loss 718.708 Error 0.07%
+Epoch 41 Loss 713.325 Error 0.07%
+Epoch 42 Loss 708.335 Error 0.07%
+Epoch 43 Loss 703.722 Error 0.07%
+Epoch 44 Loss 699.472 Error 0.07%
+Epoch 45 Loss 695.557 Error 0.07%
+Epoch 46 Loss 691.935 Error 0.00%
+Epoch 47 Loss 688.580 Error 0.00%
+Epoch 48 Loss 685.445 Error 0.00%
+Epoch 49 Loss 682.500 Error 0.00%
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Evaluate the test error:</span>
+<span class="n">ts_preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test error: </span><span class="si">{</span><span class="n">mclass_loss</span><span class="p">(</span><span class="n">Y_test</span><span class="p">,</span> <span class="n">ts_preds</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Test error: 0.83%
+</pre></div></div>
+</div>
+<p>The optimized parameters are available as attributes of the <code class="docutils literal notranslate"><span class="pre">model</span></code> object:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final value of lambda: </span><span class="si">%.3e</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">penalty</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final value of sigma: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">detach</span><span class="p">()))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Final value of lambda: 4.428e-05
+Final value of sigma: tensor([2.3884, 2.6252, 2.7859, 2.7036, 2.6799, 2.7698, 2.7344, 3.0071, 2.5923,
+        2.7421, 2.7629, 2.7525, 2.6989, 2.7232, 2.8216, 2.8830, 2.6465, 2.7994,
+        2.7406, 2.7082, 2.8053, 2.6552, 2.7757, 2.6979, 2.3884, 2.7573, 2.7242,
+        2.6681, 2.7780, 2.7649, 2.7010, 2.7274, 2.3884, 2.6608, 2.7477, 2.7604,
+        2.8015, 2.7581, 2.6359, 2.3884, 2.8348, 2.7656, 2.6553, 2.6672, 2.7252,
+        2.7499, 2.6721, 2.6589, 2.9603, 2.7725, 2.7143, 2.7481, 2.7307, 2.7093,
+        2.7251, 2.7213, 2.6326, 2.6092, 2.7600, 2.7744, 2.7885, 2.6976, 2.6838,
+        2.7062])
+</pre></div></div>
+</div>
+<p>We can compare the obtained results with the grid-search notebook.</p>
+<p>A grid-search with 1000 centers and 32 grid-points resulted in choosing a model with sigma=5, and lambda=1e-7.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">NystromCompReg</span></code> objective with half the centers led to obtain a lower test error (0.83% vs. 1.11%) after 50 training epochs. However the obtained hyperparameters are quite different: lambda in particular is much higher at 1.1e-4.</p>
+<p>This objective in particular has quite a high bias and tends to choose simple models instead of more complex ones (remember that since lambda is a regularizer, it can be seen as one possible measure of model complexity). In practice this is often not a problem, as we observed in this case.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="custom_kernels.html" class="btn btn-neutral float-left" title="Implementing A Custom Kernel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="falkon_mnist.html" class="btn btn-neutral float-right" title="MNIST Classification with Falkon" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Giacomo Meanti, Alessandro Rudi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

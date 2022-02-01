@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>falkon.hopt &mdash; falkon 0.7.2 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="falkon.center_selection" href="center_selector.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> falkon
+          </a>
+              <div class="version">
+                0.7.2
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#supported-platforms">Supported Platforms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#testing-the-installation">Testing the installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#development">Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../get_started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../get_started.html#passing-options">Passing Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../get_started.html#more-examples">More Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/falkon_regression_tutorial.html">Falkon Regression Tutorial</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Pre-process-the-data">Pre-process the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Create-the-Falkon-model">Create the Falkon model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Training-the-model">Training the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_regression_tutorial.html#Evaluating-model-performance">Evaluating model performance</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/logistic_falkon.html">Introducing Logistic Falkon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/logistic_falkon.html#Introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/logistic_falkon.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/logistic_falkon.html#Split-into-training-and-test-sets">Split into training and test sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/logistic_falkon.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/logistic_falkon.html#Define-the-Falkon-model">Define the Falkon model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/logistic_falkon.html#Define-Logistic-Falkon-model">Define Logistic Falkon model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/logistic_falkon.html#Train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/logistic_falkon.html#Testing">Testing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/logistic_falkon.html#Plot-predictions">Plot predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/falkon_cv.html">Hyperparameter Tuning with Falkon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Split-into-training-and-test-sets">Split into training and test sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Search-for-the-optimal-parameters">Search for the optimal parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/falkon_cv.html#Evaluating-the-model">Evaluating the model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_cv.html#Plot-grid-search-results">Plot grid-search results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/custom_kernels.html">Implementing A Custom Kernel</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Setup-a-simple-problem-for-testing">Setup a simple problem for testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Basic-Kernel-Implementation">Basic Kernel Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/custom_kernels.html#Test-the-basic-kernel">Test the basic kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Differentiable-Kernel">Differentiable Kernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/custom_kernels.html#Test-the-differentiable-kernel">Test the differentiable kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Adding-KeOps-Support">Adding KeOps Support</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/custom_kernels.html#Test-the-KeOps-kernel">Test the KeOps kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/custom_kernels.html#Supporting-Sparse-Data">Supporting Sparse Data</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/custom_kernels.html#Testing-sparse-support">Testing sparse support</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/hyperopt.html">Automatic Hyperparameter Optimization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hyperopt.html#Load-the-data">Load the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hyperopt.html#Split-into-training-and-test-sets">Split into training and test sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hyperopt.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hyperopt.html#Hyperparameter-Optimization">Hyperparameter Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/falkon_mnist.html">MNIST Classification with Falkon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_mnist.html#Download-the-MNIST-dataset-&amp;-load-it-in-memory">Download the MNIST dataset &amp; load it in memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_mnist.html#Data-Preprocessing">Data Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/falkon_mnist.html#Run-Falkon">Run Falkon</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="models.html">falkon.models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="models.html#falkon">Falkon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#logisticfalkon">LogisticFalkon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#incorefalkon">InCoreFalkon</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="kernels.html">falkon.kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html#kernel">Kernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html#diffkernel">DiffKernel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html#keopskernelmixin">KeopsKernelMixin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html#radial-kernels">Radial kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kernels.html#gaussian-kernel">Gaussian kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kernels.html#laplacian-kernel">Laplacian kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kernels.html#matern-kernel">Matern kernel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html#dot-product-kernels">Dot-Product kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kernels.html#polynomial-kernel">Polynomial kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kernels.html#linear-kernel">Linear kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kernels.html#sigmoid-kernel">Sigmoid kernel</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="options.html">falkon.options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="options.html#falkonoptions">FalkonOptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gsc_losses.html">falkon.gsc_losses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gsc_losses.html#loss">Loss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gsc_losses.html#logistic-loss">Logistic loss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="preconditioner.html">falkon.preconditioner</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="preconditioner.html#preconditioner">Preconditioner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="preconditioner.html#cholesky-preconditioners">Cholesky preconditioners</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="preconditioner.html#falkonpreconditioner">FalkonPreconditioner</a></li>
+<li class="toctree-l4"><a class="reference internal" href="preconditioner.html#logisticpreconditioner">LogisticPreconditioner</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="optimization.html">falkon.optim</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="optimization.html#optimizer">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="optimization.html#conjugate-gradient-methods">Conjugate gradient methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optimization.html#conjugategradient">ConjugateGradient</a></li>
+<li class="toctree-l4"><a class="reference internal" href="optimization.html#falkonconjugategradient">FalkonConjugateGradient</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="outofcore.html">falkon.ooc_ops</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="outofcore.html#gpu-cholesky">gpu_cholesky</a></li>
+<li class="toctree-l3"><a class="reference internal" href="outofcore.html#gpu-lauum">gpu_lauum</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="mmv_ops.html">falkon.mmv_ops</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#run-keops-mmv">run_keops_mmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmm">fmm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fmmv">fmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#fdmmv">fdmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#incore-fmmv">incore_fmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#incore-fdmmv">incore_fdmmv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mmv_ops.html#low-level-functions">Low-level functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sparse.html">falkon.sparse</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sparse.html#sparsetensor">SparseTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sparse.html#sparse-operations">Sparse operations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="center_selector.html">falkon.center_selection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="center_selector.html#centerselector">CenterSelector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="center_selector.html#uniformselector">UniformSelector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="center_selector.html#fixedselector">FixedSelector</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">falkon.hopt</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#objectives">Objectives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nystrom-complexity-regularization">Nystrom Complexity Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#stochastic-nystrom-computational-regularization">Stochastic Nystrom Computational Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#complexity-regularization">Complexity Regularization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#generalized-cross-validation">Generalized Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hold-out-cross-validation">Hold Out Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#leave-one-out-cross-validation">Leave One Out Cross Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sgpr">SGPR</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">falkon</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">API Reference</a> &raquo;</li>
+      <li>falkon.hopt</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api_reference/hopt.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="module-falkon.hopt">
+<span id="falkon-hopt"></span><h1>falkon.hopt<a class="headerlink" href="#module-falkon.hopt" title="Permalink to this headline"></a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="falkon.hopt.objectives.objectives.HyperoptObjective">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.hopt.objectives.objectives.</span></span><span class="sig-name descname"><span class="pre">HyperoptObjective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.diff_kernel.DiffKernel" title="falkon.kernels.diff_kernel.DiffKernel"><span class="pre">falkon.kernels.diff_kernel.DiffKernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.hopt.objectives.objectives.HyperoptObjective" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<section id="nystrom-complexity-regularization">
+<h3>Nystrom Complexity Regularization<a class="headerlink" href="#nystrom-complexity-regularization" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="falkon.hopt.objectives.NystromCompReg">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.hopt.objectives.</span></span><span class="sig-name descname"><span class="pre">NystromCompReg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.diff_kernel.DiffKernel" title="falkon.kernels.diff_kernel.DiffKernel"><span class="pre">falkon.kernels.diff_kernel.DiffKernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.hopt.objectives.NystromCompReg" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="stochastic-nystrom-computational-regularization">
+<h3>Stochastic Nystrom Computational Regularization<a class="headerlink" href="#stochastic-nystrom-computational-regularization" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="falkon.hopt.objectives.StochasticNystromCompReg">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.hopt.objectives.</span></span><span class="sig-name descname"><span class="pre">StochasticNystromCompReg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.diff_kernel.DiffKernel" title="falkon.kernels.diff_kernel.DiffKernel"><span class="pre">falkon.kernels.diff_kernel.DiffKernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flk_opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">falkon.options.FalkonOptions</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">flk_maxiter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_trace_est</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.hopt.objectives.StochasticNystromCompReg" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="complexity-regularization">
+<h3>Complexity Regularization<a class="headerlink" href="#complexity-regularization" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="falkon.hopt.objectives.CompReg">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.hopt.objectives.</span></span><span class="sig-name descname"><span class="pre">CompReg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.diff_kernel.DiffKernel" title="falkon.kernels.diff_kernel.DiffKernel"><span class="pre">falkon.kernels.diff_kernel.DiffKernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.hopt.objectives.CompReg" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="generalized-cross-validation">
+<h3>Generalized Cross Validation<a class="headerlink" href="#generalized-cross-validation" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="falkon.hopt.objectives.GCV">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.hopt.objectives.</span></span><span class="sig-name descname"><span class="pre">GCV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.diff_kernel.DiffKernel" title="falkon.kernels.diff_kernel.DiffKernel"><span class="pre">falkon.kernels.diff_kernel.DiffKernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.hopt.objectives.GCV" title="Permalink to this definition"></a></dt>
+<dd><p>GCV objective is</p>
+<div class="math notranslate nohighlight">
+\[\dfrac{\dfrac{1}{n} \lVert (I - \widetilde{K}_\lambda \widetilde{K}) Y \rVert^2}
+      {\frac{1}{n} \mathrm{Tr}(I - \widetilde{K}_\lambda \widetilde{K}) }\]</div>
+<p>We must compute the two terms denoted as the numerator and the denominator.
+Using the usual names for matrix variable substitutions (taken from gpflow code), we have that
+the numerator can be computed as</p>
+<div class="math notranslate nohighlight">
+\[\dfrac{1}{n} \lVert (I - A^\top \mathrm{LB}^{-\top} \mathrm{LB}^{-1} A) Y \rVert^2\]</div>
+<p>We compute the terms inside the norm first, from right to left using matrix-vector multiplications
+and triangular solves. Finally we compute the norm.</p>
+<p>The denominator is far less efficient to compute, since it requires working with m*n matrices.
+It can be expressed in terms of the same matrices as above:</p>
+<div class="math notranslate nohighlight">
+\[\Big( \frac{1}{n} (\mathrm{Tr}(I) - \lVert \mathrm{LB}^{-1}A \rVert_F^2 ) \Big)^2\]</div>
+</dd></dl>
+
+</section>
+<section id="hold-out-cross-validation">
+<h3>Hold Out Cross Validation<a class="headerlink" href="#hold-out-cross-validation" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="falkon.hopt.objectives.HoldOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.hopt.objectives.</span></span><span class="sig-name descname"><span class="pre">HoldOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.diff_kernel.DiffKernel" title="falkon.kernels.diff_kernel.DiffKernel"><span class="pre">falkon.kernels.diff_kernel.DiffKernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_pct</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_iter_split</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.hopt.objectives.HoldOut" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="leave-one-out-cross-validation">
+<h3>Leave One Out Cross Validation<a class="headerlink" href="#leave-one-out-cross-validation" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="falkon.hopt.objectives.LOOCV">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.hopt.objectives.</span></span><span class="sig-name descname"><span class="pre">LOOCV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.diff_kernel.DiffKernel" title="falkon.kernels.diff_kernel.DiffKernel"><span class="pre">falkon.kernels.diff_kernel.DiffKernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.hopt.objectives.LOOCV" title="Permalink to this definition"></a></dt>
+<dd><p>LOOCV objective is to minimize the PRESS error:</p>
+<div class="math notranslate nohighlight">
+\[\min \sum_{i=1}^n \big(e_{(i)}\big)_i^2\]</div>
+<p>whose components are calculated as</p>
+<div class="math notranslate nohighlight">
+\[\big(e_{(i)}\big)_i = (y_i - f(\alpha_{(i)})_i) = \dfrac{y_i - f(\alpha)_i}{1 - S_{ii}}\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[S = K_{nm} (\lambda K_{mm} + K_{nm}^\top K_{nm})^{-1} K_{nm}^\top\]</div>
+<p>So we first need to compute the N-KRR solution <span class="math notranslate nohighlight">\(\alpha\)</span> and then the diagonal of matrix
+<span class="math notranslate nohighlight">\(S\)</span>. For simplicity we use a direct solver the N-KRR problem, although Falkon could easily
+be substituted in.</p>
+</dd></dl>
+
+</section>
+<section id="sgpr">
+<h3>SGPR<a class="headerlink" href="#sgpr" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="falkon.hopt.objectives.SGPR">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.hopt.objectives.</span></span><span class="sig-name descname"><span class="pre">SGPR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.diff_kernel.DiffKernel" title="falkon.kernels.diff_kernel.DiffKernel"><span class="pre">falkon.kernels.diff_kernel.DiffKernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt_penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pen_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.distributions.transforms.Transform</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.hopt.objectives.SGPR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="center_selector.html" class="btn btn-neutral float-left" title="falkon.center_selection" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Giacomo Meanti, Alessandro Rudi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

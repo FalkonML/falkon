@@ -10,8 +10,8 @@ Falkon is only tested on Linux.
 
 GPU support is achieved via CUDA, so using Falkon from Windows will be tricky.
 
-Using the library from the CPU only is much more portable since there is no CUDA requirement. CPU-only Falkon
-is thus likely to work on Windows and Mac OS easily.
+Using the library from the CPU only is much more portable since there is no CUDA requirement, and it will likely work
+on Windows and Mac OS more easily.
 
 Prerequisites
 -------------
@@ -48,6 +48,14 @@ The patched version is available as a submodule of the Falkon repository. To ins
     $ cd falkon/
     $ pip install ./keops
 
+For use with **Google Colab** KeOps needs some additional packages. You can install them alongside KeOps by running
+
+.. code-block::
+
+    !pip install pykeops[colab] > install.log
+
+from within the Jupyter notebook (see the `KeOps docs <https://www.kernel-operations.io/keops/python/installation.html>`__
+for more information).
 
 Installing
 ----------
@@ -65,8 +73,14 @@ and PyTorch extensions which take some time to compile.
 Testing the installation
 ------------------------
 
-To check that everything works correctly you can follow the `Kernel ridge regression`_ notebook.
+To check that everything works correctly you can follow the `Kernel ridge regression <examples/falkon_regression_tutorial.ipynb>`_ notebook.
 
 
-.. _Kernel ridge regression:
-    examples/simple_regression.ipynb
+
+Development
+-----------
+
+For development purposes the library should be installed in editable mode (i.e. `pip install -e .` from the
+falkon directory.
+
+To build the documentation go into the `doc` directory and run `make html`.

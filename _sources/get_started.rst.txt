@@ -29,15 +29,16 @@ few lines of code:
 Passing Options
 ~~~~~~~~~~~~~~~
 
-A number of different options exist for both the `Falkon` and `LogisticFalkon` estimators (see :ref:`falkon.Options <api_options>`).
-All options can be passed to the estimator through the `FalkonOptions` class, like so:
+A number of different options exist for both the :ref:`Falkon <falkon_model>` and :ref:`LogisticFalkon <log_falkon_model>`
+estimators (see :ref:`falkon.FalkonOptions <api_options>`).
+All options can be passed to the estimator through the :class:`~falkon.options.FalkonOptions` class, like so:
 
 .. code-block:: python
 
     from falkon import FalkonOptions, Falkon, kernels
 
     # Options to: increase the amount of output information; avoid using the KeOps library
-    options = FalkonOptions(debug=True, no_keops=True)
+    options = FalkonOptions(debug=True, keops_active="no")
     kernel = kernels.GaussianKernel(sigma=1.0)
 
     model = Falkon(kernel=kernel,
