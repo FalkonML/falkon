@@ -82,7 +82,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
                         c_dev_v.copy_(v[a:a + lena, c:c + lenc, :], non_blocking=True)
 
                     # Compute kernel sub-matrix
-                    kernel.compute(c_dev_m1, c_dev_m2, c_dev_nm)
+                    kernel.compute(c_dev_m1, c_dev_m2, c_dev_nm, diag=False)
                     # Multiply kernel sub-matrix by a vector: b*n*m @ b*n*t = b*n*t
                     c_dev_vout.baddbmm_(c_dev_nm, c_dev_v)
                 # end iter over M

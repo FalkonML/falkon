@@ -181,7 +181,7 @@ class TestGaussianKernel():
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
         run_sparse_test_wsigma(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn,
                                s_m1=s_A, s_m2=s_B, m1=A, m2=B, v=v, w=w, rtol=rtol[A.dtype],
-                               atol=atol[A.dtype], opt=opt, comp_dev=comp_dev, sigma=sigma)
+                               atol=atol[A.dtype], opt=opt, sigma=sigma)
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
@@ -201,7 +201,7 @@ class TestMaternKernel():
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
         run_sparse_test_wsigma(TestMaternKernel.k_class, TestMaternKernel.naive_fn,
                                s_m1=s_A, s_m2=s_B, m1=A, m2=B, v=v, w=w, rtol=rtol[A.dtype],
-                               atol=atol[A.dtype], opt=opt, comp_dev=comp_dev, sigma=sigma, nu=nu)
+                               atol=atol[A.dtype], opt=opt, sigma=sigma, nu=nu)
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)

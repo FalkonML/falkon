@@ -369,7 +369,7 @@ class TestPolynomialKernel():
         A, B, v, w, beta, gamma, degree = fix_mats(A, B, v, w, self.beta, self.gamma, self.degree,
                                                    order=order, device=input_dev, dtype=np.float64)
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
-        run_dense_test(self.k_class, self.naive_fn, m1=A, m2=B,
+        run_dense_test(TestPolynomialKernel.k_class, TestPolynomialKernel.naive_fn, m1=A, m2=B,
                        v=v, w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt,
                        beta=beta, gamma=gamma, degree=degree)
 
@@ -378,7 +378,7 @@ class TestPolynomialKernel():
         A, B, v, w, beta, gamma, degree = fix_mats(A, B, v, w, self.beta, self.gamma, self.degree,
                                                    order="C", device=input_dev, dtype=np.float64)
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
-        run_dense_test(self.k_class, self.naive_fn, m1=A, m2=B,
+        run_dense_test(TestPolynomialKernel.k_class, TestPolynomialKernel.naive_fn, m1=A, m2=B,
                        v=v, w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt,
                        beta=beta, gamma=gamma, degree=degree)
 
