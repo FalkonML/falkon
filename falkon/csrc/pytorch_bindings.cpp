@@ -7,12 +7,14 @@
 #define NEW_TORCH
 #endif
 
-
+// CPU functions: sparse, squared-norm
 #include "cpu/sparse_norm.h"
+#include "cpu/sparse_bdot.h"
 #ifdef NEW_TORCH
 #include "cpu/square_norm_cpu.h"
 #endif
 
+// CUDA functions
 #ifdef WITH_CUDA
 #include <pybind11/stl.h>
 #include <cusolverDn.h>
@@ -200,18 +202,31 @@ torch::Tensor csr2dense(
 }
 
 torch::Tensor sparse_row_norm(
-    torch::Tensor indexptr,
-    torch::Tensor data,
-    torch::optional<torch::Tensor> out=torch::nullopt) {
+        torch::Tensor indexptr,
+        torch::Tensor data,
+        torch::optional<torch::Tensor> out=torch::nullopt) {
     return norm(indexptr, data, out);
 }
 
 torch::Tensor sparse_row_norm_sq(
-    torch::Tensor indexptr,
-    torch::Tensor data,
-    torch::optional<torch::Tensor> out=torch::nullopt) {
+        torch::Tensor indexptr,
+        torch::Tensor data,
+        torch::optional<torch::Tensor> out=torch::nullopt) {
     return norm_sq(indexptr, data, out);
 }
+
+
+torch::Tensor sparse_bdot(
+        const torch::Tensor &indexptr1,
+        const torch::Tensor &indices1,
+        const torch::Tensor &data1,
+        const torch::Tensor &indexptr2,
+        const torch::Tensor &indices2,
+        const torch::Tensor &data2,
+        torch::optional<torch::Tensor> out=torch::nullopt) {
+    return sparse_bdot_impl(indexptr1, indices1, data1, indexptr2, indices2, data2, out);
+}
+
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("parallel_potrf", &parallel_potrf, "GPU-Parallel Cholesky Factorization");
@@ -246,6 +261,11 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def("square_norm", &square_norm_call, "Squared l2 norm squared. Supports both CUDA and CPU inputs.",
         py::arg("input"), py::arg("dim"), py::arg("keepdim"));
+
+  m.def("sparse_bdot", &sparse_bdot, "Row-wise batch dot-product on sparse tensors",
+        py::arg("indexptr1"), py::arg("indices1"), py::arg("data1"), py::arg("indexptr2"), py::arg("indices2"), py::arg("data2"), py::arg("out"),
+        py::call_guard<py::gil_scoped_release>()
+  );
 
   //m.def("trtri", &trtri, "Triangular matrix inversion.",
   //      py::arg("A"), py::arg("lower"), py::arg("unitdiag"));

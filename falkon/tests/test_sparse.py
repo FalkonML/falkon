@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from falkon.utils.tensor_helpers import create_fortran
 
-from falkon.sparse import sparse_norm, sparse_square_norm, sparse_matmul
+from falkon.sparse import sparse_norm, sparse_square_norm, sparse_matmul, bdot
 from falkon.utils import decide_cuda
 from falkon.sparse.sparse_tensor import SparseTensor
 
@@ -19,6 +19,19 @@ def csr_mat() -> SparseTensor:
     """
     indexptr = torch.tensor([0, 1, 3, 4], dtype=torch.long)
     index = torch.tensor([1, 0, 1, 0], dtype=torch.long)
+    value = torch.tensor([2, 1, 3, 4], dtype=torch.float32)
+    return SparseTensor(indexptr=indexptr, index=index, data=value, size=(3, 2), sparse_type="csr")
+
+
+@pytest.fixture(scope="module")
+def csr_mat2() -> SparseTensor:
+    """
+     -  2
+     1  -
+     3  4
+    """
+    indexptr = torch.tensor([0, 1, 2, 4], dtype=torch.long)
+    index = torch.tensor([1, 0, 0, 1], dtype=torch.long)
     value = torch.tensor([2, 1, 3, 4], dtype=torch.float32)
     return SparseTensor(indexptr=indexptr, index=index, data=value, size=(3, 2), sparse_type="csr")
 
@@ -81,6 +94,45 @@ class TestSparseNorm():
         act = function(csr_mat, out=out)
         assert out.data_ptr() == act.data_ptr()
         torch.testing.assert_allclose(act, torch.from_numpy(exp).to(dtype=act.dtype).reshape(-1))
+
+
+class TestSparseBdot():
+    def test_non_csr(self, csr_mat, csc_mat):
+        with pytest.raises(RuntimeError) as exc_info:
+            bdot(csc_mat, csr_mat, out=None)
+        assert str(exc_info.value).startswith(
+            "Batch dot can only be applied on CSR tensors")
+
+    def test_different_dt(self, csr_mat):
+        out = torch.empty(csr_mat.shape[0], dtype=torch.float64)
+        with pytest.raises(ValueError) as exc_info:
+            bdot(csr_mat, csr_mat, out=out)
+        assert str(exc_info.value).startswith(
+            "All data-types must match.")
+
+    def test_wrong_out_shape(self, csr_mat):
+        out = torch.empty(csr_mat.shape[0] + 1, dtype=torch.float32)
+        with pytest.raises(ValueError) as exc_info:
+            bdot(csr_mat, csr_mat, out=out)
+        assert str(exc_info.value).startswith(
+            "Output shape must match the number of rows in the input matrices")
+
+    def test_bdot(self, csr_mat):
+        dense = np.asarray(csr_mat.to_scipy(copy=True).todense())
+        exp_bdot = (dense * dense).sum(axis=1, keepdims=True)
+
+        act = bdot(csr_mat, csr_mat, out=None)
+
+        torch.testing.assert_allclose(act, torch.from_numpy(exp_bdot).to(dtype=act.dtype))
+
+    def test_bdot_diff_mat(self, csr_mat, csr_mat2):
+        dense1 = np.asarray(csr_mat.to_scipy(copy=True).todense())
+        dense2 = np.asarray(csr_mat2.to_scipy(copy=True).todense())
+        exp_bdot = (dense1 * dense2).sum(axis=1, keepdims=True)
+
+        act = bdot(csr_mat, csr_mat2, out=None)
+
+        torch.testing.assert_allclose(act, torch.from_numpy(exp_bdot).to(dtype=act.dtype))
 
 
 @pytest.mark.parametrize("device", [

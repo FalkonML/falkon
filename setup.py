@@ -79,7 +79,7 @@ def get_extensions():
     extension_cls = CppExtension
     ext_dir = osp.join(CURRENT_DIR, 'falkon', 'csrc')
     ext_files = [
-        'pytorch_bindings.cpp', 'cpu/sparse_norm.cpp'
+        'pytorch_bindings.cpp', 'cpu/sparse_norm.cpp', 'cpu/sparse_bdot.cpp',
     ]
     if torch_v[0] >= 1 and torch_v[1] >= 7:
         ext_files.append('cpu/square_norm_cpu.cpp')

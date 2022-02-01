@@ -1,13 +1,13 @@
 from typing import Optional
 
 import torch
-from falkon.c_ext import sparse_row_norm_sq, sparse_row_norm
+from falkon.c_ext import sparse_row_norm_sq, sparse_row_norm, sparse_bdot
 from falkon.utils.tensor_helpers import is_f_contig
 
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.helpers import check_same_dtype
 
-__all__ = ("sparse_matmul", "sparse_square_norm", "sparse_norm")
+__all__ = ("sparse_matmul", "sparse_square_norm", "sparse_norm", "bdot")
 
 
 def _sparse_matmul_cpu(A, B, out):
@@ -176,3 +176,32 @@ def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
         raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
     return sparse_row_norm(A.indexptr, A.data, out)
+
+
+def bdot(A: SparseTensor, B: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
+    """
+
+    Parameters
+    ----------
+    A
+    B
+    out
+
+    Returns
+    -------
+
+    """
+    if A.shape[0] != B.shape[0]:
+        raise RuntimeError("Batch dot can only be applied to matrices with the same number of rows.")
+    if out is None:
+        out = torch.empty(A.shape[0], 1, dtype=A.dtype, device=A.device)
+    if not (A.is_csr and B.is_csr):
+        raise RuntimeError("Batch dot can only be applied on CSR tensors.")
+    if A.is_cuda or B.is_cuda:
+        raise NotImplementedError("Batch dot has not been implemented for sparse CUDA tensors")
+    if not check_same_dtype(A, B, out):
+        raise ValueError("All data-types must match.")
+    if A.shape[0] != out.shape[0]:
+        raise ValueError("Output shape must match the number of rows in the input matrices.")
+
+    return sparse_bdot(A.indexptr, A.index, A.data, B.indexptr, B.index, B.data, out)
