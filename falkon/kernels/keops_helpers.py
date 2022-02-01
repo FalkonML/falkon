@@ -1,3 +1,5 @@
+import abc
+import functools
 from typing import Optional, List, Union
 
 import torch
@@ -5,6 +7,7 @@ import torch
 from falkon.options import FalkonOptions, KeopsOptions
 from falkon.utils.switches import decide_keops
 from falkon.sparse import SparseTensor
+from falkon.kernels import Kernel
 
 try:
     from falkon.mmv_ops.keops import run_keops_mmv
@@ -52,7 +55,7 @@ def should_use_keops(T1: Union[torch.Tensor, SparseTensor],
 
 
 # noinspection PyMethodMayBeStatic
-class KeopsKernelMixin():
+class KeopsKernelMixin(Kernel, abc.ABC):
     def keops_mmv(self,
                   X1: torch.Tensor,
                   X2: torch.Tensor,
@@ -139,3 +142,19 @@ class KeopsKernelMixin():
                               opt: FalkonOptions) -> bool:
         return (self.keops_can_handle_mmv(X1, X2, v, opt) and
                 self.keops_can_handle_mmv(X2, X1, w, opt))
+
+    def _decide_mmv_impl(self, X1, X2, v, opt: FalkonOptions):
+        if self.keops_can_handle_mmv(X1, X2, v, opt):
+            return self.keops_mmv_impl
+        else:
+            return super()._decide_mmv_impl(X1, X2, v, opt)
+
+    def _decide_dmmv_impl(self, X1, X2, v, w, opt: FalkonOptions):
+        if self.keops_can_handle_dmmv(X1, X2, v, w, opt):
+            return functools.partial(self.keops_dmmv_helper, mmv_fn=self.keops_mmv_impl)
+        else:
+            return super()._decide_dmmv_impl(X1, X2, v, w, opt)
+
+    @abc.abstractmethod
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+        pass

@@ -7,6 +7,7 @@ from falkon.kernels.diff_kernel import DiffKernel
 from falkon.la_helpers.square_norm_fn import square_norm_diff
 from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
+from falkon.kernels import KeopsKernelMixin
 
 SQRT3 = 1.7320508075688772
 SQRT5 = 2.23606797749979
@@ -28,7 +29,6 @@ def validate_sigma(sigma: Union[float, torch.Tensor]) -> torch.Tensor:
             raise ValueError("sigma must be a scalar or a vector.")
     else:
         try:
-            print("Converting sigma to float64")
             return torch.tensor([float(sigma)], dtype=torch.float64)
         except TypeError:
             raise TypeError("Sigma must be a scalar or a tensor.")
@@ -231,7 +231,7 @@ def matern_core_sparse(mat1: SparseTensor, mat2: SparseTensor,
     return out
 
 
-class GaussianKernel(DiffKernel):
+class GaussianKernel(DiffKernel, KeopsKernelMixin):
     r"""Class for computing the Gaussian kernel and related kernel-vector products
 
     The Gaussian kernel is one of the most common and effective kernel embeddings
@@ -304,7 +304,7 @@ class GaussianKernel(DiffKernel):
         sigma = validate_sigma(sigma)
         super().__init__(self.kernel_name, opt, core_fn=GaussianKernel.core_fn, sigma=sigma)
 
-    def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
         formula = 'Exp(SqDist(x1 / g, x2 / g) * IntInv(-2)) * v'
         aliases = [
             'x1 = Vi(%d)' % (X1.shape[1]),
@@ -343,7 +343,7 @@ class GaussianKernel(DiffKernel):
         return f"Gaussian kernel<{self.sigma}>"
 
 
-class LaplacianKernel(DiffKernel):
+class LaplacianKernel(DiffKernel, KeopsKernelMixin):
     r"""Class for computing the Laplacian kernel, and related kernel-vector products.
 
     The Laplacian kernel is similar to the Gaussian kernel, but less sensitive to changes
@@ -370,7 +370,7 @@ class LaplacianKernel(DiffKernel):
 
         super().__init__(self.kernel_name, opt, core_fn=laplacian_core, sigma=sigma)
 
-    def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
         formula = 'Exp(-Sqrt(SqDist(x1 / g, x2 / g))) * v'
         aliases = [
             'x1 = Vi(%d)' % (X1.shape[1]),
@@ -409,7 +409,7 @@ class LaplacianKernel(DiffKernel):
         return f"Laplaciankernel<{self.sigma}>"
 
 
-class MaternKernel(DiffKernel):
+class MaternKernel(DiffKernel, KeopsKernelMixin):
     r"""Class for computing the Matern kernel, and related kernel-vector products.
 
     The Matern kernels define a generic class of kernel functions which includes the
@@ -447,7 +447,7 @@ class MaternKernel(DiffKernel):
         self.kernel_name = f"{nu:.1f}-matern"
         super().__init__(self.kernel_name, opt, core_fn=matern_core, sigma=sigma, nu=nu)
 
-    def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
         if self.nu == 0.5:
             formula = 'Exp(-Norm2(x1 / s - x2 / s)) * v'
         elif self.nu == 1.5:

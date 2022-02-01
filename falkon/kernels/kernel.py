@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Dict, Union
+from typing import Optional, Dict, Union
 
 import torch
 from falkon.sparse import SparseTensor
@@ -48,16 +48,12 @@ class Kernel(torch.nn.Module, ABC):
     ----------
     name
         A short name for the kernel (e.g. "Gaussian")
-    kernel_type
-        A short string describing the type of kernel. This may be used to create specialized
-        functions in :mod:`falkon.mmv_ops` which optimize for a specific kernel type.
     opt
         Base set of options to be used for operations involving this kernel.
     """
-    def __init__(self, name: str, kernel_type: str, opt: Optional[FalkonOptions]):
+    def __init__(self, name: str, opt: Optional[FalkonOptions]):
         super().__init__()
         self.name = name
-        self.kernel_type = kernel_type
         if opt is None:
             opt = FalkonOptions()
         self.params: FalkonOptions = opt
@@ -379,14 +375,7 @@ class Kernel(torch.nn.Module, ABC):
         if opt is not None:
             params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
         dmmv_impl = self._decide_dmmv_impl(X1, X2, v, w, params)
-        sparsity = check_sparse(X1, X2)
-        diff = False
-        if not any(sparsity):
-            diff = any([
-                t.requires_grad for t in [X1, X2, v, w] + list(self.diff_params.values())
-                if t is not None
-            ])
-        return dmmv_impl(X1, X2, v, w, self, out, diff, params)
+        return dmmv_impl(X1, X2, v, w, self, out, False, params)
 
     def _decide_dmmv_impl(self,
                           X1: Union[torch.Tensor, SparseTensor],
@@ -452,26 +441,6 @@ class Kernel(torch.nn.Module, ABC):
         pass
 
     @abstractmethod
-    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool):
-        """
-        Compute the kernel matrix of ``X1`` and ``X2``. The output should be differentiable with
-        respect to `X1`, `X2`, and all kernel parameters returned by the :meth:`diff_params` method.
-
-        Parameters
-        ----------
-        X1 : torch.Tensor
-            The left matrix for computing the kernel
-        X2 : torch.Tensor
-            The right matrix for computing the kernel
-
-        Returns
-        -------
-        out : torch.Tensor
-            The constructed kernel matrix.
-        """
-        pass
-
-    @abstractmethod
     def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
                        diag: bool, **kwargs) -> torch.Tensor:
         """
@@ -498,46 +467,6 @@ class Kernel(torch.nn.Module, ABC):
         -------
         out : torch.Tensor
             The kernel matrix. Should use the same underlying storage as the parameter `out`.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def diff_params(self) -> Dict[str, torch.Tensor]:
-        """
-        A dictionary mapping parameter names to their values for all **differentiable** parameters
-        of the kernel.
-
-        Returns
-        -------
-        params :
-            A dictionary mapping parameter names to their values
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def nondiff_params(self) -> Dict[str, Any]:
-        """
-        A dictionary mapping parameter names to their values for all **non-differentiable**
-        parameters of the kernel.
-
-        Returns
-        -------
-        params :
-            A dictionary mapping parameter names to their values
-        """
-        pass
-
-    @abstractmethod
-    def detach(self) -> 'Kernel':
-        """Detaches all differentiable parameters of the kernel from the computation graph.
-
-        Returns
-        -------
-        k :
-            A new instance of the kernel sharing the same parameters, but detached from the
-            computation graph.
         """
         pass
 

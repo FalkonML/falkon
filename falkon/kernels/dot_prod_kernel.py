@@ -7,6 +7,7 @@ from falkon import sparse
 from falkon.kernels.diff_kernel import DiffKernel
 from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
+from falkon.kernels import KeopsKernelMixin
 
 
 def validate_diff_float(num: Union[float, torch.Tensor], param_name: str) -> torch.Tensor:
@@ -41,6 +42,14 @@ def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor,
     return out
 
 
+def _sparse_dot_prod_calc(mat1: SparseTensor, mat2: SparseTensor,
+                          out: Optional[torch.Tensor], diag: bool) -> torch.Tensor:
+    if diag:
+        return sparse.bdot(mat1, mat2, out)
+    else:
+        return sparse.sparse_matmul(mat1, mat2, out)
+
+
 def linear_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamma):
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
@@ -56,7 +65,7 @@ def linear_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
-    sparse.sparse_matmul(mat1, mat2, out)
+    out = _sparse_dot_prod_calc(mat1, mat2, out, diag)
     out.mul_(gamma)
     out.add_(beta)
     return out
@@ -80,7 +89,7 @@ def polynomial_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Te
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
     degree = degree.to(device=mat1.device, dtype=mat1.dtype)
-    sparse.sparse_matmul(mat1, mat2, out)
+    out = _sparse_dot_prod_calc(mat1, mat2, out, diag)
     out.mul_(gamma)
     out.add_(beta)
     out.pow_(degree)
@@ -103,14 +112,14 @@ def sigmoid_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tenso
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
-    sparse.sparse_matmul(mat1, mat2, out)
+    out = _sparse_dot_prod_calc(mat1, mat2, out, diag)
     out.mul_(gamma)
     out.add_(beta)
     out.tanh_()
     return out
 
 
-class LinearKernel(DiffKernel):
+class LinearKernel(DiffKernel, KeopsKernelMixin):
     """Linear Kernel with optional scaling and translation parameters.
 
     The kernel implemented here is the covariance function in the original
@@ -143,7 +152,7 @@ class LinearKernel(DiffKernel):
         gamma = validate_diff_float(gamma, param_name="gamma")
         super().__init__("Linear", opt, linear_core, beta=beta, gamma=gamma)
 
-    def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
         formula = '(gamma * (X | Y) + beta) * v'
         aliases = [
             'X = Vi(%d)' % (X1.shape[1]),
@@ -177,7 +186,7 @@ class LinearKernel(DiffKernel):
         return self.__str__()
 
 
-class PolynomialKernel(DiffKernel):
+class PolynomialKernel(DiffKernel, KeopsKernelMixin):
     r"""Polynomial kernel with multiplicative and additive constants.
 
     Follows the formula
@@ -210,7 +219,7 @@ class PolynomialKernel(DiffKernel):
         degree = validate_diff_float(degree, param_name="degree")
         super().__init__("Polynomial", opt, polynomial_core, beta=beta, gamma=gamma, degree=degree)
 
-    def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
         formula = 'Powf((gamma * (X | Y) + beta), degree) * v'
         aliases = [
             'X = Vi(%d)' % (X1.shape[1]),
@@ -247,7 +256,7 @@ class PolynomialKernel(DiffKernel):
         return self.__str__()
 
 
-class SigmoidKernel(DiffKernel):
+class SigmoidKernel(DiffKernel, KeopsKernelMixin):
     r"""Sigmoid (or hyperbolic tangent) kernel function, with additive and multiplicative constants.
 
     Follows the formula
@@ -276,7 +285,7 @@ class SigmoidKernel(DiffKernel):
         gamma = validate_diff_float(gamma, param_name="gamma")
         super().__init__("Sigmoid", opt, sigmoid_core, beta=beta, gamma=gamma)
 
-    def _keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
         return RuntimeError("SigmoidKernel is not implemented in KeOps")
 
     def _decide_mmv_impl(self, X1, X2, v, opt):
