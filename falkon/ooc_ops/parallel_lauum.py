@@ -66,7 +66,8 @@ def par_lauum_f_lower(A: torch.Tensor,
     sync_current_stream(tc_device)
     with torch.cuda.device(tc_device), \
          torch.cuda.stream(s1), \
-         cublas_stream(cublas_handle, s1._as_parameter_):
+         cublas_stream(cublas_handle, s1._as_parameter_), \
+         torch.inference_mode():
         # Pre allocate b-col, syrk-out, lauum-out
         mem_needed = N * max_block_size + 2 * (max_block_size ** 2)
         if not is_cuda:
@@ -210,7 +211,10 @@ def par_lauum_c_lower(A: torch.Tensor,
     my_rows = sorted(my_rows)
 
     sync_current_stream(tc_device)
-    with torch.cuda.device(tc_device), torch.cuda.stream(s1), cublas_stream(cublas_handle, s1_cuda):
+    with torch.cuda.device(tc_device), \
+         torch.cuda.stream(s1), \
+         cublas_stream(cublas_handle, s1_cuda), \
+         torch.inference_mode():
         if not is_cuda:
             temp_bb = create_fortran((max_block_size, max_block_size), A.dtype, 'cpu', pin_memory=True).T
         # Pre allocate r-col, b-col, syrk-out, lauum-out

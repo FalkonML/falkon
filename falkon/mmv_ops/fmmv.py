@@ -248,7 +248,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
         dev_out, flat_offset = _extract_flat(flat_gpu, size=(blk_n, T), other=out,
                                              offset=flat_offset)
 
-    with ExitStack() as stack:
+    with ExitStack() as stack, torch.inference_mode():
         s1, s2 = None, None
         if dev.type == 'cuda':
             s1, s2 = tcd.current_stream(dev), tcd.Stream(dev)
@@ -545,7 +545,7 @@ def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
     else:
         dev_out, flat_offset = _extract_flat(flat_gpu, size=(M, T), other=out, offset=flat_offset)
 
-    with ExitStack() as stack:
+    with ExitStack() as stack, torch.inference_mode():
         s1, s2 = None, None
         if dev.type == 'cuda':
             s1, s2 = tcd.current_stream(dev), tcd.Stream(dev)
@@ -670,11 +670,11 @@ class KernelMmvFnFull(torch.autograd.Function):
             vd = v.detach()
             kerneld = kernel.detach()
             if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):
-                KernelMmvFnFull.run_cpu_cpu(X1d, X2d, vd, out, kerneld, opt, False)
+                KernelMmvFnFull.run_cpu_cpu(X1, X2, v, out, kernel, opt, False)
             elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):
-                KernelMmvFnFull.run_gpu_gpu(X1d, X2d, vd, out, kerneld, opt, False)
+                KernelMmvFnFull.run_gpu_gpu(X1, X2, v, out, kernel, opt, False)
             elif comp_dev_type == 'cuda':
-                KernelMmvFnFull.run_cpu_gpu(X1d, X2d, vd, out, kerneld, opt, False)
+                KernelMmvFnFull.run_cpu_gpu(X1, X2, v, out, kernel, opt, False)
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
 
