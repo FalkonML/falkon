@@ -659,22 +659,22 @@ class KernelMmvFnFull(torch.autograd.Function):
                                 comp_dev_type=comp_dev_type, other_mat=X1)
 
         with torch.inference_mode():
-            if not isinstance(X1, SparseTensor) and X1.requires_grad:
-                X1d = X1.detach()
-            else:
-                X1d = X1
-            if not isinstance(X2, SparseTensor) and X2.requires_grad:
-                X2d = X2.detach()
-            else:
-                X2d = X2
-            vd = v.detach()
-            kerneld = kernel.detach()
+            # if not isinstance(X1, SparseTensor) and X1.requires_grad:
+            #     X1d = X1.detach()
+            # else:
+            #     X1d = X1
+            # if not isinstance(X2, SparseTensor) and X2.requires_grad:
+            #     X2d = X2.detach()
+            # else:
+            #     X2d = X2
+            # vd = v.detach()
+            # kerneld = kernel.detach()
             if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):
-                KernelMmvFnFull.run_cpu_cpu(X1d, X2d, vd, out, kerneld, opt, False)
+                KernelMmvFnFull.run_cpu_cpu(X1, X2, v, out, kernel, opt, False)
             elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):
-                KernelMmvFnFull.run_gpu_gpu(X1d, X2d, vd, out, kerneld, opt, False)
+                KernelMmvFnFull.run_gpu_gpu(X1, X2, v, out, kernel, opt, False)
             elif comp_dev_type == 'cuda':
-                KernelMmvFnFull.run_cpu_gpu(X1d, X2d, vd, out, kerneld, opt, False)
+                KernelMmvFnFull.run_cpu_gpu(X1, X2, v, out, kernel, opt, False)
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
 
@@ -712,7 +712,10 @@ def fmmv(X1: Union[torch.Tensor, SparseTensor],
          kernel: 'falkon.kernels.Kernel',
          out: Optional[torch.Tensor] = None,
          opt: Optional[BaseOptions] = None):
-    return KernelMmvFnFull.apply(kernel, opt, out, X1, X2, v, *kernel.diff_params.values())
+    if isinstance(kernel, falkon.kernels.DiffKernel):
+        return KernelMmvFnFull.apply(kernel, opt, out, X1, X2, v, *kernel.diff_params.values())
+    else:
+        return KernelMmvFnFull.apply(kernel, opt, out, X1, X2, v)
 
 
 def fdmmv(X1: Union[torch.Tensor, SparseTensor], X2: Union[torch.Tensor, SparseTensor],
@@ -766,56 +769,58 @@ def fdmmv(X1: Union[torch.Tensor, SparseTensor], X2: Union[torch.Tensor, SparseT
 
     N, D = X1.shape[-2:]
     M, T = v.shape[-2:]
-    # Create output matrix
-    out = create_output_mat(out, data_devs, is_sparse, shape=(M, T), dtype=v.dtype,
-                            comp_dev_type=comp_dev_type, other_mat=X1)
 
-    if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):
-        args = ArgsFmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel, max_mem=opt.max_cpu_mem)
-        _call_direct(dmmv_run_starter, (args, -1))
-    elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):
-        if is_sparse:
-            raise NotImplementedError("In-core, sparse fdmmv not implemented. "
-                                      "Use the out-of-core version instead.")
-        gpu_info = _get_gpu_info(opt, slack=0.9)
-        data_dev = data_devs[0]
-        single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
-        args = ArgsFmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel,
-                        max_mem=single_gpu_info.usable_memory)
-        _call_direct(dmmv_run_starter, (args, data_dev.index))
-    elif comp_dev_type == 'cuda':
-        gpu_info = _get_gpu_info(opt, slack=0.9)
-        args = []  # Arguments passed to each subprocess
-        wrlk = []  # Outputs for each subprocess
-        block_sizes = calc_gpu_block_sizes(gpu_info, N)
-        for i, g in enumerate(gpu_info):
-            bwidth = block_sizes[i + 1] - block_sizes[i]
-            if bwidth <= 0:
-                continue
-            if len(gpu_info) == 1 and out.device.index == gpu_info[i].Id:
-                cur_out_gpu = out
-            else:
-                cur_out_gpu = create_same_stride((M, T), out, out.dtype, f'cuda:{gpu_info[i].Id}')
-            gpu_info[i].usable_memory -= M * T * sizeof_dtype(X1.dtype)
-            wrlk.append(cur_out_gpu)
+    with torch.inference_mode():
+        # Create output matrix
+        out = create_output_mat(out, data_devs, is_sparse, shape=(M, T), dtype=v.dtype,
+                                comp_dev_type=comp_dev_type, other_mat=X1)
+
+        if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):
+            args = ArgsFmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel, max_mem=opt.max_cpu_mem)
+            _call_direct(dmmv_run_starter, (args, -1))
+        elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):
             if is_sparse:
-                X1_block = X1.narrow_rows(block_sizes[i], bwidth)
+                raise NotImplementedError("In-core, sparse fdmmv not implemented. "
+                                          "Use the out-of-core version instead.")
+            gpu_info = _get_gpu_info(opt, slack=0.9)
+            data_dev = data_devs[0]
+            single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
+            args = ArgsFmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel,
+                            max_mem=single_gpu_info.usable_memory)
+            _call_direct(dmmv_run_starter, (args, data_dev.index))
+        elif comp_dev_type == 'cuda':
+            gpu_info = _get_gpu_info(opt, slack=0.9)
+            args = []  # Arguments passed to each subprocess
+            wrlk = []  # Outputs for each subprocess
+            block_sizes = calc_gpu_block_sizes(gpu_info, N)
+            for i, g in enumerate(gpu_info):
+                bwidth = block_sizes[i + 1] - block_sizes[i]
+                if bwidth <= 0:
+                    continue
+                if len(gpu_info) == 1 and out.device.index == gpu_info[i].Id:
+                    cur_out_gpu = out
+                else:
+                    cur_out_gpu = create_same_stride((M, T), out, out.dtype, f'cuda:{gpu_info[i].Id}')
+                gpu_info[i].usable_memory -= M * T * sizeof_dtype(X1.dtype)
+                wrlk.append(cur_out_gpu)
+                if is_sparse:
+                    X1_block = X1.narrow_rows(block_sizes[i], bwidth)
+                else:
+                    X1_block = X1.narrow(0, block_sizes[i], bwidth)
+                args.append((ArgsFmmv(
+                    X1=X1_block,
+                    X2=X2, v=v,
+                    w=w.narrow(0, block_sizes[i], bwidth) if w is not None else None,
+                    out=cur_out_gpu,
+                    kernel=kernel, max_mem=g.usable_memory), g.Id))
+            _start_wait_processes(dmmv_run_starter, args)
+            if len(wrlk) > 1:  # Sum up all subprocess outputs and copy to `out` on host.
+                # noinspection PyTypeChecker
+                fastest_device: int = np.argmax([d.speed for d in gpu_info])
+                copy(torch.cuda.comm.reduce_add(wrlk, destination=gpu_info[fastest_device].Id), out)
             else:
-                X1_block = X1.narrow(0, block_sizes[i], bwidth)
-            args.append((ArgsFmmv(
-                X1=X1_block,
-                X2=X2, v=v,
-                w=w.narrow(0, block_sizes[i], bwidth) if w is not None else None,
-                out=cur_out_gpu,
-                kernel=kernel, max_mem=g.usable_memory), g.Id))
-        _start_wait_processes(dmmv_run_starter, args)
-        if len(wrlk) > 1:  # Sum up all subprocess outputs and copy to `out` on host.
-            # noinspection PyTypeChecker
-            fastest_device: int = np.argmax([d.speed for d in gpu_info])
-            copy(torch.cuda.comm.reduce_add(wrlk, destination=gpu_info[fastest_device].Id), out)
+                if wrlk[0].data_ptr() != out.data_ptr():
+                    copy(wrlk[0], out)
         else:
-            if wrlk[0].data_ptr() != out.data_ptr():
-                copy(wrlk[0], out)
-    else:
-        raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
+            raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
     return out
