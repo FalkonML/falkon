@@ -394,23 +394,23 @@ class KernelMmFnFull(torch.autograd.Function):
             comp_dtype = torch.float64
 
         with torch.inference_mode():
-            # if not isinstance(X1, SparseTensor) and X1.requires_grad:
-            #     X1d = X1.detach()
-            # else:
-            #     X1d = X1
-            # if not isinstance(X2, SparseTensor) and X2.requires_grad:
-            #     X2d = X2.detach()
-            # else:
-            #     X2d = X2
-            # kerneld = kernel.detach()
+            if not isinstance(X1, SparseTensor) and X1.requires_grad:
+                X1d = X1.detach()
+            else:
+                X1d = X1
+            if not isinstance(X2, SparseTensor) and X2.requires_grad:
+                X2d = X2.detach()
+            else:
+                X2d = X2
+            kerneld = kernel.detach()
             if diag:
-                out = KernelMmFnFull.run_diag(X1, X2, out, kernel, False, is_sparse)
+                out = KernelMmFnFull.run_diag(X1d, X2d, out, kerneld, False, is_sparse)
             elif comp_dev_type == 'cpu' and data_dev.type == 'cpu':
-                out = KernelMmFnFull.run_cpu_cpu(X1, X2, out, kernel, comp_dtype, opt, False)
+                out = KernelMmFnFull.run_cpu_cpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
             elif comp_dev_type == 'cuda' and data_dev.type == 'cuda':
-                out = KernelMmFnFull.run_gpu_gpu(X1, X2, out, kernel, comp_dtype, opt, False)
+                out = KernelMmFnFull.run_gpu_gpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
             elif comp_dev_type == 'cuda' and data_dev.type == 'cpu':
-                out = KernelMmFnFull.run_cpu_gpu(X1, X2, out, kernel, comp_dtype, opt, False)
+                out = KernelMmFnFull.run_cpu_gpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
 
