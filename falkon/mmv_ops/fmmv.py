@@ -170,7 +170,7 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                                              offset=flat_offset)
         dev_v, flat_offset = _extract_flat(flat_gpu, size=(blk_m, T), other=v, offset=flat_offset)
 
-    with ExitStack() as stack:
+    with ExitStack() as stack, torch.inference_mode():
         if dev.type == 'cuda':
             s1 = tcd.current_stream(dev)
             s2 = tcd.Stream(dev)
@@ -473,7 +473,7 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
         dev_v, flat_offset = _extract_flat(flat_gpu, size=(M, T), other=v, offset=flat_offset)
     dev_out.fill_(0.0)
 
-    with ExitStack() as stack:
+    with ExitStack() as stack, torch.inference_mode():
         s1 = None
         if dev.type == 'cuda':
             s1 = tcd.current_stream(dev)

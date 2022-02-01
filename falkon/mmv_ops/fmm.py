@@ -156,7 +156,7 @@ def sparse_mm_run_thread(m1: SparseTensor, m2: SparseTensor, out: torch.Tensor,
         dev_nm = create_same_stride((n, m), out, comp_dt, dev)
 
     """ Run splitting along N, M """
-    with ExitStack() as stack:
+    with ExitStack() as stack, torch.inference_mode():
         stream = None
         if dev.type == 'cuda':
             stack.enter_context(tcd.device(dev))
@@ -224,7 +224,7 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
         dev_m2, flat_offset = _extract_flat(flat_dev_t, size=(m, D), other=m2, offset=flat_offset)
 
     """ Run splitting along N, M """
-    with ExitStack() as stack:
+    with ExitStack() as stack, torch.inference_mode():
         stream = None
         if dev.type == 'cuda':
             stack.enter_context(tcd.device(dev))
@@ -404,13 +404,13 @@ class KernelMmFnFull(torch.autograd.Function):
                 X2d = X2
             kerneld = kernel.detach()
             if diag:
-                out = KernelMmFnFull.run_diag(X1d, X2d, out, kerneld, False, is_sparse)
+                out = KernelMmFnFull.run_diag(X1, X2, out, kernel, False, is_sparse)
             elif comp_dev_type == 'cpu' and data_dev.type == 'cpu':
-                out = KernelMmFnFull.run_cpu_cpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
+                out = KernelMmFnFull.run_cpu_cpu(X1, X2, out, kernel, comp_dtype, opt, False)
             elif comp_dev_type == 'cuda' and data_dev.type == 'cuda':
-                out = KernelMmFnFull.run_gpu_gpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
+                out = KernelMmFnFull.run_gpu_gpu(X1, X2, out, kernel, comp_dtype, opt, False)
             elif comp_dev_type == 'cuda' and data_dev.type == 'cpu':
-                out = KernelMmFnFull.run_cpu_gpu(X1d, X2d, out, kerneld, comp_dtype, opt, False)
+                out = KernelMmFnFull.run_cpu_gpu(X1, X2, out, kernel, comp_dtype, opt, False)
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
 
