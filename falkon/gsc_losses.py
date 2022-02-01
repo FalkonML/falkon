@@ -42,7 +42,7 @@ class Loss(ABC):
 
     def __init__(self,
                  name: str,
-                 kernel: falkon.kernels.kernel.Kernel,
+                 kernel: falkon.kernels.Kernel,
                  opt: Optional[FalkonOptions] = None):
         self.name = name
         self.kernel = kernel
@@ -236,7 +236,7 @@ class LogisticLoss(Loss):
 
     """
 
-    def __init__(self, kernel: falkon.kernels.kernel.Kernel, opt: Optional[FalkonOptions] = None):
+    def __init__(self, kernel: falkon.kernels.Kernel, opt: Optional[FalkonOptions] = None):
         super().__init__(name="LogisticLoss", kernel=kernel, opt=opt)
 
     def __call__(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
