@@ -105,7 +105,7 @@ class DiffKernel(Kernel, abc.ABC):
         dmmv_impl = self._decide_dmmv_impl(X1, X2, v, w, params)
         sparsity = check_sparse(X1, X2)
         diff = (
-            any(sparsity) and
+            (not any(sparsity)) and
             any([
                 t.requires_grad for t in [X1, X2, v, w] + list(self.diff_params.values())
                 if t is not None
