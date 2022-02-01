@@ -187,100 +187,102 @@ class Falkon(FalkonBase):
         # Start training timer
         t_s = time.time()
 
-        # Pick Nystrom centers
-        if self.weight_fn is not None:
-            # noinspection PyTupleAssignmentBalance
-            ny_points, ny_indices = self.center_selection.select_indices(X, None)
-        else:
-            # noinspection PyTypeChecker
-            ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None)
-            ny_indices = None
-        num_centers = ny_points.shape[0]
-
-        # Decide whether to use CUDA for preconditioning and iterations, based on number of centers
-        _use_cuda_preconditioner = (
-            self.use_cuda_ and
-            (not self.options.cpu_preconditioner) and
-            num_centers >= get_min_cuda_preconditioner_size(dtype, self.options)
-        )
-        _use_cuda_mmv = (
-            self.use_cuda_ and
-            X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
-        )
-
-        if self.use_cuda_:
-            ny_points = ny_points.pin_memory()
-
-        with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
-            pc_opt: FalkonOptions = dataclasses.replace(self.options,
-                                                        use_cpu=not _use_cuda_preconditioner)
-            if pc_opt.debug:
-                print("Preconditioner will run on %s" %
-                      ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
-            precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
-            self.precond = precond
-            ny_weight_vec = None
+        with torch.autograd.inference_mode():
+            # Pick Nystrom centers
             if self.weight_fn is not None:
-                ny_weight_vec = self.weight_fn(Y[ny_indices])
-            precond.init(ny_points, weight_vec=ny_weight_vec)
-
-        if _use_cuda_mmv:
-            # Cache must be emptied to ensure enough memory is visible to the optimizer
-            torch.cuda.empty_cache()
-            X = X.pin_memory()
-
-        # K_NM storage decision
-        k_opt = dataclasses.replace(self.options, use_cpu=True)
-        cpu_info = get_device_info(k_opt)
-        available_ram = min(k_opt.max_cpu_mem, cpu_info[-1].free_memory) * 0.9
-        Knm = None
-        if self._can_store_knm(X, ny_points, available_ram):
-            Knm = self.kernel(X, ny_points, opt=self.options)
-        self.fit_times_.append(time.time() - t_s)  # Preparation time
-
-        # Here we define the callback function which will run at the end
-        # of conjugate gradient iterations. This function computes and
-        # displays the validation error.
-        validation_cback = None
-        if self.error_fn is not None and self.error_every is not None:
-            validation_cback = self._get_callback_fn(X, Y, Xts, Yts, ny_points, precond)
-
-        # Start with the falkon algorithm
-        with TicToc('Computing Falkon iterations', debug=self.options.debug):
-            o_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
-            if o_opt.debug:
-                print("Optimizer will run on %s" %
-                      ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
-            optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt,
-                                                         weight_fn=self.weight_fn)
-            if Knm is not None:
-                beta = optim.solve(
-                    Knm, None, Y, self.penalty, initial_solution=warm_start,
-                    max_iter=self.maxiter, callback=validation_cback)
+                # noinspection PyTupleAssignmentBalance
+                ny_points, ny_indices = self.center_selection.select_indices(X, None)
             else:
-                beta = optim.solve(
-                    X, ny_points, Y, self.penalty, initial_solution=warm_start,
-                    max_iter=self.maxiter, callback=validation_cback)
+                # noinspection PyTypeChecker
+                ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None)
+                ny_indices = None
+            num_centers = ny_points.shape[0]
 
-            self.alpha_ = precond.apply(beta)
-            self.beta_ = beta
-            self.ny_points_ = ny_points
+            # Decide whether to use CUDA for preconditioning and iterations, based on number of centers
+            _use_cuda_preconditioner = (
+                self.use_cuda_ and
+                (not self.options.cpu_preconditioner) and
+                num_centers >= get_min_cuda_preconditioner_size(dtype, self.options)
+            )
+            _use_cuda_mmv = (
+                self.use_cuda_ and
+                X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
+            )
+
+            if self.use_cuda_:
+                ny_points = ny_points.pin_memory()
+
+            with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
+                pc_opt: FalkonOptions = dataclasses.replace(self.options,
+                                                            use_cpu=not _use_cuda_preconditioner)
+                if pc_opt.debug:
+                    print("Preconditioner will run on %s" %
+                          ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
+                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
+                self.precond = precond
+                ny_weight_vec = None
+                if self.weight_fn is not None:
+                    ny_weight_vec = self.weight_fn(Y[ny_indices])
+                precond.init(ny_points, weight_vec=ny_weight_vec)
+
+            if _use_cuda_mmv:
+                # Cache must be emptied to ensure enough memory is visible to the optimizer
+                torch.cuda.empty_cache()
+                X = X.pin_memory()
+
+            # K_NM storage decision
+            k_opt = dataclasses.replace(self.options, use_cpu=True)
+            cpu_info = get_device_info(k_opt)
+            available_ram = min(k_opt.max_cpu_mem, cpu_info[-1].free_memory) * 0.9
+            Knm = None
+            if self._can_store_knm(X, ny_points, available_ram):
+                Knm = self.kernel(X, ny_points, opt=self.options)
+            self.fit_times_.append(time.time() - t_s)  # Preparation time
+
+            # Here we define the callback function which will run at the end
+            # of conjugate gradient iterations. This function computes and
+            # displays the validation error.
+            validation_cback = None
+            if self.error_fn is not None and self.error_every is not None:
+                validation_cback = self._get_callback_fn(X, Y, Xts, Yts, ny_points, precond)
+
+            # Start with the falkon algorithm
+            with TicToc('Computing Falkon iterations', debug=self.options.debug):
+                o_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
+                if o_opt.debug:
+                    print("Optimizer will run on %s" %
+                          ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
+                optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt,
+                                                             weight_fn=self.weight_fn)
+                if Knm is not None:
+                    beta = optim.solve(
+                        Knm, None, Y, self.penalty, initial_solution=warm_start,
+                        max_iter=self.maxiter, callback=validation_cback)
+                else:
+                    beta = optim.solve(
+                        X, ny_points, Y, self.penalty, initial_solution=warm_start,
+                        max_iter=self.maxiter, callback=validation_cback)
+
+                self.alpha_ = precond.apply(beta)
+                self.beta_ = beta
+                self.ny_points_ = ny_points
         return self
 
     def _predict(self, X, ny_points, alpha: torch.Tensor) -> torch.Tensor:
-        if ny_points is None:
-            # Then X is the kernel itself
-            return X @ alpha
-        num_centers = alpha.shape[0]
-        _use_cuda_mmv = (
-            alpha.device.type == "cuda" or (
-                self.use_cuda_ and
-                X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(
-                    X.dtype, self.options)
+        with torch.autograd.inference_mode():
+            if ny_points is None:
+                # Then X is the kernel itself
+                return X @ alpha
+            num_centers = alpha.shape[0]
+            _use_cuda_mmv = (
+                alpha.device.type == "cuda" or (
+                    self.use_cuda_ and
+                    X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(
+                        X.dtype, self.options)
+                )
             )
-        )
-        mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
-        return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
+            mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
+            return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
 
     def _params_to_original_space(self, params, preconditioner):
         return preconditioner.apply(params)
