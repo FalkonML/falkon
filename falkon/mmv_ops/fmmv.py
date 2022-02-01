@@ -659,16 +659,6 @@ class KernelMmvFnFull(torch.autograd.Function):
                                 comp_dev_type=comp_dev_type, other_mat=X1)
 
         with torch.inference_mode():
-            if not isinstance(X1, SparseTensor) and X1.requires_grad:
-                X1d = X1.detach()
-            else:
-                X1d = X1
-            if not isinstance(X2, SparseTensor) and X2.requires_grad:
-                X2d = X2.detach()
-            else:
-                X2d = X2
-            vd = v.detach()
-            kerneld = kernel.detach()
             if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):
                 KernelMmvFnFull.run_cpu_cpu(X1, X2, v, out, kernel, opt, False)
             elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):

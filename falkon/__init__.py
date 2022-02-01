@@ -1,6 +1,6 @@
 import os
 # Set library exports
-from . import kernels, sparse, center_selection, preconditioner, optim
+from . import kernels, sparse, center_selection, preconditioner, optim, gsc_losses, hopt
 from .options import FalkonOptions
 from .models import Falkon, LogisticFalkon, InCoreFalkon
 
@@ -20,5 +20,7 @@ __all__ = (
     'preconditioner',
     'center_selection',
     'sparse',
+    'gsc_losses',
+    'hopt',
     'FalkonOptions',
 )

@@ -16,3 +16,4 @@ API Reference
     mmv_ops
     sparse
     center_selector
+    hopt

@@ -18,6 +18,18 @@ class HyperoptObjective(torch.nn.Module):
                  centers_transform: Optional[torch.distributions.Transform],
                  pen_transform: Optional[torch.distributions.Transform],
                  ):
+        """
+
+        Parameters
+        ----------
+        kernel
+        centers_init
+        penalty_init
+        opt_centers
+        opt_penalty
+        centers_transform
+        pen_transform
+        """
         super(HyperoptObjective, self).__init__()
 
         if not isinstance(kernel, falkon.kernels.DiffKernel):

@@ -5,6 +5,8 @@ falkon.models
 .. currentmodule:: falkon.models
 
 
+.. _falkon_model:
+
 Falkon
 ------
 
@@ -12,6 +14,7 @@ Falkon
     :members:
     :inherited-members:
 
+.. _log_falkon_model:
 
 LogisticFalkon
 --------------
@@ -20,6 +23,7 @@ LogisticFalkon
     :members:
     :inherited-members:
 
+.. _ic_falkon_model:
 
 InCoreFalkon
 ------------

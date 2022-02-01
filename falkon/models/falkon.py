@@ -49,8 +49,8 @@ class Falkon(FalkonBase):
         and lower than the total number of training points. A larger
         `M` will typically lead to better accuracy but will use more
         computational resources. You can either specify the number of centers
-        by setting this parameter, or by passing to this constructor a `CenterSelctor` class
-        instance.
+        by setting this parameter, or by passing to this constructor a
+        :class:`falkon.center_selection.CenterSelector` class instance.
     center_selection : str or falkon.center_selection.CenterSelector
         The center selection algorithm. Implemented is only 'uniform'
         selection which can choose each training sample with the same

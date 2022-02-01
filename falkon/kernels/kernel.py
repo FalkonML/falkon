@@ -16,33 +16,14 @@ class Kernel(torch.nn.Module, ABC):
 
     To extend Falkon with new kernels, you should read the documentation of this class
     carefully, and take a look at the existing implementation of :class:`~falkon.kernels.GaussianKernel`
-    or :class:`~falkon.kernels.LinearKernel`.
+    or :class:`~falkon.kernels.LinearKernel`. A walk-through for implementing a custom kernel
+    is available as a `notebook <../examples/custom_kernels.ipynb>`_.
 
-    There are several abstract methods which should be implemented, depending on which kind of operations
+    There are several abstract methods which should be implemented, depending on the kind of operations
     which are supported by the implementing kernel.
 
     The :meth:`compute` method should compute the kernel matrix, without concerns for differentiability,
-    :meth:`compute_diff` instead should compute the kernel matrix in such a way that the output
-    is differentiable with respect to the inputs, and to the kernel parameters. Finally the
-    :meth:`compute_sparse` method is used to compute the kernel for sparse input matrices. It need
-    not be differentiable.
-
-    Kernels may have several parameters, for example the length-scale of the Gaussian kernel, the
-    exponent of the polynomial kernel, etc. The kernel should be differentiable with respect to
-    some such parameters (the afore mentioned length-scale for example), but not with respect to
-    others (for example the nu parameter of Matern kernels). Each concrete kernel class must
-    specify the differentiable parameters with the :meth:`diff_params` method, and other parameters
-    with the :meth:`nondiff_params`.
-    Additionally kernels which implemenet the :meth:`compute_diff` method should also implement
-    the :meth:`detach` method which returns a new instance of the kernel, with its parameters
-    detached from the computation graph.
-
-    To provide a KeOps implementation, you will have to inherit also from the
-    :class:`~falkon.kernels.keops_helpers.KeopsKernelMixin` class, and implement its abstract methods.
-    In case a KeOps implementation is provided, you should make sure to override the
-    :meth:`_decide_mmv_impl` and :meth:`_decide_dmmv_impl` so that the KeOps implementation is
-    effectively used. Have a look at the :class:`~falkon.kernels.PolynomialKernel` class for
-    an example of how to integrate KeOps in the kernel.
+    while the :meth:`compute_sparse` method is used to compute the kernel for sparse input matrices.
 
     Parameters
     ----------
@@ -237,7 +218,8 @@ class Kernel(torch.nn.Module, ABC):
             X1: Union[torch.Tensor, SparseTensor],
             X2: Union[torch.Tensor, SparseTensor],
             v: torch.Tensor,
-            out: Optional[torch.Tensor] = None, opt: Optional[FalkonOptions] = None):
+            out: Optional[torch.Tensor] = None,
+            opt: Optional[FalkonOptions] = None):
         # noinspection PyShadowingNames
         """Compute matrix-vector multiplications where the matrix is the current kernel.
 
@@ -417,7 +399,7 @@ class Kernel(torch.nn.Module, ABC):
         return fdmmv
 
     @abstractmethod
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool):
+    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool) -> torch.Tensor:
         """
         Compute the kernel matrix of ``X1`` and ``X2`` - without regards for differentiability.
 
@@ -432,6 +414,9 @@ class Kernel(torch.nn.Module, ABC):
             The right matrix for computing the kernel
         out : torch.Tensor
             The output matrix into which implementing classes should store the kernel.
+        diag : bool
+            If true, ``X1`` and ``X2`` have the same shape, and only the diagonal of ``k(X1, X2)``
+            is to be computed and stored in ``out``. Otherwise compute the full kernel matrix.
 
         Returns
         -------
@@ -455,6 +440,9 @@ class Kernel(torch.nn.Module, ABC):
             The right matrix for computing the kernel
         out : torch.Tensor
             The output matrix into which implementing classes should store the kernel.
+        diag : bool
+            If true, ``X1`` and ``X2`` have the same shape, and only the diagonal of ``k(X1, X2)``
+            is to be computed and stored in ``out``.
         kwargs
             Additional keyword arguments which some sparse implementations might require. Currently
             the keyword arguments passed by the :func:`falkon.mmv_ops.fmmv.sparse_mmv_run_thread`

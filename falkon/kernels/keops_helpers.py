@@ -56,6 +56,17 @@ def should_use_keops(T1: Union[torch.Tensor, SparseTensor],
 
 # noinspection PyMethodMayBeStatic
 class KeopsKernelMixin(Kernel, abc.ABC):
+    """Abstract class for kernels which enables KeOps acceleration.
+
+    This class should be extended when KeOps-accelerated kernel-vector products are required.
+    Subclasses should implement the :meth:`keops_mmv_impl` method by defining an appropriate
+    KeOps formula, and calling into KeOps for kernel vector product calculation (the helper method
+    :meth:`keops_mmv` can be used to call into KeOps).
+
+    For help in implementing a subclass, check the existing implementations
+    (e.g. :class:`~falkon.kernels.GaussianKernel`), and the
+    `Custom Kernels <../examples/custom_kernels.ipynb>`_ notebook.
+    """
     def keops_mmv(self,
                   X1: torch.Tensor,
                   X2: torch.Tensor,
@@ -65,6 +76,37 @@ class KeopsKernelMixin(Kernel, abc.ABC):
                   aliases: List[str],
                   other_vars: List[torch.Tensor],
                   opt: FalkonOptions):
+        """Helper method to call into KeOps for kernel-vector products
+
+        Parameters
+        ----------
+        X1 : torch.Tensor
+            The first data-matrix for computing the kernel. Of shape (N x D):
+            N samples in D dimensions.
+        X2 : torch.Tensor
+            The second data-matrix for computing the kernel. Of shape (M x D):
+            M samples in D dimensions. Set ``X2 == X1`` to compute a symmetric kernel.
+        v : torch.Tensor
+            A vector to compute the matrix-vector product. This may also be a matrix of shape
+            (M x T), but if ``T`` is very large the operations will be much slower.
+        out : torch.Tensor or None
+            Optional tensor of shape (N x T) to hold the output. If not provided it will
+            be created.
+        formula : str
+            The KeOps formula
+        aliases
+            Aliases referencing names in the formula with actual KeOps variables
+        other_vars
+            Kernel parameters to be used in the formula, other than ``X1``, ``X2`` and ``v``.
+        opt
+            Options to be used for computing the operation. Useful are the memory size options,
+            CUDA options and KeOps options.
+
+        Returns
+        -------
+        out
+            The computed kernel matrix between ``X1`` and ``X2``, multiplied by vector ``v``.
+        """
         if not _has_keops:
             raise ModuleNotFoundError("Module 'pykeops' is not properly installed. "
                                       "Please install 'pykeops' before running 'keops_mmv'.")
@@ -157,4 +199,31 @@ class KeopsKernelMixin(Kernel, abc.ABC):
 
     @abc.abstractmethod
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+        """Implementation of the KeOps formula to compute a kernel-vector product.
+
+        Parameters
+        ----------
+        X1 : torch.Tensor
+            The first data-matrix for computing the kernel. Of shape (N x D):
+            N samples in D dimensions.
+        X2 : torch.Tensor
+            The second data-matrix for computing the kernel. Of shape (M x D):
+            M samples in D dimensions. Set ``X2 == X1`` to compute a symmetric kernel.
+        v : torch.Tensor
+            A vector to compute the matrix-vector product. This may also be a matrix of shape
+            (M x T), but if ``T`` is very large the operations will be much slower.
+        kernel : falkon.kernels.kernel.Kernel
+            Instance of this class. This is equal to ``self`` and can be ignored.
+        out : torch.Tensor or None
+            Optional tensor of shape (N x T) to hold the output. If not provided it will
+            be created.
+        opt : FalkonOptions
+            Options to be used for computing the operation. Useful are the memory size options,
+            CUDA options and KeOps options.
+
+        Returns
+        -------
+        out
+            The computed kernel matrix between ``X1`` and ``X2``, multiplied by vector ``v``.
+        """
         pass

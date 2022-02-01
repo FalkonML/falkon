@@ -12,19 +12,19 @@ class LOOCV(HyperoptObjective):
     r"""
     LOOCV objective is to minimize the PRESS error:
 
-    ..math:
+    .. math::
 
         \min \sum_{i=1}^n \big(e_{(i)}\big)_i^2
 
     whose components are calculated as
 
-    ..math:
+    .. math::
 
         \big(e_{(i)}\big)_i = (y_i - f(\alpha_{(i)})_i) = \dfrac{y_i - f(\alpha)_i}{1 - S_{ii}}
 
     where
 
-    ..math:
+    .. math::
 
         S = K_{nm} (\lambda K_{mm} + K_{nm}^\top K_{nm})^{-1} K_{nm}^\top
 

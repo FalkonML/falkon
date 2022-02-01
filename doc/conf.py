@@ -60,10 +60,10 @@ nitpick_ignore = [
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    #'numpydoc',  # Our docs are numpy style
     'sphinx.ext.napoleon',
+    'sphinx.ext.autodoc',
+    # 'sphinx_autodoc_typehints',
+    'sphinx.ext.doctest',
     'sphinx_rtd_theme',  # Read-the-docs theme
     'sphinx.ext.mathjax',  # For displaying math in html output
     'nbsphinx',  # For displaying jupyter notebooks
@@ -85,11 +85,6 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
-# General information about the project.
-project = u'falkon'
-copyright = u'2020, Giacomo Meanti'
-author = u'Giacomo Meanti, Alessandro Rudi'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -146,6 +141,7 @@ intersphinx_mapping = {
      'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
      'matplotlib': ('https://matplotlib.org/', None),
      'sklearn': ('http://scikit-learn.org/stable', None),
+     'torch': ('https://pytorch.org/docs/stable/', None),
 }
 
 # sphinx_gallery_conf = {

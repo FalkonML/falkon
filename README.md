@@ -31,13 +31,13 @@ If you find a bug, please open a new issue on GitHub!
 
 ## Installing
 
-Prerequisites are PyTorch >= 1.4 (with the CUDA toolkit if GPU support is desired) and a patched version of KeOps (which
+Prerequisites are PyTorch >= 1.9 (with the CUDA toolkit if GPU support is desired) and a patched version of KeOps (which
 is distributed as a git submodule of this repository), `cmake`, and a C++ compiler which can compile PyTorch extensions
-(i.e. capable of compiling with `-std=c++11`).
+(i.e. capable of compiling with `-std=c++14`).
 
 Once the prerequisites are met, you can `pip install .` from the root of this repository.
 
-**For more detailed installation instructions see [the docs](https://falkonml.github.io/falkon/install.html).**
+**More detailed installation instructions are available in [the documentation](https://falkonml.github.io/falkon/install.html).**
 
 
 ## Reference

@@ -351,8 +351,8 @@ class KernelMmFnFull(torch.autograd.Function):
             return out_.dot(out)
         else:
             if sparse:
-                # pass?
-                return kernel.compute_sparse()
+                # TODO: This is likely to fail due to missing kwargs on distance_kernels
+                return kernel.compute_sparse(X1, X2, out, diag=True)
             else:
                 return kernel.compute(X1, X2, out, diag=True)
 
@@ -394,15 +394,6 @@ class KernelMmFnFull(torch.autograd.Function):
             comp_dtype = torch.float64
 
         with torch.inference_mode():
-            if not isinstance(X1, SparseTensor) and X1.requires_grad:
-                X1d = X1.detach()
-            else:
-                X1d = X1
-            if not isinstance(X2, SparseTensor) and X2.requires_grad:
-                X2d = X2.detach()
-            else:
-                X2d = X2
-            kerneld = kernel.detach()
             if diag:
                 out = KernelMmFnFull.run_diag(X1, X2, out, kernel, False, is_sparse)
             elif comp_dev_type == 'cpu' and data_dev.type == 'cpu':

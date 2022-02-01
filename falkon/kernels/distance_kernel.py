@@ -413,8 +413,8 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
     r"""Class for computing the Matern kernel, and related kernel-vector products.
 
     The Matern kernels define a generic class of kernel functions which includes the
-    Laplacian and Gaussian kernels. The class is parametrized by 'nu'. When `nu = 0.5`
-    this kernel is equivalent to the Laplacian kernel, when `nu = float('inf')`, the
+    Laplacian and Gaussian kernels. The class is parametrized by 'nu'. When ``nu = 0.5``
+    this kernel is equivalent to the Laplacian kernel, when ``nu = float('inf')``, the
     Matern kernel is equivalent to the Gaussian kernel.
 
     This class implements the Matern kernel only for the values of nu which have a closed
@@ -432,7 +432,7 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
     Notes
     -----
     While for `nu = float('inf')` this kernel is equivalent to the :class:`GaussianKernel`,
-    the implementation is more general and using the :class:`GaussianKernel` directly
+    this implementation is more general. Using the :class:`GaussianKernel` directly
     may be computationally more efficient.
 
     """

@@ -12,16 +12,16 @@ class GCV(HyperoptObjective):
     r"""
     GCV objective is
 
-    ..math:
+    .. math::
 
         \dfrac{\dfrac{1}{n} \lVert (I - \widetilde{K}_\lambda \widetilde{K}) Y \rVert^2}
-              {\Big(\frac{1}{n} \mathrm{Tr}(I - \widetilde{K}_\lambda \widetilde{K}) \Big)}
+              {\frac{1}{n} \mathrm{Tr}(I - \widetilde{K}_\lambda \widetilde{K}) }
 
     We must compute the two terms denoted as the numerator and the denominator.
     Using the usual names for matrix variable substitutions (taken from gpflow code), we have that
     the numerator can be computed as
 
-    ..math:
+    .. math::
 
         \dfrac{1}{n} \lVert (I - A^\top \mathrm{LB}^{-\top} \mathrm{LB}^{-1} A) Y \rVert^2
 
@@ -31,9 +31,9 @@ class GCV(HyperoptObjective):
     The denominator is far less efficient to compute, since it requires working with m*n matrices.
     It can be expressed in terms of the same matrices as above:
 
-    ..math:
+    .. math::
 
-        \Big( \frac{1}{n} (\mathrm{Tr}(I} - \lVert \mathrm{LB}^{-1}A \rVert_F^2 \Big)^2
+        \Big( \frac{1}{n} (\mathrm{Tr}(I) - \lVert \mathrm{LB}^{-1}A \rVert_F^2 ) \Big)^2
 
     """
 
