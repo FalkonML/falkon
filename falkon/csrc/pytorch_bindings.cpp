@@ -18,22 +18,28 @@
 #ifdef WITH_CUDA
 #include <pybind11/stl.h>
 #include <cusolverDn.h>
+
 // OOC operations
 #include "cuda/multigpu_potrf.h"
 #include "cuda/lauum.h"
-//#include "cuda/trtri.cuh"
+
 // Utilities
 #include "cuda/copy_transpose_cuda.h"
 #include "cuda/copy_triang_cuda.h"
 #include "cuda/mul_triang_cuda.h"
 #include "cuda/vec_mul_triang_cuda.h"
+
 // Sparse
 #include "cuda/spspmm_cuda.h"
 #include "cuda/csr2dense_cuda.h"
-// squared-norm
+
+// Square norm
 #ifdef NEW_TORCH
 #include "cuda/square_norm_cuda.h"
 #endif
+
+// CUDA library bindings
+#include "cuda/cublas_bindings.h"
 #endif
 
 #ifdef WITH_CUDA
@@ -50,6 +56,73 @@ static void* ctypes_void_ptr(const py::object& object) {
     return ptr;
 }
 #endif
+
+
+void _cublas_2d_copy_to_dev_async(
+    const int rows,
+    const int cols,
+    const int elemSize,
+    const torch::Tensor& host_tensor,
+    const int lda, torch::Tensor& dev_tensor,
+    const int ldb,
+    const at::cuda::CUDAStream &stream
+)
+{
+    #ifdef WITH_CUDA
+        return cublas_2d_copy_to_dev_async(rows, cols, elemSize, host_tensor, dev_tensor, ldb, stream);
+    #else
+        AT_ERROR("Not compiled with CUDA support");
+    #endif
+}
+
+void _cublas_2d_copy_to_dev(
+    const int rows,
+    const int cols,
+    const int elemSize,
+    const torch::Tensor& host_tensor,
+    const int lda, torch::Tensor& dev_tensor,
+    const int ldb
+)
+{
+    #ifdef WITH_CUDA
+        return cublas_2d_copy_to_dev(rows, cols, elemSize, host_tensor, dev_tensor, ldb);
+    #else
+        AT_ERROR("Not compiled with CUDA support");
+    #endif
+}
+
+void _cublas_2d_copy_to_host_async(
+    const int rows,
+    const int cols,
+    const int elemSize,
+    const torch::Tensor& dev_tensor,
+    const int lda, torch::Tensor& host_tensor,
+    const int ldb,
+    const at::cuda::CUDAStream &stream
+)
+{
+    #ifdef WITH_CUDA
+        return cublas_2d_copy_to_host_async(rows, cols, elemSize, dev_tensor, host_tensor, ldb, stream);
+    #else
+        AT_ERROR("Not compiled with CUDA support");
+    #endif
+}
+
+void _cublas_2d_copy_to_host(
+    const int rows,
+    const int cols,
+    const int elemSize,
+    const torch::Tensor& dev_tensor,
+    const int lda, torch::Tensor& host_tensor,
+    const int ldb
+)
+{
+    #ifdef WITH_CUDA
+        return cublas_2d_copy_to_host(rows, cols, elemSize, dev_tensor, host_tensor, ldb);
+    #else
+        AT_ERROR("Not compiled with CUDA support");
+    #endif
+}
 
 
 torch::Tensor parallel_potrf(
@@ -267,6 +340,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         py::call_guard<py::gil_scoped_release>()
   );
 
-  //m.def("trtri", &trtri, "Triangular matrix inversion.",
-  //      py::arg("A"), py::arg("lower"), py::arg("unitdiag"));
+  m.def("cublas_2d_copy_to_dev_async", &_cublas_2d_copy_to_dev_async, "cuBLAS 2D copy to device asynchronously");
+  m.def("cublas_2d_copy_to_dev", &_cublas_2d_copy_to_dev, "cuBLAS 2D copy to device");
+  m.def("cublas_2d_copy_to_host_async", &_cublas_2d_copy_to_host_async, "cuBLAS 2D copy to host asynchronously");
+  m.def("cublas_2d_copy_to_host", &_cublas_2d_copy_to_host, "cuBLAS 2D copy to host");
+
 }

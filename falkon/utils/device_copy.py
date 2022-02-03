@@ -2,28 +2,41 @@ import torch.cuda
 
 from .helpers import sizeof_dtype
 from .tensor_helpers import is_f_contig, is_contig, is_contig_vec
+
 if torch.cuda.is_available():
-    from falkon.cuda.cudart_gpu import (cuda_memcpy2d, cuda_memcpy2d_async,
-                                        cuda_memcpy, cuda_memcpy_async)
-    from falkon.cuda.cublas_gpu import (cublasSetMatrix, cublasSetMatrixAsync,
-                                        cublasGetMatrix, cublasGetMatrixAsync)
+    from falkon.cuda.cudart_gpu import (
+        cuda_memcpy2d, cuda_memcpy2d_async,
+        cuda_memcpy, cuda_memcpy_async
+    )
+    # from falkon.cuda.cublas_gpu import (cublasSetMatrix, cublasSetMatrixAsync,
+    #                                     cublasGetMatrix, cublasGetMatrixAsync)
+    from falkon.csrc import cublas_2d_copy_to_dev_async as cublasSetMatrixAsync
+    from falkon.csrc import cublas_2d_copy_to_dev as cublasSetMatrix
+    from falkon.csrc import cublas_2d_copy_to_host_async as cublasGetMatrixAsync
+    from falkon.csrc import cublas_2d_copy_to_host as cublasGetMatrix
 
 
 def check_copy(origin, dest, check_dtypes=True):
     if check_dtypes:
         # Data-types
         if origin.dtype != dest.dtype:
-            raise ValueError("Data types of origin and destination (%s, %s) do not match." % (origin.dtype, dest.dtype))
+            raise ValueError("Data types of origin and destination (%s, %s) do not match." % (
+                origin.dtype, dest.dtype))
     # Sizes
     if origin.size() != dest.size():
-        raise ValueError("Size of origin (%s) does not match size of destination (%s)" % (origin.size(), dest.size()))
+        raise ValueError("Size of origin (%s) does not match size of destination (%s)" % (
+            origin.size(), dest.size()))
     # Contiguity
     if is_f_contig(origin, strict=False):
         if not is_f_contig(dest, strict=False):
-            raise ValueError("origin is F-contig (strides %s), while destination is not (strides %s)" % (origin.stride(), dest.stride()))
+            raise ValueError(
+                "origin is F-contig (strides %s), while destination is not (strides %s)" % (
+                    origin.stride(), dest.stride()))
     elif is_contig(origin):  # H is C-contiguous
         if not is_contig(dest) or is_f_contig(dest, strict=True):
-            raise ValueError("origin is C-contig (strides %s), while destination is not (strides %s)" % (origin.stride(), dest.stride()))
+            raise ValueError(
+                "origin is C-contig (strides %s), while destination is not (strides %s)" % (
+                    origin.stride(), dest.stride()))
     else:
         raise ValueError("origin is not memory-contiguous (strides %s)" % (origin.stride(),))
 
@@ -35,7 +48,7 @@ def copy(origin, dest, s=None, allow_dtype_change=False):
         dest.copy_(origin)
     elif origin.device.type == "cpu":  # host -> dev
         copy_to_device(origin.shape[0], origin.shape[1], origin, 0, 0, dest, 0, 0, s)
-    else:                              # dev -> host
+    else:  # dev -> host
         copy_to_host(origin.shape[0], origin.shape[1], origin, 0, 0, dest, 0, 0, s)
     return dest
 
@@ -65,16 +78,20 @@ def copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, s=None):
                 src=D_narrow.data_ptr(), dst=H_narrow.data_ptr(), count=(rows * cols) * dts)
     elif is_f_contig(D, strict=True):
         if s is not None:
-            cublasGetMatrixAsync(
-                rows=rows, cols=cols, elem_size=dts,
-                A=D_narrow.data_ptr(), lda=D_narrow.stride(1),
-                B=H_narrow.data_ptr(), ldb=H_narrow.stride(1),
-                stream=s._as_parameter_)
+            # cublasGetMatrixAsync(
+            #     rows=rows, cols=cols, elem_size=dts,
+            #     A=D_narrow.data_ptr(), lda=D_narrow.stride(1),
+            #     B=H_narrow.data_ptr(), ldb=H_narrow.stride(1),
+            #     stream=s._as_parameter_)
+            cublasGetMatrixAsync(rows, cols, dts, D_narrow, D_narrow.stride(1), H_narrow,
+                                 H_narrow.stride(1), s)
         else:
-            cublasGetMatrix(
-                rows=rows, cols=cols, elem_size=dts,
-                A=D_narrow.data_ptr(), lda=D_narrow.stride(1),
-                B=H_narrow.data_ptr(), ldb=H_narrow.stride(1))
+            # cublasGetMatrix(
+            #     rows=rows, cols=cols, elem_size=dts,
+            #     A=D_narrow.data_ptr(), lda=D_narrow.stride(1),
+            #     B=H_narrow.data_ptr(), ldb=H_narrow.stride(1))
+            cublasGetMatrix(rows, cols, dts, D_narrow, D_narrow.stride(1), H_narrow,
+                            H_narrow.stride(1))
     elif is_contig(D):
         if s is not None:
             cuda_memcpy2d_async(
@@ -114,16 +131,20 @@ def copy_to_device(rows, cols, H, Hi, Hj, D, Di, Dj, s=None):
                 src=H_narrow.data_ptr(), dst=D_narrow.data_ptr(), count=(rows * cols) * dts)
     elif is_f_contig(H, strict=True):
         if s is not None:
-            cublasSetMatrixAsync(
-                rows=rows, cols=cols, elem_size=dts,
-                A=H_narrow.data_ptr(), lda=H_narrow.stride(1),
-                B=D_narrow.data_ptr(), ldb=D_narrow.stride(1),
-                stream=s._as_parameter_)
+            # cublasSetMatrixAsync(
+            #     rows=rows, cols=cols, elem_size=dts,
+            #     A=H_narrow.data_ptr(), lda=H_narrow.stride(1),
+            #     B=D_narrow.data_ptr(), ldb=D_narrow.stride(1),
+            #     stream=s._as_parameter_)
+            cublasSetMatrixAsync(rows, cols, dts, H_narrow, H_narrow.stride(1), D_narrow,
+                                 D_narrow.stride(1), s)
         else:
-            cublasSetMatrix(
-                rows=rows, cols=cols, elem_size=dts,
-                A=H_narrow.data_ptr(), lda=H_narrow.stride(1),
-                B=D_narrow.data_ptr(), ldb=D_narrow.stride(1))
+            # cublasSetMatrix(
+            #     rows=rows, cols=cols, elem_size=dts,
+            #     A=H_narrow.data_ptr(), lda=H_narrow.stride(1),
+            #     B=D_narrow.data_ptr(), ldb=D_narrow.stride(1))
+            cublasSetMatrix(rows, cols, dts, H_narrow, H_narrow.stride(1), D_narrow,
+                            D_narrow.stride(1))
     elif is_contig(H):
         if s is not None:
             cuda_memcpy2d_async(
