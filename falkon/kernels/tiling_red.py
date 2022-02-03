@@ -389,7 +389,7 @@ class TilingGenred():
 
         if self.dtype in ('float16', 'half'):
             args, ranges, tag_dummy, N = preprocess_half2(
-                    args, self.aliases, self.axis, ranges, nx, ny)
+                args, self.aliases, self.axis, ranges, nx, ny)
         out = TilingGenredAutograd.apply(
             self.formula,
             self.aliases,

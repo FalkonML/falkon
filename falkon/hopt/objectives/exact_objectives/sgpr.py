@@ -1,6 +1,5 @@
 from typing import Optional, Dict
 
-import numpy as np
 import torch
 
 import falkon.kernels
@@ -42,7 +41,7 @@ class SGPR(HyperoptObjective):
         trace = 0.5 * Kdiag / variance
         trace -= 0.5 * torch.diag(AAT).sum()
 
-        const = 0.5 * X.shape[0] * torch.log(torch.tensor(2 * np.pi, dtype=X.dtype))
+        # const = 0.5 * X.shape[0] * torch.log(torch.tensor(2 * np.pi, dtype=X.dtype))
 
         self._save_losses(logdet, datafit, trace)
         return logdet + datafit + trace

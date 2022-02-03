@@ -27,16 +27,16 @@ def run_gs(
     proc_args = [
         f"python {SIMPLE_HOPT_PATH}",
         f"--seed {seed}",
-        f"--cg-tol 1e-1",  # ignored
+        "--cg-tol 1e-1",  # ignored
         f"--val-pct {val_pct}",
-        f"--sigma-type single",
-        f"--sigma-init 1.0",  # ignored
-        f"--penalty-init 1.0",  # ignored
+        "--sigma-type single",
+        "--sigma-init 1.0",  # ignored
+        "--penalty-init 1.0",  # ignored
         f"--num-centers {num_centers}",
         f"--dataset {dataset}",
         f"--model {model}",
         f"--grid-spec {gs_file}",
-        f"--cuda",
+        "--cuda",
         f"--name {dataset}_gs_{model}_{exp_name}"
     ]
     if model == "svgp":
@@ -54,12 +54,12 @@ def run():
     gs_file = "tmp_gs_file"
     exp_name = "test_exp_m100_28_09"
     datasets = {
-        #"ho-higgs": {
-        #   "num_centers": 100,
-        #   "sigmas": np.logspace(-1, 2, 15),
-        #   "penalties": np.logspace(-9, 0, 15),
-        #   "train_size": 10000,
-        #},
+        "ho-higgs": {
+            "num_centers": 100,
+            "sigmas": np.logspace(-1, 2, 15),
+            "penalties": np.logspace(-9, 0, 15),
+            "train_size": 10000,
+        },
         "svmguide1": {
             "num_centers": 100,
             "sigmas": np.logspace(-1, 1.5, 15),
@@ -67,16 +67,16 @@ def run():
             "train_size": 3089,
         },
         "boston": {
-           "num_centers": 100,
-           "sigmas": np.logspace(0, 1.5, 15),
-           "penalties": np.logspace(-6, 2, 15),
-           "train_size": 10,  # TODO: Fake but only useful for SVGP which is not tested
+            "num_centers": 100,
+            "sigmas": np.logspace(0, 1.5, 15),
+            "penalties": np.logspace(-6, 2, 15),
+            "train_size": 10,  # TODO: Fake but only useful for SVGP which is not tested
         },
         "energy": {
-           "num_centers": 100,
-           "sigmas": np.logspace(-1, 1.5, 15),
-           "penalties": np.logspace(-8, 2, 15),
-           "train_size": 614,
+            "num_centers": 100,
+            "sigmas": np.logspace(-1, 1.5, 15),
+            "penalties": np.logspace(-8, 2, 15),
+            "train_size": 614,
         },
         "protein": {
             "num_centers": 100,
@@ -117,4 +117,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-

@@ -67,17 +67,17 @@ def run_simple_hopt(sigma_init: Union[float, str],
         f"--lr {lr}",
         f"--epochs {num_epochs}",
         f"--optimizer {optim}",
-        f"--op",
-        f"--os",
+        "--op",
+        "--os",
         f"--num-centers {M}",
         f"--dataset {dataset}",
         f"--model {model}",
         f"--num-t {num_trace_vecs}",
         f"--flk-maxiter {flk_maxiter}",
-        f"--cuda",
-        f"--loss-every 2",
-        f"--early-stop-every 201",
-        f"--cgtol-decrease-every 10",
+        "--cuda",
+        "--loss-every 2",
+        "--early-stop-every 201",
+        "--cgtol-decrease-every 10",
         f"--name {exp_name_final}",
     ]
     if model == "svgp":
@@ -173,8 +173,6 @@ def run():
     cg_tol = 1e-3
     # Models to use for training
     models = ["sgpr", "holdout", "gcv", "creg-notrace", "creg-penfit-special", "creg-penfit-divtr"]
-    models = ["creg-notrace", "holdout", "creg-penfit", "sgpr", "gcv"]#, "loocv"]
-    models = ["stoch-creg-penfit"]
 
     for dset in datasets:
         run_for_models(
