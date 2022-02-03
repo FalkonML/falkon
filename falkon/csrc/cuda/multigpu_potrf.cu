@@ -1,4 +1,7 @@
 #include "multigpu_potrf.h"
+#include "cublas_bindings.h"
+#include "cusolver_bindings.h"
+#include "utils.cuh"
 
 #include <thread>
 #include <atomic>
@@ -11,11 +14,6 @@
 #include <ATen/ATen.h>
 #include <c10/cuda/CUDAGuard.h>
 #include <ATen/cuda/CUDAContext.h>
-#include <ATen/cuda/Exceptions.h>
-#include <cusolverDn.h>
-#include <cublas_v2.h>
-
-#include "utils.cuh"
 
 //#define DEBUG 1
 
@@ -40,254 +38,6 @@ static constexpr double const oned = 1.0;
 static constexpr double const moned = -1.0;
 static constexpr float const onef = 1.0;
 static constexpr float const monef = -1.0;
-
-/* POTRF Buffer Size */
-template<typename scalar_t>
-inline int potrf_buffer_size(const cusolverDnHandle_t cusolver_handle, const int mbs)
-{ throw std::invalid_argument("scalar_t"); }
-template<>
-inline int potrf_buffer_size<double>(const cusolverDnHandle_t cusolver_handle, const int mbs) {
-    int potrf_buf_size;
-    TORCH_CUSOLVER_CHECK(cusolverDnDpotrf_bufferSize(
-        /*handle=*/cusolver_handle,
-        /*uplo=*/CUBLAS_FILL_MODE_LOWER,
-        /*n=*/mbs,
-        /*A=*/NULL,
-        /*lda=*/mbs,
-        /*Lwork=*/&potrf_buf_size
-    ));
-    return potrf_buf_size;
-}
-template<>
-inline int potrf_buffer_size<float>(const cusolverDnHandle_t cusolver_handle, const int mbs) {
-    int potrf_buf_size;
-    TORCH_CUSOLVER_CHECK(cusolverDnSpotrf_bufferSize(
-        /*handle=*/cusolver_handle,
-        /*uplo=*/CUBLAS_FILL_MODE_LOWER,
-        /*n=*/mbs,
-        /*A=*/NULL,
-        /*lda=*/mbs,
-        /*Lwork=*/&potrf_buf_size
-    ));
-    return potrf_buf_size;
-}
-
-
-/* POTRF */
-template<typename scalar_t>
-inline void potrf(const cusolverDnHandle_t cusolver_handle, const int mbs,
-                  const blockAlloc &block_alloc, scalar_t *block_ptr, scalar_t *workspace,
-                  const int workspace_size, int *potrf_info, int &potrf_info_h, cudaStream_t stream)
-{ throw std::invalid_argument("scalar_t"); }
-template<>
-inline void potrf<double>(
-           const cusolverDnHandle_t cusolver_handle,
-           const int mbs,
-           const blockAlloc &block_alloc,
-           double *block_ptr,
-           double *workspace,
-           const int workspace_size,
-           int *potrf_info,
-           int &potrf_info_h,
-           cudaStream_t stream)
-{
-    TORCH_CUSOLVER_CHECK(cusolverDnDpotrf(
-        /*handle=*/cusolver_handle,
-        /*uplo=*/CUBLAS_FILL_MODE_LOWER,
-        /*n=*/block_alloc.size,
-        /*A=*/block_ptr,
-        /*lda=*/mbs,
-        /*workspace=*/workspace,
-        /*Lwork=*/workspace_size,
-        /*devInfo=*/potrf_info
-    ));
-    //C10_CUDA_CHECK(cudaMemcpyAsync(&potrf_info_h, potrf_info, sizeof(int), cudaMemcpyDeviceToHost, stream));
-    potrf_info_h = 0;
-}
-template<>
-inline void potrf<float>(
-           const cusolverDnHandle_t cusolver_handle,
-           const int mbs,
-           const blockAlloc &block_alloc,
-           float *block_ptr,
-           float *workspace,
-           const int workspace_size,
-           int *potrf_info,
-           int &potrf_info_h,
-           cudaStream_t stream)
-{
-    TORCH_CUSOLVER_CHECK(cusolverDnSpotrf(
-        /*handle=*/cusolver_handle,
-        /*uplo=*/CUBLAS_FILL_MODE_LOWER,
-        /*n=*/block_alloc.size,
-        /*A=*/block_ptr,
-        /*lda=*/mbs,
-        /*workspace=*/workspace,
-        /*Lwork=*/workspace_size,
-        /*devInfo=*/potrf_info
-    ));
-    //C10_CUDA_CHECK(cudaMemcpyAsync(&potrf_info_h, potrf_info, sizeof(int), cudaMemcpyDeviceToHost, stream));
-    potrf_info_h = 0;
-}
-
-
-/* TRSM (cuBLAS) */
-template<typename scalar_t>
-inline void trsm(const cublasHandle_t cublas_handle,
-          const blockAlloc &i_alloc, const blockAlloc &b_alloc,
-          scalar_t* i_block, scalar_t* b_block, const int mbs)
-{ throw std::invalid_argument("scalar_t"); }
-template<>
-inline void trsm<double>(
-          const cublasHandle_t cublas_handle,
-          const blockAlloc &i_alloc,
-          const blockAlloc &b_alloc,
-          double* i_block,
-          double* b_block,
-          const int mbs)
-{
-    TORCH_CUDABLAS_CHECK(cublasDtrsm(
-        /*handle=*/cublas_handle, /*side=*/CUBLAS_SIDE_RIGHT, /*uplo=*/CUBLAS_FILL_MODE_LOWER,
-        /*trans=*/CUBLAS_OP_T, /*diag=*/CUBLAS_DIAG_NON_UNIT,
-        /*m=*/b_alloc.size, /*n=*/i_alloc.size, /*alpha=*/&oned,
-        /*A=*/i_block, /*lda=*/mbs, /*B=*/b_block, /*ldb=*/mbs
-    ));
-}
-template<>
-inline void trsm<float>(
-          const cublasHandle_t cublas_handle,
-          const blockAlloc &i_alloc,
-          const blockAlloc &b_alloc,
-          float* i_block,
-          float* b_block,
-          const int mbs)
-{
-    TORCH_CUDABLAS_CHECK(cublasStrsm(
-        /*handle=*/cublas_handle, /*side=*/CUBLAS_SIDE_RIGHT, /*uplo=*/CUBLAS_FILL_MODE_LOWER,
-        /*trans=*/CUBLAS_OP_T, /*diag=*/CUBLAS_DIAG_NON_UNIT,
-        /*m=*/b_alloc.size, /*n=*/i_alloc.size, /*alpha=*/&onef,
-        /*A=*/i_block, /*lda=*/mbs, /*B=*/b_block, /*ldb=*/mbs
-    ));
-}
-
-
-/* GEMM (cuBLAS) */
-template<typename scalar_t>
-inline void gemm(const cublasHandle_t cublas_handle,
-                 const blockAlloc &b_alloc, const blockAlloc &y_alloc, const blockAlloc &i_alloc,
-                 scalar_t* b_block, scalar_t* y_block, scalar_t* out_buf, const int mbs)
-{ throw std::invalid_argument("scalar_t"); }
-template<>
-inline void gemm<double>(
-        const cublasHandle_t cublas_handle,
-        const blockAlloc &b_alloc,
-        const blockAlloc &y_alloc,
-        const blockAlloc &i_alloc,
-        double*           b_block,
-        double*           y_block,
-        double*           out_buf,
-        const int         mbs)
-{
-    TORCH_CUDABLAS_CHECK(cublasDgemm(
-        /*handle=*/cublas_handle,
-        /*transa=*/CUBLAS_OP_N,
-        /*transb=*/CUBLAS_OP_T,
-        /*m=*/b_alloc.size,
-        /*n=*/y_alloc.size,
-        /*k=*/i_alloc.size,
-        /*alpha=*/&moned,
-        /*A=*/b_block,
-        /*lda=*/mbs,
-        /*B=*/y_block,
-        /*ldb=*/mbs,
-        /*beta=*/&oned,
-        /*C=*/out_buf,
-        /*ldc=*/mbs
-    ));
-}
-template<>
-inline void gemm<float>(
-        const cublasHandle_t cublas_handle,
-        const blockAlloc &b_alloc,
-        const blockAlloc &y_alloc,
-        const blockAlloc &i_alloc,
-        float*            b_block,
-        float*            y_block,
-        float*            out_buf,
-        const int         mbs)
-{
-    TORCH_CUDABLAS_CHECK(cublasSgemm(
-        /*handle=*/cublas_handle,
-        /*transa=*/CUBLAS_OP_N,
-        /*transb=*/CUBLAS_OP_T,
-        /*m=*/b_alloc.size,
-        /*n=*/y_alloc.size,
-        /*k=*/i_alloc.size,
-        /*alpha=*/&monef,
-        /*A=*/b_block,
-        /*lda=*/mbs,
-        /*B=*/y_block,
-        /*ldb=*/mbs,
-        /*beta=*/&onef,
-        /*C=*/out_buf,
-        /*ldc=*/mbs
-    ));
-}
-
-
-/* SYRK (cuBLAS) */
-template<typename scalar_t>
-inline void syrk(const cublasHandle_t cublas_handle,
-                 const blockAlloc &i_alloc, const blockAlloc &b_alloc,
-                 scalar_t* b_block, scalar_t* out_buf, const int mbs)
-{ throw std::invalid_argument("scalar_t"); }
-template<>
-inline void syrk<double>(
-        const cublasHandle_t cublas_handle,
-        const blockAlloc &i_alloc,
-        const blockAlloc &b_alloc,
-        double*           b_block,
-        double*           out_buf,
-        const int         mbs)
-{
-    TORCH_CUDABLAS_CHECK(cublasDsyrk(
-        /*handle=*/cublas_handle,
-        /*uplo=*/CUBLAS_FILL_MODE_LOWER,
-        /*trans=*/CUBLAS_OP_N,
-        /*n=*/b_alloc.size,
-        /*k=*/i_alloc.size,
-        /*alpha=*/&moned,
-        /*A=*/b_block,
-        /*lda=*/mbs,
-        /*beta=*/&oned,
-        /*C=*/out_buf,
-        /*ldc=*/mbs
-    ));
-}
-template<>
-inline void syrk<float>(
-        const cublasHandle_t cublas_handle,
-        const blockAlloc &i_alloc,
-        const blockAlloc &b_alloc,
-        float*            b_block,
-        float*            out_buf,
-        const int         mbs)
-{
-    TORCH_CUDABLAS_CHECK(cublasSsyrk(
-        /*handle=*/cublas_handle,
-        /*uplo=*/CUBLAS_FILL_MODE_LOWER,
-        /*trans=*/CUBLAS_OP_N,
-        /*n=*/b_alloc.size,
-        /*k=*/i_alloc.size,
-        /*alpha=*/&monef,
-        /*A=*/b_block,
-        /*lda=*/mbs,
-        /*beta=*/&onef,
-        /*C=*/out_buf,
-        /*ldc=*/mbs
-    ));
-}
-
 
 /* Data-loading helper functions */
 template <typename scalar_t>
@@ -368,22 +118,16 @@ void parallel_potrf_runner(int device_id,
     // CUDA devices and stream
     c10::cuda::CUDAGuard g(device_id);
     at::cuda::CUDAStream s1 = at::cuda::getStreamFromPool(false, device_id);
-    cudaStream_t s1_c = s1.stream();
     at::cuda::CUDAStream s2 = at::cuda::getStreamFromPool(false, device_id);
-    cudaStream_t s2_c = s2.stream();
     at::cuda::CUDAStream s3 = at::cuda::getStreamFromPool(false, device_id);
-    cudaStream_t s3_c = s3.stream();
     at::cuda::CUDAStreamGuard g0(s1);
-
-    // Fetch cuBLAS handle and set cuBLAS, cuSOLVER streams to s1
+    // Fetch cuBLAS handle and set cuBLAS, cuSOLVER streams to s1 (automatically done by the getCurrentHandle code)
     const auto cublas_handle = at::cuda::getCurrentCUDABlasHandle();
-    cudaStream_t orig_cublas_stream;
-    TORCH_CUDABLAS_CHECK(cublasGetStream_v2(cublas_handle, &orig_cublas_stream));
-    TORCH_CUDABLAS_CHECK(cublasSetStream_v2(cublas_handle, s1_c));
+    const auto cusolver_handle = at::cuda::getCurrentCUDASolverDnHandle();
 
-    cudaStream_t orig_cusolver_stream;
-    TORCH_CUSOLVER_CHECK(cusolverDnGetStream(cusolver_handle, &orig_cusolver_stream));
-    TORCH_CUSOLVER_CHECK(cusolverDnSetStream(cusolver_handle, s1_c));
+    cudaStream_t s1_c = s1.stream();
+    cudaStream_t s2_c = s2.stream();
+    cudaStream_t s3_c = s3.stream();
 
     const auto scalar_type = A.scalar_type();
     const int k = allocs.size();
@@ -425,7 +169,7 @@ void parallel_potrf_runner(int device_id,
     scalar_t *A_data = A.data_ptr<scalar_t>();
 
     // How much workspace does potrf need:
-    int potrf_buf_size = potrf_buffer_size<scalar_t>(cusolver_handle, mbs);
+    int potrf_buf_size = cusolver_potrf_buffer_size(A, false, mbs, mbs);
     const auto potrf_buf = torch::empty(potrf_buf_size, buf_opt);
     const auto potrf_info_buf = torch::zeros(1, torch::dtype(torch::kInt32).device(torch::kCUDA, device_id));
 
@@ -448,7 +192,7 @@ void parallel_potrf_runner(int device_id,
     // Book-keeping variables (used in the loop)
     uint col_updates_left;
     uint trail_updates_left;
-    int potrf_info_h;
+    int potrf_info_h = 0;
     scalar_t **col_buf_h;
     scalar_t **next_buf_h;
     cudaStream_t s_copyback;
@@ -486,9 +230,8 @@ void parallel_potrf_runner(int device_id,
         if (i_alloc.device == device_id) {
             while (work[i][i] != i) { std::this_thread::yield(); }
             opt_load_block<scalar_t>(A, i_block, i, col0_fill, i_alloc, i_alloc, mbs, s1_c); // [i, i]
-            potrf<scalar_t>(cusolver_handle, mbs, i_alloc, i_block, potrf_buf_ptr, potrf_buf_size,
-                            potrf_info_buf_ptr, potrf_info_h, s1_c);
-
+            at::cuda::solver::potrf<scalar_t>(cusolver_handle, CUBLAS_FILL_MODE_LOWER, i_alloc.size,
+                                              i_block, mbs, potrf_buf_ptr, potrf_buf_size, potrf_info_buf_ptr);
             C10_CUDA_CHECK(cudaStreamSynchronize(s1_c));
             if (potrf_info_h != 0) {
                 AT_ERROR("Cholesky decomposition failed: leading minor of order ",
@@ -516,8 +259,9 @@ void parallel_potrf_runner(int device_id,
 
                 opt_load_block<scalar_t>(A, i_block, i, col0_fill, i_alloc, i_alloc, mbs, s1_c); // [i, i]
                 opt_load_block<scalar_t>(A, b_block, b, col0_fill, b_alloc, i_alloc, mbs, s1_c); // [b, i]
-                trsm<scalar_t>(cublas_handle, i_alloc, b_alloc, i_block, b_block, mbs);
-
+//                trsm<scalar_t>(cublas_handle, i_alloc, b_alloc, i_block, b_block, mbs);
+                trsm<scalar_t>(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT,
+                               b_alloc.size, i_alloc.size, &oned, i_block, mbs, b_block, mbs);
                 C10_CUDA_CHECK(cudaStreamSynchronize(s1_c));
 
                 get_block<scalar_t>(b_block, A, b_alloc, i_alloc, mbs, s_copyback);
@@ -552,9 +296,13 @@ void parallel_potrf_runner(int device_id,
                     opt_load_block<scalar_t>(A, y_block, y, col0_fill, y_alloc, i_alloc, mbs, s1_c); // [y, i]
                     load_block<scalar_t>(A, g_buf, b_alloc, y_alloc, mbs, s1_c); // [b, y]
                     if (b_alloc.id != y_alloc.id) {
-                        gemm<scalar_t>(cublas_handle, b_alloc, y_alloc, i_alloc, b_block, y_block, g_buf, mbs);
+//                        gemm<scalar_t>(cublas_handle, b_alloc, y_alloc, i_alloc, b_block, y_block, g_buf, mbs);
+                        gemm<scalar_t>(cublas_handle, CUBLAS_OP_N, CUBLAS_OP_T, b_alloc.size, y_alloc.size, i_alloc.size,
+                                       &monef, b_block, mbs, y_block, mbs, &onef, g_buf, mbs);
                     } else {
-                        syrk<scalar_t>(cublas_handle, i_alloc, b_alloc, b_block, g_buf, mbs);
+//                        syrk<scalar_t>(cublas_handle, i_alloc, b_alloc, b_block, g_buf, mbs);
+                        syrk<scalar_t>(cublas_handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, b_alloc.size,
+                                       i_alloc.size, &moned, b_block, mbs, &oned, g_buf, mbs);
                     }
                     if (y == i + 1) {
                         // We are on the column which will be tackled next, can copy directly to col0
@@ -583,9 +331,6 @@ void parallel_potrf_runner(int device_id,
     C10_CUDA_CHECK(cudaStreamSynchronize(s2_c));
     C10_CUDA_CHECK(cudaStreamSynchronize(s3_c));
     });
-
-    TORCH_CUDABLAS_CHECK(cublasSetStream_v2(cublas_handle, orig_cublas_stream));
-    TORCH_CUSOLVER_CHECK(cusolverDnSetStream(cusolver_handle, orig_cusolver_stream));
 }
 
 torch::Tensor parallel_potrf_cuda(
