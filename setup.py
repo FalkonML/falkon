@@ -93,7 +93,7 @@ def get_extensions():
             'cuda/vec_mul_triang_cuda.cu', 'cuda/spspmm_cuda.cu', 'cuda/multigpu_potrf.cu',
             'cuda/mul_triang_cuda.cu', 'cuda/lauum.cu', 'cuda/csr2dense_cuda.cu',
             'cuda/copy_transpose_cuda.cu', 'cuda/copy_triang_cuda.cu',
-            'cuda/cublas_bindings.cpp',
+            'cuda/cublas_bindings.cu',
         ])
         if torch_v[0] >= 1 and torch_v[1] >= 7:
             ext_files.append('cuda/square_norm_cuda.cu')

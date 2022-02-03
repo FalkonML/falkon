@@ -18,6 +18,7 @@
 #ifdef WITH_CUDA
 #include <pybind11/stl.h>
 #include <cusolverDn.h>
+#include <c10/cuda/CUDAStream.h>
 
 // OOC operations
 #include "cuda/multigpu_potrf.h"
@@ -69,7 +70,7 @@ void _cublas_2d_copy_to_dev_async(
 )
 {
     #ifdef WITH_CUDA
-        return cublas_2d_copy_to_dev_async(rows, cols, elemSize, host_tensor, dev_tensor, ldb, stream);
+        cublas_2d_copy_to_dev_async(rows, cols, elemSize, host_tensor, lda, dev_tensor, ldb, stream);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
@@ -85,7 +86,7 @@ void _cublas_2d_copy_to_dev(
 )
 {
     #ifdef WITH_CUDA
-        return cublas_2d_copy_to_dev(rows, cols, elemSize, host_tensor, dev_tensor, ldb);
+        cublas_2d_copy_to_dev(rows, cols, elemSize, host_tensor, lda, dev_tensor, ldb);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
@@ -102,7 +103,7 @@ void _cublas_2d_copy_to_host_async(
 )
 {
     #ifdef WITH_CUDA
-        return cublas_2d_copy_to_host_async(rows, cols, elemSize, dev_tensor, host_tensor, ldb, stream);
+        cublas_2d_copy_to_host_async(rows, cols, elemSize, dev_tensor, lda, host_tensor, ldb, stream);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
@@ -118,7 +119,7 @@ void _cublas_2d_copy_to_host(
 )
 {
     #ifdef WITH_CUDA
-        return cublas_2d_copy_to_host(rows, cols, elemSize, dev_tensor, host_tensor, ldb);
+        cublas_2d_copy_to_host(rows, cols, elemSize, dev_tensor, lda, host_tensor, ldb);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif

@@ -45,7 +45,7 @@ inline int ceildiv(int dividend, int divisor) {
                 " when calling `" #EXPR "`");                   \
   } while (0)
 
-const char* cusolverGetErrorString(cusolverStatus_t error) {
+static const char* cusolverGetErrorString(cusolverStatus_t error) {
   if (error == CUSOLVER_STATUS_SUCCESS) {
     return "CUBLAS_STATUS_SUCCESS";
   }
@@ -84,7 +84,8 @@ const char* cusolverGetErrorString(cusolverStatus_t error) {
   } while (0)
 
 
-const char* cublasGetErrorString(cublasStatus_t error) {
+
+static const char* cublasGetErrorString(cublasStatus_t error) {
   if (error == CUBLAS_STATUS_SUCCESS) {
     return "CUBLAS_STATUS_SUCCESS";
   }

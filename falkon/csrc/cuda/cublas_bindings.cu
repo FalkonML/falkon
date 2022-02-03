@@ -1,5 +1,10 @@
+#include "cublas_bindings.h"
+
 #include <torch/extension.h>
+#include <c10/cuda/CUDAStream.h>
+
 #include <cublas_v2.h>
+#include "utils.cuh"
 
 
 void cublas_2d_copy_to_dev_async (const int rows, const int cols, const int elemSize, const torch::Tensor& host_tensor, const int lda, torch::Tensor& dev_tensor, const int ldb, const at::cuda::CUDAStream &stream) {
@@ -40,7 +45,6 @@ void cublas_2d_copy_to_host(const int rows, const int cols, const int elemSize, 
         dev_tensor.data_ptr(),
         lda,
         host_tensor.data_ptr(),
-        ldb,
-        stream.stream()
+        ldb
     ));
 }

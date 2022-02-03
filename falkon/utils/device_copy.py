@@ -10,10 +10,10 @@ if torch.cuda.is_available():
     )
     # from falkon.cuda.cublas_gpu import (cublasSetMatrix, cublasSetMatrixAsync,
     #                                     cublasGetMatrix, cublasGetMatrixAsync)
-    from falkon.csrc import cublas_2d_copy_to_dev_async as cublasSetMatrixAsync
-    from falkon.csrc import cublas_2d_copy_to_dev as cublasSetMatrix
-    from falkon.csrc import cublas_2d_copy_to_host_async as cublasGetMatrixAsync
-    from falkon.csrc import cublas_2d_copy_to_host as cublasGetMatrix
+    from falkon.c_ext import cublas_2d_copy_to_dev_async as cublasSetMatrixAsync
+    from falkon.c_ext import cublas_2d_copy_to_dev as cublasSetMatrix
+    from falkon.c_ext import cublas_2d_copy_to_host_async as cublasGetMatrixAsync
+    from falkon.c_ext import cublas_2d_copy_to_host as cublasGetMatrix
 
 
 def check_copy(origin, dest, check_dtypes=True):

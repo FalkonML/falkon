@@ -1,6 +1,7 @@
 #pragma once
 
 #include <torch/extension.h>
+#include <c10/cuda/CUDAStream.h>
 
 
 void cublas_2d_copy_to_dev_async (
