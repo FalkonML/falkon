@@ -1,5 +1,4 @@
 import os
-import resource
 from dataclasses import dataclass
 from typing import Dict
 
@@ -153,10 +152,6 @@ def _measure_performance(g, mem):
 
 def _cpu_available_mem() -> int:
     return psutil.virtual_memory().available
-
-
-def _max_used_mem() -> int:
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
 
 def _cpu_used_mem(uss=True) -> int:
