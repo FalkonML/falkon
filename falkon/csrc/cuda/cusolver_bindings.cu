@@ -26,6 +26,6 @@ void cusolver_potrf(const torch::Tensor& A, const torch::Tensor& workspace, cons
         auto handle = at::cuda::getCurrentCUDASolverDnHandle();
         auto A_data = A.data_ptr<scalar_t>();
         auto workspace_data = workspace.data_ptr<scalar_t>();
-        at::cuda::solver::potrf<scalar_t>(handle, uplo, n, A_data, lda, workspace_data, workspace_size, info_data)
+        at::cuda::solver::potrf<scalar_t>(handle, uplo, n, A_data, lda, workspace_data, workspace_size, info_data);
     });
 }

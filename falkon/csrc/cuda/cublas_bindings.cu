@@ -3,7 +3,7 @@
 
 #include <torch/extension.h>
 #include <c10/cuda/CUDAStream.h>
-#include <ATen/native/cuda/BatchLinearAlgebraLib.h>
+#include <ATen/cuda/CUDAContext.h>
 
 
 
@@ -52,7 +52,7 @@ void cublas_2d_copy_to_host(const int rows, const int cols, const int elemSize, 
 
 /* TRSM (cuBLAS) */
 template<typename scalar_t>
-inline void trsm(cublasHandle_t cublas_handle,
+void trsm(cublasHandle_t cublas_handle,
                  cublasSideMode_t side,
                  cublasFillMode_t uplo,
                  cublasOperation_t trans,
@@ -66,7 +66,7 @@ inline void trsm(cublasHandle_t cublas_handle,
                  int ldb)
 { throw std::invalid_argument("scalar_t"); }
 template<>
-inline void trsm<double>(
+void trsm<double>(
                  cublasHandle_t cublas_handle,
                  cublasSideMode_t side,
                  cublasFillMode_t uplo,
@@ -83,7 +83,7 @@ inline void trsm<double>(
     TORCH_CUDABLAS_CHECK(cublasDtrsm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb));
 }
 template<>
-inline void trsm<float>(
+void trsm<float>(
                  cublasHandle_t cublas_handle,
                  cublasSideMode_t side,
                  cublasFillMode_t uplo,
@@ -100,7 +100,7 @@ inline void trsm<float>(
     TORCH_CUDABLAS_CHECK(cublasStrsm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb));
 }
 
-void cublas_trsm(const Tensor& A, const Tensor& B, torch::Scalar alpha, bool left, bool upper, bool transpose, bool unitriangular, int m, int n, int lda, int ldb) {
+void cublas_trsm(const torch::Tensor& A, const torch::Tensor& B, torch::Scalar alpha, bool left, bool upper, bool transpose, bool unitriangular, int m, int n, int lda, int ldb) {
     cublasFillMode_t uplo = upper ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER;
     cublasDiagType_t diag = unitriangular ? CUBLAS_DIAG_UNIT : CUBLAS_DIAG_NON_UNIT;
     cublasOperation_t trans = transpose ? CUBLAS_OP_T : CUBLAS_OP_N;
@@ -117,7 +117,7 @@ void cublas_trsm(const Tensor& A, const Tensor& B, torch::Scalar alpha, bool lef
 
 /* TRMM */
 template<typename scalar_t>
-inline void trmm(cublasHandle_t cublas_handle,
+void trmm(cublasHandle_t cublas_handle,
                  cublasSideMode_t side,
                  cublasFillMode_t uplo,
                  cublasOperation_t trans,
@@ -133,7 +133,7 @@ inline void trmm(cublasHandle_t cublas_handle,
                  int ldc)
 { throw std::invalid_argument("scalar_t"); }
 template<>
-inline void trmm<double>(
+void trmm<double>(
                  cublasHandle_t cublas_handle,
                  cublasSideMode_t side,
                  cublasFillMode_t uplo,
@@ -149,10 +149,10 @@ inline void trmm<double>(
                  double *C,
                  int ldc)
 {
-    TORCH_CUDABLAS_CHECK(cublasDtrmm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb));
+    TORCH_CUDABLAS_CHECK(cublasDtrmm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb, C, ldc));
 }
 template<>
-inline void trmm<float>(
+void trmm<float>(
                  cublasHandle_t cublas_handle,
                  cublasSideMode_t side,
                  cublasFillMode_t uplo,
@@ -168,10 +168,10 @@ inline void trmm<float>(
                  float *C,
                  int ldc)
 {
-    TORCH_CUDABLAS_CHECK(cublasStrmm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb));
+    TORCH_CUDABLAS_CHECK(cublasStrmm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb, C, ldc));
 }
 
-void cublas_trmm(const Tensor& A, const Tensor& B, const Tensor& C, bool left, bool upper, bool transpose, bool unitriangular, int m, int n, int lda, int ldb, int ldc) {
+void cublas_trmm(const torch::Tensor& A, const torch::Tensor& B, const torch::Tensor& C, bool left, bool upper, bool transpose, bool unitriangular, torch::Scalar alpha, int m, int n, int lda, int ldb, int ldc) {
     cublasFillMode_t uplo = upper ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER;
     cublasDiagType_t diag = unitriangular ? CUBLAS_DIAG_UNIT : CUBLAS_DIAG_NON_UNIT;
     cublasOperation_t trans = transpose ? CUBLAS_OP_T : CUBLAS_OP_N;
@@ -190,7 +190,7 @@ void cublas_trmm(const Tensor& A, const Tensor& B, const Tensor& C, bool left, b
 /* GEMM */
 
 template<typename scalar_t>
-inline void gemm(cublasHandle_t cublas_handle,
+void gemm(cublasHandle_t cublas_handle,
                  cublasOperation_t transa,
                  cublasOperation_t transb,
                  int m,
@@ -206,7 +206,7 @@ inline void gemm(cublasHandle_t cublas_handle,
                  int ldc)
 { throw std::invalid_argument("scalar_t"); }
 template<>
-inline void gemm<double>(
+void gemm<double>(
                  cublasHandle_t cublas_handle,
                  cublasOperation_t transa,
                  cublasOperation_t transb,
@@ -225,7 +225,7 @@ inline void gemm<double>(
     TORCH_CUDABLAS_CHECK(cublasDgemm(cublas_handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc));
 }
 template<>
-inline void gemm<float>(
+void gemm<float>(
                  cublasHandle_t cublas_handle,
                  cublasOperation_t transa,
                  cublasOperation_t transb,
@@ -244,7 +244,7 @@ inline void gemm<float>(
     TORCH_CUDABLAS_CHECK(cublasSgemm(cublas_handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc));
 }
 
-void cublas_gemm(const Tensor& A, int lda, bool transa, const Tensor& B, int ldb, bool transb, const Tensor& C, int ldc, int m, int n, int k, Scalar alpha, Scalar beta) {
+void cublas_gemm(const torch::Tensor& A, int lda, bool transa, const torch::Tensor& B, int ldb, bool transb, const torch::Tensor& C, int ldc, int m, int n, int k, torch::Scalar alpha, torch::Scalar beta) {
     cublasOperation_t transa_op = transa ? CUBLAS_OP_T : CUBLAS_OP_N;
     cublasOperation_t transb_op = transb ? CUBLAS_OP_T : CUBLAS_OP_N;
 
@@ -256,7 +256,7 @@ void cublas_gemm(const Tensor& A, int lda, bool transa, const Tensor& B, int ldb
         scalar_t cast_alpha = alpha.to<scalar_t>();
         scalar_t cast_beta = beta.to<scalar_t>();
 
-        gemm<scalar_t>(handle, transa, transb, m, n, k, &cast_alpha, A_data, lda, B_data, ldb, &cast_beta, C_data, ldc);
+        gemm<scalar_t>(handle, transa_op, transb_op, m, n, k, &cast_alpha, A_data, lda, B_data, ldb, &cast_beta, C_data, ldc);
     });
 }
 
@@ -264,7 +264,7 @@ void cublas_gemm(const Tensor& A, int lda, bool transa, const Tensor& B, int ldb
 /* SYRK */
 
 template<typename scalar_t>
-inline void syrk(cublasHandle_t cublas_handle,
+void syrk(cublasHandle_t cublas_handle,
                  cublasFillMode_t uplo,
                  cublasOperation_t trans,
                  int n,
@@ -277,7 +277,7 @@ inline void syrk(cublasHandle_t cublas_handle,
                  int ldc)
 { throw std::invalid_argument("scalar_t"); }
 template<>
-inline void syrk<double>(
+void syrk<double>(
                  cublasHandle_t cublas_handle,
                  cublasFillMode_t uplo,
                  cublasOperation_t trans,
@@ -293,7 +293,7 @@ inline void syrk<double>(
     TORCH_CUDABLAS_CHECK(cublasDsyrk(cublas_handle, uplo, trans, n, k, alpha, A, lda, beta, C, ldc));
 }
 template<>
-inline void syrk<float>(
+void syrk<float>(
                  cublasHandle_t cublas_handle,
                  cublasFillMode_t uplo,
                  cublasOperation_t trans,
@@ -309,7 +309,7 @@ inline void syrk<float>(
     TORCH_CUDABLAS_CHECK(cublasSsyrk(cublas_handle, uplo, trans, n, k, alpha, A, lda, beta, C, ldc));
 }
 
-void cublas_syrk(const Tensor& A, int lda, const Tensor& C, int ldc, Scalar alpha, Scalar beta, bool upper, bool transpose, int n, int k) {
+void cublas_syrk(const torch::Tensor& A, int lda, const torch::Tensor& C, int ldc, torch::Scalar alpha, torch::Scalar beta, bool upper, bool transpose, int n, int k) {
     cublasFillMode_t uplo = upper ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER;
     cublasOperation_t op = transpose ? CUBLAS_OP_T : CUBLAS_OP_N;
 

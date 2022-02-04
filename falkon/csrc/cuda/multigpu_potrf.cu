@@ -14,6 +14,8 @@
 #include <ATen/ATen.h>
 #include <c10/cuda/CUDAGuard.h>
 #include <ATen/cuda/CUDAContext.h>
+#include <ATen/cuda/CUDASolver.h>
+
 
 //#define DEBUG 1
 
@@ -112,8 +114,7 @@ static inline void opt_load_block(
 void parallel_potrf_runner(int device_id,
                            std::vector<std::vector<std::atomic<int>>> &work,
                            torch::Tensor &A,
-                           std::vector<blockAlloc> &allocs,
-                           cusolverDnHandle_t cusolver_handle)
+                           std::vector<blockAlloc> &allocs)
 {
     // CUDA devices and stream
     c10::cuda::CUDAGuard g(device_id);
@@ -122,8 +123,8 @@ void parallel_potrf_runner(int device_id,
     at::cuda::CUDAStream s3 = at::cuda::getStreamFromPool(false, device_id);
     at::cuda::CUDAStreamGuard g0(s1);
     // Fetch cuBLAS handle and set cuBLAS, cuSOLVER streams to s1 (automatically done by the getCurrentHandle code)
-    const auto cublas_handle = at::cuda::getCurrentCUDABlasHandle();
-    const auto cusolver_handle = at::cuda::getCurrentCUDASolverDnHandle();
+    auto cublas_handle = at::cuda::getCurrentCUDABlasHandle();
+    auto cusolver_handle = at::cuda::getCurrentCUDASolverDnHandle();
 
     cudaStream_t s1_c = s1.stream();
     cudaStream_t s2_c = s2.stream();
@@ -167,6 +168,8 @@ void parallel_potrf_runner(int device_id,
 
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch_parallel_potrf", [&] {
     scalar_t *A_data = A.data_ptr<scalar_t>();
+    const scalar_t mone = -1.0;
+    const scalar_t one = 1.0;
 
     // How much workspace does potrf need:
     int potrf_buf_size = cusolver_potrf_buffer_size(A, false, mbs, mbs);
@@ -261,7 +264,7 @@ void parallel_potrf_runner(int device_id,
                 opt_load_block<scalar_t>(A, b_block, b, col0_fill, b_alloc, i_alloc, mbs, s1_c); // [b, i]
 //                trsm<scalar_t>(cublas_handle, i_alloc, b_alloc, i_block, b_block, mbs);
                 trsm<scalar_t>(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT,
-                               b_alloc.size, i_alloc.size, &oned, i_block, mbs, b_block, mbs);
+                               b_alloc.size, i_alloc.size, &one, i_block, mbs, b_block, mbs);
                 C10_CUDA_CHECK(cudaStreamSynchronize(s1_c));
 
                 get_block<scalar_t>(b_block, A, b_alloc, i_alloc, mbs, s_copyback);
@@ -298,11 +301,11 @@ void parallel_potrf_runner(int device_id,
                     if (b_alloc.id != y_alloc.id) {
 //                        gemm<scalar_t>(cublas_handle, b_alloc, y_alloc, i_alloc, b_block, y_block, g_buf, mbs);
                         gemm<scalar_t>(cublas_handle, CUBLAS_OP_N, CUBLAS_OP_T, b_alloc.size, y_alloc.size, i_alloc.size,
-                                       &monef, b_block, mbs, y_block, mbs, &onef, g_buf, mbs);
+                                       &mone, b_block, mbs, y_block, mbs, &one, g_buf, mbs);
                     } else {
 //                        syrk<scalar_t>(cublas_handle, i_alloc, b_alloc, b_block, g_buf, mbs);
                         syrk<scalar_t>(cublas_handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, b_alloc.size,
-                                       i_alloc.size, &moned, b_block, mbs, &oned, g_buf, mbs);
+                                       i_alloc.size, &mone, b_block, mbs, &one, g_buf, mbs);
                     }
                     if (y == i + 1) {
                         // We are on the column which will be tackled next, can copy directly to col0
@@ -352,7 +355,7 @@ torch::Tensor parallel_potrf_cuda(
     std::vector<std::thread> threads;
     for (const auto& gi : gpu_info) {
         threads.push_back(
-                std::thread(&parallel_potrf_runner, gi.id, std::ref(work), std::ref(A), std::ref(allocations), gi.cusolver_handle));
+                std::thread(&parallel_potrf_runner, gi.id, std::ref(work), std::ref(A), std::ref(allocations)));
     }
 
     for (auto& t : threads) {
