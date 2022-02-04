@@ -4,16 +4,17 @@ from .helpers import sizeof_dtype
 from .tensor_helpers import is_f_contig, is_contig, is_contig_vec
 
 if torch.cuda.is_available():
-    from falkon.cuda.cudart_gpu import (
-        cuda_memcpy2d, cuda_memcpy2d_async,
-        cuda_memcpy, cuda_memcpy_async
-    )
+    # from falkon.cuda.cudart_gpu import (
+    #     cuda_memcpy2d, cuda_memcpy2d_async,
+    #     cuda_memcpy, cuda_memcpy_async
+    # )
     # from falkon.cuda.cublas_gpu import (cublasSetMatrix, cublasSetMatrixAsync,
     #                                     cublasGetMatrix, cublasGetMatrixAsync)
     from falkon.c_ext import cublas_2d_copy_to_dev_async as cublasSetMatrixAsync
     from falkon.c_ext import cublas_2d_copy_to_dev as cublasSetMatrix
     from falkon.c_ext import cublas_2d_copy_to_host_async as cublasGetMatrixAsync
     from falkon.c_ext import cublas_2d_copy_to_host as cublasGetMatrix
+    from falkon.c_ext import cuda_2d_copy_async, cuda_2d_copy, cuda_1d_copy_async, cuda_1d_copy
 
 
 def check_copy(origin, dest, check_dtypes=True):
@@ -70,12 +71,16 @@ def copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, s=None):
 
     if is_contig_vec(H_narrow) and is_contig_vec(D_narrow):
         if s is not None:
-            cuda_memcpy_async(
-                src=D_narrow.data_ptr(), dst=H_narrow.data_ptr(),
-                count=(rows * cols) * dts, stream=s._as_parameter_)
+            # cuda_memcpy_async(
+            #     src=D_narrow.data_ptr(), dst=H_narrow.data_ptr(),
+            #     count=(rows * cols) * dts, stream=s._as_parameter_)
+            cuda_1d_copy_async(
+                src_tensor=D_narrow, dest_tensor=H_narrow, count=(rows * cols) * dts, stream=s)
         else:
-            cuda_memcpy(
-                src=D_narrow.data_ptr(), dst=H_narrow.data_ptr(), count=(rows * cols) * dts)
+            # cuda_memcpy(
+            #     src=D_narrow.data_ptr(), dst=H_narrow.data_ptr(), count=(rows * cols) * dts)
+            cuda_1d_copy(
+                src_tensor=D_narrow, dest_tensor=H_narrow, count=(rows * cols) * dts)
     elif is_f_contig(D, strict=True):
         if s is not None:
             # cublasGetMatrixAsync(
@@ -94,15 +99,23 @@ def copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, s=None):
                             H_narrow.stride(1))
     elif is_contig(D):
         if s is not None:
-            cuda_memcpy2d_async(
-                dst=H_narrow.data_ptr(), dpitch=H_narrow.stride(0) * dts,
-                src=D_narrow.data_ptr(), spitch=D_narrow.stride(0) * dts,
-                width=cols * dts, height=rows, stream=s._as_parameter_)
+            cuda_2d_copy_async(
+                src_tensor=D_narrow, src_pitch=D_narrow.stride(0) * dts,
+                dest_tensor=H_narrow, dest_pitch=H_narrow.stride(0) * dts,
+                width=cols * dts, height=rows, stream=s)
+            # cuda_memcpy2d_async(
+            #     dst=H_narrow.data_ptr(), dpitch=H_narrow.stride(0) * dts,
+            #     src=D_narrow.data_ptr(), spitch=D_narrow.stride(0) * dts,
+            #     width=cols * dts, height=rows, stream=s._as_parameter_)
         else:
-            cuda_memcpy2d(
-                dst=H_narrow.data_ptr(), dpitch=H_narrow.stride(0) * dts,
-                src=D_narrow.data_ptr(), spitch=D_narrow.stride(0) * dts,
+            cuda_2d_copy(
+                src_tensor=D_narrow, src_pitch=D_narrow.stride(0) * dts,
+                dest_tensor=H_narrow, dest_pitch=H_narrow.stride(0) * dts,
                 width=cols * dts, height=rows)
+            # cuda_memcpy2d(
+            #     dst=H_narrow.data_ptr(), dpitch=H_narrow.stride(0) * dts,
+            #     src=D_narrow.data_ptr(), spitch=D_narrow.stride(0) * dts,
+            #     width=cols * dts, height=rows)
 
     if H.dtype != D.dtype:
         H_narrow_final.copy_(H_narrow)  # Blocking copy since it's H->H.
@@ -123,12 +136,16 @@ def copy_to_device(rows, cols, H, Hi, Hj, D, Di, Dj, s=None):
     dts = sizeof_dtype(D.dtype)
     if is_contig_vec(H_narrow) and is_contig_vec(D_narrow):
         if s is not None:
-            cuda_memcpy_async(
-                src=H_narrow.data_ptr(), dst=D_narrow.data_ptr(),
-                count=(rows * cols) * dts, stream=s._as_parameter_)
+            cuda_1d_copy_async(
+                src_tensor=H_narrow, dest_tensor=D_narrow, count=(rows * cols) * dts, stream=s)
+            # cuda_memcpy_async(
+            #     src=H_narrow.data_ptr(), dst=D_narrow.data_ptr(),
+            #     count=(rows * cols) * dts, stream=s._as_parameter_)
         else:
-            cuda_memcpy(
-                src=H_narrow.data_ptr(), dst=D_narrow.data_ptr(), count=(rows * cols) * dts)
+            # cuda_memcpy(
+            #     src=H_narrow.data_ptr(), dst=D_narrow.data_ptr(), count=(rows * cols) * dts)
+            cuda_1d_copy(
+                src_tensor=H_narrow, dest_tensor=D_narrow, count=(rows * cols) * dts)
     elif is_f_contig(H, strict=True):
         if s is not None:
             # cublasSetMatrixAsync(
@@ -147,13 +164,21 @@ def copy_to_device(rows, cols, H, Hi, Hj, D, Di, Dj, s=None):
                             D_narrow.stride(1))
     elif is_contig(H):
         if s is not None:
-            cuda_memcpy2d_async(
-                src=H_narrow.data_ptr(), spitch=H_narrow.stride(0) * dts,
-                dst=D_narrow.data_ptr(), dpitch=D_narrow.stride(0) * dts,
-                width=cols * dts, height=rows, stream=s._as_parameter_)
+            # cuda_memcpy2d_async(
+            #     src=H_narrow.data_ptr(), spitch=H_narrow.stride(0) * dts,
+            #     dst=D_narrow.data_ptr(), dpitch=D_narrow.stride(0) * dts,
+            #     width=cols * dts, height=rows, stream=s._as_parameter_)
+            cuda_2d_copy_async(
+                src_tensor=H_narrow.data_ptr(), src_pitch=H_narrow.stride(0) * dts,
+                dest_tensor=D_narrow.data_ptr(), dest_pitch=D_narrow.stride(0) * dts,
+                width=cols * dts, height=rows, stream=s)
         else:
-            cuda_memcpy2d(
-                src=H_narrow.data_ptr(), spitch=H_narrow.stride(0) * dts,
-                dst=D_narrow.data_ptr(), dpitch=D_narrow.stride(0) * dts,
+            # cuda_memcpy2d(
+            #     src=H_narrow.data_ptr(), spitch=H_narrow.stride(0) * dts,
+            #     dst=D_narrow.data_ptr(), dpitch=D_narrow.stride(0) * dts,
+            #     width=cols * dts, height=rows)
+            cuda_2d_copy(
+                src_tensor=H_narrow.data_ptr(), src_pitch=H_narrow.stride(0) * dts,
+                dest_tensor=D_narrow.data_ptr(), dest_pitch=D_narrow.stride(0) * dts,
                 width=cols * dts, height=rows)
     return D_narrow

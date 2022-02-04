@@ -24,21 +24,21 @@ def decide_cuda(opt: Optional[BaseOptions] = None):
     if not torch.cuda.is_available():
         warnings.warn(get_error_str("CUDA", None))
         return False
-    try:
-        from falkon.cuda import cublas_gpu  # noqa F401
-    except Exception as e:
-        warnings.warn(get_error_str("cuBLAS", e))
-        return False
-    try:
-        from falkon.cuda import cudart_gpu  # noqa F401
-    except Exception as e:
-        warnings.warn(get_error_str("cudart", e))
-        return False
-    try:
-        from falkon.cuda import cusolver_gpu  # noqa F401
-    except Exception as e:
-        warnings.warn(get_error_str("cuSOLVER", e))
-        return False
+    # try:
+    #     from falkon.cuda import cublas_gpu  # noqa F401
+    # except Exception as e:
+    #     warnings.warn(get_error_str("cuBLAS", e))
+    #     return False
+    # try:
+    #     from falkon.cuda import cudart_gpu  # noqa F401
+    # except Exception as e:
+    #     warnings.warn(get_error_str("cudart", e))
+    #     return False
+    # try:
+    #     from falkon.cuda import cusolver_gpu  # noqa F401
+    # except Exception as e:
+    #     warnings.warn(get_error_str("cuSOLVER", e))
+    #     return False
     return True
 
 

@@ -3,10 +3,10 @@ import threading
 
 import torch
 
-import falkon.cuda.cusolver_gpu as cusolver
-from falkon.cuda.cublas_gpu import cublasCreate, cublasDestroy
+# import falkon.cuda.cusolver_gpu as cusolver
+# from falkon.cuda.cublas_gpu import cublasCreate, cublasDestroy
 
-__all__ = ("shutdown", "cublas_handle", "cusolver_handle")
+__all__ = ("shutdown")#, "cublas_handle", "cusolver_handle")
 
 
 def _normalize_device(device):
@@ -32,30 +32,30 @@ _cublas_handles = {}
 _cusolver_handles = {}
 
 
-def cublas_handle(device=None):
-    device = _normalize_device(device)
-    thread = threading.current_thread().name
-    name = f"{device}_{thread}"
-    global _cublas_handles
-    try:
-        return _cublas_handles[name]
-    except KeyError:
-        handle = cublasCreate()
-        _cublas_handles[name] = handle
-        return handle
+# def cublas_handle(device=None):
+#     device = _normalize_device(device)
+#     thread = threading.current_thread().name
+#     name = f"{device}_{thread}"
+#     global _cublas_handles
+#     try:
+#         return _cublas_handles[name]
+#     except KeyError:
+#         handle = cublasCreate()
+#         _cublas_handles[name] = handle
+#         return handle
 
 
-def cusolver_handle(device=None):
-    device = _normalize_device(device)
-    thread = threading.current_thread().name
-    name = f"{device}_{thread}"
-    global _cusolver_handles
-    try:
-        return _cusolver_handles[name]
-    except KeyError:
-        handle = cusolver.cusolverDnCreate()
-        _cusolver_handles[name] = handle
-        return handle
+# def cusolver_handle(device=None):
+#     device = _normalize_device(device)
+#     thread = threading.current_thread().name
+#     name = f"{device}_{thread}"
+#     global _cusolver_handles
+#     try:
+#         return _cusolver_handles[name]
+#     except KeyError:
+#         handle = cusolver.cusolverDnCreate()
+#         _cusolver_handles[name] = handle
+#         return handle
 
 
 def shutdown():
@@ -69,14 +69,15 @@ def shutdown():
     -----
     This function does not shutdown PyCUDA.
     """
-    global _cublas_handles
-    for i, handle in _cublas_handles.items():
-        if handle is not None:
-            cublasDestroy(handle)
-            _cublas_handles[i] = None
-
-    global _cusolver_handles
-    for i, handle in _cusolver_handles.items():
-        if handle is not None:
-            cusolver.cusolverDnDestroy(handle)
-            _cusolver_handles[i] = None
+    pass
+    # global _cublas_handles
+    # for i, handle in _cublas_handles.items():
+    #     if handle is not None:
+    #         cublasDestroy(handle)
+    #         _cublas_handles[i] = None
+    #
+    # global _cusolver_handles
+    # for i, handle in _cusolver_handles.items():
+    #     if handle is not None:
+    #         cusolver.cusolverDnDestroy(handle)
+    #         _cusolver_handles[i] = None

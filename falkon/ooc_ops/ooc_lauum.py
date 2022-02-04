@@ -2,7 +2,7 @@ import math
 import threading
 from typing import List, Optional
 
-from falkon.cuda import initialization
+# from falkon.cuda import initialization
 from falkon.utils import devices, PropagatingThread
 from falkon.utils.tensor_helpers import copy_same_stride
 from falkon.utils.helpers import sizeof_dtype
@@ -77,12 +77,12 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
         # Assign rows to GPUs round-robin. Use _gpu_idx instead of g.Id since the latter
         # may not contain all integers from 0.
         gid_allocs = [i for i in range(len(block_allocations)) if i % num_gpus == _gpu_idx]
-        cublas_handle = initialization.cublas_handle(g.Id)
-        if cublas_handle is None:
-            raise RuntimeError("CUBLAS must be initialized "
-                               "on device %d before running parallel LAUUM." % (g.Id))
+        # cublas_handle = initialization.cublas_handle(g.Id)
+        # if cublas_handle is None:
+        #     raise RuntimeError("CUBLAS must be initialized "
+        #                        "on device %d before running parallel LAUUM." % (g.Id))
         t = PropagatingThread(target=target, name="GPU-%d" % (g.Id), args=(
-            A, block_allocations, gid_allocs, barrier, g.Id, cublas_handle, write_opposite))
+            A, block_allocations, gid_allocs, barrier, g.Id, write_opposite))
         threads.append(t)
 
     for t in threads:

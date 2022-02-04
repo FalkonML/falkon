@@ -3,13 +3,12 @@ import math
 import torch
 
 from falkon import la_helpers
-from falkon.cuda import initialization
-from falkon.cuda.cusolver_gpu import *
+# from falkon.cuda import initialization
 from falkon.options import FalkonOptions, CholeskyOptions
 from falkon.utils import devices
 from falkon.utils.devices import DeviceInfo
 from falkon.utils.helpers import choose_fn, sizeof_dtype
-from falkon.c_ext import parallel_potrf
+from falkon.c_ext import parallel_potrf, cusolver_potrf_buffer_size, cusolver_potrf
 from falkon.utils.tensor_helpers import (
     is_f_contig, copy_same_stride, extract_fortran
 )
@@ -19,7 +18,7 @@ from .ooc_utils import calc_block_sizes
 __all__ = ("gpu_cholesky",)
 
 
-def _ic_cholesky(A, upper, device, cusolver_handle):
+def _ic_cholesky(A, upper, device):
     """Cholesky factorization of matrix `A` on the GPU
 
     Uses the cuSOLVER library for implementation of the POTRF function.
@@ -44,9 +43,9 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
         of the matrix A. This is not a copy of the original matrix.
     """
     # Check library initialization
-    if cusolver_handle is None:
-        raise RuntimeError("CuSolver must be initialized "
-                           "before running in-core Cholesky.")
+    # if cusolver_handle is None:
+    #     raise RuntimeError("CuSolver must be initialized "
+    #                        "before running in-core Cholesky.")
     if not is_f_contig(A):
         raise RuntimeError("Cholesky input must be F-contiguous")
 
@@ -56,15 +55,15 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
     tc_device = torch.device("cuda:%d" % (device))
     tc_stream = torch.cuda.current_stream(tc_device)
     # Choose functions by dtype
-    potrf_buf_size = choose_fn(A.dtype, cusolverDnDpotrf_bufferSize, cusolverDnSpotrf_bufferSize,
-                               "POTRF Buffer size")
-    potrf_fn = choose_fn(A.dtype, cusolverDnDpotrf, cusolverDnSpotrf, "POTRF")
+    # potrf_buf_size = choose_fn(A.dtype, cusolverDnDpotrf_bufferSize, cusolverDnSpotrf_bufferSize,
+    #                            "POTRF Buffer size")
+    # potrf_fn = choose_fn(A.dtype, cusolverDnDpotrf, cusolverDnSpotrf, "POTRF")
 
     with torch.cuda.device(tc_device), \
-            torch.cuda.stream(tc_stream), \
-            cusolver_stream(cusolver_handle, tc_stream._as_parameter_):
+            torch.cuda.stream(tc_stream):
         # Determine necessary buffer size
-        potrf_bsize = potrf_buf_size(handle=cusolver_handle, uplo=uplo, n=n, A=0, lda=n)
+        potrf_bsize = cusolver_potrf_buffer_size(A=A, upper=upper, n=n, lda=n)
+        # potrf_bsize = potrf_buf_size(handle=cusolver_handle, uplo=uplo, n=n, A=0, lda=n)
 
         # Allocate flat GPU buffer, and extract buffers
         if A.is_cuda:
@@ -80,9 +79,11 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
         dev_info = torch.tensor(4, dtype=torch.int32, device=tc_device)
 
         # Run cholesky
-        potrf_fn(handle=cusolver_handle,
-                 uplo=uplo, n=n, A=Agpu.data_ptr(), lda=n,
-                 workspace=potrf_wspace.data_ptr(), Lwork=potrf_bsize, devInfo=dev_info)
+        # potrf_fn(handle=cusolver_handle,
+        #          uplo=uplo, n=n, A=Agpu.data_ptr(), lda=n,
+        #          workspace=potrf_wspace.data_ptr(), Lwork=potrf_bsize, devInfo=dev_info)
+        cusolver_potrf(A=Agpu, workspace=potrf_wspace, workspace_size=potrf_bsize, info=dev_info,
+                       upper=upper, n=n, lda=n)
 
         # Copy back to CPU
         if not A.is_cuda:
@@ -124,7 +125,7 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
     device_info = []
     for g in range(num_gpus):
         device_info.append(
-            (0.0, initialization.cusolver_handle(g), g)
+            (0.0, g)
         )
 
     parallel_potrf(device_info, block_allocations, A)
@@ -234,8 +235,8 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     if ic:
         if opt.debug:
             print("Using in-core POTRF")
-        _ic_cholesky(A, upper, device=device.Id,
-                     cusolver_handle=initialization.cusolver_handle(device.Id))
+        _ic_cholesky(A, upper, device=device.Id)
+                     # cusolver_handle=initialization.cusolver_handle(device.Id))
     else:
         if opt.debug:
             print("Using parallel POTRF")

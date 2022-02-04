@@ -79,16 +79,16 @@ def _get_gpu_device_info(opt: BaseOptions,
     # This is often the first CUDA-related call. Call init() here to avoid segfaults due to
     # uninitialized CUDA environment.
     tcd.init()
-    try:
-        from ..cuda.cudart_gpu import cuda_meminfo
-    except Exception as e:
-        raise ValueError("Failed to import cudart_gpu module. "
-                         "Please check dependencies.") from e
+    # try:
+    #     from ..cuda.cudart_gpu import cuda_meminfo
+    # except Exception as e:
+    #     raise ValueError("Failed to import cudart_gpu module. "
+    #                      "Please check dependencies.") from e
 
     # Some of the CUDA calls in here may change the current device,
     # this ensures it gets reset at the end.
     with tcd.device(g):
-        mem_free, mem_total = cuda_meminfo(g)
+        mem_free, mem_total = tcd.memory.mem_get_info(g)
         mem_used = mem_total - mem_free
         # noinspection PyUnresolvedReferences
         cached_free_mem = tcd.memory_reserved(g) - tcd.memory_allocated(g)
