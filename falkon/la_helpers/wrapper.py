@@ -169,7 +169,7 @@ def trsm(v: arr_type, A: arr_type, alpha: float, lower: int = 0, transpose: int 
                 raise ValueError("A and v must be on the same device.")
             if A.is_cuda and v.is_cuda:
                 from falkon.la_helpers.cuda_trsm import cuda_trsm
-                return cuda_trsm(A, v, alpha, lower, transpose)
+                return cuda_trsm(A, v, alpha, bool(lower), bool(transpose))
             else:
                 out_torch_convert = True
                 A = A.numpy()

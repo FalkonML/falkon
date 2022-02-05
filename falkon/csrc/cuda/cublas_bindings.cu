@@ -1,14 +1,16 @@
 #include "cublas_bindings.h"
-#include "utils.cuh"
 
 #include <torch/extension.h>
 #include <c10/cuda/CUDAStream.h>
 #include <ATen/cuda/CUDAContext.h>
+#include <cublas_v2.h>
+
+#include "utils.cuh"
 
 
 
 void cublas_2d_copy_to_dev_async (const int rows, const int cols, const int elemSize, const torch::Tensor& host_tensor, const int lda, torch::Tensor& dev_tensor, const int ldb, const at::cuda::CUDAStream &stream) {
-    TORCH_CUDABLAS_CHECK(cublasSetMatrixAsync(
+    FLK_CUDABLAS_CHECK(cublasSetMatrixAsync(
         rows, cols, elemSize,
         host_tensor.data_ptr(),
         lda,
@@ -19,7 +21,7 @@ void cublas_2d_copy_to_dev_async (const int rows, const int cols, const int elem
 }
 
 void cublas_2d_copy_to_dev (const int rows, const int cols, const int elemSize, const torch::Tensor& host_tensor, const int lda, torch::Tensor& dev_tensor, const int ldb) {
-    TORCH_CUDABLAS_CHECK(cublasSetMatrix(
+    FLK_CUDABLAS_CHECK(cublasSetMatrix(
         rows, cols, elemSize,
         host_tensor.data_ptr(),
         lda,
@@ -29,7 +31,7 @@ void cublas_2d_copy_to_dev (const int rows, const int cols, const int elemSize, 
 }
 
 void cublas_2d_copy_to_host_async(const int rows, const int cols, const int elemSize, const torch::Tensor& dev_tensor, const int lda, torch::Tensor& host_tensor, const int ldb, const at::cuda::CUDAStream &stream) {
-    TORCH_CUDABLAS_CHECK(cublasGetMatrixAsync(
+    FLK_CUDABLAS_CHECK(cublasGetMatrixAsync(
         rows, cols, elemSize,
         dev_tensor.data_ptr(),
         lda,
@@ -40,7 +42,7 @@ void cublas_2d_copy_to_host_async(const int rows, const int cols, const int elem
 }
 
 void cublas_2d_copy_to_host(const int rows, const int cols, const int elemSize, const torch::Tensor& dev_tensor, const int lda, torch::Tensor& host_tensor, const int ldb) {
-    TORCH_CUDABLAS_CHECK(cublasGetMatrix(
+    FLK_CUDABLAS_CHECK(cublasGetMatrix(
         rows, cols, elemSize,
         dev_tensor.data_ptr(),
         lda,
@@ -80,7 +82,7 @@ void trsm<double>(
                  double *B,
                  int ldb)
 {
-    TORCH_CUDABLAS_CHECK(cublasDtrsm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb));
+    FLK_CUDABLAS_CHECK(cublasDtrsm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb));
 }
 template<>
 void trsm<float>(
@@ -97,7 +99,7 @@ void trsm<float>(
                  float *B,
                  int ldb)
 {
-    TORCH_CUDABLAS_CHECK(cublasStrsm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb));
+    FLK_CUDABLAS_CHECK(cublasStrsm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb));
 }
 
 void cublas_trsm(const torch::Tensor& A, const torch::Tensor& B, torch::Scalar alpha, bool left, bool upper, bool transpose, bool unitriangular, int m, int n, int lda, int ldb) {
@@ -149,7 +151,7 @@ void trmm<double>(
                  double *C,
                  int ldc)
 {
-    TORCH_CUDABLAS_CHECK(cublasDtrmm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb, C, ldc));
+    FLK_CUDABLAS_CHECK(cublasDtrmm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb, C, ldc));
 }
 template<>
 void trmm<float>(
@@ -168,7 +170,7 @@ void trmm<float>(
                  float *C,
                  int ldc)
 {
-    TORCH_CUDABLAS_CHECK(cublasStrmm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb, C, ldc));
+    FLK_CUDABLAS_CHECK(cublasStrmm(cublas_handle, side, uplo, trans, diag, m, n, alpha, A, lda, B, ldb, C, ldc));
 }
 
 void cublas_trmm(const torch::Tensor& A, const torch::Tensor& B, const torch::Tensor& C, bool left, bool upper, bool transpose, bool unitriangular, torch::Scalar alpha, int m, int n, int lda, int ldb, int ldc) {
@@ -222,7 +224,7 @@ void gemm<double>(
                  double *C,
                  int ldc)
 {
-    TORCH_CUDABLAS_CHECK(cublasDgemm(cublas_handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc));
+    FLK_CUDABLAS_CHECK(cublasDgemm(cublas_handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc));
 }
 template<>
 void gemm<float>(
@@ -241,7 +243,7 @@ void gemm<float>(
                  float *C,
                  int ldc)
 {
-    TORCH_CUDABLAS_CHECK(cublasSgemm(cublas_handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc));
+    FLK_CUDABLAS_CHECK(cublasSgemm(cublas_handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc));
 }
 
 void cublas_gemm(const torch::Tensor& A, int lda, bool transa, const torch::Tensor& B, int ldb, bool transb, const torch::Tensor& C, int ldc, int m, int n, int k, torch::Scalar alpha, torch::Scalar beta) {
@@ -290,7 +292,7 @@ void syrk<double>(
                  double *C,
                  int ldc)
 {
-    TORCH_CUDABLAS_CHECK(cublasDsyrk(cublas_handle, uplo, trans, n, k, alpha, A, lda, beta, C, ldc));
+    FLK_CUDABLAS_CHECK(cublasDsyrk(cublas_handle, uplo, trans, n, k, alpha, A, lda, beta, C, ldc));
 }
 template<>
 void syrk<float>(
@@ -306,7 +308,7 @@ void syrk<float>(
                  float *C,
                  int ldc)
 {
-    TORCH_CUDABLAS_CHECK(cublasSsyrk(cublas_handle, uplo, trans, n, k, alpha, A, lda, beta, C, ldc));
+    FLK_CUDABLAS_CHECK(cublasSsyrk(cublas_handle, uplo, trans, n, k, alpha, A, lda, beta, C, ldc));
 }
 
 void cublas_syrk(const torch::Tensor& A, int lda, const torch::Tensor& C, int ldc, torch::Scalar alpha, torch::Scalar beta, bool upper, bool transpose, int n, int k) {

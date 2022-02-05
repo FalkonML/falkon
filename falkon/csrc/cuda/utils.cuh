@@ -36,7 +36,7 @@ inline int ceildiv(int dividend, int divisor) {
 }
 
 
-#define TORCH_CUSOLVER_CHECK(EXPR)                              \
+#define FLK_CUSOLVER_CHECK(EXPR)                              \
   do {                                                          \
     cusolverStatus_t __err = EXPR;                              \
     TORCH_CHECK(__err == CUSOLVER_STATUS_SUCCESS,               \
@@ -74,7 +74,7 @@ static const char* cusolverGetErrorString(cusolverStatus_t error) {
 }
 
 
-#define TORCH_CUDABLAS_CHECK(EXPR)                                      \
+#define FLK_CUDABLAS_CHECK(EXPR)                                      \
   do {                                                          \
     cublasStatus_t __err = EXPR;                              \
     TORCH_CHECK(__err == CUBLAS_STATUS_SUCCESS,                 \

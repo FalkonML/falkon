@@ -7,7 +7,7 @@ from falkon.c_ext import copy_transpose, cublas_trsm
 from falkon.utils.tensor_helpers import is_f_contig, create_fortran, create_C
 
 
-def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: int, transpose: int,
+def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: bool, transpose: bool,
               stream: Optional[torch.cuda.Stream] = None) -> torch.Tensor:
     if not is_f_contig(A, strict=False):
         raise ValueError("A must be f-contiguous for CUDA TRSM to work.")

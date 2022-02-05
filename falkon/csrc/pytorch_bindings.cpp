@@ -41,6 +41,8 @@
 
 // CUDA library bindings
 #include "cuda/cublas_bindings.h"
+#include "cuda/cuda_bindings.h"
+#include "cuda/cusolver_bindings.h"
 #endif
 
 #ifdef WITH_CUDA
@@ -66,11 +68,13 @@ void _cublas_2d_copy_to_dev_async(
     const torch::Tensor& host_tensor,
     const int lda, torch::Tensor& dev_tensor,
     const int ldb,
-    const at::cuda::CUDAStream &stream
+    const py::object &stream
 )
 {
     #ifdef WITH_CUDA
-        cublas_2d_copy_to_dev_async(rows, cols, elemSize, host_tensor, lda, dev_tensor, ldb, stream);
+        void *stream_ptr = ctypes_void_ptr(stream);
+        at::cuda::CUDAStream torch_stream = at::cuda::getStreamFromExternal((cudaStream_t)stream_ptr, at::cuda::current_device());
+        cublas_2d_copy_to_dev_async(rows, cols, elemSize, host_tensor, lda, dev_tensor, ldb, torch_stream);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
@@ -99,11 +103,13 @@ void _cublas_2d_copy_to_host_async(
     const torch::Tensor& dev_tensor,
     const int lda, torch::Tensor& host_tensor,
     const int ldb,
-    const at::cuda::CUDAStream &stream
+    const py::object &stream
 )
 {
     #ifdef WITH_CUDA
-        cublas_2d_copy_to_host_async(rows, cols, elemSize, dev_tensor, lda, host_tensor, ldb, stream);
+        void *stream_ptr = ctypes_void_ptr(stream);
+        at::cuda::CUDAStream torch_stream = at::cuda::getStreamFromExternal((cudaStream_t)stream_ptr, at::cuda::current_device());
+        cublas_2d_copy_to_host_async(rows, cols, elemSize, dev_tensor, lda, host_tensor, ldb, torch_stream);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
@@ -132,11 +138,13 @@ void _cuda_2d_copy_async(
     const int src_pitch,
     const int width,
     const int height,
-    const at::cuda::CUDAStream &stream
+    const py::object &stream
 )
 {
     #ifdef WITH_CUDA
-        cuda_2d_copy_async(dest_tensor, dest_pitch, src_tensor, src_pitch, width, height, stream);
+        void *stream_ptr = ctypes_void_ptr(stream);
+        at::cuda::CUDAStream torch_stream = at::cuda::getStreamFromExternal((cudaStream_t)stream_ptr, at::cuda::current_device());
+        cuda_2d_copy_async(dest_tensor, dest_pitch, src_tensor, src_pitch, width, height, torch_stream);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
@@ -162,11 +170,13 @@ void _cuda_1d_copy_async(
     torch::Tensor& dest_tensor,
     const torch::Tensor &src_tensor,
     const int count,
-    const at::cuda::CUDAStream &stream
+    const py::object &stream
 )
 {
     #ifdef WITH_CUDA
-        cuda_1d_copy_async(dest_tensor, src_tensor, count, stream);
+        void *stream_ptr = ctypes_void_ptr(stream);
+        at::cuda::CUDAStream torch_stream = at::cuda::getStreamFromExternal((cudaStream_t)stream_ptr, at::cuda::current_device());
+        cuda_1d_copy_async(dest_tensor, src_tensor, count, torch_stream);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
@@ -201,40 +211,40 @@ void _cusolver_potrf(const torch::Tensor& A, const torch::Tensor& workspace, con
     #endif
 }
 
-void _cublas_trsm(const torch::Tensor& A, const torch::Tensor& B, torch::Scalar alpha, bool left, bool upper, bool transpose, bool unitriangular, int m, int n, int lda, int ldb) {
+void _cublas_trsm(const torch::Tensor& A, const torch::Tensor& B, double alpha, bool left, bool upper, bool transpose, bool unitriangular, int m, int n, int lda, int ldb) {
     #ifdef WITH_CUDA
-        cublas_trsm(A, B, alpha, left, upper, transpose, unitriangular, m, n, lda, ldb);
+        cublas_trsm(A, B, torch::Scalar(alpha), left, upper, transpose, unitriangular, m, n, lda, ldb);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
 }
 
-void _cublas_trmm(const torch::Tensor& A, const torch::Tensor& B, const torch::Tensor& C, bool left, bool upper, bool transpose, bool unitriangular, torch::Scalar alpha, int m, int n, int lda, int ldb, int ldc) {
+void _cublas_trmm(const torch::Tensor& A, const torch::Tensor& B, const torch::Tensor& C, bool left, bool upper, bool transpose, bool unitriangular, double alpha, int m, int n, int lda, int ldb, int ldc) {
     #ifdef WITH_CUDA
-        cublas_trmm(A, B, C, left, upper, transpose, unitriangular, alpha, m, n, lda, ldb, ldc);
+        cublas_trmm(A, B, C, left, upper, transpose, unitriangular, torch::Scalar(alpha), m, n, lda, ldb, ldc);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
 }
 
-void _cublas_gemm(const torch::Tensor& A, int lda, bool transa, const torch::Tensor& B, int ldb, bool transb, const torch::Tensor& C, int ldc, int m, int n, int k, torch::Scalar alpha, torch::Scalar beta) {
+void _cublas_gemm(const torch::Tensor& A, int lda, bool transa, const torch::Tensor& B, int ldb, bool transb, const torch::Tensor& C, int ldc, int m, int n, int k, double alpha, double beta) {
     #ifdef WITH_CUDA
-        cublas_gemm(A, lda, transa, B, ldb, transb, C, ldc, m, n, k, alpha, beta);
+        cublas_gemm(A, lda, transa, B, ldb, transb, C, ldc, m, n, k, torch::Scalar(alpha), torch::Scalar(beta));
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
 }
 
-void _cublas_syrk(const torch::Tensor& A, int lda, const torch::Tensor& C, int ldc, torch::Scalar alpha, torch::Scalar beta, bool upper, bool transpose, int n, int k) {
+void _cublas_syrk(const torch::Tensor& A, int lda, const torch::Tensor& C, int ldc, double alpha, double beta, bool upper, bool transpose, int n, int k) {
     #ifdef WITH_CUDA
-        cublas_syrk(A, lda, C, ldc, alpha, beta, upper, transpose, n, k);
+        cublas_syrk(A, lda, C, ldc, torch::Scalar(alpha), torch::Scalar(beta), upper, transpose, n, k);
     #else
         AT_ERROR("Not compiled with CUDA support");
     #endif
 }
 
 torch::Tensor parallel_potrf(
-     std::vector<std::tuple<float, py::object, int>> gpu_info,
+     std::vector<std::tuple<float, int>> gpu_info,
      std::vector<std::tuple<int, int, int, int, int>> allocations,
      torch::Tensor A)
 {
@@ -430,29 +440,26 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         py::arg("indexptr1"), py::arg("indices1"), py::arg("data1"), py::arg("indexptr2"), py::arg("indices2"), py::arg("data2"), py::arg("out"),
         py::call_guard<py::gil_scoped_release>()
   );
-
   m.def("cublas_2d_copy_to_dev_async", &_cublas_2d_copy_to_dev_async, "cuBLAS 2D copy to device asynchronously",
-    py::arg("rows"), py::arg("cols"), py::arg("elemSize"), , py::arg("host_tensor"), py::arg("lda"), py::arg("dev_tensor"), py::arg("ldb"), py::arg("stream"));
+    py::arg("rows"), py::arg("cols"), py::arg("elemSize"), py::arg("host_tensor"), py::arg("lda"), py::arg("dev_tensor"), py::arg("ldb"), py::arg("stream"));
 
   m.def("cublas_2d_copy_to_dev", &_cublas_2d_copy_to_dev, "cuBLAS 2D copy to device",
-    py::arg("rows"), py::arg("cols"), py::arg("elemSize"), , py::arg("host_tensor"), py::arg("lda"), py::arg("dev_tensor"), py::arg("ldb"));
+    py::arg("rows"), py::arg("cols"), py::arg("elemSize"), py::arg("host_tensor"), py::arg("lda"), py::arg("dev_tensor"), py::arg("ldb"));
 
   m.def("cublas_2d_copy_to_host_async", &_cublas_2d_copy_to_host_async, "cuBLAS 2D copy to host asynchronously",
-    py::arg("rows"), py::arg("cols"), py::arg("elemSize"), , py::arg("dev_tensor"), py::arg("lda"), py::arg("host_tensor"), py::arg("ldb"), py::arg("stream"));
+    py::arg("rows"), py::arg("cols"), py::arg("elemSize"), py::arg("dev_tensor"), py::arg("lda"), py::arg("host_tensor"), py::arg("ldb"), py::arg("stream"));
 
   m.def("cublas_2d_copy_to_host", &_cublas_2d_copy_to_host, "cuBLAS 2D copy to host",
-    py::arg("rows"), py::arg("cols"), py::arg("elemSize"), , py::arg("dev_tensor"), py::arg("lda"), py::arg("host_tensor"), py::arg("ldb"));
+    py::arg("rows"), py::arg("cols"), py::arg("elemSize"), py::arg("dev_tensor"), py::arg("lda"), py::arg("host_tensor"), py::arg("ldb"));
 
-
-m.def("cuda_2d_copy_async"), &_cuda_2d_copy_async, "",
+m.def("cuda_2d_copy_async", &_cuda_2d_copy_async, "",
     py::arg("dest_tensor"), py::arg("dest_pitch"), py::arg("src_tensor"), py::arg("src_pitch"), py::arg("width"), py::arg("height"), py::arg("stream"),
     py::call_guard<py::gil_scoped_release>());
-m.def("cuda_2d_copy"), &_cuda_2d_copy, "",
-    py::arg("dest_tensor"), py::arg("dest_pitch"), py::arg("src_tensor"), py::arg("src_pitch"), py::arg("width"), py::arg("height"),
+m.def("cuda_2d_copy", &_cuda_2d_copy, "",
     py::arg("dest_tensor"), py::arg("dest_pitch"), py::arg("src_tensor"), py::arg("src_pitch"), py::arg("width"), py::arg("height"),
     py::call_guard<py::gil_scoped_release>());
 
-m.def("cuda_1d_copy_async"), &_cuda_1d_copy_async, "",
+m.def("cuda_1d_copy_async", &_cuda_1d_copy_async, "",
     py::arg("dest_tensor"), py::arg("src_tensor"), py::arg("count"), py::arg("stream"),
     py::call_guard<py::gil_scoped_release>());
 m.def("cuda_1d_copy", &_cuda_1d_copy, "",
@@ -476,9 +483,6 @@ m.def("cublas_gemm", &_cublas_gemm, "",
 m.def("cublas_syrk", &_cublas_syrk, "",
     py::arg("A"), py::arg("lda"), py::arg("C"), py::arg("ldc"), py::arg("alpha"), py::arg("beta"), py::arg("upper"), py::arg("transpose"), py::arg("n"), py::arg("k"),
     py::call_guard<py::gil_scoped_release>());
-
-
-
 
 
 }

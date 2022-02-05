@@ -1,7 +1,6 @@
 #include "multigpu_potrf.h"
 #include "cublas_bindings.h"
 #include "cusolver_bindings.h"
-#include "utils.cuh"
 
 #include <thread>
 #include <atomic>
@@ -14,7 +13,8 @@
 #include <ATen/ATen.h>
 #include <c10/cuda/CUDAGuard.h>
 #include <ATen/cuda/CUDAContext.h>
-#include <ATen/cuda/CUDASolver.h>
+
+#include "utils.cuh"
 
 
 //#define DEBUG 1
@@ -55,7 +55,7 @@ static inline void load_block(
     const int64_t sj = data_h.stride(1);
     scalar_t *data_h_ptr = data_h.data_ptr<scalar_t>();
     const uint64_t offset = si * alloc_i.start + sj * alloc_j.start;
-    TORCH_CUDABLAS_CHECK(cublasSetMatrixAsync(
+    FLK_CUDABLAS_CHECK(cublasSetMatrixAsync(
         /*rows=*/alloc_i.size,
         /*cols=*/alloc_j.size,
         /*elem_size=*/sizeof(scalar_t),
@@ -80,7 +80,7 @@ static inline void get_block(
     const int64_t sj = data_h.stride(1);
     scalar_t *data_h_ptr = data_h.data_ptr<scalar_t>();
     const uint64_t offset = si * alloc_i.start + sj * alloc_j.start;
-    TORCH_CUDABLAS_CHECK(cublasGetMatrixAsync(
+    FLK_CUDABLAS_CHECK(cublasGetMatrixAsync(
         /*rows=*/alloc_i.size,
         /*cols=*/alloc_j.size,
         /*elem_size=*/sizeof(scalar_t),
@@ -233,8 +233,8 @@ void parallel_potrf_runner(int device_id,
         if (i_alloc.device == device_id) {
             while (work[i][i] != i) { std::this_thread::yield(); }
             opt_load_block<scalar_t>(A, i_block, i, col0_fill, i_alloc, i_alloc, mbs, s1_c); // [i, i]
-            at::cuda::solver::potrf<scalar_t>(cusolver_handle, CUBLAS_FILL_MODE_LOWER, i_alloc.size,
-                                              i_block, mbs, potrf_buf_ptr, potrf_buf_size, potrf_info_buf_ptr);
+            potrf<scalar_t>(cusolver_handle, CUBLAS_FILL_MODE_LOWER, i_alloc.size,
+                            i_block, mbs, potrf_buf_ptr, potrf_buf_size, potrf_info_buf_ptr);
             C10_CUDA_CHECK(cudaStreamSynchronize(s1_c));
             if (potrf_info_h != 0) {
                 AT_ERROR("Cholesky decomposition failed: leading minor of order ",
