@@ -3,6 +3,8 @@
 #include <torch/extension.h>
 #include <c10/cuda/CUDAStream.h>
 
+std::pair<size_t, size_t> mem_get_info(int device_id);
+
 void cuda_2d_copy_async(
     torch::Tensor& dest_tensor,
     const int dest_pitch,

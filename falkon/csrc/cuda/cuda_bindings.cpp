@@ -4,6 +4,17 @@
 #include <c10/cuda/CUDAStream.h>
 #include <c10/cuda/CUDAException.h>
 
+#include <c10/cuda/CUDAGuard.h>
+
+
+std::pair<size_t, size_t> mem_get_info(int device_id) {
+    const at::cuda::CUDAGuard device_guard(device_id);
+    size_t free;
+    size_t total;
+    C10_CUDA_CHECK(cudaMemGetInfo(&free, &total));
+    return std::pair<size_t, size_t>{free, total};
+}
+
 
 void cuda_2d_copy_async(
     torch::Tensor& dest_tensor,

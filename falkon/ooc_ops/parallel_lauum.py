@@ -176,8 +176,8 @@ def par_lauum_f_lower(A: torch.Tensor,
                         #         B=ccb[br.length:, :].data_ptr(), ldb=ccb.stride(1),                 # B is k * n
                         #         beta=1.0, C=ccb.data_ptr(), ldc=ccb.stride(1))                # C is m * n
                         cublas_gemm(A=col_r[br.length:, :], lda=col_r.stride(1), alpha=1.0,
-                                    B=ccb[br.length:, :].data_ptr(), ldb=ccb.stride(1),
-                                    C=ccb.data_ptr(), ldc=ccb.stride(1), beta=1.0,
+                                    B=ccb[br.length:, :], ldb=ccb.stride(1),
+                                    C=ccb, ldc=ccb.stride(1), beta=1.0,
                                     transa=True, transb=False, m=br.length, n=bb.length, k=col_r.shape[0] - br.length)
                     # Copy back to A[r, b]
                     if independent_output:
@@ -239,7 +239,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                 #     width=bb.length * dts, height=N - b_start, stream=s1_cuda)
                 cuda_2d_copy_async(src_tensor=A[b_start, bb.start], src_pitch=A.shape[1] * dts,
                                    dest_tensor=whole_col_b, dest_pitch=max_block_size * dts,
-                                   width=bb.length * dts, height=N - b_start, stream=s1)
+                                   width=bb.length * dts, height=N - b_start)
             except ValueError:  # all of `my_rows` are smaller than `b`.
                 pass
             if not independent_output:
@@ -299,7 +299,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                     #     width=br.length * dts, height=N - br.start, stream=s1_cuda)
                     cuda_2d_copy_async(src_tensor=A[br.start, br.start], src_pitch=A.shape[1] * dts,
                                        dest_tensor=whole_col_r, dest_pitch=max_block_size * dts,
-                                       width=br.length * dts, height=N - br.start, stream=s1)
+                                       width=br.length * dts, height=N - br.start)
                     # Restrict column b to only the last 'r' rows
                     ccb = whole_col_b[(br.start - b_start) * max_block_size:]
 
@@ -332,7 +332,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                         #         beta=1.0, C=ccb.data_ptr(), ldc=max_block_size)
                         cublas_gemm(A=ccb[br.length * max_block_size:], lda=max_block_size, alpha=1.0,
                                     B=whole_col_r[br.length * max_block_size:], ldb=max_block_size,
-                                    C=ccb.data_ptr(), ldc=max_block_size, beta=1.0,
+                                    C=ccb, ldc=max_block_size, beta=1.0,
                                     transa=False, transb=True, m=bb.length, n=br.length, k=N - br.start - br.length)
 
                     # Copy back to A[r, b]
@@ -350,7 +350,7 @@ def par_lauum_c_lower(A: torch.Tensor,
                         #     B=temp_bb.data_ptr(), ldb=max_block_size, stream=s1_cuda)
                         cublas_2d_copy_to_host_async(rows=bb.length, cols=br.length, elemSize=dts,
                                                      dev_tensor=ccb, lda=max_block_size,
-                                                     host_tensor=temp_bb, ldb=max_block_size, stream=s1)
+                                                     host_tensor=temp_bb, ldb=max_block_size)
                         s1.synchronize()
                         A[bb.start:bb.end, br.start:br.end].copy_(temp_bb[:br.length, :bb.length].T)
                     else:
@@ -362,5 +362,5 @@ def par_lauum_c_lower(A: torch.Tensor,
                         cublas_2d_copy_to_host_async(
                             rows=bb.length, cols=br.length, elemSize=dts,
                             dev_tensor=ccb, lda=max_block_size,
-                            host_tensor=A[br.start, bb.start], ldb=A.shape[0], stream=s1)
+                            host_tensor=A[br.start, bb.start], ldb=A.shape[0])
             s1.synchronize()
