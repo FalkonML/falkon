@@ -59,8 +59,7 @@ def _ic_cholesky(A, upper, device):
     #                            "POTRF Buffer size")
     # potrf_fn = choose_fn(A.dtype, cusolverDnDpotrf, cusolverDnSpotrf, "POTRF")
 
-    with torch.cuda.device(tc_device), \
-            torch.cuda.stream(tc_stream):
+    with torch.cuda.device(tc_device), torch.cuda.stream(tc_stream):
         # Determine necessary buffer size
         potrf_bsize = cusolver_potrf_buffer_size(A=A, upper=upper, n=n, lda=n)
         # potrf_bsize = potrf_buf_size(handle=cusolver_handle, uplo=uplo, n=n, A=0, lda=n)
@@ -74,7 +73,7 @@ def _ic_cholesky(A, upper, device):
             potrf_wspace = gpu_buf[:potrf_bsize]
             Agpu = extract_fortran(gpu_buf, (n, n), offset=potrf_bsize)
             # Copy A to device memory
-            copy(A, Agpu, s=tc_stream)
+            copy(A, Agpu, non_blocking=True)
 
         dev_info = torch.tensor(4, dtype=torch.int32, device=tc_device)
 
@@ -87,7 +86,7 @@ def _ic_cholesky(A, upper, device):
 
         # Copy back to CPU
         if not A.is_cuda:
-            copy(Agpu, A, s=tc_stream)
+            copy(Agpu, A, non_blocking=True)
             del Agpu
         del potrf_wspace, dev_info
         tc_stream.synchronize()

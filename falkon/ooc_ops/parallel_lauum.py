@@ -10,7 +10,10 @@ from falkon.utils.stream_utils import sync_current_stream
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import create_fortran, extract_same_stride, extract_fortran
 from falkon.utils.device_copy import copy
-from falkon.c_ext import lauum_cuda, cublas_syrk, cublas_trmm, cublas_gemm, cuda_2d_copy_async, cublas_2d_copy_to_host_async
+from falkon.c_ext import (
+    lauum_cuda, cublas_syrk, cublas_trmm, cublas_gemm,
+    cuda_2d_copy_async, cublas_2d_copy_to_host_async
+)
 
 
 __all__ = ("par_lauum_c_lower", "par_lauum_f_lower", "BlockAlloc")
@@ -83,7 +86,7 @@ def par_lauum_f_lower(A: torch.Tensor,
             try:
                 min_row = min([r for r in my_rows if r >= b])
                 b_start = block_allocs[min_row].start
-                col_b = copy(A[b_start: N, bb.start: bb.end], whole_col_b[b_start:, :bb.length], s=s1)
+                col_b = copy(A[b_start: N, bb.start: bb.end], whole_col_b[b_start:, :bb.length], non_blocking=True)
             except ValueError:
                 pass  # No column here
             if not independent_output:
@@ -135,7 +138,7 @@ def par_lauum_f_lower(A: torch.Tensor,
                         # cuda and non-cuda cases, since we have different orderings (this will require extra buffer)
                         Abb.copy_(cur_lauum_out.T)
                     else:
-                        copy(cur_lauum_out, Abb, s=s1)
+                        copy(cur_lauum_out, Abb, non_blocking=True)
                 elif r > b:
                     br = block_allocs[r]
 
@@ -143,7 +146,7 @@ def par_lauum_f_lower(A: torch.Tensor,
                     if is_cuda:  # If col_r is already in GPU no copy needed.
                         col_r = A[br.start:N, br.start:br.end]
                     else:
-                        col_r = copy(A[br.start:N, br.start: br.end], whole_col_r[:N - br.start, :br.length], s=s1)
+                        col_r = copy(A[br.start:N, br.start: br.end], whole_col_r[:N - br.start, :br.length], non_blocking=True)
                     # Restrict column b to only the last 'r' rows
                     ccb = col_b[br.start - b_start:, :]
 
@@ -181,11 +184,11 @@ def par_lauum_f_lower(A: torch.Tensor,
                         if is_cuda:
                             A[bb.start:bb.end, br.start:br.end].copy_(ccb[:br.length, :bb.length].T)
                         else:
-                            _temp_cpu = copy(ccb[:br.length, :bb.length], temp_bb[:br.length, :bb.length], s=s1)
+                            _temp_cpu = copy(ccb[:br.length, :bb.length], temp_bb[:br.length, :bb.length], non_blocking=True)
                             s1.synchronize()  # must wait for data to be onto CPU.
                             A[bb.start:bb.end, br.start:br.end].copy_(_temp_cpu.T)
                     else:
-                        copy(ccb[:br.length, :bb.length], A[br.start:br.end, bb.start:bb.end], s=s1)
+                        copy(ccb[:br.length, :bb.length], A[br.start:br.end, bb.start:bb.end], non_blocking=True)
             s1.synchronize()
 
 

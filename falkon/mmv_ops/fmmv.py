@@ -201,7 +201,10 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                         c_m2.transpose_csc().to_scipy().tocsr(copy=False)) \
                         .index_to_int() \
                         .to(device=dev, non_blocking=True)
-                    c_dev_v = copy(v[j: j + lenj], dev_v[:lenj], s=s2)
+                    with ExitStack() as stack2:
+                        if dev.type == 'cuda':
+                            stack2.enter_context(tcd.stream(s2))
+                        c_dev_v = copy(v[j: j + lenj], dev_v[:lenj], non_blocking=True)
                 c_dev_ker = ker_gpu[:leni, :lenj].fill_(0.0)
 
                 c_dev_ker = kernel.compute_sparse(c_dev_m1, c_dev_m2, c_dev_ker, diag=False,
@@ -212,7 +215,7 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
 
                 # Copy output to host
                 if not incore:
-                    copy(c_dev_out, out[i: i + leni], s=s1)
+                    copy(c_dev_out, out[i: i + leni], non_blocking=True)
 
 
 def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor],
@@ -259,7 +262,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
             if m1_ic:
                 c_dev_m1 = m1[i: i + leni, :]
             else:
-                c_dev_m1 = copy(m1[i: i + leni, :], dev_m1[:leni, :], s=s1)
+                c_dev_m1 = copy(m1[i: i + leni, :], dev_m1[:leni, :], non_blocking=True)
             if out_ic:
                 c_dev_out = out[i: i + leni]
             else:
@@ -271,11 +274,14 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
                 if m2_ic:
                     c_dev_m2 = m2[j: j + lenj, :]
                 else:
-                    c_dev_m2 = copy(m2[j: j + lenj, :], dev_m2[:lenj, :], s=s1)
+                    c_dev_m2 = copy(m2[j: j + lenj, :], dev_m2[:lenj, :], non_blocking=True)
                 if v_ic:
                     c_dev_v = v[j: j + lenj, :]
                 else:
-                    c_dev_v = copy(v[j: j + lenj, :], dev_v[:lenj, :], s=s2)
+                    with ExitStack() as stack2:
+                        if dev.type == 'cuda':
+                            stack2.enter_context(tcd.stream(s2))
+                        c_dev_v = copy(v[j: j + lenj, :], dev_v[:lenj, :], non_blocking=True)
                 c_dev_ker = dev_ker[:leni, :lenj].fill_(0.0)
 
                 c_dev_ker = kernel.compute(c_dev_m1, c_dev_m2, c_dev_ker, diag=False)
@@ -286,7 +292,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
                     s1.synchronize()  # sync necessary to avoid s2 overwriting dev_v/dev_w
             # end iter over M
             if not out_ic:
-                copy(c_dev_out, out[i: i + leni], s=s1)
+                copy(c_dev_out, out[i: i + leni], non_blocking=True)
         # end iter over N
     # exit context manager (device, stream)
 
@@ -480,7 +486,7 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
             stack.enter_context(tcd.device(dev))
             stack.enter_context(tcd.stream(s1))
         if not incore:  # Note that CUDA-incore is not allowed to happen (CPU->CUDA)
-            copy(v, dev_v, s=s1)
+            copy(v, dev_v, non_blocking=True)
             dev_m2 = SparseTensor.from_scipy(
                 m2.transpose_csc().to_scipy().tocsr(copy=False)) \
                 .index_to_int() \
@@ -499,7 +505,7 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
             if w is None:
                 c_dev_w = dev_w[:leni, :].fill_(0.0)
             else:
-                c_dev_w = copy(w[i: i + leni, :], dev_w[:leni, :], s=s1)
+                c_dev_w = copy(w[i: i + leni, :], dev_w[:leni, :], non_blocking=True)
 
             c_dev_ker = ker_gpu[:leni].fill_(0.0)
             c_dev_ker = kernel.compute_sparse(c_dev_m1, dev_m2, c_dev_ker, diag=False,
@@ -508,7 +514,7 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
             c_dev_w.addmm_(c_dev_ker, dev_v)
             dev_out.addmm_(c_dev_ker.T, c_dev_w)
         if not incore and not dev_out_exists:
-            copy(dev_out, out, s=s1)
+            copy(dev_out, out, non_blocking=True)
 
 
 def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
@@ -553,17 +559,23 @@ def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
             stack.enter_context(tcd.stream(s1))
         dev_out.fill_(0.0)
         if not m2_ic:
-            copy(m2, dev_m2, s=s1)
+            copy(m2, dev_m2, non_blocking=True)
         if not v_ic:
-            copy(v, dev_v, s=s2)
+            with ExitStack() as stack2:
+                if dev.type == 'cuda':
+                    stack2.enter_context(tcd.stream(s2))
+                copy(v, dev_v, non_blocking=True)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
             if m1_ic:
                 c_dev_m1 = m1[i: i + leni, :]
             else:
-                c_dev_m1 = copy(m1[i: i + leni, :], dev_m1[:leni, :], s=s1)
+                c_dev_m1 = copy(m1[i: i + leni, :], dev_m1[:leni, :], non_blocking=True)
             if w is not None:
-                c_dev_w = copy(w[i: i + leni, :], dev_w[:leni, :], s=s2)
+                with ExitStack() as stack2:
+                    if dev.type == 'cuda':
+                        stack2.enter_context(tcd.stream(s2))
+                    c_dev_w = copy(w[i: i + leni, :], dev_w[:leni, :], non_blocking=True)
             else:
                 c_dev_w = dev_w[:leni, :].fill_(0.0)
 
@@ -577,7 +589,7 @@ def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
                 s1.synchronize()  # sync necessary to avoid s2 overwriting dev_v/dev_w
 
         if not out_ic:
-            copy(dev_out, out, s=s1)
+            copy(dev_out, out, non_blocking=True)
 
 
 # noinspection PyMethodOverriding
