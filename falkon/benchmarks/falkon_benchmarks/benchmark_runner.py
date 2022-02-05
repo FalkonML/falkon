@@ -193,7 +193,8 @@ def run_gpytorch(dset: Dataset,
     import torch
     import gpytorch
     from falkon.benchmarks.models.gpytorch_variational_models import (
-            TwoClassVGP, RegressionVGP, MultiClassVGP)
+        TwoClassVGP, RegressionVGP, MultiClassVGP
+    )
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -211,18 +212,17 @@ def run_gpytorch(dset: Dataset,
         inducing_idx = np.random.choice(num_samples, num_centers, replace=False)
         inducing_points = Xtr[inducing_idx].reshape(num_centers, -1)
         print("Took %d random inducing points" % (inducing_points.shape[0]))
-        # Determine num devices
-        n_devices = torch.cuda.device_count()
-        output_device = torch.device('cuda:0')
         # Kernel
         if num_outputs == 1:
             # Kernel has 1 length-scale!
             kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims=None))
             kernel.base_kernel.lengthscale = kernel_sigma
-            #kernel = gpytorch.kernels.keops.RBFKernel(ard_num_dims=None)
-            #kernel.lengthscale = kernel_sigma
+            # kernel = gpytorch.kernels.keops.RBFKernel(ard_num_dims=None)
+            # kernel.lengthscale = kernel_sigma
         else:
-            kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims=None, batch_shape=torch.Size([num_outputs])))
+            kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims=None,
+                                                                             batch_shape=torch.Size(
+                                                                                 [num_outputs])))
         if algorithm == Algorithm.GPYTORCH_CLS:
             if num_outputs == 1:
                 # 2 classes
@@ -337,8 +337,6 @@ def run_falkon(dset: Dataset,
         Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True)
         Xtr = Xtr.pin_memory()
         Ytr = Ytr.pin_memory()
-        temp_test = torch.empty(3, 3).cuda()
-        del temp_test
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
         with TicToc("FALKON ALGORITHM"):
             flk.error_fn = err_fns[0]
@@ -559,7 +557,7 @@ def run_gpflow(dset: Dataset,
     print("Starting to train model %s on data %s" % (model, dset), flush=True)
     model.fit(Xtr, Ytr, Xts, Yts)
     print("Training of %s on %s complete in %.2fs" %
-        (algorithm, dset, time.time() - t_s), flush=True)
+          (algorithm, dset, time.time() - t_s), flush=True)
     if model.num_classes == 2:
         Yts = (Yts + 1) / 2
         Ytr = (Ytr + 1) / 2

@@ -3,11 +3,10 @@ import math
 import torch
 
 from falkon import la_helpers
-# from falkon.cuda import initialization
 from falkon.options import FalkonOptions, CholeskyOptions
 from falkon.utils import devices
 from falkon.utils.devices import DeviceInfo
-from falkon.utils.helpers import choose_fn, sizeof_dtype
+from falkon.utils.helpers import sizeof_dtype
 from falkon.c_ext import parallel_potrf, cusolver_potrf_buffer_size, cusolver_potrf
 from falkon.utils.tensor_helpers import (
     is_f_contig, copy_same_stride, extract_fortran
@@ -49,7 +48,6 @@ def _ic_cholesky(A, upper, device):
     if not is_f_contig(A):
         raise RuntimeError("Cholesky input must be F-contiguous")
 
-    uplo = 'U' if upper else 'L'
     n = A.shape[0]
 
     tc_device = torch.device("cuda:%d" % (device))
@@ -235,7 +233,6 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
         if opt.debug:
             print("Using in-core POTRF")
         _ic_cholesky(A, upper, device=device.Id)
-                     # cusolver_handle=initialization.cusolver_handle(device.Id))
     else:
         if opt.debug:
             print("Using parallel POTRF")

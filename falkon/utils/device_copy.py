@@ -84,14 +84,14 @@ def copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, non_blocking=False):
             #     B=H_narrow.data_ptr(), ldb=H_narrow.stride(1),
             #     stream=s._as_parameter_)
             cublas_2d_copy_to_host_async(rows, cols, dts, D_narrow, D_narrow.stride(1), H_narrow,
-                                 H_narrow.stride(1))
+                                         H_narrow.stride(1))
         else:
             # cublas_2d_copy_to_host(
             #     rows=rows, cols=cols, elem_size=dts,
             #     A=D_narrow.data_ptr(), lda=D_narrow.stride(1),
             #     B=H_narrow.data_ptr(), ldb=H_narrow.stride(1))
             cublas_2d_copy_to_host(rows, cols, dts, D_narrow, D_narrow.stride(1), H_narrow,
-                            H_narrow.stride(1))
+                                   H_narrow.stride(1))
     elif is_contig(D):
         if non_blocking:
             cuda_2d_copy_async(
@@ -149,14 +149,14 @@ def copy_to_device(rows, cols, H, Hi, Hj, D, Di, Dj, non_blocking=False):
             #     B=D_narrow.data_ptr(), ldb=D_narrow.stride(1),
             #     stream=s._as_parameter_)
             cublas_2d_copy_to_dev_async(rows, cols, dts, H_narrow, H_narrow.stride(1), D_narrow,
-                                 D_narrow.stride(1))
+                                        D_narrow.stride(1))
         else:
             # cublas_2d_copy_to_dev(
             #     rows=rows, cols=cols, elem_size=dts,
             #     A=H_narrow.data_ptr(), lda=H_narrow.stride(1),
             #     B=D_narrow.data_ptr(), ldb=D_narrow.stride(1))
             cublas_2d_copy_to_dev(rows, cols, dts, H_narrow, H_narrow.stride(1), D_narrow,
-                            D_narrow.stride(1))
+                                  D_narrow.stride(1))
     elif is_contig(H):
         if non_blocking:
             # cuda_memcpy2d_async(

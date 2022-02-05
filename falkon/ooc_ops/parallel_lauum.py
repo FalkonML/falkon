@@ -205,7 +205,6 @@ def par_lauum_c_lower(A: torch.Tensor,
     tc_device = torch.device('cuda:%d' % (device_id))
     s1 = torch.cuda.Stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
-    s1_cuda = s1._as_parameter_
 
     max_block_size = max(ba.length for ba in block_allocs)
     my_rows = sorted(my_rows)

@@ -7,7 +7,6 @@ import threading
 import numpy as np
 import pytest
 import torch
-import multiprocessing
 from sklearn import datasets
 
 from falkon.models.incore_falkon import InCoreFalkon
@@ -333,8 +332,8 @@ class TestStressInCore:
         # Expected result
         kernel = kernels.GaussianKernel(20.0)
         X, Y = X.cuda(), Y.cuda()
-        opt = FalkonOptions(use_cpu=False, keops_active="no", debug=False, #never_store_kernel=True,
-                            max_gpu_mem=1*2**30, cg_full_gradient_every=10)
+        opt = FalkonOptions(use_cpu=False, keops_active="no", debug=False,
+                            max_gpu_mem=1 * 2**30, cg_full_gradient_every=10)
         center_sel = FixedSelector(X[:2000])
         flk = InCoreFalkon(
             kernel=kernel, penalty=1e-6, M=2000, seed=10, options=opt,
@@ -351,6 +350,6 @@ class TestStressInCore:
         for i in range(len(actual)):
             try:
                 np.testing.assert_allclose(expected.numpy(), actual[i].numpy(), rtol=1e-7)
-            except:
+            except:  # noqa E722
                 wrong += 1
         assert wrong == 0, "%d results were not equal" % (wrong)

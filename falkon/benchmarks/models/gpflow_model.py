@@ -41,9 +41,9 @@ class TrainableGPR():
 
     def fit(self, X, Y, Xval, Yval):
         self.model = gpflow.models.GPR(
-                (X, Y),
-                kernel=self.kernel,
-                noise_variance=0.1)
+            (X, Y),
+            kernel=self.kernel,
+            noise_variance=0.1)
         # Create the optimizers
         adam_opt = tf.optimizers.Adam(self.lr)
 
@@ -109,7 +109,7 @@ class TrainableSGPR():
             kernel=self.kernel,
             inducing_variable=self.Z,
             noise_variance=0.001)
-        #self.model.likelihood.variance = gpflow.Parameter(1, transform=tfp.bijectors.Identity())
+        # self.model.likelihood.variance = gpflow.Parameter(1, transform=tfp.bijectors.Identity())
 
         # Setup training parameters
         if not self.train_hyperparams:
@@ -125,9 +125,12 @@ class TrainableSGPR():
 
         if self.optimizer == 'scipy':
             opt = gpflow.optimizers.Scipy()
+
             def scipy_callback(step, variables, value):
                 print("Step %d - Variables: %s" % (step, value))
-            opt.minimize(self.model.training_loss, self.model.trainable_variables, method='L-BFGS-B',options=dict(maxiter=self.num_iter, ftol=1e-32,maxcor=3, gtol=1e-16, disp=False),
+            opt.minimize(self.model.training_loss, self.model.trainable_variables,
+                         method='L-BFGS-B',
+                         options=dict(maxiter=self.num_iter, ftol=1e-32, maxcor=3, gtol=1e-16, disp=False),
                          step_callback=scipy_callback, compile=True)
         else:
             if self.optimizer == 'adam':
@@ -136,6 +139,7 @@ class TrainableSGPR():
                 opt = tf.optimizers.SGD(self.lr)
             else:
                 raise ValueError("Optimizer %s unknown" % (self.optimizer))
+
             @tf.function
             def step_fn():
                 opt.minimize(self.model.training_loss, var_list=self.model.trainable_variables)
@@ -148,7 +152,6 @@ class TrainableSGPR():
                 gpflow.utilities.print_summary(self.model)
                 print(f"Epoch {step + 1} - {t_elapsed:7.2f}s elapsed - "
                       f"validation {err_name} {val_err:7.5f}", flush=True)
-                #print("loss: %7.3f - sigma: %7.2f - variance: %7.2f" % (self.model.training_loss(), self.model.kernel.lengthscales.numpy(), self.model.likelihood.variance.numpy()))
             print(self.model.inducing_variable.Z.numpy())
 
         print("Final model is ")
@@ -178,7 +181,7 @@ class TrainableSGPR():
             self.model.kernel.lengthscales.assign([lscale])
             for var in variance_list:
                 self.model.likelihood.variance.assign(var)
-                #self.model.kernel.variance.assign([var])
+                # self.model.kernel.variance.assign([var])
                 grads = [g.numpy() for g in grad_fn()]
                 train_preds = self.model.predict_y(X)[0]
                 test_preds = self.model.predict_y(Xval)[0]
@@ -263,11 +266,11 @@ class TrainableSVGP():
                 num_latent = 1
             else:
                 # Softmax better than Robustmax (apparently per the gpflow slack)
-                #likelihood = gpflow.likelihoods.MultiClass(self.num_classes, invlink=invlink)  # Multiclass likelihood
+                # likelihood = gpflow.likelihoods.MultiClass(self.num_classes, invlink=invlink)  # Multiclass likelihood
                 likelihood = gpflow.likelihoods.Softmax(self.num_classes)
                 num_latent = self.num_classes
                 # Y must be 1D for the multiclass model to actually work.
-                Y = np.argmax(Y, 1).reshape((-1,1)).astype(int)
+                Y = np.argmax(Y, 1).reshape((-1, 1)).astype(int)
         else:
             num_latent = 1
             likelihood = gpflow.likelihoods.Gaussian(variance=0.1)
@@ -309,7 +312,6 @@ class TrainableSVGP():
             tf_dt = tf.float32
         else:
             tf_dt = tf.float64
-        #train_dataset = tf.data.Dataset.from_tensor_slices((X, Y)) \
         train_dataset = tf.data.Dataset.from_generator(generator, args=(self.batch_size, ), output_types=(tf_dt, tf_dt)) \
             .prefetch(self.batch_size * 10) \
             .repeat() \
@@ -444,5 +446,3 @@ class TrainableSVGP():
                 % (self.kernel, self.Z.shape[0], self.batch_size, self.num_iter, self.lr,
                    self.natgrad_lr, self.error_every, self.train_hyperparams,
                    self.var_dist, self.do_classif, self.model, self.whiten))
-
-
