@@ -35,12 +35,6 @@ void CUDART_CB copyCallBack(cudaStream_t stream, cudaError_t error, void *data) 
     std::atomic_fetch_add(tmp->work_unit, 1);
 }
 
-/* cu* library data and functions */
-static constexpr double const oned = 1.0;
-static constexpr double const moned = -1.0;
-static constexpr float const onef = 1.0;
-static constexpr float const monef = -1.0;
-
 /* Data-loading helper functions */
 template <typename scalar_t>
 static inline void load_block(
@@ -262,7 +256,6 @@ void parallel_potrf_runner(int device_id,
 
                 opt_load_block<scalar_t>(A, i_block, i, col0_fill, i_alloc, i_alloc, mbs, s1_c); // [i, i]
                 opt_load_block<scalar_t>(A, b_block, b, col0_fill, b_alloc, i_alloc, mbs, s1_c); // [b, i]
-//                trsm<scalar_t>(cublas_handle, i_alloc, b_alloc, i_block, b_block, mbs);
                 trsm<scalar_t>(cublas_handle, CUBLAS_SIDE_RIGHT, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_T, CUBLAS_DIAG_NON_UNIT,
                                b_alloc.size, i_alloc.size, &one, i_block, mbs, b_block, mbs);
                 C10_CUDA_CHECK(cudaStreamSynchronize(s1_c));
@@ -299,11 +292,9 @@ void parallel_potrf_runner(int device_id,
                     opt_load_block<scalar_t>(A, y_block, y, col0_fill, y_alloc, i_alloc, mbs, s1_c); // [y, i]
                     load_block<scalar_t>(A, g_buf, b_alloc, y_alloc, mbs, s1_c); // [b, y]
                     if (b_alloc.id != y_alloc.id) {
-//                        gemm<scalar_t>(cublas_handle, b_alloc, y_alloc, i_alloc, b_block, y_block, g_buf, mbs);
                         gemm<scalar_t>(cublas_handle, CUBLAS_OP_N, CUBLAS_OP_T, b_alloc.size, y_alloc.size, i_alloc.size,
                                        &mone, b_block, mbs, y_block, mbs, &one, g_buf, mbs);
                     } else {
-//                        syrk<scalar_t>(cublas_handle, i_alloc, b_alloc, b_block, g_buf, mbs);
                         syrk<scalar_t>(cublas_handle, CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, b_alloc.size,
                                        i_alloc.size, &mone, b_block, mbs, &one, g_buf, mbs);
                     }
