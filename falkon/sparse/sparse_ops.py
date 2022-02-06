@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional
 
 import torch
@@ -10,37 +11,45 @@ from falkon.utils.helpers import check_same_dtype
 __all__ = ("sparse_matmul", "sparse_square_norm", "sparse_norm", "bdot")
 
 
-def _sparse_matmul_cpu(A, B, out):
+def _sparse_matmul_cpu(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
     """
     Inputs:
      - A : N x D, CSR matrix
      - B : D x M, CSC matrix
     """
-    from falkon.mkl_bindings.mkl_bind import mkl_lib
 
     if not A.is_csr:
         raise ValueError("A must be CSR matrix")
     if not B.is_csc:
         raise ValueError("B must be CSC matrix")
 
-    mkl = mkl_lib()
     try:
-        A = A.transpose_csc()  # D * N (csc)
-        mkl_sp_1 = mkl.mkl_create_sparse(A)
-        mkl_sp_2 = mkl.mkl_create_sparse(B)
-        mkl.mkl_spmmd(mkl_sp_1, mkl_sp_2, out, transposeA=True)
-        return out
-    finally:
+        # noinspection PyUnresolvedReferences
+        from falkon.mkl_bindings.mkl_bind import mkl_lib
+        mkl = mkl_lib()
         try:
-            # noinspection PyUnboundLocalVariable
-            mkl.mkl_sparse_destroy(mkl_sp_1)
-        except:  # noqa E722
-            pass
-        try:
-            # noinspection PyUnboundLocalVariable
-            mkl.mkl_sparse_destroy(mkl_sp_2)
-        except:  # noqa E722
-            pass
+            A = A.transpose_csc()  # D * N (csc)
+            mkl_sp_1 = mkl.mkl_create_sparse(A)
+            mkl_sp_2 = mkl.mkl_create_sparse(B)
+            mkl.mkl_spmmd(mkl_sp_1, mkl_sp_2, out, transposeA=True)
+        finally:
+            try:
+                # noinspection PyUnboundLocalVariable
+                mkl.mkl_sparse_destroy(mkl_sp_1)
+            except:  # noqa E722
+                pass
+            try:
+                # noinspection PyUnboundLocalVariable
+                mkl.mkl_sparse_destroy(mkl_sp_2)
+            except:  # noqa E722
+                pass
+    except ImportError:
+        warnings.warn("Failed to load MKL. Using Scipy sparse matrix multiplication instead.")
+        As = A.to_scipy(copy=False)
+        Bs = B.to_scipy(copy=False)
+        out_sp = As.dot(Bs)
+        out_sp.todense(out=out.numpy())
+    return out
 
 
 def _sparse_matmul_cuda(A: SparseTensor, B: SparseTensor, out: torch.Tensor):

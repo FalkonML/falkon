@@ -38,4 +38,3 @@ with h5py.File(output_name, "w") as fh:
     fh.create_dataset('X_test', data=test_x)
     fh.create_dataset('Y_train', data=train_y)
     fh.create_dataset('Y_test', data=test_y)
-

@@ -21,7 +21,7 @@ else:
     WITH_CYTHON = True
 
 
-CURRENT_DIR = "."  # osp.dirname(__file__)
+CURRENT_DIR = "."
 
 
 def get_version(root_dir):
@@ -93,6 +93,7 @@ def get_extensions():
             'cuda/vec_mul_triang_cuda.cu', 'cuda/spspmm_cuda.cu', 'cuda/multigpu_potrf.cu',
             'cuda/mul_triang_cuda.cu', 'cuda/lauum.cu', 'cuda/csr2dense_cuda.cu',
             'cuda/copy_transpose_cuda.cu', 'cuda/copy_triang_cuda.cu',
+            'cuda/cublas_bindings.cu', 'cuda/cusolver_bindings.cu', 'cuda/cuda_bindings.cpp',
         ])
         if torch_v[0] >= 1 and torch_v[1] >= 7:
             ext_files.append('cuda/square_norm_cuda.cu')
@@ -132,7 +133,8 @@ def get_extensions():
     extensions.extend(cyblas_ext)
     return extensions
 
-# Requirements -- TODO: We also have requirements.txt files lying around which are out of sync.
+
+# Requirements
 install_requires = [
     'torch>=1.9',
     'scipy',
@@ -158,7 +160,7 @@ doc_requires = [
     'matplotlib',
     'jupyter',
     'ghp-import',
-    # There is also pandoc
+    # Also pandoc, must be installed system-wide with apt
 ]
 
 extras = {

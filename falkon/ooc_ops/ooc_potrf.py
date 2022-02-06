@@ -3,23 +3,20 @@ import math
 import torch
 
 from falkon import la_helpers
-from falkon.cuda import initialization
-from falkon.cuda.cusolver_gpu import *
 from falkon.options import FalkonOptions, CholeskyOptions
-from falkon.utils import devices
-from falkon.utils.devices import DeviceInfo
-from falkon.utils.helpers import choose_fn, sizeof_dtype
-from falkon.c_ext import parallel_potrf
+from falkon.utils.devices import DeviceInfo, get_device_info
+from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import (
     is_f_contig, copy_same_stride, extract_fortran
 )
 from falkon.utils.device_copy import copy
+from falkon.c_ext import parallel_potrf, cusolver_potrf_buffer_size, cusolver_potrf
 from .ooc_utils import calc_block_sizes
 
 __all__ = ("gpu_cholesky",)
 
 
-def _ic_cholesky(A, upper, device, cusolver_handle):
+def _ic_cholesky(A, upper, device):
     """Cholesky factorization of matrix `A` on the GPU
 
     Uses the cuSOLVER library for implementation of the POTRF function.
@@ -43,28 +40,16 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
         The factorization of A which overwrites the upper (or lower) triangular part
         of the matrix A. This is not a copy of the original matrix.
     """
-    # Check library initialization
-    if cusolver_handle is None:
-        raise RuntimeError("CuSolver must be initialized "
-                           "before running in-core Cholesky.")
     if not is_f_contig(A):
         raise RuntimeError("Cholesky input must be F-contiguous")
 
-    uplo = 'U' if upper else 'L'
     n = A.shape[0]
 
     tc_device = torch.device("cuda:%d" % (device))
     tc_stream = torch.cuda.current_stream(tc_device)
-    # Choose functions by dtype
-    potrf_buf_size = choose_fn(A.dtype, cusolverDnDpotrf_bufferSize, cusolverDnSpotrf_bufferSize,
-                               "POTRF Buffer size")
-    potrf_fn = choose_fn(A.dtype, cusolverDnDpotrf, cusolverDnSpotrf, "POTRF")
-
-    with torch.cuda.device(tc_device), \
-            torch.cuda.stream(tc_stream), \
-            cusolver_stream(cusolver_handle, tc_stream._as_parameter_):
+    with torch.cuda.device(tc_device), torch.cuda.stream(tc_stream):
         # Determine necessary buffer size
-        potrf_bsize = potrf_buf_size(handle=cusolver_handle, uplo=uplo, n=n, A=0, lda=n)
+        potrf_bsize = cusolver_potrf_buffer_size(A=A, upper=upper, n=n, lda=n)
 
         # Allocate flat GPU buffer, and extract buffers
         if A.is_cuda:
@@ -75,18 +60,17 @@ def _ic_cholesky(A, upper, device, cusolver_handle):
             potrf_wspace = gpu_buf[:potrf_bsize]
             Agpu = extract_fortran(gpu_buf, (n, n), offset=potrf_bsize)
             # Copy A to device memory
-            copy(A, Agpu, s=tc_stream)
+            copy(A, Agpu, non_blocking=True)
 
         dev_info = torch.tensor(4, dtype=torch.int32, device=tc_device)
 
         # Run cholesky
-        potrf_fn(handle=cusolver_handle,
-                 uplo=uplo, n=n, A=Agpu.data_ptr(), lda=n,
-                 workspace=potrf_wspace.data_ptr(), Lwork=potrf_bsize, devInfo=dev_info)
+        cusolver_potrf(A=Agpu, workspace=potrf_wspace, workspace_size=potrf_bsize, info=dev_info,
+                       upper=upper, n=n, lda=n)
 
         # Copy back to CPU
         if not A.is_cuda:
-            copy(Agpu, A, s=tc_stream)
+            copy(Agpu, A, non_blocking=True)
             del Agpu
         del potrf_wspace, dev_info
         tc_stream.synchronize()
@@ -124,7 +108,7 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
     device_info = []
     for g in range(num_gpus):
         device_info.append(
-            (0.0, initialization.cusolver_handle(g), g)
+            (0.0, g)
         )
 
     parallel_potrf(device_info, block_allocations, A)
@@ -161,7 +145,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     -----------
     A : torch.Tensor
         2D positive-definite matrix of size (n x n) that will be factorized as
-        A = U.T @ U (if `upper` is True) or A = L @ L.T if `upper`
+        ``A = U.T @ U`` (if `upper` is True) or ``A = L @ L.T`` if `upper`
         is False.
     upper : bool
         Whether the triangle which should be factorized is the upper or lower of `A`.
@@ -194,7 +178,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     # (Note that the original OOC version is not going to run).
 
     # Determine GPU free RAM
-    gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
+    gpu_info = [v for k, v in get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
         g.actual_free_mem = min((g.free_memory - 300 * 2 ** 20) * 0.95,
                                 opt.max_gpu_mem * 0.95)
@@ -234,8 +218,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     if ic:
         if opt.debug:
             print("Using in-core POTRF")
-        _ic_cholesky(A, upper, device=device.Id,
-                     cusolver_handle=initialization.cusolver_handle(device.Id))
+        _ic_cholesky(A, upper, device=device.Id)
     else:
         if opt.debug:
             print("Using parallel POTRF")

@@ -34,7 +34,7 @@ class StochasticNystromCompReg(HyperoptObjective):
     ):
         super(StochasticNystromCompReg, self).__init__(kernel, centers_init, penalty_init,
                                                        opt_centers, opt_penalty,
-                                                       centers_transform,  pen_transform)
+                                                       centers_transform, pen_transform)
         self.flk_opt = flk_opt
         self.num_trace_est = num_trace_est
         self.flk_maxiter = flk_maxiter
@@ -129,22 +129,22 @@ def calc_trace_bwd(k_mn: Optional[torch.Tensor],
     if trace_type == "ste":
         assert k_mn_zy is not None and t is not None, "Incorrect arguments to trace_bwd"
         return -(
-                2 * (k_mn_zy[:, :t].mul(solve2)).sum(0).mean() -
-                (solve2 * (kmm @ solve2)).sum(0).mean()
+            2 * (k_mn_zy[:, :t].mul(solve2)).sum(0).mean() -
+            (solve2 * (kmm @ solve2)).sum(0).mean()
         )
     elif trace_type == "direct":
         assert k_mn is not None, "Incorrect arguments to trace_bwd"
         return -(
-                2 * (k_mn.mul(solve2)).sum() -
-                (solve2 * (kmm @ solve2)).sum()
+            2 * (k_mn.mul(solve2)).sum() -
+            (solve2 * (kmm @ solve2)).sum()
         )
     elif trace_type == "fast":
         assert k_mn_zy is not None and t is not None and X is not None, "Incorrect arguments to trace_bwd"
         k_subs = k_mn_zy
         norm = X.shape[0] / t
         return -norm * (
-                2 * k_subs.mul(solve2).sum() -
-                (solve2 * (kmm @ solve2)).sum()
+            2 * k_subs.mul(solve2).sum() -
+            (solve2 * (kmm @ solve2)).sum()
         )
 
 
@@ -152,8 +152,8 @@ def calc_deff_bwd(zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve
                   include_kmm_term):
     """Nystrom effective dimension backward"""
     out_deff_bwd = (
-            2 * zy_knm_solve_zy[:t].mean() -
-            zy_solve_knm_knm_solve_zy[:t].mean()
+        2 * zy_knm_solve_zy[:t].mean() -
+        zy_solve_knm_knm_solve_zy[:t].mean()
     )
     if include_kmm_term:
         out_deff_bwd -= pen_n * zy_solve_kmm_solve_zy[:t].mean()
@@ -164,8 +164,8 @@ def calc_dfit_bwd(zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve
                   include_kmm_term):
     """Nystrom regularized data-fit backward"""
     dfit_bwd = -(
-            2 * zy_knm_solve_zy[t:].sum() -
-            zy_solve_knm_knm_solve_zy[t:].sum()
+        2 * zy_knm_solve_zy[t:].sum() -
+        zy_solve_knm_knm_solve_zy[t:].sum()
     )
     if include_kmm_term:
         dfit_bwd += pen_n * zy_solve_kmm_solve_zy[t:].sum()
@@ -264,8 +264,10 @@ class NystromCompRegFn(torch.autograd.Function):
             trace_fwd_num = (_trace_fwd * dfit_fwd).detach()
             trace_bwd_num = trace_bwd * dfit_fwd.detach() + _trace_fwd.detach() * dfit_bwd
             trace_den = pen_n * X.shape[0]
-            trace_bwd = (trace_bwd_num * trace_den.detach() - trace_fwd_num * trace_den) / (
-                        trace_den.detach() ** 2)
+            trace_bwd = (
+                (trace_bwd_num * trace_den.detach() - trace_fwd_num * trace_den) /
+                (trace_den.detach() ** 2)
+            )
             bwd = (deff_bwd + dfit_bwd + trace_bwd)
             # bwd = dfit_bwd
         return (deff_fwd, dfit_fwd, trace_fwd), bwd

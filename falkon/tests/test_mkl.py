@@ -1,3 +1,4 @@
+import warnings
 from typing import Tuple
 
 import numpy as np
@@ -9,6 +10,11 @@ from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.tests.gen_random import gen_sparse_matrix
 
 _RTOL = {torch.float32: 1e-6, torch.float64: 1e-13}
+try:
+    mkl = mkl_lib()
+except ImportError:
+    warnings.warn("MKL not available. MKL tests will be skipped.")
+    mkl = None
 
 
 @pytest.fixture(scope="module")
@@ -25,11 +31,6 @@ def sparse2():
     return B, Bd
 
 
-@pytest.fixture(scope="module")
-def mkl():
-    return mkl_lib()
-
-
 def assert_sparse_equal(s1: SparseTensor, s2: SparseTensor):
     assert s1.sparse_type == s2.sparse_type, "Sparse types differ"
     np.testing.assert_equal(s1.indexptr.numpy(), s2.indexptr.numpy())
@@ -37,11 +38,12 @@ def assert_sparse_equal(s1: SparseTensor, s2: SparseTensor):
     np.testing.assert_allclose(s1.data.numpy(), s2.data.numpy())
 
 
+@pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.parametrize(
     "dtype",
     [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
     ids=["float32", "float64"])
-def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
+def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
     orig, _ = sparse1
     orig = orig.to(dtype=dtype)
     mkl_sparse1 = mkl.mkl_create_sparse(orig)
@@ -50,11 +52,12 @@ def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
     mkl.mkl_sparse_destroy(mkl_sparse1)
 
 
+@pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.parametrize(
     "dtype",
     [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
     ids=["float32", "float64"])
-def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
+def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
     orig, _ = sparse1
     orig = orig.to(dtype=dtype)
     orig_scipy = orig.to_scipy()  # Needs to be in its own variable or will fail..
@@ -64,11 +67,12 @@ def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], mkl, dtyp
     mkl.mkl_sparse_destroy(mkl_sparse1)
 
 
+@pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.parametrize(
     "dtype",
     [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
     ids=["float32", "float64"])
-def test_convert_csr(sparse2: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
+def test_convert_csr(sparse2: Tuple[SparseTensor, torch.Tensor], dtype):
     orig, dense = sparse2
     orig = orig.to(dtype=dtype)
     dense = dense.to(dtype=dtype)
@@ -86,8 +90,9 @@ def test_convert_csr(sparse2: Tuple[SparseTensor, torch.Tensor], mkl, dtype):
     mkl.mkl_sparse_destroy(mkl_csr2)
 
 
+@pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.skip(reason="Unknown MKL problems with large first dimension and creation of CSC.")
-def test_csc_creation(sparse1: Tuple[SparseTensor, torch.Tensor], mkl):
+def test_csc_creation(sparse1: Tuple[SparseTensor, torch.Tensor]):
     # Note that this test works with sparse2 (e.g. see test_convert_csr)
     orig, dense = sparse1
     orig_csc = orig.transpose_csc()
@@ -95,11 +100,12 @@ def test_csc_creation(sparse1: Tuple[SparseTensor, torch.Tensor], mkl):
     mkl.mkl_sparse_destroy(mkl_csc)
 
 
+@pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.parametrize(
     "dtype",
     [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
     ids=["float32", "float64"])
-def test_spmmd(mkl, sparse1, sparse2, dtype):
+def test_spmmd(sparse1, sparse2, dtype):
     # sparse1 @ sparse2
     smat1, dmat1 = sparse1
     smat1 = smat1.to(dtype=dtype)

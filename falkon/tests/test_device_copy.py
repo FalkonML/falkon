@@ -29,7 +29,7 @@ def row_vec():
 
 @pytest.fixture(scope="module")
 def large_mat():
-    return torch.from_numpy(gen_random(2*n, d, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(2 * n, d, 'float64', False, seed=92))
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
@@ -39,7 +39,7 @@ def test_copy_host_to_dev(mat, order):
     output = torch.empty_strided(in_mat.size(), in_mat.stride(), dtype=in_mat.dtype, device="cuda")
 
     opt = FalkonOptions(max_gpu_mem=0.0)
-    with memory_checker(opt) as new_opt:
+    with memory_checker(opt):
         copy(in_mat, output)
     torch.testing.assert_allclose(in_mat, output.cpu(), rtol=1e-15, atol=1e-15)
 
@@ -51,7 +51,7 @@ def test_copy_vec_host_to_dev(row_vec, col_vec, order):
         in_vec: torch.Tensor = fix_mat(test_vec, np.float64, order, device="cpu", copy=True, numpy=False)
         output = torch.empty_strided(in_vec.size(), in_vec.stride(), dtype=in_vec.dtype, device="cuda")
         opt = FalkonOptions(max_gpu_mem=0.0)
-        with memory_checker(opt) as new_opt:
+        with memory_checker(opt):
             copy(in_vec, output)
         torch.testing.assert_allclose(in_vec, output.cpu(), rtol=1e-15, atol=1e-15)
 
@@ -63,7 +63,7 @@ def test_copy_dev_to_host(mat, order):
     output = torch.empty_strided(in_mat.size(), in_mat.stride(), dtype=in_mat.dtype, device="cpu")
 
     opt = FalkonOptions(max_gpu_mem=0.0)
-    with memory_checker(opt) as new_opt:
+    with memory_checker(opt):
         copy(in_mat, output)
 
     torch.testing.assert_allclose(in_mat.cpu(), output.cpu(), rtol=1e-15, atol=1e-15)
@@ -76,7 +76,7 @@ def test_copy_vec_dev_to_host(row_vec, col_vec, order):
         in_vec: torch.Tensor = fix_mat(test_vec, np.float64, order, device="cuda", copy=True, numpy=False)
         output = torch.empty_strided(in_vec.size(), in_vec.stride(), dtype=in_vec.dtype, device="cpu")
         opt = FalkonOptions(max_gpu_mem=0.0)
-        with memory_checker(opt) as new_opt:
+        with memory_checker(opt):
             copy(in_vec, output)
 
 
@@ -105,7 +105,7 @@ def test_diff_sizes(mat, order, in_dev, size, out_size):
     output = output[:size[0], :size[1]]
 
     opt = FalkonOptions(max_gpu_mem=0.0)
-    with memory_checker(opt) as new_opt:
+    with memory_checker(opt):
         copy(in_mat, output)
 
     torch.testing.assert_allclose(in_mat.cpu(), output.cpu(), rtol=1e-15, atol=1e-15)
@@ -122,12 +122,11 @@ def test_wrong_stride(mat, order, in_dev):
     in_mat: torch.Tensor = fix_mat(mat, np.float64, order=order, device=in_dev, copy=True, numpy=False)
 
     if order == "F":  # Then output should be row-contiguous
-        output = torch.empty_strided(in_mat.size(), (in_mat.shape[1], 1), dtype=in_mat.dtype, device=out_dev) #* 100.
+        output = torch.empty_strided(in_mat.size(), (in_mat.shape[1], 1), dtype=in_mat.dtype, device=out_dev)
     else:  # Then output should be col-contiguous
-        output = torch.empty_strided(in_mat.size(), (1, in_mat.shape[0]), dtype=in_mat.dtype, device=out_dev) #* 100.
+        output = torch.empty_strided(in_mat.size(), (1, in_mat.shape[0]), dtype=in_mat.dtype, device=out_dev)
 
     opt = FalkonOptions(max_gpu_mem=0.0)
-    with memory_checker(opt) as new_opt:
+    with memory_checker(opt):
         with pytest.raises(ValueError):
             copy(in_mat, output)
-

@@ -33,7 +33,6 @@ def memory_checker(opt: FalkonOptions, extra_mem=0, check_cpu=True):
             tcd.reset_peak_memory_stats(dev)
             # We have to work around buggy memory stats: sometimes reset doesn't work as expected.
             start_ram[dev] = torch.cuda.max_memory_allocated(dev)
-            #print("Start RAM dev %s: %.5fMB" % (dev, torch.cuda.max_memory_allocated(dev) / 2**20))
     elif mem_check:
         start_ram = _cpu_used_mem(uss=True)
         opt = dataclasses.replace(opt, max_cpu_mem=opt.max_cpu_mem + start_ram)
@@ -47,8 +46,8 @@ def memory_checker(opt: FalkonOptions, extra_mem=0, check_cpu=True):
             used_ram = tcd.max_memory_allocated(dev) - start_ram[dev] - extra_mem
             if used_ram > opt.max_gpu_mem:
                 raise MemoryError(
-                        "DEV %d - Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" %
-                        (dev, used_ram / 2 ** 20, opt.max_gpu_mem / 2 ** 20))
+                    "DEV %d - Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" %
+                    (dev, used_ram / 2 ** 20, opt.max_gpu_mem / 2 ** 20))
     elif mem_check:
         used_ram = _cpu_used_mem(uss=True) - start_ram - extra_mem
         if used_ram > opt.max_cpu_mem:
@@ -63,6 +62,7 @@ def numpy_to_torch_type(dt):
     elif dt == np.float64:
         return torch.float64
     return dt
+
 
 def torch_to_numpy_type(dt):
     if dt == torch.float32:

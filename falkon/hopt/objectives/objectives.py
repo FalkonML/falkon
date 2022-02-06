@@ -33,8 +33,7 @@ class HyperoptObjective(torch.nn.Module):
         super(HyperoptObjective, self).__init__()
 
         if not isinstance(kernel, falkon.kernels.DiffKernel):
-            raise TypeError(f"Kernel must inherit from `DiffKernel` for hyperparameter "
-                            f"optimization.")
+            raise TypeError("Kernel must inherit from `DiffKernel` for hyperparameter optimization.")
         self.kernel = kernel
 
         self.centers_transform = centers_transform or identity_transform

@@ -129,7 +129,7 @@ cg_differential_convergence
     `default False` - Differential convergence refers to a procedure relevant to the conjugate
     gradient optimizer, and only applies when multiple right-hand side vectors are used (e.g.
     in multi-class classification, or in hyperparameter optimization with the stochastic objective).
-    If this flag is set, whenever the convergence criterion is met for single right-hand-sides, 
+    If this flag is set, whenever the convergence criterion is met for single right-hand-sides,
     they are removed from the optimization procedure. If it is not set, all vectors must have
     converged for the optimization to stop. It is especially useful for hyperparameter optimization.
     """,

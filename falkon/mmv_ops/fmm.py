@@ -197,7 +197,7 @@ def sparse_mm_run_thread(m1: SparseTensor, m2: SparseTensor, out: torch.Tensor,
 
                 # Copy back to host
                 if has_gpu_bufs:
-                    copy(c_dev_out, out[i: i + leni, j: j + lenj], s=stream,
+                    copy(c_dev_out, out[i: i + leni, j: j + lenj], non_blocking=True,
                          allow_dtype_change=True)
     return out
 
@@ -235,7 +235,7 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
             leni = min(n, N - i)
 
             if has_gpu_bufs:
-                c_dev_m1 = copy(m1[i: i + leni, :], dev_m1[:leni, :], s=stream,
+                c_dev_m1 = copy(m1[i: i + leni, :], dev_m1[:leni, :], non_blocking=True,
                                 allow_dtype_change=True)
             else:
                 c_dev_m1 = m1[i: i + leni, :]
@@ -244,7 +244,7 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                 lenj = min(m, M - j)
 
                 if has_gpu_bufs:
-                    c_dev_m2 = copy(m2[j: j + lenj, :], dev_m2[:lenj, :], s=stream,
+                    c_dev_m2 = copy(m2[j: j + lenj, :], dev_m2[:lenj, :], non_blocking=True,
                                     allow_dtype_change=True)
                     c_dev_out = dev_nm[:leni, :lenj]
                 else:
@@ -257,7 +257,7 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
 
                 # Copy back to host
                 if has_gpu_bufs:
-                    copy(c_dev_out, out[i: i + leni, j: j + lenj], s=stream,
+                    copy(c_dev_out, out[i: i + leni, j: j + lenj], non_blocking=True,
                          allow_dtype_change=True)
         if stream is not None:
             stream.synchronize()

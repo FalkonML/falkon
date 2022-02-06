@@ -65,7 +65,7 @@ def w() -> torch.Tensor:
     pytest.param("vec-sigma", marks=pytest.mark.xfail(
                 raises=NotImplementedError, strict=True,
                 reason="Sparse kernels are not implemented for vectorial sigmas")),
-    ], scope="class")
+], scope="class")
 def sigma(request) -> torch.Tensor:
     if request.param == "single-sigma":
         return torch.Tensor([3.0])

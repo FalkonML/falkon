@@ -14,7 +14,6 @@ struct blockAlloc {
 
 struct gpuInfo {
     float free_memory;
-    cusolverDnHandle_t cusolver_handle;
     int id;
 };
 
