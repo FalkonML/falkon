@@ -21,7 +21,7 @@ else:
     WITH_CYTHON = True
 
 
-CURRENT_DIR = "."  # osp.dirname(__file__)
+CURRENT_DIR = "."
 
 
 def get_version(root_dir):
@@ -80,6 +80,7 @@ def get_extensions():
     ext_dir = osp.join(CURRENT_DIR, 'falkon', 'csrc')
     ext_files = [
         'pytorch_bindings.cpp', 'cpu/sparse_norm.cpp', 'cpu/sparse_bdot.cpp',
+        'cuda_version.cpp',
     ]
     if torch_v[0] >= 1 and torch_v[1] >= 7:
         ext_files.append('cpu/square_norm_cpu.cpp')
@@ -160,7 +161,7 @@ doc_requires = [
     'matplotlib',
     'jupyter',
     'ghp-import',
-    # There is also pandoc
+    # Also pandoc, must be installed system-wide with apt
 ]
 
 extras = {
