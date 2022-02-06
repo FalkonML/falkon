@@ -3,7 +3,6 @@ name: Building Wheels
 on: [workflow_dispatch]
 
 jobs:
-
   wheel:
     runs-on: ${{ matrix.os }}
 
@@ -69,4 +68,9 @@ jobs:
         run: |
           pip install wheel
           python setup.py bdist_wheel --dist-dir=dist
->>>>>>> gh-actions
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v2
+        with:
+          name: whl-${{ matrix.torch-version }}+${{ matrix.cuda-version }}
+          path: dist/*.whl
