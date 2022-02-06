@@ -18,6 +18,7 @@
 #ifdef WITH_CUDA
 #include <pybind11/stl.h>
 #include <cusolverDn.h>
+#include <cuda.h>
 #include <c10/cuda/CUDAStream.h>
 
 // OOC operations
@@ -61,6 +62,15 @@ static void* ctypes_void_ptr(const py::object& object) {
 #endif
 
 
+int64_t cuda_version() {
+    #ifdef WITH_CUDA
+        return CUDA_VERSION;
+    #else
+        return -1;
+    #endif
+}
+
+
 void _cublas_2d_copy_to_dev_async(
     const int rows,
     const int cols,
@@ -68,13 +78,10 @@ void _cublas_2d_copy_to_dev_async(
     const torch::Tensor& host_tensor,
     const int lda, torch::Tensor& dev_tensor,
     const int ldb
-    //const py::object &stream
 )
 {
     #ifdef WITH_CUDA
         at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream(at::cuda::current_device());
-        //void *stream_ptr = ctypes_void_ptr(stream);
-        //at::cuda::CUDAStream torch_stream = at::cuda::getStreamFromExternal((cudaStream_t)stream_ptr, at::cuda::current_device());
         cublas_2d_copy_to_dev_async(rows, cols, elemSize, host_tensor, lda, dev_tensor, ldb, torch_stream);
     #else
         AT_ERROR("Not compiled with CUDA support");
@@ -104,12 +111,9 @@ void _cublas_2d_copy_to_host_async(
     const torch::Tensor& dev_tensor,
     const int lda, torch::Tensor& host_tensor,
     const int ldb
-    //const py::object &stream
 )
 {
     #ifdef WITH_CUDA
-        //void *stream_ptr = ctypes_void_ptr(stream);
-        //at::cuda::CUDAStream torch_stream = at::cuda::getStreamFromExternal((cudaStream_t)stream_ptr, at::cuda::current_device());
         at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream(at::cuda::current_device());
         cublas_2d_copy_to_host_async(rows, cols, elemSize, dev_tensor, lda, host_tensor, ldb, torch_stream);
     #else
@@ -143,8 +147,6 @@ void _cuda_2d_copy_async(
 )
 {
     #ifdef WITH_CUDA
-        //void *stream_ptr = ctypes_void_ptr(stream);
-        //at::cuda::CUDAStream torch_stream = at::cuda::getStreamFromExternal((cudaStream_t)stream_ptr, at::cuda::current_device());
         at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream(at::cuda::current_device());
         cuda_2d_copy_async(dest_tensor, dest_pitch, src_tensor, src_pitch, width, height, torch_stream);
     #else
@@ -175,8 +177,6 @@ void _cuda_1d_copy_async(
 )
 {
     #ifdef WITH_CUDA
-        //void *stream_ptr = ctypes_void_ptr(stream);
-        //at::cuda::CUDAStream torch_stream = at::cuda::getStreamFromExternal((cudaStream_t)stream_ptr, at::cuda::current_device());
         at::cuda::CUDAStream torch_stream = at::cuda::getCurrentCUDAStream(at::cuda::current_device());
         cuda_1d_copy_async(dest_tensor, src_tensor, count, torch_stream);
     #else
@@ -495,4 +495,6 @@ m.def("cublas_gemm", &_cublas_gemm, "",
 m.def("cublas_syrk", &_cublas_syrk, "",
     py::arg("A"), py::arg("lda"), py::arg("C"), py::arg("ldc"), py::arg("alpha"), py::arg("beta"), py::arg("upper"), py::arg("transpose"), py::arg("n"), py::arg("k"),
     py::call_guard<py::gil_scoped_release>());
+
+m.def("cuda_version", &cuda_version, "CUDA version");
 }

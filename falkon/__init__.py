@@ -7,7 +7,7 @@ import torch
 from falkon.c_ext import cuda_version
 flk_cuda_version = cuda_version()
 if torch.cuda.is_available() and flk_cuda_version != -1:
-    if cuda_version < 10000:
+    if flk_cuda_version < 10000:
         f_major, f_minor = int(str(flk_cuda_version)[0]), int(str(flk_cuda_version)[2])
     else:
         f_major, f_minor = int(str(flk_cuda_version)[0:2]), int(str(flk_cuda_version)[3])
