@@ -495,6 +495,4 @@ m.def("cublas_gemm", &_cublas_gemm, "",
 m.def("cublas_syrk", &_cublas_syrk, "",
     py::arg("A"), py::arg("lda"), py::arg("C"), py::arg("ldc"), py::arg("alpha"), py::arg("beta"), py::arg("upper"), py::arg("transpose"), py::arg("n"), py::arg("k"),
     py::call_guard<py::gil_scoped_release>());
-
-
 }

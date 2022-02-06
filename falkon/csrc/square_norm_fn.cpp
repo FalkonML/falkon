@@ -31,8 +31,6 @@ class SquareNormFunction : public Function<SquareNormFunction> {
 
     const torch::Tensor &input, int64_t dim, torch::optional<bool> opt_keepdim)
 
-  // bias is an optional argument
-
   static torch::Tensor forward(
       AutogradContext *ctx, torch::Tensor input, torch::Tensor weight, torch::Tensor bias = torch::Tensor()) {
     ctx->save_for_backward({input, weight, bias});

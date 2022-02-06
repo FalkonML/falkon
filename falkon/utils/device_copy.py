@@ -66,30 +66,16 @@ def copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, non_blocking=False):
 
     if is_contig_vec(H_narrow) and is_contig_vec(D_narrow):
         if non_blocking:
-            # cuda_memcpy_async(
-            #     src=D_narrow.data_ptr(), dst=H_narrow.data_ptr(),
-            #     count=(rows * cols) * dts, stream=s._as_parameter_)
             cuda_1d_copy_async(
                 src_tensor=D_narrow, dest_tensor=H_narrow, count=(rows * cols) * dts)
         else:
-            # cuda_memcpy(
-            #     src=D_narrow.data_ptr(), dst=H_narrow.data_ptr(), count=(rows * cols) * dts)
             cuda_1d_copy(
                 src_tensor=D_narrow, dest_tensor=H_narrow, count=(rows * cols) * dts)
     elif is_f_contig(D, strict=True):
         if non_blocking:
-            # cublas_2d_copy_to_host_async(
-            #     rows=rows, cols=cols, elem_size=dts,
-            #     A=D_narrow.data_ptr(), lda=D_narrow.stride(1),
-            #     B=H_narrow.data_ptr(), ldb=H_narrow.stride(1),
-            #     stream=s._as_parameter_)
             cublas_2d_copy_to_host_async(rows, cols, dts, D_narrow, D_narrow.stride(1), H_narrow,
                                          H_narrow.stride(1))
         else:
-            # cublas_2d_copy_to_host(
-            #     rows=rows, cols=cols, elem_size=dts,
-            #     A=D_narrow.data_ptr(), lda=D_narrow.stride(1),
-            #     B=H_narrow.data_ptr(), ldb=H_narrow.stride(1))
             cublas_2d_copy_to_host(rows, cols, dts, D_narrow, D_narrow.stride(1), H_narrow,
                                    H_narrow.stride(1))
     elif is_contig(D):
@@ -98,19 +84,11 @@ def copy_to_host(rows, cols, D, Di, Dj, H, Hi, Hj, non_blocking=False):
                 src_tensor=D_narrow, src_pitch=D_narrow.stride(0) * dts,
                 dest_tensor=H_narrow, dest_pitch=H_narrow.stride(0) * dts,
                 width=cols * dts, height=rows)
-            # cuda_memcpy2d_async(
-            #     dst=H_narrow.data_ptr(), dpitch=H_narrow.stride(0) * dts,
-            #     src=D_narrow.data_ptr(), spitch=D_narrow.stride(0) * dts,
-            #     width=cols * dts, height=rows, stream=s._as_parameter_)
         else:
             cuda_2d_copy(
                 src_tensor=D_narrow, src_pitch=D_narrow.stride(0) * dts,
                 dest_tensor=H_narrow, dest_pitch=H_narrow.stride(0) * dts,
                 width=cols * dts, height=rows)
-            # cuda_memcpy2d(
-            #     dst=H_narrow.data_ptr(), dpitch=H_narrow.stride(0) * dts,
-            #     src=D_narrow.data_ptr(), spitch=D_narrow.stride(0) * dts,
-            #     width=cols * dts, height=rows)
 
     if H.dtype != D.dtype:
         H_narrow_final.copy_(H_narrow)  # Blocking copy since it's H->H.
@@ -133,45 +111,23 @@ def copy_to_device(rows, cols, H, Hi, Hj, D, Di, Dj, non_blocking=False):
         if non_blocking:
             cuda_1d_copy_async(
                 src_tensor=H_narrow, dest_tensor=D_narrow, count=(rows * cols) * dts)
-            # cuda_memcpy_async(
-            #     src=H_narrow.data_ptr(), dst=D_narrow.data_ptr(),
-            #     count=(rows * cols) * dts, stream=s._as_parameter_)
         else:
-            # cuda_memcpy(
-            #     src=H_narrow.data_ptr(), dst=D_narrow.data_ptr(), count=(rows * cols) * dts)
             cuda_1d_copy(
                 src_tensor=H_narrow, dest_tensor=D_narrow, count=(rows * cols) * dts)
     elif is_f_contig(H, strict=True):
         if non_blocking:
-            # cublas_2d_copy_to_dev_async(
-            #     rows=rows, cols=cols, elem_size=dts,
-            #     A=H_narrow.data_ptr(), lda=H_narrow.stride(1),
-            #     B=D_narrow.data_ptr(), ldb=D_narrow.stride(1),
-            #     stream=s._as_parameter_)
             cublas_2d_copy_to_dev_async(rows, cols, dts, H_narrow, H_narrow.stride(1), D_narrow,
                                         D_narrow.stride(1))
         else:
-            # cublas_2d_copy_to_dev(
-            #     rows=rows, cols=cols, elem_size=dts,
-            #     A=H_narrow.data_ptr(), lda=H_narrow.stride(1),
-            #     B=D_narrow.data_ptr(), ldb=D_narrow.stride(1))
             cublas_2d_copy_to_dev(rows, cols, dts, H_narrow, H_narrow.stride(1), D_narrow,
                                   D_narrow.stride(1))
     elif is_contig(H):
         if non_blocking:
-            # cuda_memcpy2d_async(
-            #     src=H_narrow.data_ptr(), spitch=H_narrow.stride(0) * dts,
-            #     dst=D_narrow.data_ptr(), dpitch=D_narrow.stride(0) * dts,
-            #     width=cols * dts, height=rows, stream=s._as_parameter_)
             cuda_2d_copy_async(
                 src_tensor=H_narrow, src_pitch=H_narrow.stride(0) * dts,
                 dest_tensor=D_narrow, dest_pitch=D_narrow.stride(0) * dts,
                 width=cols * dts, height=rows)
         else:
-            # cuda_memcpy2d(
-            #     src=H_narrow.data_ptr(), spitch=H_narrow.stride(0) * dts,
-            #     dst=D_narrow.data_ptr(), dpitch=D_narrow.stride(0) * dts,
-            #     width=cols * dts, height=rows)
             cuda_2d_copy(
                 src_tensor=H_narrow, src_pitch=H_narrow.stride(0) * dts,
                 dest_tensor=D_narrow, dest_pitch=D_narrow.stride(0) * dts,
