@@ -1,0 +1,49 @@
+name: Build Sphinx Docs
+
+on: [workflow_dispatch]
+
+jobs:
+
+  docs:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.7]
+        torch-version: [1.10.2]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt install pandoc xvfb
+          python -m pip install --upgrade pip
+
+      - name: Install PyTorch ${{ matrix.torch-version }}
+        run: |
+          pip install torch==${{ matrix.torch-version}}+cpu -f https://download.pytorch.org/whl/torch_stable.html
+
+      - name: Install main package
+        run: |
+          pip install -e .[doc]
+      
+      - name: Build with sphinx
+        run: |
+          /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
+          cd doc/
+          make clean && make html
+        shell:
+          bash
+
+      - name: Upload documentation
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./doc/_build/html/

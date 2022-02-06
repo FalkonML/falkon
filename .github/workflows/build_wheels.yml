@@ -10,10 +10,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04]
+        os: [ubuntu-18.04, macos-10.15]
         python-version: [3.8, 3.9]
         torch-version: [1.9.1, 1.10.2]
-        cuda-version: ['cpu', 'cu102']
+        cuda-version: ['cpu', 'cu102', 'cu111', 'cu113']
+        exclude:
+          - torch-version: 1.9.1
+            cuda-version: 'cu113'
+          - torch-version: 1.10.2
+            cuda-version: 'cu111'
+          - os: macos-10.15
+            cuda-version: 'cu102'
+          - os: macos-10.15
+            cuda-version: 'cu111'
+          - os: macos-10.15
+            cuda-version: 'cu113'
 
     steps:
       - uses: actions/checkout@v2
