@@ -15,7 +15,11 @@ except ImportError:
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CUDA_HOME, CppExtension
 
 ONLY_CPU = os.getenv('FORCE_ONLY_CPU', '0')
-WITH_CUDA = torch.cuda.is_available() and CUDA_HOME is not None and ONLY_CPU != '1'
+FORCE_CUDA = os.getenv('FORCE_CUDA', '0')
+WITH_CUDA = (
+    (torch.cuda.is_available() and CUDA_HOME is not None and ONLY_CPU != '1') or
+    (FORCE_CUDA == '1')
+)
 
 try:
     from Cython.Build import cythonize

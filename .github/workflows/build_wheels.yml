@@ -64,7 +64,7 @@ jobs:
         if: ${{ matrix.cuda-version != 'cpu' }}
         run: |
           source .github/workflows/cuda/${{ matrix.cuda-version }}-${{ runner.os }}-env.sh
-          pip install -e .
+          python setup.py develop
         shell:
           bash
 
