@@ -141,7 +141,7 @@ def get_extensions():
     # Cyblas helpers
     file_ext = '.pyx' if WITH_CYTHON else '.c'
     extra_compile_args, extra_link_args = parallel_extra_compile_args(is_torch=False)
-    extra_compile_args += ['-shared', '-fPIC', '-O3', '-Wall', '-sdt=c99']
+    extra_compile_args += ['-shared', '-fPIC', '-O3', '-Wall', '-std=c99']
     extra_link_args += ['-fPIC']
     cyblas_ext = [Extension('falkon.la_helpers.cyblas',
                             sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
