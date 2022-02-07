@@ -65,9 +65,9 @@ def parallel_extra_compile_args(is_torch: bool):
         info = torch.__config__.parallel_info()
         if 'OpenMP not found' not in info and sys.platform != 'darwin':
             if sys.platform == 'win32':
-                return ['/openmp'], ['-lomp']
+                return ['/openmp'], ['-l', 'omp']
             else:
-                return ['-fopenmp'], ['-lomp']
+                return ['-fopenmp'], ['-l', 'omp']
         else:
             return [], []
 
