@@ -13,7 +13,9 @@ try:
 except ImportError:
     raise ImportError("PyTorch must be pre-installed before installing Falkon.")
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CUDA_HOME, CppExtension
-WITH_CUDA = torch.cuda.is_available() and CUDA_HOME is not None
+
+ONLY_CPU = os.getenv('FORCE_ONLY_CPU', '0')
+WITH_CUDA = torch.cuda.is_available() and CUDA_HOME is not None and ONLY_CPU != '1'
 
 try:
     from Cython.Build import cythonize

@@ -44,10 +44,14 @@ jobs:
 
       - name: Install PyTorch ${{ matrix.torch-version }}+${{ matrix.cuda-version }}
         run: |
-          pip install numpy typing-extensions dataclasses
+          pip install numpy typing-extensions dataclasses scipy
           pip install --no-index --no-cache-dir torch==${{ matrix.torch-version }} -f https://download.pytorch.org/whl/${{ matrix.cuda-version }}/torch_stable.html
           python -c "import torch; print('PyTorch:', torch.__version__)"
           python -c "import torch; print('CUDA:', torch.version.cuda)"
+
+      - name: Install build prerequisites
+        run: |
+          pip install wheel Cython
 
       - name: Install main package for CPU
         if: ${{ matrix.cuda-version == 'cpu' }}
@@ -55,10 +59,6 @@ jobs:
           FORCE_ONLY_CPU=1 pip install -e .
         shell:
           bash
-
-      - name: Install build prerequisites
-        run: |
-          pip install wheel Cython
 
       - name: Install main package for GPU
         if: ${{ matrix.cuda-version != 'cpu' }}
