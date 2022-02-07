@@ -215,7 +215,7 @@ run_spspmm_cuda(
 )
 {
   /* Input checks: all matrices should be in CSR format, matrix `D` is not used.
-   * C = alpha*A*B + beta*D
+   * C = alpha * A @ B + beta * D
    * A: m x k
    * B: k x n
    * D: m x n

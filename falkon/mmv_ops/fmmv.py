@@ -186,7 +186,7 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                 c_dev_m1 = c_m1
             else:  # CPU -> CUDA
                 c_dev_out = dev_out[:leni]
-                c_dev_m1 = m1.index_to_int().to(device=dev, non_blocking=True)
+                c_dev_m1 = c_m1.index_to_int().to(device=dev, non_blocking=True)
             c_dev_out.fill_(0.0)
 
             for j in range(0, M, blk_m):
