@@ -201,9 +201,9 @@ setup(
     description="Fast, GPU enabled, approximate kernel ridge regression solver.",
     python_requires='~=3.7',
     setup_requires=[
-        # Setuptools 18.0 properly handles Cython extensions.
-        'setuptools>=18.0',
+        'setuptools>=18.0',  # Setuptools 18.0 properly handles Cython extensions.
         'numpy',
+        'scipy',  # Only when compiling Cython (due to dependency on scipy lapack bindings)
     ],
     tests_require=test_requires,
     extras_require=extras,
