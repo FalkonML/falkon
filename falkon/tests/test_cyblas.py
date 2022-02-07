@@ -5,9 +5,8 @@ import numpy as np
 import pytest
 import scipy
 import torch
-from falkon.la_helpers.square_norm_fn import square_norm_diff
 
-from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang, trsm
+from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang, trsm, square_norm
 from falkon.c_ext import copy_transpose
 from falkon.tests.conftest import fix_mat
 from falkon.tests.gen_random import gen_random, gen_random_pd
@@ -70,7 +69,6 @@ class TestNormSquare():
         return np.random.random((self.t, self.t))
 
     def test_simple(self, mat, order, dtype, device):
-        from falkon.c_ext import square_norm
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
         exp = torch.norm(mat, p=2, dim=0, keepdim=True).pow_(2)
         act = square_norm(mat, dim=0, keepdim=True)
@@ -79,15 +77,14 @@ class TestNormSquare():
     def test_simple_grad(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
         exp = torch.norm(mat, p=2, dim=0, keepdim=True).pow(2)
-        act = square_norm_diff(mat, 0, True)
+        act = square_norm(mat, 0, True)
         torch.testing.assert_allclose(exp, act)
         if dtype == np.float32:
             return
-        torch.autograd.gradcheck(lambda m: square_norm_diff(m, 0, True), inputs=[mat])
-        torch.autograd.gradcheck(lambda m: square_norm_diff(m, 1, True), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm(m, 0, True), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm(m, 1, True), inputs=[mat])
 
     def test_negdim(self, mat, order, dtype, device):
-        from falkon.c_ext import square_norm
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
         exp = torch.norm(mat, p=2, dim=-1, keepdim=True).pow_(2)
         act = square_norm(mat, dim=-1, keepdim=True)
@@ -96,15 +93,14 @@ class TestNormSquare():
     def test_negdim_grad(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
         exp = torch.norm(mat, p=2, dim=-1, keepdim=False).pow(2)
-        act = square_norm_diff(mat, dim=-1, keepdim=False)
+        act = square_norm(mat, dim=-1, keepdim=False)
         torch.testing.assert_allclose(exp, act)
         if dtype == np.float32:
             return
-        torch.autograd.gradcheck(lambda m: square_norm_diff(m, dim=-1, keepdim=False), inputs=[mat])
-        torch.autograd.gradcheck(lambda m: square_norm_diff(m, dim=-2, keepdim=False), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm(m, dim=-1, keepdim=False), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm(m, dim=-2, keepdim=False), inputs=[mat])
 
     def test_nokeep(self, mat, order, dtype, device):
-        from falkon.c_ext import square_norm
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
         exp = torch.norm(mat, p=2, dim=1, keepdim=False).pow_(2)
         act = square_norm(mat, dim=1, keepdim=False)
@@ -113,12 +109,12 @@ class TestNormSquare():
     def test_nokeep_grad(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
         exp = torch.norm(mat, p=2, dim=0, keepdim=False).pow(2)
-        act = square_norm_diff(mat, dim=0, keepdim=False)
+        act = square_norm(mat, dim=0, keepdim=False)
         torch.testing.assert_allclose(exp, act)
         if dtype == np.float32:
             return
-        torch.autograd.gradcheck(lambda m: square_norm_diff(m, dim=0, keepdim=False), inputs=[mat])
-        torch.autograd.gradcheck(lambda m: square_norm_diff(m, dim=1, keepdim=False), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm(m, dim=0, keepdim=False), inputs=[mat])
+        torch.autograd.gradcheck(lambda m: square_norm(m, dim=1, keepdim=False), inputs=[mat])
 
 
 @pytest.mark.parametrize("order", ["F", "C"])

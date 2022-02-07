@@ -1,10 +1,20 @@
 import os
+import importlib
+
 import torch
+
+# Torch ops import
+spec = importlib.machinery.PathFinder().find_spec(
+    "c_ext", [os.path.dirname(__file__)])
+if spec is not None:
+    torch.ops.load_library(spec.origin)
+else:
+    raise ImportError("Failed to find C-extension. Please recompile Falkon.")
 
 # Check torch version vs. compilation version
 # Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
 # https://github.com/rusty1s/pytorch_scatter/blob/master/torch_scatter/__init__.py
-from falkon.c_ext import cuda_version
+from falkon.c_ext import cuda_version  # noqa: E402
 flk_cuda_version = cuda_version()
 if torch.cuda.is_available() and flk_cuda_version != -1:
     if flk_cuda_version < 10000:

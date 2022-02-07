@@ -1,5 +1,8 @@
+import glob
 import os
 import os.path as osp
+import platform
+import sys
 from typing import Any, Tuple, List
 
 import numpy
@@ -42,15 +45,31 @@ def parallel_backend():
     return backend
 
 
-def parallel_extra_compile_args():
-    backend = parallel_backend()
-    if (backend == 'OpenMP'):
-        return ['-DAT_PARALLEL_OPENMP', '-fopenmp']
-    elif (backend == 'native thread pool'):
-        return ['-DAT_PARALLEL_NATIVE']
-    elif (backend == 'native thread pool and TBB'):
-        return ['-DAT_PARALLEL_NATIVE_TBB']
-    return []
+def parallel_extra_compile_args(is_torch: bool):
+    if is_torch:
+        backend = parallel_backend()
+        if backend == 'OpenMP':
+            p_args = ['-DAT_PARALLEL_OPENMP']
+            if sys.platform == 'win32':
+                p_args.append('/openmp')
+            else:
+                p_args.append('-fopenmp')
+            return p_args
+        elif backend == 'native thread pool':
+            return ['-DAT_PARALLEL_NATIVE']
+        elif backend == 'native thread pool and TBB':
+            return ['-DAT_PARALLEL_NATIVE_TBB']
+        else:
+            return []
+    else:
+        info = torch.__config__.parallel_info()
+        if 'OpenMP not found' not in info and sys.platform != 'darwin':
+            if sys.platform == 'win32':
+                return ['/openmp'], ['-lomp']
+            else:
+                return ['-fopenmp'], ['-lomp']
+        else:
+            return [], []
 
 
 def torch_version():
@@ -73,46 +92,47 @@ def torch_version_macros():
 
 def get_extensions():
     extensions = []
-    torch_v = torch_version()
 
     # All C/CUDA routines are compiled into a single extension
     extension_cls = CppExtension
     ext_dir = osp.join(CURRENT_DIR, 'falkon', 'csrc')
-    ext_files = [
-        'pytorch_bindings.cpp', 'cpu/sparse_norm.cpp', 'cpu/sparse_bdot.cpp',
-    ]
-    if torch_v[0] >= 1 and torch_v[1] >= 7:
-        ext_files.append('cpu/square_norm_cpu.cpp')
-    compile_args = {'cxx': parallel_extra_compile_args()}
+    ext_files = (glob.glob(osp.join(ext_dir, '*.cpp')) +
+                 glob.glob(osp.join(ext_dir, 'cpu', '*.cpp')))
+
+    extra_compile_args = {
+        'cxx': parallel_extra_compile_args(is_torch=True)
+    }
     link_args = []
-    macros: List[Tuple[str, Any]] = torch_version_macros()
     libraries = []
+    macros: List[Tuple[str, Any]] = torch_version_macros()
+
+    # Compile for mac arm64
+    if (sys.platform == 'darwin' and platform.machine() == 'arm64'):
+        extra_compile_args['cxx'] += ['-arch', 'arm64']
+        link_args += ['-arch', 'arm64']
+
     if WITH_CUDA:
         extension_cls = CUDAExtension
-        ext_files.extend([
-            'cuda/vec_mul_triang_cuda.cu', 'cuda/spspmm_cuda.cu', 'cuda/multigpu_potrf.cu',
-            'cuda/mul_triang_cuda.cu', 'cuda/lauum.cu', 'cuda/csr2dense_cuda.cu',
-            'cuda/copy_transpose_cuda.cu', 'cuda/copy_triang_cuda.cu',
-            'cuda/cublas_bindings.cu', 'cuda/cusolver_bindings.cu', 'cuda/cuda_bindings.cpp',
-        ])
-        if torch_v[0] >= 1 and torch_v[1] >= 7:
-            ext_files.append('cuda/square_norm_cuda.cu')
+        cuda_files = (glob.glob(osp.join(ext_dir, 'cuda', '*.cu')) +
+                      glob.glob(osp.join(ext_dir, 'cuda', '*.cpp')))
+        ext_files.extend(cuda_files)
         macros.append(('WITH_CUDA', None))
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
-        nvcc_flags += ['--expt-relaxed-constexpr', '--expt-extended-lambda']
-        compile_args['nvcc'] = nvcc_flags
+        nvcc_flags += ['--expt-relaxed-constexpr', '--expt-extended-lambda', '-O2']
+        extra_compile_args['nvcc'] = nvcc_flags
         link_args += ['-lcusparse', '-l', 'cusparse',
                       '-lcublas', '-l', 'cublas',
                       '-lcusolver', '-l', 'cusolver']
         libraries.extend(['cusolver', 'cublas', 'cusparse'])
+
     extensions.append(
         extension_cls(
             "falkon.c_ext",
-            sources=[osp.join(ext_dir, f) for f in ext_files],
+            sources=ext_files,
             include_dirs=[ext_dir],
             define_macros=macros,
-            extra_compile_args=compile_args,
+            extra_compile_args=extra_compile_args,
             extra_link_args=link_args,
             libraries=libraries,
         )
@@ -120,14 +140,15 @@ def get_extensions():
 
     # Cyblas helpers
     file_ext = '.pyx' if WITH_CYTHON else '.c'
-    cyblas_compile_args = [
-        '-shared', '-fPIC', '-fopenmp', '-O3', '-Wall', '-std=c99']
+    extra_compile_args, extra_link_args = parallel_extra_compile_args(is_torch=False)
+    extra_compile_args += ['-shared', '-fPIC', '-O3', '-Wall', '-sdt=c99']
+    extra_link_args += ['-fPIC']
     cyblas_ext = [Extension('falkon.la_helpers.cyblas',
                             sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
                             include_dirs=[numpy.get_include()],
-                            extra_compile_args=cyblas_compile_args,
+                            extra_compile_args=extra_compile_args,
                             #define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
-                            extra_link_args=['-fPIC', '-fopenmp', '-s'])]
+                            extra_link_args=extra_link_args)]
     if WITH_CYTHON:
         cyblas_ext = cythonize(cyblas_ext)
     extensions.extend(cyblas_ext)

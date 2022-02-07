@@ -3,7 +3,7 @@
 2. torch-extension (for cuda tensors)
 In order to provide a unified interface
 """
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 import torch
@@ -18,7 +18,15 @@ from falkon.utils.helpers import check_same_device
 from .cpu_trsm import cpu_trsm
 
 arr_type = Union[torch.Tensor, np.ndarray]
-__all__ = ("zero_triang", "mul_triang", "copy_triang", "vec_mul_triang", "potrf", "trsm")
+__all__ = (
+    "zero_triang",
+    "mul_triang",
+    "copy_triang",
+    "vec_mul_triang",
+    "potrf",
+    "trsm",
+    "square_norm",
+)
 
 
 def zero_triang(mat: arr_type, upper: bool) -> arr_type:
@@ -185,3 +193,7 @@ def trsm(v: arr_type, A: arr_type, alpha: float, lower: int = 0, transpose: int 
     if out_torch_convert:
         return torch.from_numpy(vout)
     return vout
+
+
+def square_norm(mat: torch.Tensor, dim: int, keepdim: Optional[bool] = None) -> torch.Tensor:
+    return torch.ops.falkon.square_norm(mat, dim, keepdim)

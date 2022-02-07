@@ -10,9 +10,6 @@
 // CPU functions: sparse, squared-norm
 #include "cpu/sparse_norm.h"
 #include "cpu/sparse_bdot.h"
-#ifdef NEW_TORCH
-#include "cpu/square_norm_cpu.h"
-#endif
 
 // CUDA functions
 #ifdef WITH_CUDA
@@ -34,11 +31,6 @@
 // Sparse
 #include "cuda/spspmm_cuda.h"
 #include "cuda/csr2dense_cuda.h"
-
-// Square norm
-#ifdef NEW_TORCH
-#include "cuda/square_norm_cuda.h"
-#endif
 
 // CUDA library bindings
 #include "cuda/cublas_bindings.h"
@@ -338,23 +330,6 @@ torch::Tensor vec_mul_triang(torch::Tensor &A,
 #endif
 }
 
-torch::Tensor square_norm_call(const torch::Tensor &input, int64_t dim, torch::optional<bool> opt_keepdim)
-{
-#ifdef NEW_TORCH
-    if (input.device().is_cuda()) {
-    #ifdef WITH_CUDA
-        return square_norm_cuda(input, dim, opt_keepdim);
-    #else
-       TORCH_CHECK(false, "Not compiled with CUDA support");
-    #endif
-    } else {
-        return square_norm_cpu(input, dim, opt_keepdim);
-    }
-#else
-    return at::pow(at::norm(input, 2, dim, opt_keepdim.value_or(false)), 2);
-#endif
-}
-
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
 spspmm(
     const torch::Tensor &rowptrA,
@@ -442,9 +417,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def("sparse_row_norm", &sparse_row_norm, "Row-wise norm of a sparse CPU matrix",
         py::call_guard<py::gil_scoped_release>());
-
-  m.def("square_norm", &square_norm_call, "Squared l2 norm squared. Supports both CUDA and CPU inputs.",
-        py::arg("input"), py::arg("dim"), py::arg("keepdim"));
 
   m.def("sparse_bdot", &sparse_bdot, "Row-wise batch dot-product on sparse tensors",
         py::arg("indexptr1"), py::arg("indices1"), py::arg("data1"), py::arg("indexptr2"), py::arg("indices2"), py::arg("data2"), py::arg("out"),

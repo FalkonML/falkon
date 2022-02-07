@@ -4,10 +4,10 @@ import torch
 
 from falkon import sparse
 from falkon.kernels.diff_kernel import DiffKernel
-from falkon.la_helpers.square_norm_fn import square_norm_diff
 from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
 from falkon.kernels import KeopsKernelMixin
+from falkon.la_helpers import square_norm
 
 SQRT3 = 1.7320508075688772
 SQRT5 = 2.23606797749979
@@ -99,8 +99,8 @@ def rbf_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     mat1_div_sig = mat1 / sigma
     mat2_div_sig = mat2 / sigma
-    norm_sq_mat1 = square_norm_diff(mat1_div_sig, -1, True)  # b*n*1 or n*1
-    norm_sq_mat2 = square_norm_diff(mat2_div_sig, -1, True)  # b*m*1 or m*1
+    norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1 or n*1
+    norm_sq_mat2 = square_norm(mat2_div_sig, -1, True)  # b*m*1 or m*1
 
     out = _sq_dist(mat1_div_sig, mat2_div_sig, norm_sq_mat1, norm_sq_mat2, out)
     out.mul_(-0.5)
@@ -129,8 +129,8 @@ def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     mat1_div_sig = mat1 / sigma
     mat2_div_sig = mat2 / sigma
-    norm_sq_mat1 = square_norm_diff(mat1_div_sig, -1, True)  # b*n*1
-    norm_sq_mat2 = square_norm_diff(mat2_div_sig, -1, True)  # b*m*1
+    norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1
+    norm_sq_mat2 = square_norm(mat2_div_sig, -1, True)  # b*m*1
     orig_out = out
     out = _sq_dist(mat1_div_sig, mat2_div_sig, norm_sq_mat1, norm_sq_mat2, out)
     out.sqrt_()  # Laplacian: sqrt of squared-difference
@@ -170,8 +170,8 @@ def matern_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma, nu):
     orig_out = out
     mat1_div_sig = mat1 / sigma
     mat2_div_sig = mat2 / sigma
-    norm_sq_mat1 = square_norm_diff(mat1_div_sig, -1, True)  # b*n*1
-    norm_sq_mat2 = square_norm_diff(mat2_div_sig, -1, True)  # b*m*1
+    norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1
+    norm_sq_mat2 = square_norm(mat2_div_sig, -1, True)  # b*m*1
 
     out = _sq_dist(mat1_div_sig, mat2_div_sig, norm_sq_mat1, norm_sq_mat2, out)
     if nu == 1.5:

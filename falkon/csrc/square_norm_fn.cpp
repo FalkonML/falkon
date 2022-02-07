@@ -1,60 +1,75 @@
 #include <torch/torch.h>
+#include <torch/script.h>
 
-using namespace torch::autograd;
+#ifdef NEW_TORCH
+    #include "cpu/square_norm_cpu.h"
+    #ifdef WITH_CUDA
+        #include "cuda/square_norm_cuda.h"
+    #endif
+#endif
 
+using torch::autograd::variable_list;
+using torch::autograd::Function;
+using torch::autograd::AutogradContext;
+using torch::autograd::Variable;
+
+
+torch::Tensor square_norm_fw(torch::Tensor input, int64_t dim, bool keepdim) {
+    #ifdef NEW_TORCH
+        if (input.device().is_cuda()) {
+            #ifdef WITH_CUDA
+                return square_norm_cuda(input, dim, keepdim);
+            #else
+                AT_ERROR("Not compiled with CUDA support");
+            #endif
+        } else {
+            return square_norm_cpu(input, dim, keepdim);
+        }
+    #else
+        return at::pow(at::norm(input, 2, dim, keepdim), 2);
+    #endif
+}
 
 class SquareNormFunction : public Function<SquareNormFunction> {
  public:
-    static torch::Tensor forward(
-        AutogradContext *ctx, torch::Tensor input, int64_t dim, bool opt_keepdim = false) {
+    static variable_list forward(AutogradContext *ctx,
+                                 Variable input,
+                                 int64_t dim,
+                                 torch::optional<bool> opt_keepdim) {
+        bool keepdim = false;
+        if (opt_keepdim.has_value()) {
+            keepdim = opt_keepdim.value();
+        }
+
+        ctx->saved_data["dim"] = dim;
+        ctx->saved_data["keepdim"] = keepdim;
+
         ctx->save_for_backward({input});
-        #ifdef NEW_TORCH
-            if (input.device().is_cuda()) {
-            #ifdef WITH_CUDA
-                return square_norm_cuda(input, dim, opt_keepdim);
-            #else
-               TORCH_CHECK(false, "Not compiled with CUDA support");
-            #endif
-            } else {
-                return square_norm_cpu(input, dim, opt_keepdim);
-            }
-        #else
-            return at::pow(at::norm(input, 2, dim, opt_keepdim), 2);
-        #endif
+        auto out = square_norm_fw(input, dim, keepdim);
+        return {out};
     }
 
-    static tensor_list backward(AutogradContext *ctx, tensor_list grad_outputs) {
-        auto saved = ctx->get_saved_variables();
-        auto input = saved[0];
-        auto input_grad = input * 2;
+    static variable_list backward(AutogradContext *ctx, variable_list grad_outputs) {
+        auto input = ctx->get_saved_variables()[0];
+        auto dim = ctx->saved_data["dim"].toInt();
+        auto keepdim = ctx->saved_data["keepdim"].toBool();
+        auto grad_out = grad_outputs[0];
+
+        if (!keepdim) {
+            grad_out = grad_out.unsqueeze(dim);
+        }
+        auto grad_input = input * 2;
+        grad_input.mul_(grad_out);
+
+        return {grad_input, Variable(), Variable()};
     }
-
-    const torch::Tensor &input, int64_t dim, torch::optional<bool> opt_keepdim)
-
-  static torch::Tensor forward(
-      AutogradContext *ctx, torch::Tensor input, torch::Tensor weight, torch::Tensor bias = torch::Tensor()) {
-    ctx->save_for_backward({input, weight, bias});
-    auto output = input.mm(weight.t());
-    if (bias.defined()) {
-      output += bias.unsqueeze(0).expand_as(output);
-    }
-    return output;
-  }
-
-  static tensor_list backward(AutogradContext *ctx, tensor_list grad_outputs) {
-    auto saved = ctx->get_saved_variables();
-    auto input = saved[0];
-    auto weight = saved[1];
-    auto bias = saved[2];
-
-    auto grad_output = grad_outputs[0];
-    auto grad_input = grad_output.mm(weight);
-    auto grad_weight = grad_output.t().mm(input);
-    auto grad_bias = torch::Tensor();
-    if (bias.defined()) {
-      grad_bias = grad_output.sum(0);
-    }
-
-    return {grad_input, grad_weight, grad_bias};
-  }
 };
+
+
+torch::Tensor scatter_mean(torch::Tensor input, int64_t dim, torch::optional<bool> keepdim) {
+  return SquareNormFunction::apply(input, dim, keepdim)[0];
+}
+
+
+static auto registry = torch::RegisterOperators()
+                        .op("falkon::square_norm", &scatter_mean);
