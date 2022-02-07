@@ -241,7 +241,7 @@ class UniformSelector(CenterSelector):
         if Y is not None:
             Yc = create_same_stride((num_centers, Y.shape[1]), other=Y, dtype=Y.dtype,
                                     device=Y.device, pin_memory=False)
-            th_idx = torch.from_numpy(idx.astype(np.long)).to(Y.device)
+            th_idx = torch.from_numpy(idx.astype(np.int64)).to(Y.device)
             torch.index_select(Y, dim=0, index=th_idx, out=Yc)
             return Xc, Yc, th_idx
         return Xc, th_idx
