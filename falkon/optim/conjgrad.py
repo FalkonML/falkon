@@ -298,7 +298,7 @@ class FalkonConjugateGradient(Optimizer):
             y_over_n = Y / n  # Cannot be in-place since Y needs to be preserved
 
             if self.is_weighted:
-                y_weights = self.weight_fn(Y)
+                y_weights = self.weight_fn(Y, X, torch.arange(Y.shape[0]))
                 y_over_n.mul_(y_weights)  # This can be in-place since we own y_over_n
 
             # Compute the right hand side

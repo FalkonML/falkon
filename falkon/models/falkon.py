@@ -73,9 +73,10 @@ class Falkon(FalkonBase):
         calculated at each iteration. If set to None, it will never be
         calculated.
     weight_fn : Callable or None
-        A function which appropriately weighs the target tensor (i.e. Y). This function is used
-        for weighted least-squares, it should accept a single argument which represents a subset
-        of the targets, and return a vector of weights corresponding to the input targets.
+        A function for giving different weights to different samples. This is used
+        for weighted least-squares, it should accept three arguments: `Y`, `X`, `indices` which
+        represent the samples for which weights need to be computed, and return a vector of
+        weights corresponding to the input targets.
 
         As an example, in the setting of binary classification Y can be -1 or +1. To give more
         importance to errors on the negative class, pass a `weight_fn` which returns 2 whenever
@@ -121,7 +122,7 @@ class Falkon(FalkonBase):
                  seed: Optional[int] = None,
                  error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
                  error_every: Optional[int] = 1,
-                 weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+                 weight_fn: Optional[Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]] = None,
                  options: Optional[FalkonOptions] = None,
                  ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
@@ -222,7 +223,7 @@ class Falkon(FalkonBase):
                 self.precond = precond
                 ny_weight_vec = None
                 if self.weight_fn is not None:
-                    ny_weight_vec = self.weight_fn(Y[ny_indices])
+                    ny_weight_vec = self.weight_fn(Y[ny_indices], X[ny_indices], ny_indices)
                 precond.init(ny_points, weight_vec=ny_weight_vec)
 
             if _use_cuda_mmv:
