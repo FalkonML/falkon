@@ -176,7 +176,7 @@ class TestWeightedFalkon:
         def error_fn(t, p):
             return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
 
-        def weight_fn(y):
+        def weight_fn(y, x, indices):
             weight = torch.empty_like(y)
             weight[y == 1] = 1
             weight[y == -1] = 2

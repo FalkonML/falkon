@@ -150,7 +150,7 @@ def _single_gpu_method(proc_idx, queue, device_id):
     out_ic = oout.device.index == device_id
 
     # Process the two rounds of splitting with a nested loop.
-    with torch.cuda.device(device_id):
+    with torch.cuda.device(device_id), torch.autograd.inference_mode():
         for mi in range(0, M, m):
             ml = min(m, M - mi)
             if ml != M and mi > 0:  # Then we must create a temporary output array
