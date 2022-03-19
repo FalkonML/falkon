@@ -237,6 +237,7 @@ ERROR_METRICS: Dict[Dataset, List[ERROR_FN_TYPE]] = {
     Dataset.MNIST_SMALL: [mnist_calc_cerr],
     Dataset.SVHN: [mnist_calc_cerr],
     Dataset.CIFAR10: [mnist_calc_cerr],
+    Dataset.CIFAR10RGB: [mnist_calc_cerr],
     Dataset.ICTUS: [binary_cerr],
     Dataset.SYNTH01NOISE: [rmse],
     Dataset.CHIET: [nrmse],

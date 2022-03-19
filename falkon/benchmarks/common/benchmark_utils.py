@@ -69,6 +69,7 @@ class Dataset(Enum):
     SVHN = 'svhn'
     MNIST = 'mnist'
     CIFAR10 = 'cifar10'
+    CIFAR10RGB = 'cifar10-rgb'
     HOHIGGS = 'ho-higgs'
     ICTUS = 'ictus'
     SYNTH01NOISE = 'synth-01noise'

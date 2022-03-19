@@ -547,6 +547,26 @@ class CIFAR10Dataset(KnownSplitDataset):
         return convert_to_onehot(Ytr, Yts, num_classes=10)
 
 
+class CIFAR10RGBDataset(KnownSplitDataset):
+    file_name = "/data/DATASETS/CIFAR10/cifar10rgb.hdf5"
+    dset_name = "CIFAR10_RGB"
+    num_train_samples = 50000
+
+    def read_data(self, dtype):
+        with h5py.File(self.file_name, 'r') as h5py_file:
+            x_tr = np.array(h5py_file['Xtr'], dtype=as_np_dtype(dtype))
+            x_ts = np.array(h5py_file['Xts'], dtype=as_np_dtype(dtype))
+            y_tr = np.array(h5py_file['Ytr'], dtype=as_np_dtype(dtype))
+            y_ts = np.array(h5py_file['Yts'], dtype=as_np_dtype(dtype))
+            return np.concatenate((x_tr, x_ts), axis=0), np.concatenate((y_tr, y_ts), axis=0)
+
+    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+        return Xtr / 255, Xts / 255, {}
+
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+        return convert_to_onehot(Ytr, Yts, num_classes=10)
+
+
 class SVHNDataset(KnownSplitDataset):
     file_name = "/data/DATASETS/SVHN/SVHN.mat"
     ts_file_name = "/data/DATASETS/SVHN/SVHN.t.mat"
@@ -987,6 +1007,7 @@ __LOADERS = {
     Dataset.SVHN: SVHNDataset(),
     Dataset.MNIST_SMALL: MnistSmallDataset(),
     Dataset.CIFAR10: CIFAR10Dataset(),
+    Dataset.CIFAR10RGB: CIFAR10RGBDataset(),
     Dataset.HOHIGGS: SmallHiggsDataset(),
     Dataset.ICTUS: IctusDataset(),
     Dataset.SYNTH01NOISE: SyntheticDataset(),
