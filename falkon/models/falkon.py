@@ -164,15 +164,18 @@ class Falkon(FalkonBase):
             if self.use_cuda_:
                 ny_points = ny_points.pin_memory()
 
-            with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
-                pc_opt: FalkonOptions = dataclasses.replace(self.options,
-                                                            use_cpu=not _use_cuda_preconditioner)
-                if pc_opt.debug:
-                    print("Preconditioner will run on %s" %
-                          ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
-                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
-                self.precond = precond
-                precond.init(ny_points, weight_vec=None)
+            if self.precond is None:
+                with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
+                    pc_opt: FalkonOptions = dataclasses.replace(self.options,
+                                                                use_cpu=not _use_cuda_preconditioner)
+                    if pc_opt.debug:
+                        print("Preconditioner will run on %s" %
+                              ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
+                    precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
+                    self.precond = precond
+                    precond.init(ny_points, weight_vec=None)
+            else:
+                precond = self.precond
 
             if _use_cuda_mmv:
                 # Cache must be emptied to ensure enough memory is visible to the optimizer
