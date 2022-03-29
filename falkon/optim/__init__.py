@@ -1,10 +1,3 @@
-from .conjgrad import ConjugateGradient, FalkonConjugateGradient
-from .gd import GradientDescent, FalkonGradientDescent
-
-__all__ = ('Optimizer', 'ConjugateGradient', 'FalkonConjugateGradient', 'GradientDescent',
-           'FalkonGradientDescent')
-
-
 class StopOptimizationException(Exception):
     def __init__(self, message):
         super().__init__()
@@ -16,3 +9,10 @@ class Optimizer(object):
     """
     def __init__(self):
         pass
+
+
+from .conjgrad import ConjugateGradient, FalkonConjugateGradient
+from .gd import GradientDescent, FalkonGradientDescent
+
+__all__ = ('Optimizer', 'ConjugateGradient', 'FalkonConjugateGradient', 'GradientDescent',
+           'FalkonGradientDescent')
