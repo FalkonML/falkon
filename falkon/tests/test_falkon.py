@@ -14,6 +14,7 @@ from falkon.center_selection import FixedSelector
 from falkon import Falkon, kernels
 from falkon.options import FalkonOptions
 from falkon.utils import decide_cuda
+from falkon.optim import FalkonGradientDescent
 
 
 @pytest.fixture
@@ -99,6 +100,26 @@ class TestFalkon:
         flk = Falkon(
             kernel=kernel, penalty=1e-6, M=Xtr.shape[0] // 2, seed=10,
             options=opt, maxiter=10)
+        flk.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
+
+        assert flk.predict(Xts).shape == (Yts.shape[0], 1)
+        ts_err = error_fn(flk.predict(Xts), Yts)[0]
+        tr_err = error_fn(flk.predict(Xtr), Ytr)[0]
+        assert tr_err < ts_err
+        assert ts_err < 2.5
+
+    def test_gd_optim(self, reg_data):
+        Xtr, Ytr, Xts, Yts = reg_data
+        kernel = kernels.GaussianKernel(20.0)
+
+        def error_fn(t, p):
+            return torch.sqrt(torch.mean((t - p) ** 2)).item(), "RMSE"
+
+        opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
+        optim = FalkonGradientDescent(kernel=kernel, learning_rate=1e-4)
+        flk = Falkon(
+            kernel=kernel, penalty=1e-6, M=Xtr.shape[0] // 2, seed=10,
+            options=opt, maxiter=200, optimizer=optim, error_every=1)
         flk.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
 
         assert flk.predict(Xts).shape == (Yts.shape[0], 1)
