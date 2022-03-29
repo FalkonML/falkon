@@ -74,7 +74,7 @@ class FalkonGradientDescent(Optimizer):
                 cc = self.kernel.dmmv(X, M, v=v_t, w=-Y, opt=opt)
 
             cc = prec.invTt(cc)
-            reg = v.mul_(penalty) * n
+            reg = v.mul_(penalty * n)
             out = prec.invAt(cc.add_(reg))
             return out
 

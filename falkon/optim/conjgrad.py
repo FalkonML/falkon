@@ -98,8 +98,7 @@ class ConjugateGradient(Optimizer):
         diff_conv = params.cg_differential_convergence and X.shape[1] > 1
 
         P = R.clone()
-        R0 = R.square().sum(dim=0)
-        Rsold = R0.clone()
+        Rsold = R.square().sum(dim=0)
 
         e_train = time.time() - t_start
 
