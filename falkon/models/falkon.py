@@ -14,7 +14,6 @@ from falkon.optim import Optimizer
 __all__ = ("Falkon",)
 
 
-
 def get_min_cuda_preconditioner_size(dt, opt: FalkonOptions) -> int:
     if dt == torch.float32:
         return opt.min_cuda_pc_size_32

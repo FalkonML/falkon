@@ -12,6 +12,7 @@ from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
 from falkon.options import FalkonOptions, ConjugateGradientOptions
 from falkon.preconditioner import FalkonPreconditioner
 from falkon.tests.gen_random import gen_random, gen_random_pd
+from falkon.optim import FalkonGradientDescent
 
 
 @pytest.mark.full
@@ -146,6 +147,90 @@ class TestFalkonConjugateGradient:
 
         beta = opt.solve(X=knm, M=None, Y=vec_rhs, _lambda=self.penalty,
                          initial_solution=None, max_iter=200, opt=options,
+                         preconditioner=preconditioner)
+        alpha = preconditioner.apply(beta)
+
+        assert str(beta.device) == device, "Device has changed unexpectedly"
+        np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
+
+
+@pytest.mark.parametrize("device", [
+    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+class TestFalkonGD:
+    basic_opt = FalkonOptions(use_cpu=True, keops_active="no")
+    N = 500
+    M = 10
+    D = 1000
+    penalty = 0.01
+
+    @pytest.fixture()
+    def kernel(self):
+        return GaussianKernel(10.0)
+
+    @pytest.fixture()
+    def data(self):
+        return torch.from_numpy(gen_random(self.N, self.D, 'float64', F=False, seed=10))
+
+    @pytest.fixture(params=[1, 10], ids=["1-rhs", "10-rhs"])
+    def vec_rhs(self, request):
+        return torch.from_numpy(gen_random(self.N, request.param, 'float64', F=False, seed=9))
+
+    @pytest.fixture()
+    def centers(self, data):
+        cs = UniformSelector(np.random.default_rng(2), num_centers=self.M)
+        return cs.select(data, None)
+
+    @pytest.fixture()
+    def knm(self, kernel, data, centers):
+        return kernel(data, centers, opt=self.basic_opt)
+
+    @pytest.fixture()
+    def kmm(self, kernel, centers):
+        return kernel(centers, centers, opt=self.basic_opt)
+
+    @pytest.fixture()
+    def preconditioner(self, kernel, centers):
+        prec = FalkonPreconditioner(self.penalty, kernel, self.basic_opt)
+        prec.init(centers)
+        return prec
+
+    def test_flk_gd(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
+        preconditioner = preconditioner.to(device)
+        options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu", gd_tolerance=1e-10)
+        opt = FalkonGradientDescent(kernel=kernel, learning_rate=0.001)
+
+        # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
+        rhs = knm.T @ vec_rhs
+        lhs = knm.T @ knm + self.penalty * self.N * kmm
+        expected = np.linalg.solve(lhs.numpy(), rhs.numpy())
+
+        data = move_tensor(data, device)
+        centers = move_tensor(centers, device)
+        vec_rhs = move_tensor(vec_rhs, device)
+
+        beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
+                         initial_solution=None, max_iter=400, opt=options,
+                         preconditioner=preconditioner)
+        alpha = preconditioner.apply(beta)
+        # alpha = beta
+        assert str(beta.device) == device, "Device has changed unexpectedly"
+        np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
+
+    def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
+        preconditioner = preconditioner.to(device)
+        options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu", gd_tolerance=1e-10)
+        opt = FalkonGradientDescent(kernel=kernel, learning_rate=0.001)
+
+        # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
+        rhs = knm.T @ vec_rhs
+        lhs = knm.T @ knm + self.penalty * self.N * kmm
+        expected = np.linalg.solve(lhs.numpy(), rhs.numpy())
+
+        knm = move_tensor(knm, device)
+        vec_rhs = move_tensor(vec_rhs, device)
+
+        beta = opt.solve(X=knm, M=None, Y=vec_rhs, _lambda=self.penalty,
+                         initial_solution=None, max_iter=400, opt=options,
                          preconditioner=preconditioner)
         alpha = preconditioner.apply(beta)
 

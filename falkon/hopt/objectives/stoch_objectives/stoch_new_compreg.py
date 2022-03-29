@@ -303,11 +303,13 @@ class NystromCompRegFn(torch.autograd.Function):
         precond = FalkonPreconditioner(penalty_, kernel, solve_options)
         precond.init(M_)
 
-        optim = FalkonConjugateGradient(kernel, precond, solve_options)
+        optim = FalkonConjugateGradient(kernel)
         solve_zy_prec = optim.solve(
             X, M_, ZY, penalty_,
             initial_solution=NystromCompRegFn._last_solve_zy,
             max_iter=solve_maxiter,
+            preconditioner=precond,
+            opt=solve_options
         )
         if warm_start:
             NystromCompRegFn._last_solve_zy = solve_zy_prec.detach().clone()

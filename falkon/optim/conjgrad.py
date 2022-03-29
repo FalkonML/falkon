@@ -76,6 +76,8 @@ class ConjugateGradient(Optimizer):
             a tensor containing the current solution, and the total time elapsed from the beginning
             of training (note that this time explicitly excludes any time taken by the callback
             itself).
+        params
+            Options related to the solver, e.g. convergence tolerance, epsilons.
         Returns
         -------
         The solution to the linear system `X`.
@@ -195,14 +197,6 @@ class FalkonConjugateGradient(Optimizer):
     ----------
     kernel
         The kernel class used for the CG algorithm
-    preconditioner
-        The approximate Falkon preconditioner. The class should allow triangular solves with
-        both :math:`T` and :math:`A` and multiple right-hand sides.
-        The preconditioner should already have been initialized with a set of Nystrom centers.
-        If the Nystrom centers used for CG are different from the ones used for the preconditioner,
-        the CG method could converge very slowly.
-    opt
-        Options passed to the CG solver and to the kernel for computations.
 
     See Also
     --------
@@ -225,7 +219,7 @@ class FalkonConjugateGradient(Optimizer):
             v_t = prec.invT(v)
 
             if Knm is not None:
-                cc = incore_fdmmv(Knm, v_t, None, opt=opt)
+                cc = incore_fdmmv(Knm, v_t, w=None, opt=opt)
             else:
                 cc = self.kernel.dmmv(X, M, v_t, None, opt=opt)
 

@@ -14,7 +14,6 @@ from falkon.optim import Optimizer
 __all__ = ("InCoreFalkon", )
 
 
-
 class InCoreFalkon(FalkonBase):
     """In GPU core Falkon Kernel Ridge Regression solver.
 

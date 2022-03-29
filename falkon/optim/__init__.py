@@ -11,8 +11,10 @@ class Optimizer(object):
         pass
 
 
-from .conjgrad import ConjugateGradient, FalkonConjugateGradient
-from .gd import GradientDescent, FalkonGradientDescent
+from .conjgrad import ConjugateGradient, FalkonConjugateGradient  # noqa E402
+from .gd import GradientDescent, FalkonGradientDescent  # noqa E402
 
-__all__ = ('Optimizer', 'ConjugateGradient', 'FalkonConjugateGradient', 'GradientDescent',
-           'FalkonGradientDescent')
+__all__ = ('Optimizer', 'StopOptimizationException',
+           'ConjugateGradient', 'FalkonConjugateGradient',
+           'GradientDescent', 'FalkonGradientDescent',
+           )

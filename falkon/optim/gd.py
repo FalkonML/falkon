@@ -1,16 +1,15 @@
 import functools
-import math
 import time
 from contextlib import ExitStack
 from typing import Optional, Callable
 
-import falkon
 import torch
 
+import falkon
+from falkon.mmv_ops.fmmv_incore import incore_fdmmv
+from falkon.optim import Optimizer, StopOptimizationException
 from falkon.options import GDOptions, FalkonOptions
 from falkon.utils import TicToc
-from falkon.mmv_ops.fmmv_incore import incore_fmmv
-from falkon.optim import Optimizer, StopOptimizationException
 
 
 class GradientDescent(Optimizer):
@@ -32,8 +31,7 @@ class GradientDescent(Optimizer):
         for self.num_iter in range(max_iter):
             with TicToc("GD-Iter", debug=False):
                 t_start = time.time()
-                grad = gradient_step(X0)
-                X = X0 - learning_rate * grad
+                X = X0 - learning_rate * gradient_step(X0)
 
                 diff = (X - X0).square().sum(dim=0).mean()
                 if diff < tol:
@@ -48,7 +46,7 @@ class GradientDescent(Optimizer):
                     except StopOptimizationException as e:
                         print(f"Optimization stopped from callback: {e.message}")
                         break
-        return X
+        return X0
 
 
 class FalkonGradientDescent(Optimizer):
@@ -71,16 +69,12 @@ class FalkonGradientDescent(Optimizer):
             v = prec.invA(sol)
             v_t = prec.invT(v)
             if Knm is not None:
-                cc = incore_fmmv(Knm, v_t, None, opt=opt)
+                cc = incore_fdmmv(Knm, v_t, w=-Y, opt=opt)
             else:
-                cc = self.kernel.mmv(X, M, v_t, None, opt=opt)
-            cc.sub_(Y * math.sqrt(n))
-            if Knm is not None:
-                cc = incore_fmmv(Knm, cc, out=None, transpose=True, opt=opt)
-            else:
-                cc = self.kernel.mmv(M, X, cc, None, opt=opt)
-            cc = prec.invTt(cc).div_(n)
-            reg = v.mul_(penalty)
+                cc = self.kernel.dmmv(X, M, v=v_t, w=-Y, opt=opt)
+
+            cc = prec.invTt(cc)
+            reg = v.mul_(penalty) * n
             out = prec.invAt(cc.add_(reg))
             return out
 

@@ -40,6 +40,12 @@ def incore_fmmv(mat: torch.Tensor,
     return out
 
 
-def incore_fdmmv(mat: torch.Tensor, vec: torch.Tensor, out: Optional[torch.Tensor] = None, opt: Optional[FalkonOptions] = None) -> torch.Tensor:
+def incore_fdmmv(mat: torch.Tensor,
+                 vec: torch.Tensor,
+                 w: Optional[torch.Tensor],
+                 out: Optional[torch.Tensor] = None,
+                 opt: Optional[FalkonOptions] = None) -> torch.Tensor:
     out1 = incore_fmmv(mat, vec, None, False, opt)
+    if w is not None:
+        out1.add_(w)
     return incore_fmmv(mat, out1, out, True, opt)
