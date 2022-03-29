@@ -353,3 +353,7 @@ class TestStressInCore:
             except:  # noqa E722
                 wrong += 1
         assert wrong == 0, "%d results were not equal" % (wrong)
+
+
+if __name__ == "__main__":
+    pytest.main()

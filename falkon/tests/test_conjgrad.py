@@ -9,7 +9,7 @@ from falkon.utils import decide_cuda
 from falkon.center_selection import UniformSelector
 from falkon.kernels import GaussianKernel
 from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
-from falkon.options import FalkonOptions
+from falkon.options import FalkonOptions, ConjugateGradientOptions
 from falkon.preconditioner import FalkonPreconditioner
 from falkon.tests.gen_random import gen_random, gen_random_pd
 
@@ -40,7 +40,8 @@ class TestConjugateGradient():
         mat = move_tensor(mat, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x_: mat @ x_, max_iter=10, callback=None)
+        x = conjgrad.solve(X0=None, B=vec_rhs, mmv=lambda x_: mat @ x_, max_iter=10,
+                           callback=None, params=ConjugateGradientOptions())
 
         assert str(x.device) == device, "Device has changed unexpectedly"
         assert x.stride() == vec_rhs.stride(), "Stride has changed unexpectedly"
@@ -58,7 +59,7 @@ class TestConjugateGradient():
         init_sol.fill_(0.0)
 
         x = conjgrad.solve(X0=init_sol, B=vec_rhs, mmv=lambda x_: mat @ x_, max_iter=10,
-                           callback=None)
+                           callback=None, params=ConjugateGradientOptions())
 
         assert x.data_ptr() == init_sol.data_ptr(), "Initial solution vector was copied"
         assert str(x.device) == device, "Device has changed unexpectedly"
@@ -111,7 +112,7 @@ class TestFalkonConjugateGradient:
     def test_flk_cg(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)
         options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")
-        opt = FalkonConjugateGradient(kernel, preconditioner, opt=options)
+        opt = FalkonConjugateGradient(kernel=kernel)
 
         # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
         rhs = knm.T @ vec_rhs
@@ -123,7 +124,8 @@ class TestFalkonConjugateGradient:
         vec_rhs = move_tensor(vec_rhs, device)
 
         beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
-                         initial_solution=None, max_iter=100)
+                         initial_solution=None, max_iter=100, opt=options,
+                         preconditioner=preconditioner)
         alpha = preconditioner.apply(beta)
 
         assert str(beta.device) == device, "Device has changed unexpectedly"
@@ -132,7 +134,7 @@ class TestFalkonConjugateGradient:
     def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)
         options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")
-        opt = FalkonConjugateGradient(kernel, preconditioner, opt=options)
+        opt = FalkonConjugateGradient(kernel=kernel)
 
         # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
         rhs = knm.T @ vec_rhs
@@ -143,8 +145,13 @@ class TestFalkonConjugateGradient:
         vec_rhs = move_tensor(vec_rhs, device)
 
         beta = opt.solve(X=knm, M=None, Y=vec_rhs, _lambda=self.penalty,
-                         initial_solution=None, max_iter=200)
+                         initial_solution=None, max_iter=200, opt=options,
+                         preconditioner=preconditioner)
         alpha = preconditioner.apply(beta)
 
         assert str(beta.device) == device, "Device has changed unexpectedly"
         np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
+
+
+if __name__ == "__main__":
+    pytest.main()

@@ -10,6 +10,7 @@ from falkon.mmv_ops.fmmv_incore import incore_fdmmv, incore_fmmv
 from falkon.options import ConjugateGradientOptions, FalkonOptions
 from falkon.utils import TicToc
 from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
+from optim import Optimizer, StopOptimizationException
 
 
 # More readable 'pseudocode' for conjugate gradient.
@@ -33,23 +34,9 @@ from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
 # end
 
 
-class StopOptimizationException(Exception):
-    def __init__(self, message):
-        super().__init__()
-        self.message = message
-
-
-class Optimizer(object):
-    """Base class for optimizers. This is an empty shell at the moment.
-    """
-    def __init__(self):
-        pass
-
-
 class ConjugateGradient(Optimizer):
-    def __init__(self, opt: Optional[ConjugateGradientOptions] = None):
+    def __init__(self):
         super().__init__()
-        self.params = opt or ConjugateGradientOptions()
         self.num_iter = None
 
     def solve(self,
@@ -57,6 +44,7 @@ class ConjugateGradient(Optimizer):
               B: torch.Tensor,
               mmv: Callable[[torch.Tensor], torch.Tensor],
               max_iter: int,
+              params: ConjugateGradientOptions,
               callback: Optional[Callable[[int, torch.Tensor, float], None]] = None) -> torch.Tensor:
         """Conjugate-gradient solver with optional support for preconditioning via generic MMV.
 
@@ -102,10 +90,10 @@ class ConjugateGradient(Optimizer):
             R = B - mmv(X0)  # n*t
             X = X0
 
-        m_eps = self.params.cg_epsilon(X.dtype)
-        full_grad_every = self.params.cg_full_gradient_every or max_iter * 2
-        tol = self.params.cg_tolerance ** 2
-        diff_conv = self.params.cg_differential_convergence and X.shape[1] > 1
+        m_eps = params.cg_epsilon(X.dtype)
+        full_grad_every = params.cg_full_gradient_every or max_iter * 2
+        tol = params.cg_tolerance ** 2
+        diff_conv = params.cg_differential_convergence and X.shape[1] > 1
 
         P = R.clone()
         R0 = R.square().sum(dim=0)
@@ -124,7 +112,7 @@ class ConjugateGradient(Optimizer):
             X_orig = X
 
         for self.num_iter in range(max_iter):
-            with TicToc("Chol Iter", debug=False):
+            with TicToc("CG-Iter", debug=False):
                 t_start = time.time()
                 AP = mmv(P)
                 alpha = Rsold / (torch.sum(P * AP, dim=0).add_(m_eps))
@@ -163,7 +151,7 @@ class ConjugateGradient(Optimizer):
 
                 e_iter = time.time() - t_start
                 e_train += e_iter
-            with TicToc("Chol callback", debug=False):
+            with TicToc("CG-callback", debug=False):
                 if callback is not None:
                     try:
                         callback(self.num_iter + 1, X, e_train)
@@ -223,29 +211,23 @@ class FalkonConjugateGradient(Optimizer):
     """
     def __init__(self,
                  kernel: falkon.kernels.Kernel,
-                 preconditioner: falkon.preconditioner.Preconditioner,
-                 opt: FalkonOptions,
                  weight_fn=None):
         super().__init__()
         self.kernel = kernel
-        self.preconditioner = preconditioner
-        self.params = opt
-        self.optimizer = ConjugateGradient(opt.get_conjgrad_options())
-
+        self.optimizer = ConjugateGradient()
         self.weight_fn = weight_fn
 
-    def falkon_mmv(self, sol, penalty, X, M, Knm):
+    def falkon_mmv(self, sol, penalty, X, M, Knm, prec, opt):
         n = Knm.shape[0] if Knm is not None else X.shape[0]
-        prec = self.preconditioner
 
         with TicToc("MMV", False):
             v = prec.invA(sol)
             v_t = prec.invT(v)
 
             if Knm is not None:
-                cc = incore_fdmmv(Knm, v_t, None, opt=self.params)
+                cc = incore_fdmmv(Knm, v_t, None, opt=opt)
             else:
-                cc = self.kernel.dmmv(X, M, v_t, None, opt=self.params)
+                cc = self.kernel.dmmv(X, M, v_t, None, opt=opt)
 
             # AT^-1 @ (TT^-1 @ (cc / n) + penalty * v)
             cc_ = cc.div_(n)
@@ -254,20 +236,19 @@ class FalkonConjugateGradient(Optimizer):
             out = prec.invAt(cc_)
             return out
 
-    def weighted_falkon_mmv(self, sol, penalty, X, M, Knm, y_weights):
+    def weighted_falkon_mmv(self, sol, penalty, X, M, Knm, y_weights, prec, opt):
         n = Knm.shape[0] if Knm is not None else X.shape[0]
-        prec = self.preconditioner
 
         with TicToc("MMV", False):
             v = prec.invA(sol)
             v_t = prec.invT(v)
 
             if Knm is not None:
-                cc = incore_fmmv(Knm, v_t, None, opt=self.params).mul_(y_weights)
-                cc = incore_fmmv(Knm.T, cc, None, opt=self.params)
+                cc = incore_fmmv(Knm, v_t, None, opt=opt).mul_(y_weights)
+                cc = incore_fmmv(Knm.T, cc, None, opt=opt)
             else:
-                cc = self.kernel.mmv(X, M, v_t, None, opt=self.params).mul_(y_weights)
-                cc = self.kernel.mmv(M, X, cc, None, opt=self.params)
+                cc = self.kernel.mmv(X, M, v_t, None, opt=opt).mul_(y_weights)
+                cc = self.kernel.mmv(M, X, cc, None, opt=opt)
 
             # AT^-1 @ (TT^-1 @ (cc / n) + penalty * v)
             cc_ = cc.div_(n)
@@ -276,7 +257,9 @@ class FalkonConjugateGradient(Optimizer):
             out = prec.invAt(cc_)
             return out
 
-    def solve(self, X, M, Y, _lambda, initial_solution, max_iter, callback=None):
+    def solve(self, X, M, Y, _lambda, initial_solution, max_iter,
+              preconditioner: falkon.preconditioner.Preconditioner, opt: FalkonOptions,
+              callback=None):
         n = X.size(0)
         if M is None:
             Knm = X
@@ -303,34 +286,23 @@ class FalkonConjugateGradient(Optimizer):
 
             # Compute the right hand side
             if Knm is not None:
-                B = incore_fmmv(Knm, y_over_n, None, transpose=True, opt=self.params)
+                B = incore_fmmv(Knm, y_over_n, None, transpose=True, opt=opt)
             else:
-                B = self.kernel.mmv(M, X, y_over_n, opt=self.params)
-            B = self.preconditioner.apply_t(B)
+                B = self.kernel.mmv(M, X, y_over_n, opt=opt)
+            B = preconditioner.apply_t(B)
 
             if self.is_weighted:
                 mmv = functools.partial(self.weighted_falkon_mmv, penalty=_lambda, X=X,
-                                        M=M, Knm=Knm, y_weights=y_weights)
+                                        M=M, Knm=Knm, y_weights=y_weights, prec=preconditioner,
+                                        opt=opt)
             else:
-                mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm)
+                mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm,
+                                        prec=preconditioner, opt=opt)
             # Run the conjugate gradient solver
-            beta = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
+            beta = self.optimizer.solve(initial_solution, B, mmv, max_iter=max_iter,
+                                        params=opt.get_conjgrad_options(), callback=callback)
 
         return beta
-
-    def solve_val_rhs(self, Xtr, Xval, M, Y, _lambda, initial_solution, max_iter, callback=None):
-        n = Xtr.size(0)
-        prec = self.preconditioner
-
-        with TicToc("ConjGrad preparation", False):
-            B = self.kernel.mmv(M, Xval, Y / n, opt=self.params)
-            B = prec.apply_t(B)
-
-            # Define the Matrix-vector product iteration
-            capture_mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=Xtr, M=M, Knm=None)
-
-        # Run the conjugate gradient solver
-        return self.optimizer.solve(initial_solution, B, capture_mmv, max_iter, callback)
 
     @property
     def is_weighted(self):

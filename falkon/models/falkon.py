@@ -12,6 +12,8 @@ from falkon.utils.devices import get_device_info
 
 __all__ = ("Falkon",)
 
+from optim import Optimizer
+
 
 def get_min_cuda_preconditioner_size(dt, opt: FalkonOptions) -> int:
     if dt == torch.float32:
@@ -123,6 +125,7 @@ class Falkon(FalkonBase):
                  error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
                  error_every: Optional[int] = 1,
                  weight_fn: Optional[Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]] = None,
+                 optimizer: Optional[Optimizer] = None,
                  options: Optional[FalkonOptions] = None,
                  ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
@@ -131,6 +134,9 @@ class Falkon(FalkonBase):
         self.weight_fn = weight_fn
         self._init_cuda()
         self.beta_ = None
+        self.optimizer = optimizer
+        if self.optimizer is None:
+            self.optimizer = falkon.optim.FalkonConjugateGradient(self.kernel, weight_fn=self.weight_fn)
 
     def fit(self,
             X: torch.Tensor,
@@ -253,16 +259,16 @@ class Falkon(FalkonBase):
                 if o_opt.debug:
                     print("Optimizer will run on %s" %
                           ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
-                optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt,
-                                                             weight_fn=self.weight_fn)
                 if Knm is not None:
-                    beta = optim.solve(
+                    beta = self.optimizer.solve(
                         Knm, None, Y, self.penalty, initial_solution=warm_start,
-                        max_iter=self.maxiter, callback=validation_cback)
+                        max_iter=self.maxiter, callback=validation_cback, preconditioner=precond,
+                        opt=o_opt)
                 else:
-                    beta = optim.solve(
+                    beta = self.optimizer.solve(
                         X, ny_points, Y, self.penalty, initial_solution=warm_start,
-                        max_iter=self.maxiter, callback=validation_cback)
+                        max_iter=self.maxiter, callback=validation_cback, preconditioner=precond,
+                        opt=o_opt)
 
                 self.alpha_ = precond.apply(beta)
                 self.beta_ = beta

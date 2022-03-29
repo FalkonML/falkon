@@ -7,6 +7,7 @@ __all__ = (
     "BaseOptions",
     "KeopsOptions",
     "ConjugateGradientOptions",
+    "GDOptions",
     "PreconditionerOptions",
     "CholeskyOptions",
     "FalkonOptions",
@@ -133,6 +134,12 @@ cg_differential_convergence
     they are removed from the optimization procedure. If it is not set, all vectors must have
     converged for the optimization to stop. It is especially useful for hyperparameter optimization.
     """,
+    "gd":
+    """
+gd_tolerance
+    `default 1e-5` - Maximum change in model parameters between iterations. If less change than
+    ``gd_tolerance`` is detected, then we regard the optimization as converged.
+    """,
     "pc":
     """
 pc_epsilon_32
@@ -240,6 +247,14 @@ class ConjugateGradientOptions():
 
 
 @dataclass
+class GDOptions():
+    gd_tolerance: float = 1e-5
+
+    def get_gd_options(self):
+        return GDOptions(gd_tolerance=self.gd_tolerance,)
+
+
+@dataclass
 class PreconditionerOptions():
     """Options related to calculation of the preconditioner
 
@@ -285,9 +300,11 @@ class CholeskyOptions():
 class FalkonOptions(
         BaseOptions,
         ConjugateGradientOptions,
+        GDOptions,
         PreconditionerOptions,
         CholeskyOptions,
-        KeopsOptions,):
+        KeopsOptions,
+):
     """Global options for Falkon."""
     pass
 
@@ -302,8 +319,9 @@ _reset_doc(KeopsOptions, _docs["keops"])
 _reset_doc(ConjugateGradientOptions, _docs["cg"])
 _reset_doc(PreconditionerOptions, _docs["pc"])
 _reset_doc(CholeskyOptions, _docs["chol"])
+_reset_doc(GDOptions, _docs["gd"])
 
 
-FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s\n\n%s" % (
-    FalkonOptions.__doc__, _docs["base"], _docs["keops"], _docs["cg"], _docs["pc"],
-    _docs["chol"], _docs["extra"])
+FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s%s\n\n%s" % (
+    FalkonOptions.__doc__, _docs["base"], _docs["keops"], _docs["cg"], _docs["gd"],
+    _docs["pc"], _docs["chol"], _docs["extra"])

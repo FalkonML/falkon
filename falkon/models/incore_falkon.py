@@ -12,6 +12,8 @@ from falkon.utils.devices import get_device_info
 
 __all__ = ("InCoreFalkon", )
 
+from optim import Optimizer
+
 
 class InCoreFalkon(FalkonBase):
     """In GPU core Falkon Kernel Ridge Regression solver.
@@ -113,6 +115,7 @@ class InCoreFalkon(FalkonBase):
                  error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
                  error_every: Optional[int] = 1,
                  weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+                 optimizer: Optional[Optimizer] = None,
                  options: Optional[FalkonOptions] = None,
                  N: int = None,
                  ):
@@ -127,6 +130,9 @@ class InCoreFalkon(FalkonBase):
         self._init_cuda()
         self.beta_ = None
         self.N = N
+        self.optimizer = optimizer
+        if self.optimizer is None:
+            self.optimizer = falkon.optim.FalkonConjugateGradient(self.kernel, weight_fn=self.weight_fn)
 
     def _check_fit_inputs(self, X, Y, Xts, Yts):
         if not check_same_device(X, Y, Xts, Yts) or (not X.is_cuda):
@@ -239,16 +245,16 @@ class InCoreFalkon(FalkonBase):
 
             # Start with the falkon algorithm
             with TicToc('Computing Falkon iterations', debug=self.options.debug):
-                optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, self.options,
-                                                             weight_fn=self.weight_fn)
                 if Knm is not None:
-                    beta = optim.solve(
+                    beta = self.optimizer.solve(
                         Knm, None, Y, self.penalty, initial_solution=warm_start,
-                        max_iter=self.maxiter, callback=validation_cback)
+                        max_iter=self.maxiter, callback=validation_cback, preconditioner=precond,
+                        opt=self.options)
                 else:
-                    beta = optim.solve(
+                    beta = self.optimizer.solve(
                         X, ny_points, Y, self.penalty, initial_solution=warm_start,
-                        max_iter=self.maxiter, callback=validation_cback)
+                        max_iter=self.maxiter, callback=validation_cback, preconditioner=precond,
+                        opt=self.options)
 
                 self.alpha_ = precond.apply(beta)
                 self.beta_ = beta

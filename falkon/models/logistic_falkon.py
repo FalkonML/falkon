@@ -164,6 +164,9 @@ class LogisticFalkon(FalkonBase):
             The fitted model
         """
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
+        if Y.shape[1] != 1:
+            raise ValueError("Logistic Falkon expects a single response variable "
+                             "(Y must be 1D or the second dimension must be of size 1).")
 
         dtype = X.dtype
         # Add a dummy `fit_time` to make compatible with normal falkon
@@ -178,9 +181,8 @@ class LogisticFalkon(FalkonBase):
                 ny_X = ny_X.pin_memory()
                 ny_Y = ny_Y.pin_memory()
 
-            # TODO: We should check that Y.shape[1] == 1, else give a decent error message.
             beta_it = torch.zeros(ny_X.shape[0], 1, dtype=dtype)  # Temporary iterative solution
-            optim = ConjugateGradient(opt=self.options)
+            optim = ConjugateGradient()
             precond = falkon.preconditioner.LogisticPreconditioner(self.kernel, self.loss, self.options)
 
             # Define the validation callback TODO: this is almost identical to the generic cback in model_utils.py
@@ -235,7 +237,8 @@ class LogisticFalkon(FalkonBase):
                         knmp_hess = self.loss.knmp_hess(
                             X, ny_X, Y, inner_mmv, precond.invT(sol_a), opt=self.options)
                         return precond.invAt(precond.invTt(knmp_hess).add_(sol_a.mul_(penalty)))
-                    optim_out = optim.solve(X0=None, B=grad_p, mmv=mmv, max_iter=max_iter)
+                    optim_out = optim.solve(X0=None, B=grad_p, mmv=mmv, max_iter=max_iter,
+                                            params=self.options)
                     beta_it -= precond.invA(optim_out)
 
                 t_elapsed += time.time() - t_s
