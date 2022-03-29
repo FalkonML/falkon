@@ -108,7 +108,8 @@ class FalkonGradientDescent(Optimizer):
                 stack.enter_context(torch.cuda.stream(stream))
 
             g_step = functools.partial(
-                self.gd_iter, penalty=_lambda, X=X, M=M, Knm=Knm, Y=Y, prec=preconditioner)
+                self.gd_iter, penalty=_lambda, X=X, M=M, Knm=Knm, Y=Y, prec=preconditioner,
+                opt=opt)
 
             if initial_solution is None:
                 initial_solution = torch.zeros(m, Y.shape[1], dtype=X.dtype, device=device)
