@@ -149,13 +149,12 @@ class TestFalkonConjugateGradient:
         sol = None
         for i in range(30):
             sol = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
-                             initial_solution=sol, max_iter=6, opt=options,
-                             preconditioner=preconditioner)
+                            initial_solution=sol, max_iter=6, opt=options,
+                            preconditioner=preconditioner)
             print()
 
         alpha = preconditioner.apply(sol)
         np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
-
 
     def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)

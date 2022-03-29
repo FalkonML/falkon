@@ -493,7 +493,6 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
             dev_out, flat_offset = _extract_flat(flat_gpu, size=(M, T), other=out,
                                                  offset=flat_offset)
         dev_v, flat_offset = _extract_flat(flat_gpu, size=(M, T), other=v, offset=flat_offset)
-    dev_out.fill_(0.0)
 
     with ExitStack() as stack, torch.inference_mode():
         s1 = None
@@ -501,6 +500,7 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
             s1 = tcd.current_stream(dev) if tid == -1 else tcd.Stream(dev)
             stack.enter_context(tcd.device(dev))
             stack.enter_context(tcd.stream(s1))
+        dev_out.fill_(0.0)  # Needs to be inside inference_mode
         if not incore:  # Note that CUDA-incore is not allowed to happen (CPU->CUDA)
             copy(v, dev_v, non_blocking=True)
             dev_m2 = SparseTensor.from_scipy(
