@@ -106,16 +106,16 @@ def mm_run_starter(proc_idx, queue, device_id):
 
     # Run
     if differentiable:
-        return mm_diff_run_thread(X1, X2, out, kernel, n, m, computation_dtype, dev)
+        return mm_diff_run_thread(X1, X2, out, kernel, n, m, computation_dtype, dev, tid=proc_idx)
     elif is_sparse:
-        return sparse_mm_run_thread(X1, X2, out, kernel, n, m, computation_dtype, dev)
+        return sparse_mm_run_thread(X1, X2, out, kernel, n, m, computation_dtype, dev, tid=proc_idx)
     else:
-        return mm_run_thread(X1, X2, out, kernel, n, m, computation_dtype, dev)
+        return mm_run_thread(X1, X2, out, kernel, n, m, computation_dtype, dev, tid=proc_idx)
 
 
 def sparse_mm_run_thread(m1: SparseTensor, m2: SparseTensor, out: torch.Tensor,
                          kernel: 'falkon.kernels.Kernel', n: int, m: int, comp_dt: torch.dtype,
-                         dev: torch.device):
+                         dev: torch.device, tid: int):
     """Inner loop to compute (part of) a kernel matrix for two sparse input tensors
 
     Parameters
@@ -138,6 +138,8 @@ def sparse_mm_run_thread(m1: SparseTensor, m2: SparseTensor, out: torch.Tensor,
         of `m1` or `m2`).
     dev
         Device on which to run the calculations
+    tid
+        Thread ID. If on the main thread this will be -1
 
     Returns
     -------
@@ -159,8 +161,8 @@ def sparse_mm_run_thread(m1: SparseTensor, m2: SparseTensor, out: torch.Tensor,
     with ExitStack() as stack, torch.inference_mode():
         stream = None
         if dev.type == 'cuda':
+            stream = tcd.current_stream(dev) if tid == -1 else tcd.Stream(dev)
             stack.enter_context(tcd.device(dev))
-            stream = tcd.current_stream(dev)
             stack.enter_context(tcd.stream(stream))
 
         for j in range(0, M, m):
@@ -199,12 +201,14 @@ def sparse_mm_run_thread(m1: SparseTensor, m2: SparseTensor, out: torch.Tensor,
                 if has_gpu_bufs:
                     copy(c_dev_out, out[i: i + leni, j: j + lenj], non_blocking=True,
                          allow_dtype_change=True)
+            if tid != -1 and stream is not None:
+                stream.synchronize()
     return out
 
 
 def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                   kernel: 'falkon.kernels.Kernel', n: int, m: int, comp_dt: torch.dtype,
-                  dev: torch.device):
+                  dev: torch.device, tid: int):
     is_ooc = dev.type != m1.device.type
     change_dtype = comp_dt != m1.dtype
     N, D = m1.shape
@@ -227,8 +231,8 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
     with ExitStack() as stack, torch.inference_mode():
         stream = None
         if dev.type == 'cuda':
+            stream = tcd.current_stream(dev) if tid == -1 else tcd.Stream(dev)
             stack.enter_context(tcd.device(dev))
-            stream = tcd.current_stream(dev)
             stack.enter_context(tcd.stream(stream))
 
         for i in range(0, N, n):
@@ -259,25 +263,24 @@ def mm_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                 if has_gpu_bufs:
                     copy(c_dev_out, out[i: i + leni, j: j + lenj], non_blocking=True,
                          allow_dtype_change=True)
-        if stream is not None:
+        if tid != -1 and stream is not None:
             stream.synchronize()
     return out
 
 
 def mm_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                        kernel: 'falkon.kernels.Kernel', n: int, m: int, comp_dt: torch.dtype,
-                       dev: torch.device):
+                       dev: torch.device, tid: int):
     N, D = m1.shape
     M = m2.shape[0]
 
     """ Run splitting along N, M """
     bwd_out = torch.tensor(0.0, dtype=torch.float64, device=out.device)  # On data-dev
-    stream = None
     with ExitStack() as stack:
+        stream = None
         if dev.type == 'cuda':
+            stream = tcd.current_stream(dev) if tid == -1 else tcd.Stream(dev)
             stack.enter_context(tcd.device(dev))
-            tcd.current_stream(dev).synchronize()
-            stream = tcd.Stream()
             stack.enter_context(tcd.stream(stream))
 
         for i in range(0, N, n):
@@ -291,7 +294,7 @@ def mm_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, out: torch.Tensor,
                 c_dev_out = kernel.compute_diff(c_dev_m1, c_dev_m2, diag=False)
                 c_out = c_dev_out.to(device=out.device, dtype=out.dtype, non_blocking=False, copy=False)
                 bwd_out = bwd_out + c_out.mul(out[i: i + leni, j: j + lenj]).sum()
-        if stream is not None:
+        if tid != -1 and stream is not None:
             stream.synchronize()
     return bwd_out
 

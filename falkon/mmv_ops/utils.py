@@ -63,7 +63,7 @@ def _start_wait_processes(target, args) -> List[Any]:
 def _call_direct(target, arg):
     args_queue = FakeQueue()
     args_queue.put(arg[0])
-    new_args_tuple = (0, args_queue, arg[1])
+    new_args_tuple = (-1, args_queue, arg[1])
     return target(*new_args_tuple)
 
 
