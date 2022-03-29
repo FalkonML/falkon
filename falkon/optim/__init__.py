@@ -13,8 +13,10 @@ class Optimizer(object):
 
 from .conjgrad import ConjugateGradient, FalkonConjugateGradient  # noqa E402
 from .gd import GradientDescent, FalkonGradientDescent  # noqa E402
+from .sgd import FalkonSGD  # noqa E402
 
 __all__ = ('Optimizer', 'StopOptimizationException',
            'ConjugateGradient', 'FalkonConjugateGradient',
            'GradientDescent', 'FalkonGradientDescent',
+           'FalkonSGD'
            )
