@@ -36,6 +36,23 @@ class ArgsFmmv:
     differentiable: bool = False
 
 
+def _init_two_streams(stack: ExitStack,
+                      dev: torch.device,
+                      tid: int) -> Tuple[Optional[tcd.Stream], Optional[tcd.Stream]]:
+    """
+    Initialize two CUDA streams (if device is a GPU). If the thread ID is -1, we are initializing
+    in the main thread so s1 will be the `current_stream`. Otherwise, it will not be a newly created
+    stream. s2 is always a new stream.
+    """
+    s1, s2 = None, None
+    if dev.type == 'cuda':
+        s1 = tcd.current_stream(dev) if tid == -1 else tcd.Stream(dev)
+        s2 = tcd.Stream(dev)
+        stack.enter_context(tcd.device(dev))
+        stack.enter_context(tcd.stream(s1))
+    return s1, s2
+
+
 def _sparse_mmv_blk_sizes(n, d, m, t, avail_mem, extra_mem, incore: bool, m1_density: float,
                           m2_density: float):
     # Memory needs:
@@ -106,24 +123,24 @@ def mmv_run_starter(proc_idx, queue, device_id):
             coef_n=2 * (d + t + extra_mem.get('n', 0) + extra_mem.get('nd', 0) * d),
             coef_m=2 * (d + t + extra_mem.get('m', 0) + extra_mem.get('md', 0) * d),
             rest=extra_mem.get('d', 0))
-        return mmv_diff_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, dev)
+        return mmv_diff_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, dev, tid=proc_idx)
     if is_sparse:
         blk_n, blk_m, mem_needed = _sparse_mmv_blk_sizes(
             n=n, m=m, d=d, t=t, avail_mem=avail_mem, extra_mem=extra_mem, incore=incore,
             m1_density=X1.density, m2_density=X2.density)
-        return sparse_mmv_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, mem_needed, dev)
+        return sparse_mmv_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, mem_needed, dev, tid=proc_idx)
     else:
         m1_ic, m2_ic, v_ic, out_ic = (_is_incore(dev, X1.device), _is_incore(dev, X2.device),
                                       _is_incore(dev, v.device), _is_incore(dev, out.device))
         blk_n, blk_m, mem_needed = _dense_mmv_blk_sizes(
             n=n, m=m, d=d, t=t, avail_mem=avail_mem, extra_mem=extra_mem, m1_ic=m1_ic, m2_ic=m2_ic,
             v_ic=v_ic, out_ic=out_ic)
-        return mmv_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, mem_needed, dev)
+        return mmv_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, mem_needed, dev, tid=proc_idx)
 
 
 def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                           out: torch.Tensor, kernel: 'falkon.kernels.Kernel', blk_n: int,
-                          blk_m: int, mem_needed: int, dev: torch.device):
+                          blk_m: int, mem_needed: int, dev: torch.device, tid: int):
     """Inner loop to compute (part of) a kernel-vector product for sparse input matrices.
 
     Parameters
@@ -148,6 +165,8 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
         Memory needed for pre-allocations
     dev
         Device on which to run the calculations
+    tid
+        Thread ID or -1 if on main thread
 
     Returns
     -------
@@ -171,12 +190,7 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
         dev_v, flat_offset = _extract_flat(flat_gpu, size=(blk_m, T), other=v, offset=flat_offset)
 
     with ExitStack() as stack, torch.inference_mode():
-        if dev.type == 'cuda':
-            s1 = tcd.current_stream(dev)
-            s2 = tcd.Stream(dev)
-            stack.enter_context(tcd.device(dev))
-            stack.enter_context(tcd.stream(s1))
-
+        s1, s2 = _init_two_streams(stack, dev, tid)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
 
@@ -216,11 +230,16 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                 # Copy output to host
                 if not incore:
                     copy(c_dev_out, out[i: i + leni], non_blocking=True)
+            # end iter over M
+        if tid != -1 and s1 is not None:
+            s1.synchronize()
+        # end iter over N
+    # exit context manager (device, stream)
 
 
 def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor],
                    out: torch.Tensor, kernel: 'falkon.kernels.Kernel', blk_n: int, blk_m: int,
-                   mem_needed: int, dev: torch.device):
+                   mem_needed: int, dev: torch.device, tid: int,):
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
     m1_ic, m2_ic, v_ic, out_ic = (_is_incore(dev, m1.device), _is_incore(dev, m2.device),
                                   _is_incore(dev, v.device), _is_incore(dev, out.device))
@@ -252,11 +271,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
                                              offset=flat_offset)
 
     with ExitStack() as stack, torch.inference_mode():
-        s1, s2 = None, None
-        if dev.type == 'cuda':
-            s1, s2 = tcd.current_stream(dev), tcd.Stream(dev)
-            stack.enter_context(tcd.device(dev))
-            stack.enter_context(tcd.stream(s1))
+        s1, s2 = _init_two_streams(stack, dev, tid)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
             if m1_ic:
@@ -293,13 +308,15 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
             # end iter over M
             if not out_ic:
                 copy(c_dev_out, out[i: i + leni], non_blocking=True)
+        if tid != -1 and s1 is not None:
+            s1.synchronize()
         # end iter over N
     # exit context manager (device, stream)
 
 
 def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor],
                         out: torch.Tensor, kernel: 'falkon.kernels.Kernel', blk_n: int, blk_m: int,
-                        dev: torch.device):
+                        dev: torch.device, tid: int,):
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
     incore = _is_incore(dev, m1.device)
     N, D = m1.shape
@@ -316,10 +333,7 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
         *[(ipt, idx) for idx, ipt in enumerate(inputs) if ipt.requires_grad])
 
     with ExitStack() as stack:
-        if dev.type == 'cuda':
-            s1, s2 = tcd.current_stream(dev), tcd.Stream(dev)
-            stack.enter_context(tcd.device(dev))
-            stack.enter_context(tcd.stream(s1))
+        s1, s2 = _init_two_streams(stack, dev, tid)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
             c_dev_m1 = m1[i: i + leni, :].to(dev, non_blocking=True, copy=False)
@@ -354,6 +368,8 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
             # end iter over M
             if grads[0] is not None:
                 grads[0][i: i + leni, :] = c_dev_m1_g.to(grads[0].device, non_blocking=True, copy=False)
+        if tid != -1 and s1 is not None:
+            s1.synchronize()
         # end iter over N
     # exit context manager (device, stream)
     return grads
@@ -444,20 +460,20 @@ def dmmv_run_starter(proc_idx, queue, device_id):
         blk_n, mem_needed = _sparse_dmmv_blk_sizes(
             n=n, d=d, m=m, t=t, avail_mem=avail_mem, extra_mem=extra_mem, incore=incore,
             dev_out_exists=dev_out_exists, m1_density=X1.density, m2_density=X2.density)
-        sparse_dmmv_run_thread(X1, X2, v, w, out, kernel, blk_n, mem_needed, dev)
+        sparse_dmmv_run_thread(X1, X2, v, w, out, kernel, blk_n, mem_needed, dev, tid=proc_idx)
     else:
         m1_ic, m2_ic, v_ic, out_ic = (_is_incore(dev, X1.device), _is_incore(dev, X2.device),
                                       _is_incore(dev, v.device), _is_incore(dev, out.device))
         blk_n, mem_needed = _dense_dmmv_blk_sizes(
             n=n, d=d, m=m, t=t, avail_mem=avail_mem, extra_mem=extra_mem,
             m1_ic=m1_ic, m2_ic=m2_ic, v_ic=v_ic, out_ic=out_ic)
-        dmmv_run_thread(X1, X2, v, w, out, kernel, blk_n, mem_needed, dev)
+        dmmv_run_thread(X1, X2, v, w, out, kernel, blk_n, mem_needed, dev, tid=proc_idx)
 
 
 def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                            w: Optional[torch.Tensor], out: torch.Tensor,
                            kernel: 'falkon.kernels.Kernel',
-                           blk_n: int, mem_needed: int, dev: torch.device):
+                           blk_n: int, mem_needed: int, dev: torch.device, tid: int):
     incore = _is_incore(dev, m1.device)
     dev_out_exists = out.device == dev  # out has already been allocated on the computation device
     N, D = m1.shape
@@ -482,7 +498,7 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
     with ExitStack() as stack, torch.inference_mode():
         s1 = None
         if dev.type == 'cuda':
-            s1 = tcd.current_stream(dev)
+            s1 = tcd.current_stream(dev) if tid == -1 else tcd.Stream(dev)
             stack.enter_context(tcd.device(dev))
             stack.enter_context(tcd.stream(s1))
         if not incore:  # Note that CUDA-incore is not allowed to happen (CPU->CUDA)
@@ -515,12 +531,14 @@ def sparse_dmmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
             dev_out.addmm_(c_dev_ker.T, c_dev_w)
         if not incore and not dev_out_exists:
             copy(dev_out, out, non_blocking=True)
+        if tid != -1 and s1 is not None:
+            s1.synchronize()
 
 
 def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
                     w: Optional[torch.Tensor], out: torch.Tensor,
                     kernel: 'falkon.kernels.Kernel', blk_n: int, mem_needed: int,
-                    dev: torch.device):
+                    dev: torch.device, tid: int, ):
     # k(x2, x1) @ (k(x1, x2) @ v + w)
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
     m1_ic, m2_ic, v_ic, out_ic = (_is_incore(dev, m1.device), _is_incore(dev, m2.device),
@@ -552,17 +570,13 @@ def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
         dev_out, flat_offset = _extract_flat(flat_gpu, size=(M, T), other=out, offset=flat_offset)
 
     with ExitStack() as stack, torch.inference_mode():
-        s1, s2 = None, None
-        if dev.type == 'cuda':
-            s1, s2 = tcd.current_stream(dev), tcd.Stream(dev)
-            stack.enter_context(tcd.device(dev))
-            stack.enter_context(tcd.stream(s1))
+        s1, s2 = _init_two_streams(stack, dev, tid)
         dev_out.fill_(0.0)
         if not m2_ic:
             copy(m2, dev_m2, non_blocking=True)
         if not v_ic:
             with ExitStack() as stack2:
-                if dev.type == 'cuda':
+                if s2 is not None:
                     stack2.enter_context(tcd.stream(s2))
                 copy(v, dev_v, non_blocking=True)
         for i in range(0, N, blk_n):
@@ -573,7 +587,7 @@ def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
                 c_dev_m1 = copy(m1[i: i + leni, :], dev_m1[:leni, :], non_blocking=True)
             if w is not None:
                 with ExitStack() as stack2:
-                    if dev.type == 'cuda':
+                    if s2 is not None:
                         stack2.enter_context(tcd.stream(s2))
                     c_dev_w = copy(w[i: i + leni, :], dev_w[:leni, :], non_blocking=True)
             else:
@@ -581,15 +595,17 @@ def dmmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor,
 
             c_dev_ker = dev_ker[:leni, :].fill_(0.0)
             c_dev_ker = kernel.compute(c_dev_m1, dev_m2, c_dev_ker, diag=False)
-            if dev.type == 'cuda':
+            if s2 is not None:
                 s2.synchronize()
             c_dev_w.addmm_(c_dev_ker, dev_v)
             dev_out.addmm_(c_dev_ker.T, c_dev_w)
-            if dev.type == 'cuda':
+            if s1 is not None:
                 s1.synchronize()  # sync necessary to avoid s2 overwriting dev_v/dev_w
 
         if not out_ic:
             copy(dev_out, out, non_blocking=True)
+        if tid != -1 and s1 is not None:
+            s1.synchronize()
 
 
 # noinspection PyMethodOverriding
