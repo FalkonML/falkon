@@ -23,6 +23,7 @@ class StochasticGradientDescent(Optimizer):
         if momentum == 0:
             momentum = None
         self.momentum = momentum
+        self.last_upd = None
 
     def solve(self,
               X0: torch.Tensor,
@@ -36,7 +37,7 @@ class StochasticGradientDescent(Optimizer):
         tol = params.gd_tolerance ** 2
         e_train = time.time() - t_start
 
-        last_upd = None
+        last_upd = self.last_upd
         lr = self.learning_rate
 
         dl_iter = iter(data)
@@ -67,6 +68,7 @@ class StochasticGradientDescent(Optimizer):
                     except StopOptimizationException as e:
                         print(f"Optimization stopped from callback: {e.message}")
                         break
+        self.last_upd = last_upd
         return X0
 
 
