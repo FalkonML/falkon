@@ -306,7 +306,7 @@ class NystromCompRegFn(torch.autograd.Function):
         optim = FalkonConjugateGradient(kernel)
         solve_zy_prec = optim.solve(
             X, M_, ZY, penalty_,
-            initial_solution=NystromCompRegFn._last_solve_zy,
+            initial_sol=NystromCompRegFn._last_solve_zy,
             max_iter=solve_maxiter,
             preconditioner=precond,
             opt=solve_options

@@ -76,9 +76,9 @@ class FalkonGradientDescent(Optimizer):
             cc = prec.invTt(cc)
             reg = v.mul_(penalty * n)
             out = prec.invAt(cc.add_(reg))
-            return out
+            return out.mul_(1/n)  # Rescale learning rate
 
-    def solve(self, X, M, Y, _lambda, initial_solution, max_iter,
+    def solve(self, X, M, Y, penalty, initial_sol, max_iter,
               preconditioner: falkon.preconditioner.Preconditioner, opt: FalkonOptions,
               callback=None):
         if M is None:
@@ -102,15 +102,15 @@ class FalkonGradientDescent(Optimizer):
                 stack.enter_context(torch.cuda.stream(stream))
 
             g_step = functools.partial(
-                self.gd_iter, penalty=_lambda, X=X, M=M, Knm=Knm, Y=Y, prec=preconditioner,
+                self.gd_iter, penalty=penalty, X=X, M=M, Knm=Knm, Y=Y, prec=preconditioner,
                 opt=opt)
 
-            if initial_solution is None:
-                initial_solution = torch.zeros(m, Y.shape[1], dtype=X.dtype, device=device)
+            if initial_sol is None:
+                initial_sol = torch.zeros(m, Y.shape[1], dtype=X.dtype, device=device)
 
             # Run the conjugate gradient solver
             beta = self.optimizer.solve(
-                initial_solution, g_step, max_iter, learning_rate=self.learning_rate,
+                initial_sol, g_step, max_iter, learning_rate=self.learning_rate,
                 params=opt.get_gd_options(), callback=callback)
 
         return beta

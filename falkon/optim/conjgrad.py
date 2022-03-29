@@ -250,7 +250,7 @@ class FalkonConjugateGradient(Optimizer):
             out = prec.invAt(cc_)
             return out
 
-    def solve(self, X, M, Y, _lambda, initial_solution, max_iter,
+    def solve(self, X, M, Y, penalty, initial_sol, max_iter,
               preconditioner: falkon.preconditioner.Preconditioner, opt: FalkonOptions,
               callback=None):
         n = X.size(0)
@@ -285,14 +285,14 @@ class FalkonConjugateGradient(Optimizer):
             B = preconditioner.apply_t(B)
 
             if self.is_weighted:
-                mmv = functools.partial(self.weighted_falkon_mmv, penalty=_lambda, X=X,
+                mmv = functools.partial(self.weighted_falkon_mmv, penalty=penalty, X=X,
                                         M=M, Knm=Knm, y_weights=y_weights, prec=preconditioner,
                                         opt=opt)
             else:
-                mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm,
+                mmv = functools.partial(self.falkon_mmv, penalty=penalty, X=X, M=M, Knm=Knm,
                                         prec=preconditioner, opt=opt)
             # Run the conjugate gradient solver
-            beta = self.optimizer.solve(initial_solution, B, mmv, max_iter=max_iter,
+            beta = self.optimizer.solve(initial_sol, B, mmv, max_iter=max_iter,
                                         params=opt.get_conjgrad_options(), callback=callback)
 
         return beta

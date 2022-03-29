@@ -124,8 +124,8 @@ class TestFalkonConjugateGradient:
         centers = move_tensor(centers, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
-                         initial_solution=None, max_iter=100, opt=options,
+        beta = opt.solve(X=data, M=centers, Y=vec_rhs, penalty=self.penalty,
+                         initial_sol=None, max_iter=100, opt=options,
                          preconditioner=preconditioner)
         alpha = preconditioner.apply(beta)
 
@@ -148,8 +148,8 @@ class TestFalkonConjugateGradient:
 
         sol = None
         for i in range(30):
-            sol = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
-                            initial_solution=sol, max_iter=6, opt=options,
+            sol = opt.solve(X=data, M=centers, Y=vec_rhs, penalty=self.penalty,
+                            initial_sol=sol, max_iter=6, opt=options,
                             preconditioner=preconditioner)
             print()
 
@@ -169,8 +169,8 @@ class TestFalkonConjugateGradient:
         knm = move_tensor(knm, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        beta = opt.solve(X=knm, M=None, Y=vec_rhs, _lambda=self.penalty,
-                         initial_solution=None, max_iter=200, opt=options,
+        beta = opt.solve(X=knm, M=None, Y=vec_rhs, penalty=self.penalty,
+                         initial_sol=None, max_iter=200, opt=options,
                          preconditioner=preconditioner)
         alpha = preconditioner.apply(beta)
 
@@ -232,8 +232,8 @@ class TestFalkonGD:
         centers = move_tensor(centers, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
-                         initial_solution=None, max_iter=400, opt=options,
+        beta = opt.solve(X=data, M=centers, Y=vec_rhs, penalty=self.penalty,
+                         initial_sol=None, max_iter=400, opt=options,
                          preconditioner=preconditioner)
         alpha = preconditioner.apply(beta)
         # alpha = beta
@@ -253,8 +253,8 @@ class TestFalkonGD:
         knm = move_tensor(knm, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        beta = opt.solve(X=knm, M=None, Y=vec_rhs, _lambda=self.penalty,
-                         initial_solution=None, max_iter=400, opt=options,
+        beta = opt.solve(X=knm, M=None, Y=vec_rhs, penalty=self.penalty,
+                         initial_sol=None, max_iter=400, opt=options,
                          preconditioner=preconditioner)
         alpha = preconditioner.apply(beta)
 

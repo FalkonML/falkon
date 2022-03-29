@@ -3,6 +3,7 @@ import time
 from typing import Union, Optional, Callable, Tuple
 
 import torch
+from torch.utils import data as tc_data
 
 import falkon
 from falkon.models.model_utils import FalkonBase
@@ -133,9 +134,65 @@ class Falkon(FalkonBase):
         self.weight_fn = weight_fn
         self._init_cuda()
         self.beta_ = None
-        self.optimizer = optimizer
-        if self.optimizer is None:
-            self.optimizer = falkon.optim.FalkonConjugateGradient(self.kernel, weight_fn=self.weight_fn)
+        if optimizer is None:
+            self.optimizer: Optimizer = falkon.optim.FalkonConjugateGradient(self.kernel, weight_fn=self.weight_fn)
+        else:
+            self.optimizer: Optimizer = optimizer
+
+    def fit_dataloader(self, dloader: tc_data.DataLoader, warm_start: Optional[torch.Tensor], n: int, t: int):
+        self.ny_points_ = None
+        self.alpha_ = None
+        self.beta_ = None
+
+        if self.weight_fn is not None:
+            raise NotImplementedError("Cannot use a weight-function with fit_dataloader. Use fit instead.")
+
+        with torch.autograd.inference_mode():
+            # Pick Nystrom centers
+            # noinspection PyTypeChecker
+            ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(None, None)
+            num_centers = ny_points.shape[0]
+            dtype = ny_points.dtype
+
+            # Decide whether to use CUDA for preconditioning and iterations, based on number of centers
+            _use_cuda_preconditioner = (
+                self.use_cuda_ and
+                (not self.options.cpu_preconditioner) and
+                num_centers >= get_min_cuda_preconditioner_size(dtype, self.options)
+            )
+            _use_cuda_mmv = self.use_cuda_
+            if self.use_cuda_:
+                ny_points = ny_points.pin_memory()
+
+            with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
+                pc_opt: FalkonOptions = dataclasses.replace(self.options,
+                                                            use_cpu=not _use_cuda_preconditioner)
+                if pc_opt.debug:
+                    print("Preconditioner will run on %s" %
+                          ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
+                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
+                self.precond = precond
+                precond.init(ny_points, weight_vec=None)
+
+            if _use_cuda_mmv:
+                # Cache must be emptied to ensure enough memory is visible to the optimizer
+                torch.cuda.empty_cache()
+
+            # Start with the falkon algorithm
+            with TicToc('Computing Falkon iterations', debug=self.options.debug):
+                o_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
+                if o_opt.debug:
+                    print("Optimizer will run on %s" %
+                          ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
+                beta = self.optimizer.solve(
+                    dloader, ny_points, penalty=self.penalty, initial_sol=warm_start,
+                    max_iter=self.maxiter, callback=None, preconditioner=precond,
+                    opt=o_opt, n=n, m=ny_points.shape[0], t=t)
+
+                self.alpha_ = precond.apply(beta)
+                self.beta_ = beta
+                self.ny_points_ = ny_points
+        return self
 
     def fit(self,
             X: torch.Tensor,
@@ -260,12 +317,12 @@ class Falkon(FalkonBase):
                           ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
                 if Knm is not None:
                     beta = self.optimizer.solve(
-                        Knm, None, Y, self.penalty, initial_solution=warm_start,
+                        Knm, None, Y, self.penalty, initial_sol=warm_start,
                         max_iter=self.maxiter, callback=validation_cback, preconditioner=precond,
                         opt=o_opt)
                 else:
                     beta = self.optimizer.solve(
-                        X, ny_points, Y, self.penalty, initial_solution=warm_start,
+                        X, ny_points, Y, self.penalty, initial_sol=warm_start,
                         max_iter=self.maxiter, callback=validation_cback, preconditioner=precond,
                         opt=o_opt)
 

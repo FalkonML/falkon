@@ -247,12 +247,12 @@ class InCoreFalkon(FalkonBase):
             with TicToc('Computing Falkon iterations', debug=self.options.debug):
                 if Knm is not None:
                     beta = self.optimizer.solve(
-                        Knm, None, Y, self.penalty, initial_solution=warm_start,
+                        Knm, None, Y, self.penalty, initial_sol=warm_start,
                         max_iter=self.maxiter, callback=validation_cback, preconditioner=precond,
                         opt=self.options)
                 else:
                     beta = self.optimizer.solve(
-                        X, ny_points, Y, self.penalty, initial_solution=warm_start,
+                        X, ny_points, Y, self.penalty, initial_sol=warm_start,
                         max_iter=self.maxiter, callback=validation_cback, preconditioner=precond,
                         opt=self.options)
 
