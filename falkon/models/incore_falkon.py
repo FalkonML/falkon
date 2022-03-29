@@ -9,10 +9,10 @@ from falkon.models.model_utils import FalkonBase
 from falkon.utils.helpers import check_same_device
 from falkon.utils import TicToc
 from falkon.utils.devices import get_device_info
+from falkon.optim import Optimizer
 
 __all__ = ("InCoreFalkon", )
 
-from optim import Optimizer
 
 
 class InCoreFalkon(FalkonBase):

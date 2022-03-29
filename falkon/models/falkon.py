@@ -9,10 +9,10 @@ from falkon.models.model_utils import FalkonBase
 from falkon.options import *
 from falkon.utils import TicToc
 from falkon.utils.devices import get_device_info
+from falkon.optim import Optimizer
 
 __all__ = ("Falkon",)
 
-from optim import Optimizer
 
 
 def get_min_cuda_preconditioner_size(dt, opt: FalkonOptions) -> int:
