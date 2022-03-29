@@ -32,7 +32,7 @@ class GradientDescent(Optimizer):
         for self.num_iter in range(max_iter):
             with TicToc("GD-Iter", debug=False):
                 t_start = time.time()
-                grad = gradient_step(X)
+                grad = gradient_step(X0)
                 X = X0 - learning_rate * grad
 
                 diff = (X - X0).square().sum(dim=0).mean()
