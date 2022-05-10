@@ -108,8 +108,7 @@ class ConjugateGradient(Optimizer):
         diff_conv = self.params.cg_differential_convergence and X.shape[1] > 1
 
         P = R.clone()
-        R0 = R.square().sum(dim=0)
-        Rsold = R0.clone()
+        Rsold = R.square().sum(dim=0)
 
         e_train = time.time() - t_start
 
@@ -146,7 +145,9 @@ class ConjugateGradient(Optimizer):
                     break
                 if diff_conv and torch.any(converged):
                     for idx in torch.where(converged)[0]:
+                        # noinspection PyUnboundLocalVariable
                         col_idx_converged.append(col_idx_notconverged[idx])
+                        # noinspection PyUnboundLocalVariable
                         x_converged.append(X[:, idx])
                     col_idx_notconverged = col_idx_notconverged[~converged]
                     P = P[:, ~converged]
@@ -173,6 +174,7 @@ class ConjugateGradient(Optimizer):
         if diff_conv:
             if len(x_converged) > 0:
                 for i, out_idx in enumerate(col_idx_converged):
+                    # noinspection PyUnboundLocalVariable
                     if X_orig[:, out_idx].data_ptr() != x_converged[i].data_ptr():
                         X_orig[:, out_idx].copy_(x_converged[i])
             if len(col_idx_notconverged) > 0:
@@ -243,7 +245,7 @@ class FalkonConjugateGradient(Optimizer):
             v_t = prec.invT(v)
 
             if Knm is not None:
-                cc = incore_fdmmv(Knm, v_t, None, opt=self.params)
+                cc = incore_fdmmv(Knm, v_t, w=None, out=None, opt=self.params)
             else:
                 cc = self.kernel.dmmv(X, M, v_t, None, opt=self.params)
 

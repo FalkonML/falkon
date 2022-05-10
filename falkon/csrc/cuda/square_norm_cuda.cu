@@ -31,4 +31,3 @@ torch::Tensor square_norm_cuda(const torch::Tensor& input, int64_t dim, torch::o
     });
     return result;
 }
-

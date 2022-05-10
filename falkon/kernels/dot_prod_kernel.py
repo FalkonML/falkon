@@ -124,7 +124,7 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
 
     The kernel implemented here is the covariance function in the original
     input space (i.e. `X @ X.T`) with optional parameters to translate
-    and scale the kernel: `beta + 1/(sigma**2) * X @ X.T`
+    and scale the kernel: `beta + gamma * X @ X.T`
 
     Parameters
     -----------
@@ -138,10 +138,10 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
 
     Examples
     --------
-    >>> k = LinearKernel(beta=0.0, sigma=2.0)
+    >>> k = LinearKernel(beta=0.0, gamma=2.0)
     >>> X = torch.randn(100, 3)  # 100 samples in 3 dimensions
     >>> kernel_matrix = k(X, X)
-    >>> torch.testing.assert_allclose(kernel_matrix, X @ X.T * (1/2**2))
+    >>> torch.testing.assert_allclose(kernel_matrix, X @ X.T * 2)
     """
 
     def __init__(self,

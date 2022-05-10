@@ -164,6 +164,9 @@ class LogisticFalkon(FalkonBase):
             The fitted model
         """
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
+        if Y.size(1) != 1:
+            raise ValueError("Logistif Calkon expects a single response variable: "
+                             "Y must be 1-D or the second dimension must be of size 1.")
 
         dtype = X.dtype
         # Add a dummy `fit_time` to make compatible with normal falkon
@@ -178,7 +181,6 @@ class LogisticFalkon(FalkonBase):
                 ny_X = ny_X.pin_memory()
                 ny_Y = ny_Y.pin_memory()
 
-            # TODO: We should check that Y.shape[1] == 1, else give a decent error message.
             beta_it = torch.zeros(ny_X.shape[0], 1, dtype=dtype)  # Temporary iterative solution
             optim = ConjugateGradient(opt=self.options)
             precond = falkon.preconditioner.LogisticPreconditioner(self.kernel, self.loss, self.options)

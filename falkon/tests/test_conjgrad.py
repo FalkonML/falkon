@@ -129,6 +129,29 @@ class TestFalkonConjugateGradient:
         assert str(beta.device) == device, "Device has changed unexpectedly"
         np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
 
+    def test_restarts(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
+        preconditioner = preconditioner.to(device)
+        options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu", cg_tolerance=1e-10)
+        opt = FalkonConjugateGradient(kernel, preconditioner, opt=options)
+
+        # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
+        rhs = knm.T @ vec_rhs
+        lhs = knm.T @ knm + self.penalty * self.N * kmm
+        expected = np.linalg.solve(lhs.numpy(), rhs.numpy())
+
+        data = move_tensor(data, device)
+        centers = move_tensor(centers, device)
+        vec_rhs = move_tensor(vec_rhs, device)
+
+        sol = None
+        for i in range(30):
+            sol = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
+                            initial_solution=sol, max_iter=6)
+            print()
+
+        alpha = preconditioner.apply(sol)
+        np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
+
     def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)
         options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")

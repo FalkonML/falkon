@@ -1,8 +1,8 @@
 #pragma once
 
 #include <torch/extension.h>
-
 #include <c10/macros/Macros.h>
+
 
 torch::Tensor square_norm_cuda(const torch::Tensor& input, int64_t dim, torch::optional<bool> opt_keepdim);
 
