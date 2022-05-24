@@ -78,9 +78,11 @@ def _distancek_diag(mat1, out: Optional[torch.Tensor]):
 
 
 def _rbf_diag_core(mat1, mat2, out: Optional[torch.Tensor], sigma: torch.Tensor) -> torch.Tensor:
+    out_ = square_norm(mat1 / sigma - mat2 / sigma, dim=-1, keepdim=False)
     if out is not None:
-        raise ValueError("output matrix is ignored in diagonal-mode for RBF kernel")
-    out = square_norm(mat1 / sigma - mat2 / sigma, dim=-1, keepdim=False)
+        out.copy_(out_)
+    else:
+        out = out_
     out.mul_(-0.5)
     out.exp_()
     return out
