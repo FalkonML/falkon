@@ -196,36 +196,26 @@ def run_keops_mmv(X1: torch.Tensor,
     keopscore.config.config.use_cuda = comp_dev_type == 'cuda'  # workaround for keops issue#248
     out = create_output_mat(out, data_devs, is_sparse=False, shape=(N, T), dtype=X1.dtype,
                             comp_dev_type=comp_dev_type, other_mat=X1, output_stride="C")
-
-    if differentiable:
-        from falkon.kernels.tiling_red import TilingGenred
-        assert axis == 1, reduction == 'Sum'
-        fn = TilingGenred(formula, aliases, reduction_op='Sum', axis=1,
-                          dtype_acc="auto", sum_scheme="auto", opt=opt)
-        return fn(X1, X2, v, *other_vars, out=out, backend=backend)
-
-    # Define formula wrapper
     fn = Genred(formula, aliases,
                 reduction_op=reduction, axis=axis,
                 dtype_acc=opt.keops_acc_dtype,
                 sum_scheme=opt.keops_sum_scheme)
-
-    if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):  # incore CPU
-        variables = [X1, X2, v] + other_vars
-        print("CPU-CPU. Backend=", backend)
-        out = fn(*variables, out=out, backend=backend)
+    if differentiable:
+        # For differentiable inputs we don't split, since we don't know how to
+        # split the backward pass.
+        out = fn(X1, X2, v, *other_vars, out=out, backend=backend)
+    elif comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):  # incore CPU
+        out = fn(X1, X2, v, *other_vars, out=out, backend=backend)
     elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):  # incore CUDA
-        variables = [X1, X2, v] + other_vars
         device = data_devs[0]
         with torch.cuda.device(device):
             sync_current_stream(device)
-            out = fn(*variables, out=out, backend=backend)
-    else:  # Out of core
-        # slack is high due to imprecise memory usage estimates for keops
+            out = fn(X1, X2, v, *other_vars, out=out, backend=backend)
+    else:  # cpu data, gpu computations: out-of-core
+        # slack should be high due to imprecise memory usage estimates for keops
         gpu_info = _get_gpu_info(opt, slack=opt.keops_memory_slack)
         block_sizes = calc_gpu_block_sizes(gpu_info, N)
 
-        # Create queues
         args = []  # Arguments passed to each subprocess
         for i, g in enumerate(gpu_info):
             # First round of subdivision
