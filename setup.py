@@ -5,7 +5,6 @@ import platform
 import sys
 from typing import Any, Tuple, List
 
-import numpy
 from setuptools import setup, find_packages, Extension
 
 try:
@@ -31,6 +30,16 @@ else:
 
 
 CURRENT_DIR = "."
+
+
+class GetNumpyInclude(object):
+    """Defer numpy.get_include() until after numpy is installed.
+    https://stackoverflow.com/questions/19919905/how-to-bootstrap-numpy-installation-in-setup-py
+    """
+
+    def __str__(self):
+        import numpy
+        return numpy.get_include()
 
 
 def get_version(root_dir):
@@ -151,7 +160,7 @@ def get_extensions():
     extra_link_args = ['-fPIC']
     cyblas_ext = [Extension('falkon.la_helpers.cyblas',
                             sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
-                            include_dirs=[numpy.get_include()],
+                            include_dirs=[GetNumpyInclude()],
                             extra_compile_args=extra_compile_args,
                             #define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
                             extra_link_args=extra_link_args)]
