@@ -3,14 +3,14 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import torch
+import keopscore
+from pykeops.torch import Genred
 
 from falkon.utils.stream_utils import sync_current_stream
-
 from falkon.mmv_ops.utils import _get_gpu_info, create_output_mat, _start_wait_processes
 from falkon.options import FalkonOptions, BaseOptions
 from falkon.utils import decide_cuda
 from falkon.utils.helpers import sizeof_dtype, calc_gpu_block_sizes
-from pykeops.torch import Genred
 
 
 @dataclass(frozen=True)
@@ -192,6 +192,11 @@ def run_keops_mmv(X1: torch.Tensor,
         [o.requires_grad for o in other_vars]
     )
 
+    comp_dev_type = backend[:3].lower().replace('gpu', 'cuda')  # 'cpu' or 'cuda'
+    keopscore.config.config.use_cuda = comp_dev_type == 'cuda'  # workaround for keops issue#248
+    out = create_output_mat(out, data_devs, is_sparse=False, shape=(N, T), dtype=X1.dtype,
+                            comp_dev_type=comp_dev_type, other_mat=X1, output_stride="C")
+
     if differentiable:
         from falkon.kernels.tiling_red import TilingGenred
         assert axis == 1, reduction == 'Sum'
@@ -205,12 +210,9 @@ def run_keops_mmv(X1: torch.Tensor,
                 dtype_acc=opt.keops_acc_dtype,
                 sum_scheme=opt.keops_sum_scheme)
 
-    comp_dev_type = backend[:3].lower().replace('gpu', 'cuda')  # 'cpu' or 'cuda'
-    out = create_output_mat(out, data_devs, is_sparse=False, shape=(N, T), dtype=X1.dtype,
-                            comp_dev_type=comp_dev_type, other_mat=X1, output_stride="C")
-
     if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):  # incore CPU
         variables = [X1, X2, v] + other_vars
+        print("CPU-CPU. Backend=", backend)
         out = fn(*variables, out=out, backend=backend)
     elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):  # incore CUDA
         variables = [X1, X2, v] + other_vars

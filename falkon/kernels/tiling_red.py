@@ -61,10 +61,10 @@ def _single_gpu_method(proc_idx, queue, device_id):
             cout = out[ni: ni + nl, :]
 
             variables = [cX1, cX2, cv] + other_vars
-            fn(nl,  # nx
-               ml,  # ny
-               cout,  # out
-               variables)
+            fn(out=cout,
+               nx=nl,  # nx
+               ny=ml,  # ny
+               vars=variables)
         torch.cuda.synchronize(device_id)  # TODO: Why sync?
         if ml != M and mi > 0:
             oout.add_(out)
@@ -198,6 +198,11 @@ class TilingGenredAutograd(torch.autograd.Function):
                 "[pyKeOps,TilingGenRed] At least one of the input tensors is not contiguous. "
                 "Consider using contiguous data arrays to avoid unnecessary copies.")
             X1, X2, v, *args = ensure_all_contig(X1, X2, v, *args)
+
+        if out is None:
+            # noinspection PyArgumentList
+            out = torch.empty(X1.shape[0], v.shape[1], dtype=X1.dtype, device=device,
+                              pin_memory=(device.type == "cpu" and tagCPUGPU == 1))
         # N.B.: KeOps C++ expects contiguous integer arrays as ranges
         if ranges:
             ranges = tuple(r.contiguous() for r in ranges)
