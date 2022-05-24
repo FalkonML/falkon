@@ -77,6 +77,15 @@ def _distancek_diag(mat1, out: Optional[torch.Tensor]):
     return out
 
 
+def _rbf_diag_core(mat1, mat2, out: Optional[torch.Tensor], sigma: torch.Tensor) -> torch.Tensor:
+    if out is not None:
+        raise ValueError("output matrix is ignored in diagonal-mode for RBF kernel")
+    out = square_norm(mat1 / sigma - mat2 / sigma, dim=-1, keepdim=False)
+    out.mul_(-0.5)
+    out.exp_()
+    return out
+
+
 def rbf_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
     """
     Note 1: if out is None, then this function will be differentiable wrt all three remaining inputs.
@@ -93,10 +102,10 @@ def rbf_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
     -------
 
     """
-    if diag:
-        return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
+    if diag:
+        return _rbf_diag_core(mat1, mat2, out, sigma)
     mat1_div_sig = mat1 / sigma
     mat2_div_sig = mat2 / sigma
     norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1 or n*1

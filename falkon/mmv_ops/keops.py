@@ -25,20 +25,6 @@ class ArgsFmmv:
     function: callable
 
 
-def _keops_dtype(dtype: torch.dtype) -> str:
-    """Returns a string which represents the given data type.
-
-    The string representation is necessary for KeOps which doesn't
-    like type objects.
-    """
-    if dtype == torch.float64:
-        return 'float64'
-    elif dtype == torch.float32:
-        return 'float32'
-    else:
-        raise NotImplementedError("Data type %s not recognized." % (dtype))
-
-
 def _decide_backend(opt: BaseOptions, num_dim: int) -> str:
     """Switch between CPU and GPU backend for KeOps
     """
@@ -192,7 +178,6 @@ def run_keops_mmv(X1: torch.Tensor,
     N, D = X1.shape
     T = v.shape[1]
     backend = _decide_backend(opt, D)
-    dtype = _keops_dtype(X1.dtype)
     data_devs = [X1.device, X2.device, v.device]
 
     if any([ddev.type == 'cuda' for ddev in data_devs]) and (not backend.startswith("GPU")):
@@ -209,14 +194,15 @@ def run_keops_mmv(X1: torch.Tensor,
 
     if differentiable:
         from falkon.kernels.tiling_red import TilingGenred
-        fn = TilingGenred(formula, aliases, reduction_op='Sum', axis=1, dtype=dtype,
+        assert axis == 1, reduction == 'Sum'
+        fn = TilingGenred(formula, aliases, reduction_op='Sum', axis=1,
                           dtype_acc="auto", sum_scheme="auto", opt=opt)
         return fn(X1, X2, v, *other_vars, out=out, backend=backend)
 
     # Define formula wrapper
     fn = Genred(formula, aliases,
                 reduction_op=reduction, axis=axis,
-                dtype=dtype, dtype_acc=opt.keops_acc_dtype,
+                dtype_acc=opt.keops_acc_dtype,
                 sum_scheme=opt.keops_sum_scheme)
 
     comp_dev_type = backend[:3].lower().replace('gpu', 'cuda')  # 'cpu' or 'cuda'
