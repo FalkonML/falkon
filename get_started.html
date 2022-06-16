@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started &mdash; falkon 0.7.2 documentation</title>
+  <title>Getting Started &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -31,7 +32,7 @@
             <a href="index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -47,7 +48,6 @@
 <li class="toctree-l2"><a class="reference internal" href="install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing">Installing</a></li>
@@ -274,7 +274,7 @@
 }
 </style>
 <section id="getting-started">
-<span id="get-started"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h1>
+<span id="get-started"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h1>
 <p>Once Falkon is installed, getting started is easy. The basic setup to use the <cite>Falkon</cite> estimator only requires
 few lines of code:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
@@ -296,7 +296,7 @@ few lines of code:</p>
 </pre></div>
 </div>
 <section id="passing-options">
-<h2>Passing Options<a class="headerlink" href="#passing-options" title="Permalink to this headline"></a></h2>
+<h2>Passing Options<a class="headerlink" href="#passing-options" title="Permalink to this heading"></a></h2>
 <p>A number of different options exist for both the <a class="reference internal" href="api_reference/models.html#falkon-model"><span class="std std-ref">Falkon</span></a> and <a class="reference internal" href="api_reference/models.html#log-falkon-model"><span class="std std-ref">LogisticFalkon</span></a>
 estimators (see <a class="reference internal" href="api_reference/options.html#api-options"><span class="std std-ref">falkon.FalkonOptions</span></a>).
 All options can be passed to the estimator through the <a class="reference internal" href="api_reference/options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">FalkonOptions</span></code></a> class, like so:</p>
@@ -315,7 +315,7 @@ All options can be passed to the estimator through the <a class="reference inter
 </div>
 </section>
 <section id="more-examples">
-<h2>More Examples<a class="headerlink" href="#more-examples" title="Permalink to this headline"></a></h2>
+<h2>More Examples<a class="headerlink" href="#more-examples" title="Permalink to this heading"></a></h2>
 <p>For more detailed examples, have a look at the <a class="reference internal" href="examples/examples.html#examples"><span class="std std-ref">example notebooks</span></a>.</p>
 </section>
 </section>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Falkon Regression Tutorial &mdash; falkon 0.7.2 documentation</title>
+  <title>Falkon Regression Tutorial &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -33,7 +34,7 @@
             <a href="../index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -49,7 +50,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
@@ -467,6 +467,7 @@ div.nboutput.container div.output_area > div[class^='highlight']{
 }
 
 /* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
 div.rendered_html table {
   border: none;
   border-collapse: collapse;
@@ -475,10 +476,14 @@ div.rendered_html table {
   font-size: 12px;
   table-layout: fixed;
 }
+.jp-RenderedHTMLCommon thead,
 div.rendered_html thead {
   border-bottom: 1px solid black;
   vertical-align: bottom;
 }
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
 div.rendered_html tr,
 div.rendered_html th,
 div.rendered_html td {
@@ -490,12 +495,15 @@ div.rendered_html td {
   max-width: none;
   border: none;
 }
+.jp-RenderedHTMLCommon th,
 div.rendered_html th {
   font-weight: bold;
 }
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
 div.rendered_html tbody tr:nth-child(odd) {
   background: #f5f5f5;
 }
+.jp-RenderedHTMLCommon tbody tr:hover,
 div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
@@ -523,9 +531,9 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <section id="Falkon-Regression-Tutorial">
-<h1>Falkon Regression Tutorial<a class="headerlink" href="#Falkon-Regression-Tutorial" title="Permalink to this headline"></a></h1>
+<h1>Falkon Regression Tutorial<a class="headerlink" href="#Falkon-Regression-Tutorial" title="Permalink to this heading"></a></h1>
 <section id="Introduction">
-<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this headline"></a></h2>
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this heading"></a></h2>
 <p>This notebook introduces the main interface of the Falkon library, using a toy regression problem.</p>
 <p>We will be using the Boston housing dataset which is included in <code class="docutils literal notranslate"><span class="pre">scikit-learn</span></code> to train a Falkon model. Since the dataset is very small, it is not necessary to use the Nystroem approximation here. It is however useful to demonstrate the simple API offered by Falkon.</p>
 <div class="nbinput docutils container">
@@ -553,7 +561,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Load-the-data">
-<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this headline"></a></h2>
+<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this heading"></a></h2>
 <p>The Boston housing dataset poses a regression problem with 506 data points in 13 dimensions. The goal is to predict house prices given some attributes including criminality rates, air pollution, property value, etc.</p>
 <p>After loading the data, we split it into two parts: a training set (containing 80% of the points) and a test set with the remaining 20%. Data splitting could alternatively be done using some scikit-learn utilities (found in the <a class="reference external" href="https://scikit-learn.org/stable/modules/cross_validation.html#cross-validation">model_selection module</a>)</p>
 <div class="nbinput nblast docutils container">
@@ -582,7 +590,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Pre-process-the-data">
-<h2>Pre-process the data<a class="headerlink" href="#Pre-process-the-data" title="Permalink to this headline"></a></h2>
+<h2>Pre-process the data<a class="headerlink" href="#Pre-process-the-data" title="Permalink to this heading"></a></h2>
 <p>We must convert the numpy arrays to PyTorch tensors before using them in Falkon. This is very easy and fast with the <code class="docutils literal notranslate"><span class="pre">torch.from_numpy</span></code> function.</p>
 <p>Another preprocessing step which is often necessary with kernel methods is to normalize the z-score of the data: convert it to have zero-mean and unit standard deviation. We use the statistics of the training data to avoid leakage between the two sets.</p>
 <div class="nbinput nblast docutils container">
@@ -613,7 +621,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Create-the-Falkon-model">
-<h2>Create the Falkon model<a class="headerlink" href="#Create-the-Falkon-model" title="Permalink to this headline"></a></h2>
+<h2>Create the Falkon model<a class="headerlink" href="#Create-the-Falkon-model" title="Permalink to this heading"></a></h2>
 <p>The Falkon object is the main API of this library. It is similar in spirit to the fit-transform API of scikit-learn, while supporting some additional features such as monitoring of validation error.</p>
 <p>While Falkon models have many options, most are related to performance fine-tuning which becomes useful with much larger datasets. Here we only showcase some of the more basic options.</p>
 <p>Mandatory parameters are: - the kernel function (here we use a linear kernel) - the amount of regularization, which we set to some small positive value - the number of inducing points M. We set M to 5000, which is a sizable portion of the dataset.</p>
@@ -639,7 +647,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Training-the-model">
-<h2>Training the model<a class="headerlink" href="#Training-the-model" title="Permalink to this headline"></a></h2>
+<h2>Training the model<a class="headerlink" href="#Training-the-model" title="Permalink to this heading"></a></h2>
 <p>The Falkon model is trained using the preconditioned conjugate gradient algorithm (TODO: Add a reference). Thus there are two steps to the algorithm: first the preconditioner is computed, and then the conjugate gradient iterations are performed. To gain more insight in the various steps of the algorithm you can pass <code class="docutils literal notranslate"><span class="pre">debug=True</span></code> when creating the Falkon object.</p>
 <p>Model training will occur on the GPU, if it is available, and CUDA is properly installed, or on the CPU as a fallback.</p>
 <div class="nbinput docutils container">
@@ -663,7 +671,7 @@ tensor([1.], dtype=torch.float64)), options=FalkonOptions(keops_acc_dtype=&#39;a
 <p>Optimization converges very quickly to a minimum, where convergence is detected by checking the change model parameters between iterations.</p>
 </section>
 <section id="Evaluating-model-performance">
-<h2>Evaluating model performance<a class="headerlink" href="#Evaluating-model-performance" title="Permalink to this headline"></a></h2>
+<h2>Evaluating model performance<a class="headerlink" href="#Evaluating-model-performance" title="Permalink to this heading"></a></h2>
 <p>Since the problem is regression a natural error metric is the RMSE. Given a fitted model, we can run the <code class="docutils literal notranslate"><span class="pre">predict</span></code> method to obtain predictions on new data.</p>
 <p>Here we print the error on both train and test sets.</p>
 <div class="nbinput docutils container">

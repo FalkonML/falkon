@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MNIST Classification with Falkon &mdash; falkon 0.7.2 documentation</title>
+  <title>MNIST Classification with Falkon &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -33,7 +34,7 @@
             <a href="../index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -49,7 +50,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
@@ -467,6 +467,7 @@ div.nboutput.container div.output_area > div[class^='highlight']{
 }
 
 /* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
 div.rendered_html table {
   border: none;
   border-collapse: collapse;
@@ -475,10 +476,14 @@ div.rendered_html table {
   font-size: 12px;
   table-layout: fixed;
 }
+.jp-RenderedHTMLCommon thead,
 div.rendered_html thead {
   border-bottom: 1px solid black;
   vertical-align: bottom;
 }
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
 div.rendered_html tr,
 div.rendered_html th,
 div.rendered_html td {
@@ -490,12 +495,15 @@ div.rendered_html td {
   max-width: none;
   border: none;
 }
+.jp-RenderedHTMLCommon th,
 div.rendered_html th {
   font-weight: bold;
 }
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
 div.rendered_html tbody tr:nth-child(odd) {
   background: #f5f5f5;
 }
+.jp-RenderedHTMLCommon tbody tr:hover,
 div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
@@ -523,7 +531,7 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <section id="MNIST-Classification-with-Falkon">
-<h1>MNIST Classification with Falkon<a class="headerlink" href="#MNIST-Classification-with-Falkon" title="Permalink to this headline"></a></h1>
+<h1>MNIST Classification with Falkon<a class="headerlink" href="#MNIST-Classification-with-Falkon" title="Permalink to this heading"></a></h1>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -548,7 +556,7 @@ div.rendered_html tbody tr:hover {
 </pre></div></div>
 </div>
 <section id="Download-the-MNIST-dataset-&amp;-load-it-in-memory">
-<h2>Download the MNIST dataset &amp; load it in memory<a class="headerlink" href="#Download-the-MNIST-dataset-&-load-it-in-memory" title="Permalink to this headline"></a></h2>
+<h2>Download the MNIST dataset &amp; load it in memory<a class="headerlink" href="#Download-the-MNIST-dataset-&-load-it-in-memory" title="Permalink to this heading"></a></h2>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -620,7 +628,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Data-Preprocessing">
-<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this headline"></a></h2>
+<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this heading"></a></h2>
 <p>We convert the labels to their one-hot representation. This is the best way to run multi-class classification with Falkon which minimizes the squared error</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
@@ -647,7 +655,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Run-Falkon">
-<h2>Run Falkon<a class="headerlink" href="#Run-Falkon" title="Permalink to this headline"></a></h2>
+<h2>Run Falkon<a class="headerlink" href="#Run-Falkon" title="Permalink to this heading"></a></h2>
 <p>There are a few parameters which need to be provided to the algorithm</p>
 <ul>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">FalkonOptions</span></code> class is used to provide non-standard tuning knobs. It allows to, for example, tune the amount of GPU memory the algorithm can use, adjust the convergence tolerance, and decide whether certain parts of the algorithm are computed on CPU or GPU.</p>

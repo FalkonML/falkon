@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Automatic Hyperparameter Optimization &mdash; falkon 0.7.2 documentation</title>
+  <title>Automatic Hyperparameter Optimization &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -33,7 +34,7 @@
             <a href="../index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -49,7 +50,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
@@ -467,6 +467,7 @@ div.nboutput.container div.output_area > div[class^='highlight']{
 }
 
 /* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
 div.rendered_html table {
   border: none;
   border-collapse: collapse;
@@ -475,10 +476,14 @@ div.rendered_html table {
   font-size: 12px;
   table-layout: fixed;
 }
+.jp-RenderedHTMLCommon thead,
 div.rendered_html thead {
   border-bottom: 1px solid black;
   vertical-align: bottom;
 }
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
 div.rendered_html tr,
 div.rendered_html th,
 div.rendered_html td {
@@ -490,12 +495,15 @@ div.rendered_html td {
   max-width: none;
   border: none;
 }
+.jp-RenderedHTMLCommon th,
 div.rendered_html th {
   font-weight: bold;
 }
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
 div.rendered_html tbody tr:nth-child(odd) {
   background: #f5f5f5;
 }
+.jp-RenderedHTMLCommon tbody tr:hover,
 div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
@@ -523,7 +531,7 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <section id="Automatic-Hyperparameter-Optimization">
-<h1>Automatic Hyperparameter Optimization<a class="headerlink" href="#Automatic-Hyperparameter-Optimization" title="Permalink to this headline"></a></h1>
+<h1>Automatic Hyperparameter Optimization<a class="headerlink" href="#Automatic-Hyperparameter-Optimization" title="Permalink to this heading"></a></h1>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -547,7 +555,7 @@ div.rendered_html tbody tr:hover {
 </pre></div></div>
 </div>
 <section id="Load-the-data">
-<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this headline"></a></h2>
+<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this heading"></a></h2>
 <p>We use the <strong>digits</strong> dataset, which is distributed alongside scikit-learn.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -583,7 +591,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Split-into-training-and-test-sets">
-<h2>Split into training and test sets<a class="headerlink" href="#Split-into-training-and-test-sets" title="Permalink to this headline"></a></h2>
+<h2>Split into training and test sets<a class="headerlink" href="#Split-into-training-and-test-sets" title="Permalink to this heading"></a></h2>
 <p>We split the data into a training set with 80% of the samples and a test set with the remaining 20%.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
@@ -596,7 +604,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Data-Preprocessing">
-<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this headline"></a></h2>
+<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this heading"></a></h2>
 <p>As always with Falkon we must: 1. Convert from numpy arrays to torch tensors 2. Convert data and labels to the same data-type (in this case float32)</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
@@ -649,7 +657,7 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 </div>
 </section>
 <section id="Hyperparameter-Optimization">
-<h2>Hyperparameter Optimization<a class="headerlink" href="#Hyperparameter-Optimization" title="Permalink to this headline"></a></h2>
+<h2>Hyperparameter Optimization<a class="headerlink" href="#Hyperparameter-Optimization" title="Permalink to this heading"></a></h2>
 <p>The Falkon algorithm has three main kinds of hyper-parameters: 1. The kernel parameters. Most commonly when using the Gaussian kernel these are the length-scales for each dimension in the data 2. The amount of regularization <span class="math notranslate nohighlight">\(\lambda\)</span> (the penalty term, which helps prevent overfitting). 3. The Nystrom centers. These are sometimes not considered hyper parameters, and they are chosen uniformly at random from the training set. However, it is possible to find better centers!</p>
 <p>In the <a class="reference internal" href="falkon_cv.html"><span class="doc">grid-search</span></a> notebook all three types of hyperparameters are considered, but only with a small number of options in each category.</p>
 <p>With automatic hyperparameter optimization, which is based on a gradient descent-type procedure, we can instead define a much larger search space for the hyperparameters.</p>

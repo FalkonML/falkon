@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>falkon.preconditioner &mdash; falkon 0.7.2 documentation</title>
+  <title>falkon.preconditioner &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -33,7 +34,7 @@
             <a href="../index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -49,7 +50,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
@@ -277,9 +277,9 @@
 }
 </style>
 <section id="module-falkon.preconditioner">
-<span id="falkon-preconditioner"></span><h1>falkon.preconditioner<a class="headerlink" href="#module-falkon.preconditioner" title="Permalink to this headline"></a></h1>
+<span id="falkon-preconditioner"></span><h1>falkon.preconditioner<a class="headerlink" href="#module-falkon.preconditioner" title="Permalink to this heading"></a></h1>
 <section id="preconditioner">
-<h2>Preconditioner<a class="headerlink" href="#preconditioner" title="Permalink to this headline"></a></h2>
+<h2>Preconditioner<a class="headerlink" href="#preconditioner" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="falkon.preconditioner.preconditioner.Preconditioner">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.preconditioner.preconditioner.</span></span><span class="sig-name descname"><span class="pre">Preconditioner</span></span><a class="headerlink" href="#falkon.preconditioner.preconditioner.Preconditioner" title="Permalink to this definition"></a></dt>
@@ -306,12 +306,12 @@ be overridden in concrete preconditioner implementations</p>
 
 </section>
 <section id="cholesky-preconditioners">
-<h2>Cholesky preconditioners<a class="headerlink" href="#cholesky-preconditioners" title="Permalink to this headline"></a></h2>
+<h2>Cholesky preconditioners<a class="headerlink" href="#cholesky-preconditioners" title="Permalink to this heading"></a></h2>
 <section id="falkonpreconditioner">
-<h3>FalkonPreconditioner<a class="headerlink" href="#falkonpreconditioner" title="Permalink to this headline"></a></h3>
+<h3>FalkonPreconditioner<a class="headerlink" href="#falkonpreconditioner" title="Permalink to this heading"></a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="falkon.preconditioner.FalkonPreconditioner">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.preconditioner.</span></span><span class="sig-name descname"><span class="pre">FalkonPreconditioner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">falkon.options.FalkonOptions</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.preconditioner.</span></span><span class="sig-name descname"><span class="pre">FalkonPreconditioner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner" title="Permalink to this definition"></a></dt>
 <dd><p>Approximated Cholesky Preconditioner for FALKON.</p>
 <p>The preconditioner is based on the <span class="math notranslate nohighlight">\(K_{MM}\)</span> kernel between the
 inducing points. A two step approximation of the inverse matrix
@@ -356,7 +356,7 @@ availability of a GPU).</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.preconditioner.FalkonPreconditioner.apply">
-<span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.apply" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.apply" title="Permalink to this definition"></a></dt>
 <dd><p>Solve two systems of equations <span class="math notranslate nohighlight">\(ATx = v\)</span> for unknown vector <span class="math notranslate nohighlight">\(x\)</span>.</p>
 <p>Multiple right-hand sides are supported (by simply passing a 2D tensor for <cite>v</cite>)</p>
 <dl class="field-list simple">
@@ -378,7 +378,7 @@ availability of a GPU).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.preconditioner.FalkonPreconditioner.apply_t">
-<span class="sig-name descname"><span class="pre">apply_t</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.apply_t" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">apply_t</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.apply_t" title="Permalink to this definition"></a></dt>
 <dd><p>Solve two systems of equations <span class="math notranslate nohighlight">\(A^\top T^\top x = v\)</span> for unknown vector <span class="math notranslate nohighlight">\(x\)</span>.</p>
 <p>Multiple right-hand sides are supported (by simply passing a 2D tensor for <cite>v</cite>)</p>
 <dl class="field-list simple">
@@ -400,7 +400,7 @@ availability of a GPU).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.preconditioner.FalkonPreconditioner.init">
-<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="sparse.html#falkon.sparse.sparse_tensor.SparseTensor" title="falkon.sparse.sparse_tensor.SparseTensor"><span class="pre">falkon.sparse.sparse_tensor.SparseTensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_vec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.init" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="sparse.html#falkon.sparse.sparse_tensor.SparseTensor" title="falkon.sparse.sparse_tensor.SparseTensor"><span class="pre">SparseTensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_vec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.init" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize the preconditioner matrix.</p>
 <p>This method must be called before the preconditioner can be used.</p>
 <dl class="field-list simple">
@@ -416,7 +416,7 @@ This vector should contain the weights corresponding to the Nystrom centers.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.preconditioner.FalkonPreconditioner.invA">
-<span class="sig-name descname"><span class="pre">invA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.invA" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">invA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.invA" title="Permalink to this definition"></a></dt>
 <dd><p>Solve the system of equations <span class="math notranslate nohighlight">\(Ax = v\)</span> for unknown vector <span class="math notranslate nohighlight">\(x\)</span>.</p>
 <p>Multiple right-hand sides are supported (by simply passing a 2D tensor for <cite>v</cite>)</p>
 <dl class="field-list simple">
@@ -438,7 +438,7 @@ This vector should contain the weights corresponding to the Nystrom centers.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.preconditioner.FalkonPreconditioner.invAt">
-<span class="sig-name descname"><span class="pre">invAt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.invAt" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">invAt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.invAt" title="Permalink to this definition"></a></dt>
 <dd><p>Solve the system of equations <span class="math notranslate nohighlight">\(A^\top x = v\)</span> for unknown vector <span class="math notranslate nohighlight">\(x\)</span>.</p>
 <p>Multiple right-hand sides are supported (by simply passing a 2D tensor for <cite>v</cite>)</p>
 <dl class="field-list simple">
@@ -460,7 +460,7 @@ This vector should contain the weights corresponding to the Nystrom centers.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.preconditioner.FalkonPreconditioner.invT">
-<span class="sig-name descname"><span class="pre">invT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.invT" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">invT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.invT" title="Permalink to this definition"></a></dt>
 <dd><p>Solve the system of equations <span class="math notranslate nohighlight">\(Tx = v\)</span> for unknown vector <span class="math notranslate nohighlight">\(x\)</span>.</p>
 <p>Multiple right-hand sides are supported (by simply passing a 2D tensor for <cite>v</cite>)</p>
 <dl class="field-list simple">
@@ -482,7 +482,7 @@ This vector should contain the weights corresponding to the Nystrom centers.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.preconditioner.FalkonPreconditioner.invTt">
-<span class="sig-name descname"><span class="pre">invTt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.invTt" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">invTt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.preconditioner.FalkonPreconditioner.invTt" title="Permalink to this definition"></a></dt>
 <dd><p>Solve the system of equations <span class="math notranslate nohighlight">\(T^\top x = v\)</span> for unknown vector <span class="math notranslate nohighlight">\(x\)</span>.</p>
 <p>Multiple right-hand sides are supported (by simply passing a 2D tensor for <cite>v</cite>)</p>
 <dl class="field-list simple">
@@ -506,10 +506,10 @@ This vector should contain the weights corresponding to the Nystrom centers.</p>
 
 </section>
 <section id="logisticpreconditioner">
-<h3>LogisticPreconditioner<a class="headerlink" href="#logisticpreconditioner" title="Permalink to this headline"></a></h3>
+<h3>LogisticPreconditioner<a class="headerlink" href="#logisticpreconditioner" title="Permalink to this heading"></a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="falkon.preconditioner.LogisticPreconditioner">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.preconditioner.</span></span><span class="sig-name descname"><span class="pre">LogisticPreconditioner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">falkon.options.FalkonOptions</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.preconditioner.LogisticPreconditioner" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.preconditioner.</span></span><span class="sig-name descname"><span class="pre">LogisticPreconditioner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.preconditioner.LogisticPreconditioner" title="Permalink to this definition"></a></dt>
 <dd><p>Approximate Cholesky Preconditioner for Logistic-FALKON.</p>
 <p>The preconditioner is based on the K_MM kernel between the
 inducing points. A two step approximation of the inverse matrix
@@ -612,7 +612,7 @@ availability of a GPU).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.preconditioner.LogisticPreconditioner.init">
-<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="sparse.html#falkon.sparse.sparse_tensor.SparseTensor" title="falkon.sparse.sparse_tensor.SparseTensor"><span class="pre">falkon.sparse.sparse_tensor.SparseTensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#falkon.preconditioner.LogisticPreconditioner.init" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="sparse.html#falkon.sparse.sparse_tensor.SparseTensor" title="falkon.sparse.sparse_tensor.SparseTensor"><span class="pre">SparseTensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#falkon.preconditioner.LogisticPreconditioner.init" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize the preconditioner matrix.</p>
 <p>This method must be called before the preconditioner becomes usable.</p>
 <dl class="field-list simple">

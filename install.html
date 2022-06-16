@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Install &mdash; falkon 0.7.2 documentation</title>
+  <title>Install &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -31,7 +32,7 @@
             <a href="index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -47,7 +48,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#installing">Installing</a></li>
@@ -274,18 +274,18 @@
 }
 </style>
 <section id="install">
-<span id="id1"></span><h1>Install<a class="headerlink" href="#install" title="Permalink to this headline"></a></h1>
+<span id="id1"></span><h1>Install<a class="headerlink" href="#install" title="Permalink to this heading"></a></h1>
 <section id="supported-platforms">
-<h2>Supported Platforms<a class="headerlink" href="#supported-platforms" title="Permalink to this headline"></a></h2>
+<h2>Supported Platforms<a class="headerlink" href="#supported-platforms" title="Permalink to this heading"></a></h2>
 <p>Falkon is only tested on Linux.</p>
 <p>GPU support is achieved via CUDA, so using Falkon from Windows will be tricky.</p>
 <p>Using the library from the CPU only is much more portable since there is no CUDA requirement, and it will likely work
 on Windows and Mac OS more easily.</p>
 </section>
 <section id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline"></a></h2>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
 <section id="pytorch-and-cuda">
-<h3>PyTorch and CUDA<a class="headerlink" href="#pytorch-and-cuda" title="Permalink to this headline"></a></h3>
+<h3>PyTorch and CUDA<a class="headerlink" href="#pytorch-and-cuda" title="Permalink to this heading"></a></h3>
 <p>Falkon depends on PyTorch, and on the NVIDIA Toolkit (for NVIDIA GPU support) which is usually installed
 alongside PyTorch.
 PyTorch can be installed in several ways by following the instructions at <a class="reference external" href="https://pytorch.org/get-started/locally/">Install PyTorch</a>.
@@ -296,45 +296,27 @@ If GPU support is desired, make sure that PyTorch CUDA bindings are working:</p>
 </div>
 </section>
 <section id="intel-mkl">
-<h3>Intel MKL<a class="headerlink" href="#intel-mkl" title="Permalink to this headline"></a></h3>
+<h3>Intel MKL<a class="headerlink" href="#intel-mkl" title="Permalink to this heading"></a></h3>
 <p>If Falkon is not installed with GPU support, it will try to link to <a class="reference external" href="https://software.intel.com/content/www/us/en/develop/tools/math-kernel-library.html">Intel MKL</a>
 to speed-up certain sparse operations. MKL shared libraries are usually distributed with numpy, so this should not be a problem.
 In case sparse matrix support is not needed, the MKL library will not be loaded.</p>
 </section>
-<section id="keops">
-<h3>KeOps<a class="headerlink" href="#keops" title="Permalink to this headline"></a></h3>
-<p>Falkon uses a patched version of <a class="reference external" href="https://www.kernel-operations.io/keops/index.html">KeOps</a>, therefore until the
-patches are merged in the KeOps library, users will need to uninstall existing KeOps installations (if present), and
-install our patched version.</p>
-<p>The patched version is available as a submodule of the Falkon repository. To install it, you can do the following:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ git clone --recurse-submodules https://github.com/FalkonML/falkon.git
-$ <span class="nb">cd</span> falkon/
-$ pip install ./keops
-</pre></div>
-</div>
-<p>For use with <strong>Google Colab</strong> KeOps needs some additional packages. You can install them alongside KeOps by running</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>!pip install pykeops[colab] &gt; install.log
-</pre></div>
-</div>
-<p>from within the Jupyter notebook (see the <a class="reference external" href="https://www.kernel-operations.io/keops/python/installation.html">KeOps docs</a>
-for more information).</p>
-</section>
 </section>
 <section id="installing">
-<h2>Installing<a class="headerlink" href="#installing" title="Permalink to this headline"></a></h2>
-<p>After having installed KeOps, you are ready to install Falkon with <cite>pip</cite> (from the root of the git tree):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install .
+<h2>Installing<a class="headerlink" href="#installing" title="Permalink to this heading"></a></h2>
+<p>You can install Falkon</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install git+https://github.com/falkonml/falkon.git
 </pre></div>
 </div>
 <p>This will take a while since there are both Cython extensions which need to be compiled (if Cython is installed),
 and PyTorch extensions which take some time to compile.</p>
 </section>
 <section id="testing-the-installation">
-<h2>Testing the installation<a class="headerlink" href="#testing-the-installation" title="Permalink to this headline"></a></h2>
+<h2>Testing the installation<a class="headerlink" href="#testing-the-installation" title="Permalink to this heading"></a></h2>
 <p>To check that everything works correctly you can follow the <a class="reference internal" href="examples/falkon_regression_tutorial.html"><span class="doc">Kernel ridge regression</span></a> notebook.</p>
 </section>
 <section id="development">
-<h2>Development<a class="headerlink" href="#development" title="Permalink to this headline"></a></h2>
+<h2>Development<a class="headerlink" href="#development" title="Permalink to this heading"></a></h2>
 <p>For development purposes the library should be installed in editable mode (i.e. <cite>pip install -e .</cite> from the
 falkon directory.</p>
 <p>To build the documentation go into the <cite>doc</cite> directory and run <cite>make html</cite>.</p>

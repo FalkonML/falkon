@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Introducing Logistic Falkon &mdash; falkon 0.7.2 documentation</title>
+  <title>Introducing Logistic Falkon &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -33,7 +34,7 @@
             <a href="../index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -49,7 +50,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
@@ -467,6 +467,7 @@ div.nboutput.container div.output_area > div[class^='highlight']{
 }
 
 /* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
 div.rendered_html table {
   border: none;
   border-collapse: collapse;
@@ -475,10 +476,14 @@ div.rendered_html table {
   font-size: 12px;
   table-layout: fixed;
 }
+.jp-RenderedHTMLCommon thead,
 div.rendered_html thead {
   border-bottom: 1px solid black;
   vertical-align: bottom;
 }
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
 div.rendered_html tr,
 div.rendered_html th,
 div.rendered_html td {
@@ -490,12 +495,15 @@ div.rendered_html td {
   max-width: none;
   border: none;
 }
+.jp-RenderedHTMLCommon th,
 div.rendered_html th {
   font-weight: bold;
 }
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
 div.rendered_html tbody tr:nth-child(odd) {
   background: #f5f5f5;
 }
+.jp-RenderedHTMLCommon tbody tr:hover,
 div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
@@ -523,9 +531,9 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <section id="Introducing-Logistic-Falkon">
-<h1>Introducing Logistic Falkon<a class="headerlink" href="#Introducing-Logistic-Falkon" title="Permalink to this headline"></a></h1>
+<h1>Introducing Logistic Falkon<a class="headerlink" href="#Introducing-Logistic-Falkon" title="Permalink to this heading"></a></h1>
 <section id="Introduction">
-<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this headline"></a></h2>
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this heading"></a></h2>
 <p>In this notebook we use a synthetic dataset to show how the <code class="docutils literal notranslate"><span class="pre">LogisticFalkon</span></code> estimator works.</p>
 <p>We compare Falkon – which is trained on the squared loss – to its logistic loss version, and verify that on a binary classification problem logistic falkon achieves better accuracy.</p>
 <div class="nbinput docutils container">
@@ -552,7 +560,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Load-the-data">
-<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this headline"></a></h2>
+<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this heading"></a></h2>
 <p>We use a synthetic dataset in two dimensions, which consists of two concentric circles labeled with different classes.</p>
 <p>We introduce quite a bit of noise so that the estimators will not trivially achieve zero error, and we draw 10000 samples to demonstrate the speed of the <code class="docutils literal notranslate"><span class="pre">Falkon</span></code> library.</p>
 <div class="nbinput nblast docutils container">
@@ -583,7 +591,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Split-into-training-and-test-sets">
-<h2>Split into training and test sets<a class="headerlink" href="#Split-into-training-and-test-sets" title="Permalink to this headline"></a></h2>
+<h2>Split into training and test sets<a class="headerlink" href="#Split-into-training-and-test-sets" title="Permalink to this heading"></a></h2>
 <p>We split the data into a training set with 80% of the samples and a test set with the remaining 20%.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
@@ -596,7 +604,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Data-Preprocessing">
-<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this headline"></a></h2>
+<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this heading"></a></h2>
 <p>The minimal preprocessing steps are: 1. Convert from numpy arrays to torch tensors 2. Convert data and labels to the same data-type (in this case float32) 3. Reshape the labels so that they have two dimensions. This is not strictly necessary, but Falkon internally works with 2D tensors, so the output of the <code class="docutils literal notranslate"><span class="pre">Falkon.predict</span></code> method will always be 2D. 4. Change the labels from 0, 1 to -1, 1. Note that Logistic Falkon uses the following formula for the logistic loss:</p>
 <div class="math notranslate nohighlight">
 \[\log(1 + e^{-y_1 y_2})\]</div>
@@ -625,7 +633,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Define-the-Falkon-model">
-<h2>Define the Falkon model<a class="headerlink" href="#Define-the-Falkon-model" title="Permalink to this headline"></a></h2>
+<h2>Define the Falkon model<a class="headerlink" href="#Define-the-Falkon-model" title="Permalink to this heading"></a></h2>
 <p>We use the same base parameters for both models: a small amount of regularization (<span class="math notranslate nohighlight">\(10^{-7}\)</span>) and a Gaussian kernel with <span class="math notranslate nohighlight">\(\sigma = 5\)</span>. The number of inducing points is set to 1000 which is adequate for the problem which is very easy.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -651,7 +659,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Define-Logistic-Falkon-model">
-<h2>Define Logistic Falkon model<a class="headerlink" href="#Define-Logistic-Falkon-model" title="Permalink to this headline"></a></h2>
+<h2>Define Logistic Falkon model<a class="headerlink" href="#Define-Logistic-Falkon-model" title="Permalink to this heading"></a></h2>
 <p>The logistic Falkon estimator uses the same base parameters as Falkon.</p>
 <p>However, instead of specifying a single value for regularization, we need to specify a <em>regularization path</em>: a series of decreasing amounts of regularization. For each regularization value we also need to specify the <em>number of iterations</em> of conjugate gradient descent, which will be performed for that specific regularization value.</p>
 <p>We validated empirically on a wide number of binary classification problems that a good scheme to set the regularization path is to use three short (i.e. 3 iterations) runs with increasing regularization, and then a few longer (here we used 8 iterations) runs with the final regularization value (here <code class="docutils literal notranslate"><span class="pre">1e-7</span></code>, the same as for Falkon).</p>
@@ -677,7 +685,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Train-both-models">
-<h2>Train both models<a class="headerlink" href="#Train-both-models" title="Permalink to this headline"></a></h2>
+<h2>Train both models<a class="headerlink" href="#Train-both-models" title="Permalink to this heading"></a></h2>
 <p>Training Falkon for 20 iterations (default value) takes about half a secon on a laptop.</p>
 <p>Clearly, since the logistic falkon runs about 28 iterations (the sum of values in <code class="docutils literal notranslate"><span class="pre">iter_list</span></code>), it is necessarily going to be slower. Further, logistic falkon needs to recompute part of the preconditioner at every step of the Newton method leading to further slowdowns. On the same laptop, the logistic falkon algorithm takes around 1.5s.</p>
 <div class="nbinput docutils container">
@@ -749,7 +757,7 @@ tensor([1.], dtype=torch.float64))), options=FalkonOptions(keops_acc_dtype=&#39;
 </div>
 </section>
 <section id="Testing">
-<h2>Testing<a class="headerlink" href="#Testing" title="Permalink to this headline"></a></h2>
+<h2>Testing<a class="headerlink" href="#Testing" title="Permalink to this heading"></a></h2>
 <p>However, the price paid for with a higher training time, leads to lower training error.</p>
 <p>We found that, on a variety of binary classification datasets, logistic falkon obtains a slightly lower error than the vanilla Falkon algorithm.</p>
 <div class="nbinput docutils container">
@@ -779,7 +787,7 @@ Logistic Falkon model -- Error: 16.90%
 </section>
 </section>
 <section id="Plot-predictions">
-<h1>Plot predictions<a class="headerlink" href="#Plot-predictions" title="Permalink to this headline"></a></h1>
+<h1>Plot predictions<a class="headerlink" href="#Plot-predictions" title="Permalink to this heading"></a></h1>
 <p>In the plot we have the outer and inner circles which are correct predictions, and the circles in the middle which are the mispredicted points. Since we added lots of noise to the dataset, perfect predictions are not possible (there is no clear boundary between the two classes).</p>
 <p>Here the error difference between Falkon and Logistic Falkon is very hard to distinguish by eye. However, there may be other applications where the best possible classification error is desired.</p>
 <div class="nbinput nblast docutils container">

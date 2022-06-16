@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hyperparameter Tuning with Falkon &mdash; falkon 0.7.2 documentation</title>
+  <title>Hyperparameter Tuning with Falkon &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -33,7 +34,7 @@
             <a href="../index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -49,7 +50,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
@@ -467,6 +467,7 @@ div.nboutput.container div.output_area > div[class^='highlight']{
 }
 
 /* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
 div.rendered_html table {
   border: none;
   border-collapse: collapse;
@@ -475,10 +476,14 @@ div.rendered_html table {
   font-size: 12px;
   table-layout: fixed;
 }
+.jp-RenderedHTMLCommon thead,
 div.rendered_html thead {
   border-bottom: 1px solid black;
   vertical-align: bottom;
 }
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
 div.rendered_html tr,
 div.rendered_html th,
 div.rendered_html td {
@@ -490,12 +495,15 @@ div.rendered_html td {
   max-width: none;
   border: none;
 }
+.jp-RenderedHTMLCommon th,
 div.rendered_html th {
   font-weight: bold;
 }
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
 div.rendered_html tbody tr:nth-child(odd) {
   background: #f5f5f5;
 }
+.jp-RenderedHTMLCommon tbody tr:hover,
 div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
@@ -523,9 +531,9 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <section id="Hyperparameter-Tuning-with-Falkon">
-<h1>Hyperparameter Tuning with Falkon<a class="headerlink" href="#Hyperparameter-Tuning-with-Falkon" title="Permalink to this headline"></a></h1>
+<h1>Hyperparameter Tuning with Falkon<a class="headerlink" href="#Hyperparameter-Tuning-with-Falkon" title="Permalink to this heading"></a></h1>
 <section id="Introduction">
-<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this headline"></a></h2>
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this heading"></a></h2>
 <p>We use Falkon for a multi-class problem (on the <a class="reference external" href="https://archive.ics.uci.edu/ml/datasets/Optical+Recognition+of+Handwritten+Digits">digits</a> dataset), showing how to integrate it into scikit-learn for hyperparameter optimization.</p>
 <p>Since both <code class="docutils literal notranslate"><span class="pre">Falkon</span></code> and <code class="docutils literal notranslate"><span class="pre">LogisticFalkon</span></code> are estimators, and follow scikit-learn’s API, integration is seamless</p>
 <div class="nbinput docutils container">
@@ -553,7 +561,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Load-the-data">
-<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this headline"></a></h2>
+<h2>Load the data<a class="headerlink" href="#Load-the-data" title="Permalink to this heading"></a></h2>
 <p>We use the <strong>digits</strong> dataset, which is distributed alongside scikit-learn.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -590,7 +598,7 @@ Label: 1
 </div>
 </section>
 <section id="Split-into-training-and-test-sets">
-<h2>Split into training and test sets<a class="headerlink" href="#Split-into-training-and-test-sets" title="Permalink to this headline"></a></h2>
+<h2>Split into training and test sets<a class="headerlink" href="#Split-into-training-and-test-sets" title="Permalink to this heading"></a></h2>
 <p>We split the data into a training set with 80% of the samples and a test set with the remaining 20%.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
@@ -603,7 +611,7 @@ Label: 1
 </div>
 </section>
 <section id="Data-Preprocessing">
-<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this headline"></a></h2>
+<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this heading"></a></h2>
 <p>As always with Falkon we must: 1. Convert from numpy arrays to torch tensors 2. Convert data and labels to the same data-type (in this case float32)</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
@@ -654,7 +662,7 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 </div>
 </section>
 <section id="Search-for-the-optimal-parameters">
-<h2>Search for the optimal parameters<a class="headerlink" href="#Search-for-the-optimal-parameters" title="Permalink to this headline"></a></h2>
+<h2>Search for the optimal parameters<a class="headerlink" href="#Search-for-the-optimal-parameters" title="Permalink to this heading"></a></h2>
 <p>Since Falkon (with the Gaussian kernel) has only 3 important hyperparameters, it is entirely feasible to run a grid search over them to find the best parameter settings.</p>
 <p>Scikit-learn has great support for this, with the <code class="docutils literal notranslate"><span class="pre">GridSearchCV</span></code> class. For each paramater setting it will run 5-fold cross-validation on the training set, to determine which has the best results.</p>
 <p>Given the dataset is quite small, and Falkon is fast, we can run 160 model evaluations in around 40 seconds.</p>
@@ -715,7 +723,7 @@ Wall time: 13.6 s
 </pre></div></div>
 </div>
 <section id="Evaluating-the-model">
-<h3>Evaluating the model<a class="headerlink" href="#Evaluating-the-model" title="Permalink to this headline"></a></h3>
+<h3>Evaluating the model<a class="headerlink" href="#Evaluating-the-model" title="Permalink to this heading"></a></h3>
 <p>We evaluate the model on the held-out set and see that we obtain a respectable 1% error on 10 classes.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
@@ -759,7 +767,7 @@ Test error: 1.11%
 </section>
 </section>
 <section id="Plot-grid-search-results">
-<h2>Plot grid-search results<a class="headerlink" href="#Plot-grid-search-results" title="Permalink to this headline"></a></h2>
+<h2>Plot grid-search results<a class="headerlink" href="#Plot-grid-search-results" title="Permalink to this heading"></a></h2>
 <p>Plotting results from a grid-search is always useful, since it shows the range of parameters which were successful. If the initial grid was too coarse, one could then run a second grid search to obtain even better accuracy.</p>
 <p>In the plot red indicates a high error, while darker blue indicates a low error.</p>
 <div class="nbinput nblast docutils container">

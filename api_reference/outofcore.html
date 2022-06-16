@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>falkon.ooc_ops &mdash; falkon 0.7.2 documentation</title>
+  <title>falkon.ooc_ops &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -31,7 +32,7 @@
             <a href="../index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -47,7 +48,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
@@ -275,7 +275,7 @@
 }
 </style>
 <section id="falkon-ooc-ops">
-<h1>falkon.ooc_ops<a class="headerlink" href="#falkon-ooc-ops" title="Permalink to this headline"></a></h1>
+<h1>falkon.ooc_ops<a class="headerlink" href="#falkon-ooc-ops" title="Permalink to this heading"></a></h1>
 <p>The out-of-core algorithms for the Cholesky decomposition and the LAUUM operation are crucial for speeding up our
 library. To find out more about how they work, check the source code:</p>
 <blockquote>
@@ -286,15 +286,15 @@ library. To find out more about how they work, check the source code:</p>
 </div></blockquote>
 <p>The following functions provide a higher-level interface to the two operations.</p>
 <span class="target" id="module-falkon.ooc_ops"></span><section id="gpu-cholesky">
-<h2>gpu_cholesky<a class="headerlink" href="#gpu-cholesky" title="Permalink to this headline"></a></h2>
+<h2>gpu_cholesky<a class="headerlink" href="#gpu-cholesky" title="Permalink to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="falkon.ooc_ops.gpu_cholesky">
-<span class="sig-prename descclassname"><span class="pre">falkon.ooc_ops.</span></span><span class="sig-name descname"><span class="pre">gpu_cholesky</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">falkon.options.FalkonOptions</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#falkon.ooc_ops.gpu_cholesky" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">falkon.ooc_ops.</span></span><span class="sig-name descname"><span class="pre">gpu_cholesky</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.ooc_ops.gpu_cholesky" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>A</strong> (<em>torch.Tensor</em>) – 2D positive-definite matrix of size (n x n) that will be factorized as
-A = U.T &#64; U (if <cite>upper</cite> is True) or A = L &#64; L.T if <cite>upper</cite>
+<code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">=</span> <span class="pre">U.T</span> <span class="pre">&#64;</span> <span class="pre">U</span></code> (if <cite>upper</cite> is True) or <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">=</span> <span class="pre">L</span> <span class="pre">&#64;</span> <span class="pre">L.T</span></code> if <cite>upper</cite>
 is False.</p></li>
 <li><p><strong>upper</strong> (<em>bool</em>) – Whether the triangle which should be factorized is the upper or lower of <cite>A</cite>.</p></li>
 <li><p><strong>clean</strong> (<em>bool</em>) – Whether the “other” triangle of the output matrix (the one that
@@ -316,23 +316,29 @@ in case A is not Fortran contiguous to begin with.</p>
 
 </section>
 <section id="gpu-lauum">
-<h2>gpu_lauum<a class="headerlink" href="#gpu-lauum" title="Permalink to this headline"></a></h2>
+<h2>gpu_lauum<a class="headerlink" href="#gpu-lauum" title="Permalink to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="falkon.ooc_ops.gpu_lauum">
-<span class="sig-prename descclassname"><span class="pre">falkon.ooc_ops.</span></span><span class="sig-name descname"><span class="pre">gpu_lauum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_opposite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">falkon.options.FalkonOptions</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.ooc_ops.gpu_lauum" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">falkon.ooc_ops.</span></span><span class="sig-name descname"><span class="pre">gpu_lauum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_opposite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.ooc_ops.gpu_lauum" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>A</strong> (<em>torch.Tensor</em>) – (N x N) positive-definite matrix that will be factorized as
-A = U.T &#64; U (if <cite>upper</cite> is True) or A = L &#64; L.T if <cite>upper</cite>
-is False.</p></li>
-<li><p><strong>overwrite</strong> (<em>bool</em>) – Whether to overwrite matrix A or to output the result in a new
-buffer.</p></li>
+<li><p><strong>A</strong> (<em>torch.Tensor</em>) – N-by-N triangular matrix.</p></li>
+<li><p><strong>upper</strong> (<em>bool</em>) – Whether the input matrix is upper or lower triangular.</p></li>
+<li><p><strong>overwrite</strong> (<em>bool</em>) – Whether to overwrite matrix A or to output the result in a new buffer.</p></li>
+<li><p><strong>write_opposite</strong> (<em>bool</em>) – Independently of the <code class="docutils literal notranslate"><span class="pre">overwrite</span></code> parameter, whether to write the result of the
+triangular multiplication on the ‘opposite’ side of <code class="docutils literal notranslate"><span class="pre">A</span></code>. For example, if <code class="docutils literal notranslate"><span class="pre">upper</span> <span class="pre">==</span> <span class="pre">True</span></code>
+and <code class="docutils literal notranslate"><span class="pre">overwrite</span> <span class="pre">==</span> <span class="pre">False</span></code>, then the result will be written on the lower triangular part
+of the input matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.
+While independent, this is mostly useful when <code class="docutils literal notranslate"><span class="pre">overwrite</span> <span class="pre">==</span> <span class="pre">False</span></code>, since it can
+effectively avoid allocating a new tensor, and at the same time preserve the original data.</p></li>
+<li><p><strong>opt</strong> (<a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><em>FalkonOptions</em></a><em> or </em><em>None</em>) – Options for the LAUUM operation. The only relevant options are the one connected to
+GPU memory usage.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>out</strong> (<em>torch.Tensor</em>) – A (N x N) tensor. This will share the same memory as the input tensor <cite>A</cite> if <cite>overwrite</cite>
-is set to True, otherwise it will be a newly allocated tensor.</p>
+<dd class="field-even"><p><strong>out</strong> (<em>torch.Tensor</em>) – A (N x N) tensor. This will share the same memory as the input tensor <code class="docutils literal notranslate"><span class="pre">A</span></code> if <code class="docutils literal notranslate"><span class="pre">overwrite</span></code>
+is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, otherwise it will be a newly allocated tensor.</p>
 </dd>
 </dl>
 </dd></dl>

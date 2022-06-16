@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Implementing A Custom Kernel &mdash; falkon 0.7.2 documentation</title>
+  <title>Implementing A Custom Kernel &mdash; falkon 0.7.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -33,7 +34,7 @@
             <a href="../index.html" class="icon icon-home"> falkon
           </a>
               <div class="version">
-                0.7.2
+                0.7.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -49,7 +50,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../install.html#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#pytorch-and-cuda">PyTorch and CUDA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#intel-mkl">Intel MKL</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#keops">KeOps</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#installing">Installing</a></li>
@@ -467,6 +467,7 @@ div.nboutput.container div.output_area > div[class^='highlight']{
 }
 
 /* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
 div.rendered_html table {
   border: none;
   border-collapse: collapse;
@@ -475,10 +476,14 @@ div.rendered_html table {
   font-size: 12px;
   table-layout: fixed;
 }
+.jp-RenderedHTMLCommon thead,
 div.rendered_html thead {
   border-bottom: 1px solid black;
   vertical-align: bottom;
 }
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
 div.rendered_html tr,
 div.rendered_html th,
 div.rendered_html td {
@@ -490,12 +495,15 @@ div.rendered_html td {
   max-width: none;
   border: none;
 }
+.jp-RenderedHTMLCommon th,
 div.rendered_html th {
   font-weight: bold;
 }
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
 div.rendered_html tbody tr:nth-child(odd) {
   background: #f5f5f5;
 }
+.jp-RenderedHTMLCommon tbody tr:hover,
 div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
@@ -523,7 +531,7 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <section id="Implementing-A-Custom-Kernel">
-<h1>Implementing A Custom Kernel<a class="headerlink" href="#Implementing-A-Custom-Kernel" title="Permalink to this headline"></a></h1>
+<h1>Implementing A Custom Kernel<a class="headerlink" href="#Implementing-A-Custom-Kernel" title="Permalink to this heading"></a></h1>
 <p>In this notebook we will show how to implement a custom kernel in Falkon.</p>
 <p>There are several complementary parts to a kernel, which can be added to support different operations. We will go through them one-by-one in this notebook:</p>
 <ul class="simple">
@@ -558,7 +566,7 @@ div.rendered_html tbody tr:hover {
 </pre></div></div>
 </div>
 <section id="Setup-a-simple-problem-for-testing">
-<h2>Setup a simple problem for testing<a class="headerlink" href="#Setup-a-simple-problem-for-testing" title="Permalink to this headline"></a></h2>
+<h2>Setup a simple problem for testing<a class="headerlink" href="#Setup-a-simple-problem-for-testing" title="Permalink to this heading"></a></h2>
 <p>Load and preprocess the <em>California housing</em> dataset. The <code class="docutils literal notranslate"><span class="pre">learn_with_kernel</span></code> function sets up Falkon for learning on the California housing datase with a given kernel.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -609,7 +617,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </section>
 <section id="Basic-Kernel-Implementation">
-<h2>Basic Kernel Implementation<a class="headerlink" href="#Basic-Kernel-Implementation" title="Permalink to this headline"></a></h2>
+<h2>Basic Kernel Implementation<a class="headerlink" href="#Basic-Kernel-Implementation" title="Permalink to this heading"></a></h2>
 <p>We must inherit from the <code class="docutils literal notranslate"><span class="pre">falkon.kernels.Kernel</span></code> class, and implement: - <code class="docutils literal notranslate"><span class="pre">compute</span></code> method: the core of the kernel implementation. Given two input matrices (of size <span class="math notranslate nohighlight">\(n\times d\)</span> and <span class="math notranslate nohighlight">\(m\times d\)</span>), and an output matrix (of size <span class="math notranslate nohighlight">\(n\times m\)</span>), compute the kernel function between the two inputs and store it in the output.</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>The additional `diag` parameter is a boolean flag. It indicates that a) $n$ is equal to $m$, b) only the diagonal of the kernel matrix should be computed.
 </pre></div>
@@ -655,7 +663,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <section id="Test-the-basic-kernel">
-<h3>Test the basic kernel<a class="headerlink" href="#Test-the-basic-kernel" title="Permalink to this headline"></a></h3>
+<h3>Test the basic kernel<a class="headerlink" href="#Test-the-basic-kernel" title="Permalink to this heading"></a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
@@ -770,7 +778,7 @@ Test RMSE: 2.19
 </section>
 </section>
 <section id="Differentiable-Kernel">
-<h2>Differentiable Kernel<a class="headerlink" href="#Differentiable-Kernel" title="Permalink to this headline"></a></h2>
+<h2>Differentiable Kernel<a class="headerlink" href="#Differentiable-Kernel" title="Permalink to this heading"></a></h2>
 <p>A differentiable kernel is needed for automatic hyperparameter optimization (see the <a class="reference internal" href="hyperopt.html"><span class="doc">notebook</span></a>).</p>
 <p>It requires inheriting from <code class="docutils literal notranslate"><span class="pre">falkon.kernels.DiffKernel</span></code>. In addition to the methods already discussed, we must implement: - <code class="docutils literal notranslate"><span class="pre">compute_diff</span></code>, which works similarly to the <code class="docutils literal notranslate"><span class="pre">compute</span></code> method but it does not have an <code class="docutils literal notranslate"><span class="pre">out</span></code> parameter. The implementation should be fully differentiable with respect to its inputs, and to the kernel hyperparameters. - <code class="docutils literal notranslate"><span class="pre">detach</span></code>, which essentially clones the kernel with the parameters <em>detached</em> from the computational graph.</p>
 <p>Another important difference from the basic kernel is the call to the <em>constructor</em>, which must include - All kernel hyperparameters as keyword arguments. These will be available as attributes on the class. Hyperparameters do not need to be tensors.</p>
@@ -822,7 +830,7 @@ Test RMSE: 2.19
 </div>
 </div>
 <section id="Test-the-differentiable-kernel">
-<h3>Test the differentiable kernel<a class="headerlink" href="#Test-the-differentiable-kernel" title="Permalink to this headline"></a></h3>
+<h3>Test the differentiable kernel<a class="headerlink" href="#Test-the-differentiable-kernel" title="Permalink to this heading"></a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
@@ -948,7 +956,7 @@ Test RMSE: 2.19
 </section>
 </section>
 <section id="Adding-KeOps-Support">
-<h2>Adding KeOps Support<a class="headerlink" href="#Adding-KeOps-Support" title="Permalink to this headline"></a></h2>
+<h2>Adding KeOps Support<a class="headerlink" href="#Adding-KeOps-Support" title="Permalink to this heading"></a></h2>
 <p>We must inherit from <code class="docutils literal notranslate"><span class="pre">falkon.kernels.KeopsKernelMixin</span></code> and implement the method <code class="docutils literal notranslate"><span class="pre">keops_mmv_impl</span></code>.</p>
 <p>KeOps-enabled kernels will still use the implementation in the <code class="docutils literal notranslate"><span class="pre">compute</span></code> function for computing the kernel matrix itself, but will use KeOps to compute kernel-vector products (if the data dimension is small enough).</p>
 <p>This method is responsible for kernel-vector products, and it should contain: 1. A formula definition (see <a class="reference external" href="https://www.kernel-operations.io/keops/api/math-operations.html">https://www.kernel-operations.io/keops/api/math-operations.html</a> for the appropriate syntax) 2. A definition of all variables (again have a look at the KeOps documentation, or the implementation of other kernels within Falkon) 3. A call to the <code class="docutils literal notranslate"><span class="pre">keops_mmv</span></code> method of the <code class="docutils literal notranslate"><span class="pre">KeopsKernelMixin</span></code> class, responsible for calling into the KeOps formula.</p>
@@ -1012,7 +1020,7 @@ Test RMSE: 2.19
 </div>
 </div>
 <section id="Test-the-KeOps-kernel">
-<h3>Test the KeOps kernel<a class="headerlink" href="#Test-the-KeOps-kernel" title="Permalink to this headline"></a></h3>
+<h3>Test the KeOps kernel<a class="headerlink" href="#Test-the-KeOps-kernel" title="Permalink to this heading"></a></h3>
 <p>Note that KeOps will need to compile the kernels the first time they are run!</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
@@ -1098,7 +1106,7 @@ Test RMSE: 2.19
 </section>
 </section>
 <section id="Supporting-Sparse-Data">
-<h2>Supporting Sparse Data<a class="headerlink" href="#Supporting-Sparse-Data" title="Permalink to this headline"></a></h2>
+<h2>Supporting Sparse Data<a class="headerlink" href="#Supporting-Sparse-Data" title="Permalink to this heading"></a></h2>
 <p>Sparse support can be necessary for kernel learning in extremely high dimensions, when the inputs are sparse.</p>
 <p>Sparse support requires using special functions for common operations such as matrix multiplication. Falkon implements sparse tensors in a CSR format (PyTorch is slowly picking this format up, in place of COO), through the <code class="docutils literal notranslate"><span class="pre">falkon.sparse.SparseTensor</span></code> class.</p>
 <p>We will implement the <code class="docutils literal notranslate"><span class="pre">compute_sparse</span></code> method below, supporting both diagonal and full kernels. However, only CPU support is added here (CUDA support is possible but requires a few more details), and differentiable sparse kernels are not supported.</p>
@@ -1164,7 +1172,7 @@ Test RMSE: 2.19
 </div>
 </div>
 <section id="Testing-sparse-support">
-<h3>Testing sparse support<a class="headerlink" href="#Testing-sparse-support" title="Permalink to this headline"></a></h3>
+<h3>Testing sparse support<a class="headerlink" href="#Testing-sparse-support" title="Permalink to this heading"></a></h3>
 <p>We generate two sparse matrices, and check that the sparse kernel is equivalent to the dense version.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
