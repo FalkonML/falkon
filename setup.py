@@ -5,7 +5,7 @@ import platform
 import sys
 from typing import Any, Tuple, List
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages, Extension, dist
 
 try:
     import torch
@@ -30,16 +30,6 @@ else:
 
 
 CURRENT_DIR = "."
-
-
-class GetNumpyInclude(object):
-    """Defer numpy.get_include() until after numpy is installed.
-    https://stackoverflow.com/questions/19919905/how-to-bootstrap-numpy-installation-in-setup-py
-    """
-
-    def __str__(self):
-        import numpy
-        return numpy.get_include()
 
 
 def get_version(root_dir):
@@ -158,9 +148,10 @@ def get_extensions():
     extra_compile_args = parallel_extra_compile_args(is_torch=False)
     extra_compile_args += ['-shared', '-fPIC', '-O3', '-Wall', '-std=c99']
     extra_link_args = ['-fPIC']
+    import numpy
     cyblas_ext = [Extension('falkon.la_helpers.cyblas',
                             sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
-                            include_dirs=[GetNumpyInclude()],
+                            include_dirs=[numpy.get_include()],
                             extra_compile_args=extra_compile_args,
                             #define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
                             extra_link_args=extra_link_args)]
@@ -205,6 +196,11 @@ extras = {
     'test': test_requires,
     'doc': doc_requires
 }
+
+# Make sure we have numpy setup before attempting to run anything else.
+# Numpy is actually needed only to get the include-directories for Cython.
+# https://stackoverflow.com/questions/19919905/how-to-bootstrap-numpy-installation-in-setup-py
+dist.Distribution().fetch_build_eggs(['numpy'])
 
 setup(
     name="falkon",
