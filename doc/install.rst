@@ -34,37 +34,15 @@ If Falkon is not installed with GPU support, it will try to link to `Intel MKL <
 to speed-up certain sparse operations. MKL shared libraries are usually distributed with numpy, so this should not be a problem.
 In case sparse matrix support is not needed, the MKL library will not be loaded.
 
-KeOps
-~~~~~
-Falkon uses a patched version of `KeOps <https://www.kernel-operations.io/keops/index.html>`__, therefore until the
-patches are merged in the KeOps library, users will need to uninstall existing KeOps installations (if present), and
-install our patched version.
-
-The patched version is available as a submodule of the Falkon repository. To install it, you can do the following:
-
-.. code-block:: bash
-
-    $ git clone --recurse-submodules https://github.com/FalkonML/falkon.git
-    $ cd falkon/
-    $ pip install ./keops
-
-For use with **Google Colab** KeOps needs some additional packages. You can install them alongside KeOps by running
-
-.. code-block::
-
-    !pip install pykeops[colab] > install.log
-
-from within the Jupyter notebook (see the `KeOps docs <https://www.kernel-operations.io/keops/python/installation.html>`__
-for more information).
 
 Installing
 ----------
 
-After having installed KeOps, you are ready to install Falkon with `pip` (from the root of the git tree):
+You can install Falkon
 
 .. code-block:: bash
 
-   $ pip install .
+   $ pip install git+https://github.com/falkonml/falkon.git
 
 This will take a while since there are both Cython extensions which need to be compiled (if Cython is installed),
 and PyTorch extensions which take some time to compile.

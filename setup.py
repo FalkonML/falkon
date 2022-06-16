@@ -178,8 +178,8 @@ install_requires = [
     'scikit-learn',
     'psutil',
     'dataclasses;python_version<"3.7"',
-    'keopscore @ git+https://github.com/getkeops/keops@6c7532542727947089b600e81519c3570a767d17#subdirectory=keopscore',
-    'pykeops @ git+https://github.com/getkeops/keops@6c7532542727947089b600e81519c3570a767d17#subdirectory=pykeops',
+    'keopscore @ git+https://github.com/getkeops/keops@ad044a671fdc3c2790b0321f6b9f9b5aa3d220df#subdirectory=keopscore',
+    'pykeops @ git+https://github.com/getkeops/keops@ad044a671fdc3c2790b0321f6b9f9b5aa3d220df#subdirectory=pykeops',
 ]
 test_requires = [
     'pandas',
