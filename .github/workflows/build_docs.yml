@@ -10,8 +10,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7]
-        torch-version: [1.10.2]
+        python-version: ['3.7']
+        torch-version: ['1.11.0']
 
     steps:
       - uses: actions/checkout@v2
