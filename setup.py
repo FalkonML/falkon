@@ -112,7 +112,7 @@ def get_extensions():
     macros: List[Tuple[str, Any]] = torch_version_macros()
 
     # Compile for mac arm64
-    if (sys.platform == 'darwin' and platform.machine() == 'arm64'):
+    if sys.platform == 'darwin' and platform.machine() == 'arm64':
         extra_compile_args['cxx'] += ['-arch', 'arm64']
         link_args += ['-arch', 'arm64']
 
@@ -131,6 +131,8 @@ def get_extensions():
                       '-lcusolver', '-l', 'cusolver']
         libraries.extend(['cusolver', 'cublas', 'cusparse'])
 
+    print(f"Defining C-extension on platform {sys.platform}. compile args: {extra_compile_args}  "
+          f"macros: {macros}  link args: {link_args}")
     extensions.append(
         extension_cls(
             "falkon.c_ext",
@@ -149,6 +151,8 @@ def get_extensions():
     extra_compile_args += ['-shared', '-fPIC', '-O3', '-Wall', '-std=c99']
     extra_link_args = ['-fPIC']
     import numpy
+    print(f"Defining Cython extension on platform {sys.platform}. "
+          f"compile args: {extra_compile_args}  link args: {link_args}")
     cyblas_ext = [Extension('falkon.la_helpers.cyblas',
                             sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
                             include_dirs=[numpy.get_include()],

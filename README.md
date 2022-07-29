@@ -57,7 +57,7 @@ If you find this library useful for your work, please cite the following publica
     title = {Kernel methods through the roof: handling billions of points efficiently},
     authors = {Meanti, Giacomo and Carratino, Luigi and Rosasco, Lorenzo and Rudi, Alessandro},
     year = {2020},
-    booktitle = {Advances in Neural Information Processing Systems 32},
+    booktitle = {Advances in Neural Information Processing Systems 32}
 }
 ```
 ```
@@ -65,6 +65,6 @@ If you find this library useful for your work, please cite the following publica
     title = {Efficient Hyperparameter Tuning for Large Scale Kernel Ridge Regression},
     authors = {Meanti, Giacomo and Carratino, Luigi and De Vito, Ernesto and Rosasco, Lorenzo},
     year = {2022},
-    booktitle = {(to appear in) Proceedings of The 25th International Conference on Artificial Intelligence and Statistics},
+    booktitle = {Proceedings of The 25th International Conference on Artificial Intelligence and Statistics}
 }
 ```
