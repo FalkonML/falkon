@@ -53,7 +53,7 @@ def parallel_backend():
 def parallel_extra_compile_args(is_torch: bool):
     if is_torch:
         backend = parallel_backend()
-        if backend == 'OpenMP':
+        if backend == 'OpenMP' and sys.platform != 'darwin':
             p_args = ['-DAT_PARALLEL_OPENMP']
             if sys.platform == 'win32':
                 p_args.append('/openmp')
