@@ -50,6 +50,7 @@ class FalkonBase(base.BaseEstimator, ABC):
         self.alpha_ = None
         self.ny_points_ = None
         self.fit_times_ = None
+        self.val_errors_ = None
 
         if isinstance(center_selection, str):
             if center_selection.lower() == 'uniform':
@@ -101,6 +102,7 @@ class FalkonBase(base.BaseEstimator, ABC):
                 err, err_name = err
             print(f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - "
                   f"{err_str} {err_name}: {err:.8f}", flush=True)
+            self.val_errors_.append(err)
 
         return val_cback
 

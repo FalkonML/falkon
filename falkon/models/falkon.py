@@ -181,6 +181,7 @@ class Falkon(FalkonBase):
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
         dtype = X.dtype
         self.fit_times_ = []
+        self.val_errors_ = []
         self.ny_points_ = None
         self.alpha_ = None
         self.beta_ = None
