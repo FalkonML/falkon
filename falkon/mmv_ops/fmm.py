@@ -312,7 +312,7 @@ class KernelMmFnFull(torch.autograd.Function):
 
     @staticmethod
     def run_cpu_gpu(X1, X2, out, kernel, dtype, options, diff):
-        gpu_info = _get_gpu_info(options, slack=0.9)
+        gpu_info = _get_gpu_info(options, slack=options.memory_slack)
         block_sizes = calc_gpu_block_sizes(gpu_info, X1.shape[0])
         args = []  # Arguments passed to each subprocess
         for i, g in enumerate(gpu_info):
@@ -338,7 +338,7 @@ class KernelMmFnFull(torch.autograd.Function):
             raise NotImplementedError("In-core, sparse fmm not implemented. "
                                       "Use the out-of-core version instead.")
         data_dev = X1.device
-        gpu_info = _get_gpu_info(options, slack=0.9)
+        gpu_info = _get_gpu_info(options, slack=options.memory_slack)
         single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
         args = ArgsFmm(X1=X1, X2=X2, out=out, kernel=kernel, gpu_dtype=dtype,
                        max_mem=single_gpu_info.usable_memory, num_streams=options.num_fmm_streams,

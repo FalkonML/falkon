@@ -277,15 +277,15 @@ class NystromCompRegFn(torch.autograd.Function):
                           solve_options: FalkonOptions) -> Tuple[torch.device, float]:
         if data_dev.type == 'cuda':  # CUDA in-core
             from falkon.mmv_ops.utils import _get_gpu_info
-            gpu_info = _get_gpu_info(solve_options, slack=0.9)
+            gpu_info = _get_gpu_info(solve_options, slack=solve_options.memory_slack)
             single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
             avail_mem = single_gpu_info.usable_memory / sizeof_dtype(dtype)
-            device = torch.device("cuda:%d" % (single_gpu_info.Id))
+            device = torch.device("cuda:%d" % single_gpu_info.Id)
         elif not solve_options.use_cpu and torch.cuda.is_available():  # CUDA out-of-core
             from falkon.mmv_ops.utils import _get_gpu_info
-            gpu_info = _get_gpu_info(solve_options, slack=0.9)[0]  # TODO: Splitting across gpus
+            gpu_info = _get_gpu_info(solve_options, slack=solve_options.memory_slack)[0]  # TODO: Splitting across gpus
             avail_mem = gpu_info.usable_memory / sizeof_dtype(dtype)
-            device = torch.device("cuda:%d" % (gpu_info.Id))
+            device = torch.device("cuda:%d" % gpu_info.Id)
         else:  # CPU in-core
             avail_mem = solve_options.max_cpu_mem / sizeof_dtype(dtype)
             device = torch.device("cpu")

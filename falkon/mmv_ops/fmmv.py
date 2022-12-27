@@ -621,7 +621,7 @@ class KernelMmvFnFull(torch.autograd.Function):
     def run_cpu_gpu(X1: Union[torch.Tensor, SparseTensor], X2: Union[torch.Tensor, SparseTensor],
                     v: torch.Tensor, out: torch.Tensor, kernel, options, diff):
         is_sparse = isinstance(X1, SparseTensor)
-        gpu_info = _get_gpu_info(options, slack=0.9)
+        gpu_info = _get_gpu_info(options, slack=options.memory_slack)
         args = []  # Arguments passed to each subprocess
         block_sizes = calc_gpu_block_sizes(gpu_info, X1.shape[0])
         for i, g in enumerate(gpu_info):
@@ -661,7 +661,7 @@ class KernelMmvFnFull(torch.autograd.Function):
             raise NotImplementedError("In-core, sparse fmmv not implemented. "
                                       "Use the out-of-core version instead.")
         data_dev = X1.device
-        gpu_info = _get_gpu_info(options, slack=0.9)
+        gpu_info = _get_gpu_info(options, slack=options.memory_slack)
         single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
         args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel,
                         max_mem=single_gpu_info.usable_memory, differentiable=diff)
@@ -800,14 +800,14 @@ def fdmmv(X1: Union[torch.Tensor, SparseTensor], X2: Union[torch.Tensor, SparseT
             if is_sparse:
                 raise NotImplementedError("In-core, sparse fdmmv not implemented. "
                                           "Use the out-of-core version instead.")
-            gpu_info = _get_gpu_info(opt, slack=0.9)
+            gpu_info = _get_gpu_info(opt, slack=opt.memory_slack)
             data_dev = data_devs[0]
             single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
             args = ArgsFmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel,
                             max_mem=single_gpu_info.usable_memory)
             _call_direct(dmmv_run_starter, (args, data_dev.index))
         elif comp_dev_type == 'cuda':
-            gpu_info = _get_gpu_info(opt, slack=0.9)
+            gpu_info = _get_gpu_info(opt, slack=opt.memory_slack)
             args = []  # Arguments passed to each subprocess
             wrlk = []  # Outputs for each subprocess
             block_sizes = calc_gpu_block_sizes(gpu_info, N)

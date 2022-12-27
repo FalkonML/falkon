@@ -259,13 +259,13 @@ def _batch_fmmv(X1: torch.Tensor,
         args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel, max_mem=opt.max_cpu_mem)
         _call_direct(mmv_run_starter, (args, -1))
     elif comp_dev_type == 'cuda' and data_dev.type == 'cuda':
-        gpu_info = _get_gpu_info(opt, slack=0.9)
+        gpu_info = _get_gpu_info(opt, slack=opt.memory_slack)
         single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
         args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel,
                         max_mem=single_gpu_info.usable_memory)
         _call_direct(mmv_run_starter, (args, data_dev.index))
     elif comp_dev_type == 'cuda' and data_dev.type == 'cpu':
-        gpu_info = _get_gpu_info(opt, slack=0.9)
+        gpu_info = _get_gpu_info(opt, slack=opt.memory_slack)
         args = []  # Arguments passed to each subprocess
         if B == 1:
             block_sizes = calc_gpu_block_sizes(gpu_info, N)

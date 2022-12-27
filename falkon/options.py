@@ -90,6 +90,10 @@ num_fmm_streams
     `default 2` - The number of CUDA streams to use for evaluating kernels when CUDA is available.
     This number should be increased from its default value when the number of Nystroem centers is
     higher than around 5000.
+memory_slack
+    `default 0.9` - Controls the amount of slack in GPU memory when calculating the size of matrix
+    splits for kernel-vector multiplications. This can be reduced if out-of-memory errors occur
+    on the GPU.
     """,
     "keops":
     """
@@ -180,6 +184,7 @@ class BaseOptions():
     never_store_kernel: bool = False
     store_kernel_d_threshold: int = 1200
     num_fmm_streams: int = 2
+    memory_slack: float = 0.9
 
     def get_base_options(self):
         return BaseOptions(debug=self.debug,
@@ -193,7 +198,8 @@ class BaseOptions():
                            min_cuda_iter_size_32=self.min_cuda_iter_size_32,
                            min_cuda_iter_size_64=self.min_cuda_iter_size_64,
                            never_store_kernel=self.never_store_kernel,
-                           store_kernel_d_threshold=self.store_kernel_d_threshold)
+                           store_kernel_d_threshold=self.store_kernel_d_threshold,
+                           memory_slack=self.memory_slack)
 
 
 @dataclass
