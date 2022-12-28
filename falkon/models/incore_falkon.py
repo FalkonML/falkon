@@ -191,6 +191,7 @@ class InCoreFalkon(FalkonBase):
         torch.cuda.synchronize()
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
 
+        self.val_errors_ = []
         self.fit_times_ = []
         self.ny_points_ = None
         self.alpha_ = None

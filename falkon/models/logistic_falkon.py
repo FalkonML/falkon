@@ -172,6 +172,7 @@ class LogisticFalkon(FalkonBase):
         # Add a dummy `fit_time` to make compatible with normal falkon
         # where the first `fit_time` is just preparation time.
         self.fit_times_ = [0.0]
+        self.val_errors_ = []
 
         t_s = time.time()
 
