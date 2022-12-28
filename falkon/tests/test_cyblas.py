@@ -347,7 +347,7 @@ class TestTrsm:
         lower, trans = request.param
         return (scipy.linalg.solve_triangular(
             mat, vec, trans=int(trans), lower=lower, unit_diagonal=False,
-            overwrite_b=False, debug=None, check_finite=True), lower, trans)
+            overwrite_b=False, check_finite=True), lower, trans)
 
     def test_trsm(self, mat, vec, solution, alpha, dtype, order_v, order_A, device):
         mat = move_tensor(fix_mat(mat, dtype, order_A, copy=True, numpy=False), device=device)
