@@ -16,6 +16,7 @@
         <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -133,15 +134,33 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/models.html">falkon.models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#falkon">Falkon</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#logisticfalkon">LogisticFalkon</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#incorefalkon">InCoreFalkon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#falkon">Falkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.Falkon"><code class="docutils literal notranslate"><span class="pre">Falkon</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#logisticfalkon">LogisticFalkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.LogisticFalkon"><code class="docutils literal notranslate"><span class="pre">LogisticFalkon</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#incorefalkon">InCoreFalkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.InCoreFalkon"><code class="docutils literal notranslate"><span class="pre">InCoreFalkon</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/kernels.html">falkon.kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#kernel">Kernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#diffkernel">DiffKernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#kernel">Kernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.kernel.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#diffkernel">DiffKernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.diff_kernel.DiffKernel"><code class="docutils literal notranslate"><span class="pre">DiffKernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.keops_helpers.KeopsKernelMixin"><code class="docutils literal notranslate"><span class="pre">KeopsKernelMixin</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#radial-kernels">Radial kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#gaussian-kernel">Gaussian kernel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#laplacian-kernel">Laplacian kernel</a></li>
@@ -157,17 +176,32 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/options.html">falkon.options</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/options.html#falkonoptions">FalkonOptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/options.html#falkonoptions">FalkonOptions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/options.html#falkon.options.FalkonOptions"><code class="docutils literal notranslate"><span class="pre">FalkonOptions</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/gsc_losses.html">falkon.gsc_losses</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#loss">Loss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#logistic-loss">Logistic loss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#loss">Loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.Loss"><code class="docutils literal notranslate"><span class="pre">Loss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#logistic-loss">Logistic loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.LogisticLoss"><code class="docutils literal notranslate"><span class="pre">LogisticLoss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.WeightedCrossEntropyLoss"><code class="docutils literal notranslate"><span class="pre">WeightedCrossEntropyLoss</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/preconditioner.html">falkon.preconditioner</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#preconditioner">Preconditioner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#preconditioner">Preconditioner</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#falkon.preconditioner.preconditioner.Preconditioner"><code class="docutils literal notranslate"><span class="pre">Preconditioner</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#cholesky-preconditioners">Cholesky preconditioners</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#falkonpreconditioner">FalkonPreconditioner</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#logisticpreconditioner">LogisticPreconditioner</a></li>
@@ -176,7 +210,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/optimization.html">falkon.optim</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#optimizer">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#optimizer">Optimizer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#falkon.optim.Optimizer"><code class="docutils literal notranslate"><span class="pre">Optimizer</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#conjugate-gradient-methods">Conjugate gradient methods</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#conjugategradient">ConjugateGradient</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#falkonconjugategradient">FalkonConjugateGradient</a></li>
@@ -185,33 +222,80 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/outofcore.html">falkon.ooc_ops</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-lauum">gpu_lauum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/outofcore.html#falkon.ooc_ops.gpu_cholesky"><code class="docutils literal notranslate"><span class="pre">gpu_cholesky()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-lauum">gpu_lauum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/outofcore.html#falkon.ooc_ops.gpu_lauum"><code class="docutils literal notranslate"><span class="pre">gpu_lauum()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/mmv_ops.html">falkon.mmv_ops</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmm">fmm</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmmv">fmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fdmmv">fdmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#low-level-functions">Low-level functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.keops.run_keops_mmv"><code class="docutils literal notranslate"><span class="pre">run_keops_mmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmm">fmm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmm.fmm"><code class="docutils literal notranslate"><span class="pre">fmm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmmv">fmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.fmmv"><code class="docutils literal notranslate"><span class="pre">fmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fdmmv">fdmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.fdmmv"><code class="docutils literal notranslate"><span class="pre">fdmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv_incore.incore_fmmv"><code class="docutils literal notranslate"><span class="pre">incore_fmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv_incore.incore_fdmmv"><code class="docutils literal notranslate"><span class="pre">incore_fdmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#low-level-functions">Low-level functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmm.sparse_mm_run_thread"><code class="docutils literal notranslate"><span class="pre">sparse_mm_run_thread()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.sparse_mmv_run_thread"><code class="docutils literal notranslate"><span class="pre">sparse_mmv_run_thread()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/sparse.html">falkon.sparse</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparsetensor">SparseTensor</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparse-operations">Sparse operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparsetensor">SparseTensor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_tensor.SparseTensor"><code class="docutils literal notranslate"><span class="pre">SparseTensor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_tensor.SparseType"><code class="docutils literal notranslate"><span class="pre">SparseType</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparse-operations">Sparse operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_matmul"><code class="docutils literal notranslate"><span class="pre">sparse_matmul()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_square_norm"><code class="docutils literal notranslate"><span class="pre">sparse_square_norm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_norm"><code class="docutils literal notranslate"><span class="pre">sparse_norm()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/center_selector.html">falkon.center_selection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#centerselector">CenterSelector</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#uniformselector">UniformSelector</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#fixedselector">FixedSelector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#centerselector">CenterSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.CenterSelector"><code class="docutils literal notranslate"><span class="pre">CenterSelector</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#uniformselector">UniformSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.UniformSelector"><code class="docutils literal notranslate"><span class="pre">UniformSelector</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#fixedselector">FixedSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.FixedSelector"><code class="docutils literal notranslate"><span class="pre">FixedSelector</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/hopt.html">falkon.hopt</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/hopt.html#objectives">Objectives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#falkon.hopt.objectives.objectives.HyperoptObjective"><code class="docutils literal notranslate"><span class="pre">HyperoptObjective</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#nystrom-complexity-regularization">Nystrom Complexity Regularization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#stochastic-nystrom-computational-regularization">Stochastic Nystrom Computational Regularization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#complexity-regularization">Complexity Regularization</a></li>
@@ -240,9 +324,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="examples.html">Examples</a> &raquo;</li>
-      <li>Hyperparameter Tuning with Falkon</li>
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="examples.html">Examples</a></li>
+      <li class="breadcrumb-item active">Hyperparameter Tuning with Falkon</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/examples/falkon_cv.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -362,10 +446,11 @@ div.nboutput.container div.prompt > div {
     }
 }
 
-/* disable scrollbars on prompts */
+/* disable scrollbars and line breaks on prompts */
 div.nbinput.container div.prompt pre,
 div.nboutput.container div.prompt pre {
     overflow: hidden;
+    white-space: pre;
 }
 
 /* input/output area */
@@ -540,14 +625,14 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
-<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">model_selection</span><span class="p">,</span> <span class="n">metrics</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%matplotlib inline
+from sklearn import datasets, model_selection, metrics
+import numpy as np
+import pandas as pd
+import torch
+import matplotlib.pyplot as plt
 
-<span class="kn">import</span> <span class="nn">falkon</span>
+import falkon
 </pre></div>
 </div>
 </div>
@@ -567,7 +652,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_digits</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X, Y = datasets.load_digits(return_X_y=True)
 </pre></div>
 </div>
 </div>
@@ -575,9 +660,9 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
-<span class="n">_</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">matshow</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">)),</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Label: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, ax = plt.subplots()
+_ = ax.matshow(X[1].reshape((8, 8)), cmap=&#39;gray&#39;)
+print(&quot;Label: %d&quot; % Y[1])
 </pre></div>
 </div>
 </div>
@@ -604,8 +689,8 @@ Label: 1
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span> <span class="n">Y_test</span> <span class="o">=</span> <span class="n">model_selection</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span>
-    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X_train, X_test, Y_train, Y_test = model_selection.train_test_split(
+    X, Y, test_size=0.2, random_state=10, shuffle=True)
 </pre></div>
 </div>
 </div>
@@ -617,10 +702,10 @@ Label: 1
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">X_test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">Y_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_train</span><span class="p">)</span>
-<span class="n">Y_test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_test</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X_train = torch.from_numpy(X_train).to(dtype=torch.float32)
+X_test = torch.from_numpy(X_test).to(dtype=torch.float32)
+Y_train = torch.from_numpy(Y_train)
+Y_test = torch.from_numpy(Y_test)
 </pre></div>
 </div>
 </div>
@@ -629,13 +714,13 @@ Label: 1
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># z-score normalization</span>
-<span class="n">train_mean</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-<span class="n">train_std</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
-<span class="n">X_train</span> <span class="o">-=</span> <span class="n">train_mean</span>
-<span class="n">X_train</span> <span class="o">/=</span> <span class="n">train_std</span>
-<span class="n">X_test</span> <span class="o">-=</span> <span class="n">train_mean</span>
-<span class="n">X_test</span> <span class="o">/=</span> <span class="n">train_std</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># z-score normalization
+train_mean = X_train.mean()
+train_std = X_train.std()
+X_train -= train_mean
+X_train /= train_std
+X_test -= train_mean
+X_test /= train_std
 </pre></div>
 </div>
 </div>
@@ -644,11 +729,11 @@ Label: 1
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert labels to 1-hot</span>
-<span class="n">eye</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">Y_train</span> <span class="o">=</span> <span class="n">eye</span><span class="p">[</span><span class="n">Y_train</span><span class="p">]</span>
-<span class="n">Y_test</span> <span class="o">=</span> <span class="n">eye</span><span class="p">[</span><span class="n">Y_test</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;First label vector: &quot;</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Convert labels to 1-hot
+eye = torch.eye(10, dtype=torch.float32)
+Y_train = eye[Y_train]
+Y_test = eye[Y_test]
+print(&quot;First label vector: &quot;, Y_train[0])
 </pre></div>
 </div>
 </div>
@@ -670,11 +755,11 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">mclass_loss</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
-    <span class="n">true</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">true</span> <span class="o">!=</span> <span class="n">pred</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-<span class="n">mclass_scorer</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">make_scorer</span><span class="p">(</span><span class="n">mclass_loss</span><span class="p">,</span> <span class="n">greater_is_better</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def mclass_loss(true, pred):
+    true = torch.argmax(true, dim=1)
+    pred = torch.argmax(pred, dim=1)
+    return torch.mean((true != pred).to(torch.float32))
+mclass_scorer = metrics.make_scorer(mclass_loss, greater_is_better=False)
 </pre></div>
 </div>
 </div>
@@ -685,19 +770,19 @@ also provide additional regularization.</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">parameter_grid</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;kernel&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-               <span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">5</span><span class="p">),</span>
-               <span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
-               <span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">15</span><span class="p">),],</span>
-    <span class="s1">&#39;penalty&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e-5</span><span class="p">,</span> <span class="mf">1e-7</span><span class="p">,</span> <span class="mf">1e-9</span><span class="p">],</span>
-    <span class="s1">&#39;M&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">],</span>
-<span class="p">}</span>
-<span class="n">estimator</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">Falkon</span><span class="p">(</span>
-    <span class="n">kernel</span><span class="o">=</span><span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">penalty</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>  <span class="c1"># Mandatory parameters, will be overridden</span>
-    <span class="n">maxiter</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">falkon</span><span class="o">.</span><span class="n">FalkonOptions</span><span class="p">(</span><span class="n">use_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>parameter_grid = {
+    &#39;kernel&#39;: [falkon.kernels.GaussianKernel(sigma=1),
+               falkon.kernels.GaussianKernel(sigma=5),
+               falkon.kernels.GaussianKernel(sigma=10),
+               falkon.kernels.GaussianKernel(sigma=15),],
+    &#39;penalty&#39;: [1e-3, 1e-5, 1e-7, 1e-9],
+    &#39;M&#39;: [500, 1000],
+}
+estimator = falkon.Falkon(
+    kernel=falkon.kernels.GaussianKernel(1), penalty=1e-3, M=1000,  # Mandatory parameters, will be overridden
+    maxiter=10, options=falkon.FalkonOptions(use_cpu=True))
 
-<span class="n">grid_search</span> <span class="o">=</span> <span class="n">model_selection</span><span class="o">.</span><span class="n">GridSearchCV</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">parameter_grid</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="n">mclass_scorer</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+grid_search = model_selection.GridSearchCV(estimator, parameter_grid, scoring=mclass_scorer, cv=5)
 </pre></div>
 </div>
 </div>
@@ -705,9 +790,9 @@ also provide additional regularization.</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
-<span class="n">grid_search</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The best parameters are: &quot;</span><span class="p">,</span> <span class="n">grid_search</span><span class="o">.</span><span class="n">best_params_</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+grid_search.fit(X_train, Y_train)
+print(&quot;The best parameters are: &quot;, grid_search.best_params_)
 </pre></div>
 </div>
 </div>
@@ -729,11 +814,11 @@ Wall time: 13.6 s
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
-<span class="n">flk</span> <span class="o">=</span> <span class="n">grid_search</span><span class="o">.</span><span class="n">best_estimator_</span>
-<span class="n">flk</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">)</span>
-<span class="n">test_pred</span> <span class="o">=</span> <span class="n">flk</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-<span class="n">train_pred</span> <span class="o">=</span> <span class="n">flk</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+flk = grid_search.best_estimator_
+flk.fit(X_train, Y_train)
+test_pred = flk.predict(X_test)
+train_pred = flk.predict(X_train)
 </pre></div>
 </div>
 </div>
@@ -750,8 +835,8 @@ Wall time: 139 ms
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Training error: </span><span class="si">%.2f%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">mclass_loss</span><span class="p">(</span><span class="n">Y_train</span><span class="p">,</span> <span class="n">train_pred</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Test error: </span><span class="si">%.2f%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">mclass_loss</span><span class="p">(</span><span class="n">Y_test</span><span class="p">,</span> <span class="n">test_pred</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>print(&quot;Training error: %.2f%%&quot; % (mclass_loss(Y_train, train_pred) * 100))
+print(&quot;Test error: %.2f%%&quot; % (mclass_loss(Y_test, test_pred) * 100))
 </pre></div>
 </div>
 </div>
@@ -774,11 +859,11 @@ Test error: 1.11%
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">res_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">grid_search</span><span class="o">.</span><span class="n">cv_results_</span><span class="p">)</span>
-<span class="n">res_df</span><span class="p">[</span><span class="s2">&quot;M&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_df</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">))</span>
-<span class="n">res_df</span><span class="p">[</span><span class="s2">&quot;penalty&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_df</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;penalty&quot;</span><span class="p">))</span>
-<span class="n">res_df</span><span class="p">[</span><span class="s2">&quot;sigma&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_df</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;kernel&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-<span class="n">res_df</span> <span class="o">=</span> <span class="n">res_df</span><span class="p">[[</span><span class="s2">&quot;mean_test_score&quot;</span><span class="p">,</span> <span class="s2">&quot;M&quot;</span><span class="p">,</span> <span class="s2">&quot;penalty&quot;</span><span class="p">,</span> <span class="s2">&quot;sigma&quot;</span><span class="p">]]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>res_df = pd.DataFrame.from_dict(grid_search.cv_results_)
+res_df[&quot;M&quot;] = res_df.params.apply(lambda x: x.get(&quot;M&quot;))
+res_df[&quot;penalty&quot;] = res_df.params.apply(lambda x: x.get(&quot;penalty&quot;))
+res_df[&quot;sigma&quot;] = res_df.params.apply(lambda x: x.get(&quot;kernel&quot;).sigma.item())
+res_df = res_df[[&quot;mean_test_score&quot;, &quot;M&quot;, &quot;penalty&quot;, &quot;sigma&quot;]]
 </pre></div>
 </div>
 </div>
@@ -786,18 +871,18 @@ Test error: 1.11%
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">plot_heatmap</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">xlabel</span><span class="p">,</span> <span class="n">ylabel</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
-    <span class="n">piv</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">ylabel</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">xlabel</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
-    <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">&#39;coolwarm_r&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">c</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">piv</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">scale</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vmax</span><span class="o">=</span><span class="n">scale</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">piv</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">piv</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">piv</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">piv</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">c</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def plot_heatmap(ax, df, xlabel, ylabel, value, scale):
+    piv = pd.pivot_table(df, index=ylabel, columns=xlabel, values=value)
+    cmap = plt.cm.get_cmap(&#39;coolwarm_r&#39;, 20)
+    ax.grid(False)
+    c = ax.pcolormesh(piv, cmap=cmap, vmin=scale[0], vmax=scale[1])
+    ax.set_yticks(np.arange(piv.shape[0]) + 0.5, minor=False)
+    ax.set_xticks(np.arange(piv.shape[1]) + 0.5, minor=False)
+    ax.set_xticklabels(piv.columns, minor=False)
+    ax.set_yticklabels(piv.index, minor=False)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    return c
 </pre></div>
 </div>
 </div>
@@ -805,13 +890,13 @@ Test error: 1.11%
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<span class="n">scale</span> <span class="o">=</span> <span class="p">(</span><span class="n">res_df</span><span class="p">[</span><span class="s2">&quot;mean_test_score&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">res_df</span><span class="p">[</span><span class="s2">&quot;mean_test_score&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, axs = plt.subplots(ncols=2, figsize=(12, 5))
+scale = (res_df[&quot;mean_test_score&quot;].min(), res_df[&quot;mean_test_score&quot;].max())
 
-<span class="n">c</span> <span class="o">=</span> <span class="n">plot_heatmap</span><span class="p">(</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">res_df</span><span class="p">[</span><span class="n">res_df</span><span class="o">.</span><span class="n">M</span> <span class="o">==</span> <span class="mi">500</span><span class="p">],</span> <span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;penalty&quot;</span><span class="p">,</span> <span class="s2">&quot;mean_test_score&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
-<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;M = 500&quot;</span><span class="p">)</span>
-<span class="n">c</span> <span class="o">=</span> <span class="n">plot_heatmap</span><span class="p">(</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">res_df</span><span class="p">[</span><span class="n">res_df</span><span class="o">.</span><span class="n">M</span> <span class="o">==</span> <span class="mi">1000</span><span class="p">],</span> <span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;penalty&quot;</span><span class="p">,</span> <span class="s2">&quot;mean_test_score&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
-<span class="n">_</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;M = 1000&quot;</span><span class="p">)</span>
+c = plot_heatmap(axs[0], res_df[res_df.M == 500], &quot;sigma&quot;, &quot;penalty&quot;, &quot;mean_test_score&quot;, scale)
+axs[0].set_title(&quot;M = 500&quot;)
+c = plot_heatmap(axs[1], res_df[res_df.M == 1000], &quot;sigma&quot;, &quot;penalty&quot;, &quot;mean_test_score&quot;, scale)
+_ = axs[1].set_title(&quot;M = 1000&quot;)
 </pre></div>
 </div>
 </div>

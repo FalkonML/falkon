@@ -16,6 +16,7 @@
         <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -133,15 +134,33 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/models.html">falkon.models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#falkon">Falkon</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#logisticfalkon">LogisticFalkon</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#incorefalkon">InCoreFalkon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#falkon">Falkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.Falkon"><code class="docutils literal notranslate"><span class="pre">Falkon</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#logisticfalkon">LogisticFalkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.LogisticFalkon"><code class="docutils literal notranslate"><span class="pre">LogisticFalkon</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#incorefalkon">InCoreFalkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.InCoreFalkon"><code class="docutils literal notranslate"><span class="pre">InCoreFalkon</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/kernels.html">falkon.kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#kernel">Kernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#diffkernel">DiffKernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#kernel">Kernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.kernel.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#diffkernel">DiffKernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.diff_kernel.DiffKernel"><code class="docutils literal notranslate"><span class="pre">DiffKernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.keops_helpers.KeopsKernelMixin"><code class="docutils literal notranslate"><span class="pre">KeopsKernelMixin</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#radial-kernels">Radial kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#gaussian-kernel">Gaussian kernel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#laplacian-kernel">Laplacian kernel</a></li>
@@ -157,17 +176,32 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/options.html">falkon.options</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/options.html#falkonoptions">FalkonOptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/options.html#falkonoptions">FalkonOptions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/options.html#falkon.options.FalkonOptions"><code class="docutils literal notranslate"><span class="pre">FalkonOptions</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/gsc_losses.html">falkon.gsc_losses</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#loss">Loss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#logistic-loss">Logistic loss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#loss">Loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.Loss"><code class="docutils literal notranslate"><span class="pre">Loss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#logistic-loss">Logistic loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.LogisticLoss"><code class="docutils literal notranslate"><span class="pre">LogisticLoss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.WeightedCrossEntropyLoss"><code class="docutils literal notranslate"><span class="pre">WeightedCrossEntropyLoss</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/preconditioner.html">falkon.preconditioner</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#preconditioner">Preconditioner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#preconditioner">Preconditioner</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#falkon.preconditioner.preconditioner.Preconditioner"><code class="docutils literal notranslate"><span class="pre">Preconditioner</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#cholesky-preconditioners">Cholesky preconditioners</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#falkonpreconditioner">FalkonPreconditioner</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#logisticpreconditioner">LogisticPreconditioner</a></li>
@@ -176,7 +210,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/optimization.html">falkon.optim</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#optimizer">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#optimizer">Optimizer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#falkon.optim.Optimizer"><code class="docutils literal notranslate"><span class="pre">Optimizer</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#conjugate-gradient-methods">Conjugate gradient methods</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#conjugategradient">ConjugateGradient</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#falkonconjugategradient">FalkonConjugateGradient</a></li>
@@ -185,33 +222,80 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/outofcore.html">falkon.ooc_ops</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-lauum">gpu_lauum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/outofcore.html#falkon.ooc_ops.gpu_cholesky"><code class="docutils literal notranslate"><span class="pre">gpu_cholesky()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-lauum">gpu_lauum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/outofcore.html#falkon.ooc_ops.gpu_lauum"><code class="docutils literal notranslate"><span class="pre">gpu_lauum()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/mmv_ops.html">falkon.mmv_ops</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmm">fmm</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmmv">fmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fdmmv">fdmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#low-level-functions">Low-level functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.keops.run_keops_mmv"><code class="docutils literal notranslate"><span class="pre">run_keops_mmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmm">fmm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmm.fmm"><code class="docutils literal notranslate"><span class="pre">fmm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmmv">fmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.fmmv"><code class="docutils literal notranslate"><span class="pre">fmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fdmmv">fdmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.fdmmv"><code class="docutils literal notranslate"><span class="pre">fdmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv_incore.incore_fmmv"><code class="docutils literal notranslate"><span class="pre">incore_fmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv_incore.incore_fdmmv"><code class="docutils literal notranslate"><span class="pre">incore_fdmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#low-level-functions">Low-level functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmm.sparse_mm_run_thread"><code class="docutils literal notranslate"><span class="pre">sparse_mm_run_thread()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.sparse_mmv_run_thread"><code class="docutils literal notranslate"><span class="pre">sparse_mmv_run_thread()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/sparse.html">falkon.sparse</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparsetensor">SparseTensor</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparse-operations">Sparse operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparsetensor">SparseTensor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_tensor.SparseTensor"><code class="docutils literal notranslate"><span class="pre">SparseTensor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_tensor.SparseType"><code class="docutils literal notranslate"><span class="pre">SparseType</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparse-operations">Sparse operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_matmul"><code class="docutils literal notranslate"><span class="pre">sparse_matmul()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_square_norm"><code class="docutils literal notranslate"><span class="pre">sparse_square_norm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_norm"><code class="docutils literal notranslate"><span class="pre">sparse_norm()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/center_selector.html">falkon.center_selection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#centerselector">CenterSelector</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#uniformselector">UniformSelector</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#fixedselector">FixedSelector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#centerselector">CenterSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.CenterSelector"><code class="docutils literal notranslate"><span class="pre">CenterSelector</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#uniformselector">UniformSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.UniformSelector"><code class="docutils literal notranslate"><span class="pre">UniformSelector</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#fixedselector">FixedSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.FixedSelector"><code class="docutils literal notranslate"><span class="pre">FixedSelector</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/hopt.html">falkon.hopt</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/hopt.html#objectives">Objectives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#falkon.hopt.objectives.objectives.HyperoptObjective"><code class="docutils literal notranslate"><span class="pre">HyperoptObjective</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#nystrom-complexity-regularization">Nystrom Complexity Regularization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#stochastic-nystrom-computational-regularization">Stochastic Nystrom Computational Regularization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#complexity-regularization">Complexity Regularization</a></li>
@@ -240,9 +324,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="examples.html">Examples</a> &raquo;</li>
-      <li>Introducing Logistic Falkon</li>
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="examples.html">Examples</a></li>
+      <li class="breadcrumb-item active">Introducing Logistic Falkon</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/examples/logistic_falkon.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -362,10 +446,11 @@ div.nboutput.container div.prompt > div {
     }
 }
 
-/* disable scrollbars on prompts */
+/* disable scrollbars and line breaks on prompts */
 div.nbinput.container div.prompt pre,
 div.nboutput.container div.prompt pre {
     overflow: hidden;
+    white-space: pre;
 }
 
 /* input/output area */
@@ -540,13 +625,13 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
-<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">model_selection</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;ggplot&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%matplotlib inline
+from sklearn import datasets, model_selection
+import torch
+import matplotlib.pyplot as plt
+plt.style.use(&#39;ggplot&#39;)
 
-<span class="kn">import</span> <span class="nn">falkon</span>
+import falkon
 </pre></div>
 </div>
 </div>
@@ -567,8 +652,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">make_circles</span><span class="p">(</span>
-    <span class="n">n_samples</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">122</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X, Y = datasets.make_circles(
+    n_samples=10_000, shuffle=False, noise=0.1, random_state=122)
 </pre></div>
 </div>
 </div>
@@ -576,9 +661,9 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">Y</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="n">Y</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
-<span class="n">_</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">Y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="n">Y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, ax = plt.subplots(figsize=(7, 7))
+ax.scatter(X[Y == 0,0], X[Y == 0,1], alpha=0.3, marker=&#39;.&#39;)
+_ = ax.scatter(X[Y == 1,0], X[Y == 1,1], alpha=0.3, marker=&#39;.&#39;)
 </pre></div>
 </div>
 </div>
@@ -597,8 +682,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span> <span class="n">Y_test</span> <span class="o">=</span> <span class="n">model_selection</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span>
-    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X_train, X_test, Y_train, Y_test = model_selection.train_test_split(
+    X, Y, test_size=0.2, random_state=10, shuffle=True)
 </pre></div>
 </div>
 </div>
@@ -615,10 +700,10 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">X_test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">Y_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_train</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="n">Y_test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_test</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X_train = torch.from_numpy(X_train).to(dtype=torch.float32)
+X_test = torch.from_numpy(X_test).to(dtype=torch.float32)
+Y_train = torch.from_numpy(Y_train).to(dtype=torch.float32).reshape(-1, 1)
+Y_test = torch.from_numpy(Y_test).to(dtype=torch.float32).reshape(-1, 1)
 </pre></div>
 </div>
 </div>
@@ -626,8 +711,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Y_train</span><span class="p">[</span><span class="n">Y_train</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-<span class="n">Y_test</span><span class="p">[</span><span class="n">Y_test</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>Y_train[Y_train == 0] = -1
+Y_test[Y_test == 0] = -1
 </pre></div>
 </div>
 </div>
@@ -639,8 +724,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">binary_loss</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">true</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">pred</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def binary_loss(true, pred):
+    return torch.mean((true != torch.sign(pred)).to(torch.float32))
 </pre></div>
 </div>
 </div>
@@ -648,12 +733,12 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We define some basic options to run on the CPU, and to disable keops</span>
-<span class="n">flk_opt</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">FalkonOptions</span><span class="p">(</span><span class="n">use_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">keops_active</span><span class="o">=</span><span class="s2">&quot;no&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># We define some basic options to run on the CPU, and to disable keops
+flk_opt = falkon.FalkonOptions(use_cpu=True, keops_active=&quot;no&quot;)
 
-<span class="n">flk_kernel</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="n">flk_opt</span><span class="p">)</span>
+flk_kernel = falkon.kernels.GaussianKernel(1, opt=flk_opt)
 
-<span class="n">flk</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">Falkon</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="n">flk_kernel</span><span class="p">,</span> <span class="n">penalty</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">flk_opt</span><span class="p">)</span>
+flk = falkon.Falkon(kernel=flk_kernel, penalty=1e-7, M=1000, options=flk_opt)
 </pre></div>
 </div>
 </div>
@@ -669,17 +754,17 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">logflk_opt</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">FalkonOptions</span><span class="p">(</span><span class="n">use_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">keops_active</span><span class="o">=</span><span class="s2">&quot;no&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>logflk_opt = falkon.FalkonOptions(use_cpu=True, keops_active=&quot;no&quot;)
 
-<span class="n">logflk_kernel</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="n">logflk_opt</span><span class="p">)</span>
-<span class="n">logloss</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">gsc_losses</span><span class="o">.</span><span class="n">LogisticLoss</span><span class="p">(</span><span class="n">logflk_kernel</span><span class="p">)</span>
+logflk_kernel = falkon.kernels.GaussianKernel(1, opt=logflk_opt)
+logloss = falkon.gsc_losses.LogisticLoss(logflk_kernel)
 
-<span class="n">penalty_list</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e-5</span><span class="p">,</span> <span class="mf">1e-7</span><span class="p">,</span> <span class="mf">1e-7</span><span class="p">,</span> <span class="mf">1e-7</span><span class="p">]</span>
-<span class="n">iter_list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+penalty_list = [1e-3, 1e-5, 1e-7, 1e-7, 1e-7]
+iter_list = [4, 4, 4, 8, 8]
 
-<span class="n">logflk</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">LogisticFalkon</span><span class="p">(</span>
-    <span class="n">kernel</span><span class="o">=</span><span class="n">logflk_kernel</span><span class="p">,</span> <span class="n">penalty_list</span><span class="o">=</span><span class="n">penalty_list</span><span class="p">,</span> <span class="n">iter_list</span><span class="o">=</span><span class="n">iter_list</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">logloss</span><span class="p">,</span>
-    <span class="n">error_fn</span><span class="o">=</span><span class="n">binary_loss</span><span class="p">,</span> <span class="n">error_every</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">logflk_opt</span><span class="p">)</span>
+logflk = falkon.LogisticFalkon(
+    kernel=logflk_kernel, penalty_list=penalty_list, iter_list=iter_list, M=1000, loss=logloss,
+    error_fn=binary_loss, error_every=1, options=logflk_opt)
 </pre></div>
 </div>
 </div>
@@ -692,8 +777,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
-<span class="n">flk</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">);</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+flk.fit(X_train, Y_train);
 </pre></div>
 </div>
 </div>
@@ -720,8 +805,8 @@ tensor([1.], dtype=torch.float64)), options=FalkonOptions(keops_acc_dtype=&#39;a
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
-<span class="n">logflk</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">);</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+logflk.fit(X_train, Y_train);
 </pre></div>
 </div>
 </div>
@@ -764,14 +849,14 @@ tensor([1.], dtype=torch.float64))), options=FalkonOptions(keops_acc_dtype=&#39;
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">flk_pred</span> <span class="o">=</span> <span class="n">flk</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-<span class="n">flk_err</span> <span class="o">=</span> <span class="n">binary_loss</span><span class="p">(</span><span class="n">Y_test</span><span class="p">,</span> <span class="n">flk_pred</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>flk_pred = flk.predict(X_test)
+flk_err = binary_loss(Y_test, flk_pred)
 
-<span class="n">logflk_pred</span> <span class="o">=</span> <span class="n">logflk</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-<span class="n">logflk_err</span> <span class="o">=</span> <span class="n">binary_loss</span><span class="p">(</span><span class="n">Y_test</span><span class="p">,</span> <span class="n">logflk_pred</span><span class="p">)</span>
+logflk_pred = logflk.predict(X_test)
+logflk_err = binary_loss(Y_test, logflk_pred)
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Falkon model          -- Error: </span><span class="si">%.2f%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">flk_err</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Logistic Falkon model -- Error: </span><span class="si">%.2f%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">logflk_err</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
+print(&quot;Falkon model          -- Error: %.2f%%&quot; % (flk_err * 100))
+print(&quot;Logistic Falkon model -- Error: %.2f%%&quot; % (logflk_err * 100))
 </pre></div>
 </div>
 </div>
@@ -794,20 +879,20 @@ Logistic Falkon model -- Error: 16.90%
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">plot_predictions</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">ax</span><span class="p">):</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X_test</span><span class="p">[((</span><span class="n">Y_test</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span> <span class="o">==</span> <span class="n">Y_test</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span>
-               <span class="n">X_test</span><span class="p">[((</span><span class="n">Y_test</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span> <span class="o">==</span> <span class="n">Y_test</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">],</span>
-               <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;correct cls 0&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X_test</span><span class="p">[((</span><span class="n">Y_test</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span> <span class="o">==</span> <span class="n">Y_test</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">0</span><span class="p">],</span>
-               <span class="n">X_test</span><span class="p">[((</span><span class="n">Y_test</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span> <span class="o">==</span> <span class="n">Y_test</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">],</span>
-               <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;correct cls 1&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def plot_predictions(preds, ax):
+    ax.scatter(X_test[((Y_test == -1) &amp; (preds.sign() == Y_test)).reshape(-1), 0],
+               X_test[((Y_test == -1) &amp; (preds.sign() == Y_test)).reshape(-1), 1],
+               alpha=0.3, marker=&#39;.&#39;, color=&#39;b&#39;, label=&quot;correct cls 0&quot;)
+    ax.scatter(X_test[((Y_test == 1) &amp; (preds.sign() == Y_test)).reshape(-1),0],
+               X_test[((Y_test == 1) &amp; (preds.sign() == Y_test)).reshape(-1),1],
+               alpha=0.3, marker=&#39;.&#39;, color=&#39;r&#39;, label=&quot;correct cls 1&quot;)
 
-    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X_test</span><span class="p">[((</span><span class="n">Y_test</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span> <span class="o">!=</span> <span class="n">Y_test</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span>
-               <span class="n">X_test</span><span class="p">[((</span><span class="n">Y_test</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span> <span class="o">!=</span> <span class="n">Y_test</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">],</span>
-               <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;wrong cls 0&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X_test</span><span class="p">[((</span><span class="n">Y_test</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span> <span class="o">!=</span> <span class="n">Y_test</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">0</span><span class="p">],</span>
-               <span class="n">X_test</span><span class="p">[((</span><span class="n">Y_test</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span> <span class="o">!=</span> <span class="n">Y_test</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">],</span>
-               <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;wrong cls 1&quot;</span><span class="p">)</span>
+    ax.scatter(X_test[((Y_test == -1) &amp; (preds.sign() != Y_test)).reshape(-1), 0],
+               X_test[((Y_test == -1) &amp; (preds.sign() != Y_test)).reshape(-1), 1],
+               alpha=0.5, marker=&#39;x&#39;, color=&#39;b&#39;, label=&quot;wrong cls 0&quot;)
+    ax.scatter(X_test[((Y_test == 1) &amp; (preds.sign() != Y_test)).reshape(-1),0],
+               X_test[((Y_test == 1) &amp; (preds.sign() != Y_test)).reshape(-1),1],
+               alpha=0.5, marker=&#39;x&#39;, color=&#39;r&#39;, label=&quot;wrong cls 1&quot;)
 </pre></div>
 </div>
 </div>
@@ -815,14 +900,14 @@ Logistic Falkon model -- Error: 16.90%
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<span class="n">plot_predictions</span><span class="p">(</span><span class="n">flk_pred</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Falkon&quot;</span><span class="p">)</span>
-<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, ax = plt.subplots(ncols=2, figsize=(13, 5))
+plot_predictions(flk_pred, ax[0])
+ax[0].set_title(&quot;Falkon&quot;)
+ax[0].legend(loc=&#39;best&#39;)
 
-<span class="n">plot_predictions</span><span class="p">(</span><span class="n">logflk_pred</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Logistic Falkon&quot;</span><span class="p">)</span>
-<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">);</span>
+plot_predictions(logflk_pred, ax[1])
+ax[1].set_title(&quot;Logistic Falkon&quot;)
+ax[1].legend(loc=&#39;best&#39;);
 <br/></pre></div>
 </div>
 </div>

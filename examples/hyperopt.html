@@ -16,6 +16,7 @@
         <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -133,15 +134,33 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../api_reference/index.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/models.html">falkon.models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#falkon">Falkon</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#logisticfalkon">LogisticFalkon</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#incorefalkon">InCoreFalkon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#falkon">Falkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.Falkon"><code class="docutils literal notranslate"><span class="pre">Falkon</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#logisticfalkon">LogisticFalkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.LogisticFalkon"><code class="docutils literal notranslate"><span class="pre">LogisticFalkon</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/models.html#incorefalkon">InCoreFalkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/models.html#falkon.models.InCoreFalkon"><code class="docutils literal notranslate"><span class="pre">InCoreFalkon</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/kernels.html">falkon.kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#kernel">Kernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#diffkernel">DiffKernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#kernel">Kernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.kernel.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#diffkernel">DiffKernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.diff_kernel.DiffKernel"><code class="docutils literal notranslate"><span class="pre">DiffKernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#falkon.kernels.keops_helpers.KeopsKernelMixin"><code class="docutils literal notranslate"><span class="pre">KeopsKernelMixin</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/kernels.html#radial-kernels">Radial kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#gaussian-kernel">Gaussian kernel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/kernels.html#laplacian-kernel">Laplacian kernel</a></li>
@@ -157,17 +176,32 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/options.html">falkon.options</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/options.html#falkonoptions">FalkonOptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/options.html#falkonoptions">FalkonOptions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/options.html#falkon.options.FalkonOptions"><code class="docutils literal notranslate"><span class="pre">FalkonOptions</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/gsc_losses.html">falkon.gsc_losses</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#loss">Loss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#logistic-loss">Logistic loss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#loss">Loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.Loss"><code class="docutils literal notranslate"><span class="pre">Loss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#logistic-loss">Logistic loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.LogisticLoss"><code class="docutils literal notranslate"><span class="pre">LogisticLoss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/gsc_losses.html#falkon.gsc_losses.WeightedCrossEntropyLoss"><code class="docutils literal notranslate"><span class="pre">WeightedCrossEntropyLoss</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/preconditioner.html">falkon.preconditioner</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#preconditioner">Preconditioner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#preconditioner">Preconditioner</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#falkon.preconditioner.preconditioner.Preconditioner"><code class="docutils literal notranslate"><span class="pre">Preconditioner</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/preconditioner.html#cholesky-preconditioners">Cholesky preconditioners</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#falkonpreconditioner">FalkonPreconditioner</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/preconditioner.html#logisticpreconditioner">LogisticPreconditioner</a></li>
@@ -176,7 +210,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/optimization.html">falkon.optim</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#optimizer">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#optimizer">Optimizer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#falkon.optim.Optimizer"><code class="docutils literal notranslate"><span class="pre">Optimizer</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/optimization.html#conjugate-gradient-methods">Conjugate gradient methods</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#conjugategradient">ConjugateGradient</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/optimization.html#falkonconjugategradient">FalkonConjugateGradient</a></li>
@@ -185,33 +222,80 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/outofcore.html">falkon.ooc_ops</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-lauum">gpu_lauum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/outofcore.html#falkon.ooc_ops.gpu_cholesky"><code class="docutils literal notranslate"><span class="pre">gpu_cholesky()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/outofcore.html#gpu-lauum">gpu_lauum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/outofcore.html#falkon.ooc_ops.gpu_lauum"><code class="docutils literal notranslate"><span class="pre">gpu_lauum()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/mmv_ops.html">falkon.mmv_ops</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmm">fmm</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmmv">fmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fdmmv">fdmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#low-level-functions">Low-level functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.keops.run_keops_mmv"><code class="docutils literal notranslate"><span class="pre">run_keops_mmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmm">fmm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmm.fmm"><code class="docutils literal notranslate"><span class="pre">fmm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fmmv">fmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.fmmv"><code class="docutils literal notranslate"><span class="pre">fmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#fdmmv">fdmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.fdmmv"><code class="docutils literal notranslate"><span class="pre">fdmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv_incore.incore_fmmv"><code class="docutils literal notranslate"><span class="pre">incore_fmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv_incore.incore_fdmmv"><code class="docutils literal notranslate"><span class="pre">incore_fdmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/mmv_ops.html#low-level-functions">Low-level functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmm.sparse_mm_run_thread"><code class="docutils literal notranslate"><span class="pre">sparse_mm_run_thread()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.sparse_mmv_run_thread"><code class="docutils literal notranslate"><span class="pre">sparse_mmv_run_thread()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/sparse.html">falkon.sparse</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparsetensor">SparseTensor</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparse-operations">Sparse operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparsetensor">SparseTensor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_tensor.SparseTensor"><code class="docutils literal notranslate"><span class="pre">SparseTensor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_tensor.SparseType"><code class="docutils literal notranslate"><span class="pre">SparseType</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/sparse.html#sparse-operations">Sparse operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_matmul"><code class="docutils literal notranslate"><span class="pre">sparse_matmul()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_square_norm"><code class="docutils literal notranslate"><span class="pre">sparse_square_norm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/sparse.html#falkon.sparse.sparse_norm"><code class="docutils literal notranslate"><span class="pre">sparse_norm()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/center_selector.html">falkon.center_selection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#centerselector">CenterSelector</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#uniformselector">UniformSelector</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#fixedselector">FixedSelector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#centerselector">CenterSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.CenterSelector"><code class="docutils literal notranslate"><span class="pre">CenterSelector</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#uniformselector">UniformSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.UniformSelector"><code class="docutils literal notranslate"><span class="pre">UniformSelector</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api_reference/center_selector.html#fixedselector">FixedSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/center_selector.html#falkon.center_selection.FixedSelector"><code class="docutils literal notranslate"><span class="pre">FixedSelector</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference/hopt.html">falkon.hopt</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference/hopt.html#objectives">Objectives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#falkon.hopt.objectives.objectives.HyperoptObjective"><code class="docutils literal notranslate"><span class="pre">HyperoptObjective</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#nystrom-complexity-regularization">Nystrom Complexity Regularization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#stochastic-nystrom-computational-regularization">Stochastic Nystrom Computational Regularization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api_reference/hopt.html#complexity-regularization">Complexity Regularization</a></li>
@@ -240,9 +324,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="examples.html">Examples</a> &raquo;</li>
-      <li>Automatic Hyperparameter Optimization</li>
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="examples.html">Examples</a></li>
+      <li class="breadcrumb-item active">Automatic Hyperparameter Optimization</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/examples/hyperopt.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -362,10 +446,11 @@ div.nboutput.container div.prompt > div {
     }
 }
 
-/* disable scrollbars on prompts */
+/* disable scrollbars and line breaks on prompts */
 div.nbinput.container div.prompt pre,
 div.nboutput.container div.prompt pre {
     overflow: hidden;
+    white-space: pre;
 }
 
 /* input/output area */
@@ -536,13 +621,13 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
-<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">model_selection</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;ggplot&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%matplotlib inline
+from sklearn import datasets, model_selection
+import numpy as np
+np.random.seed(30)
+import torch
+import matplotlib.pyplot as plt
+plt.style.use(&#39;ggplot&#39;)
 </pre></div>
 </div>
 </div>
@@ -561,7 +646,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_digits</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X, Y = datasets.load_digits(return_X_y=True)
 </pre></div>
 </div>
 </div>
@@ -569,16 +654,16 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">plot_digit</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">)),</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Label: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">y</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_axis_off</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def plot_digit(ax, x, y):
+    ax.imshow(x.reshape((8, 8)), cmap=&#39;gray&#39;)
+    ax.set_title(&quot;Label: %d&quot; % y)
+    ax.set_axis_off()
 
-<span class="c1"># Plot three sample images from the dataset</span>
-<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">ncols</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-<span class="n">plot_digit</span><span class="p">(</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
-<span class="n">plot_digit</span><span class="p">(</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span>
-<span class="n">plot_digit</span><span class="p">(</span><span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="mi">42</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="mi">42</span><span class="p">])</span>
+# Plot three sample images from the dataset
+fig, ax = plt.subplots(ncols=3, figsize=(9, 6))
+plot_digit(ax[0], X[3], Y[3])
+plot_digit(ax[1], X[10], Y[10])
+plot_digit(ax[2], X[42], Y[42])
 </pre></div>
 </div>
 </div>
@@ -597,8 +682,8 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span> <span class="n">Y_test</span> <span class="o">=</span> <span class="n">model_selection</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span>
-    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X_train, X_test, Y_train, Y_test = model_selection.train_test_split(
+    X, Y, test_size=0.2, random_state=10, shuffle=True)
 </pre></div>
 </div>
 </div>
@@ -610,10 +695,10 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">X_test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">Y_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_train</span><span class="p">)</span>
-<span class="n">Y_test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Y_test</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X_train = torch.from_numpy(X_train).to(dtype=torch.float32)
+X_test = torch.from_numpy(X_test).to(dtype=torch.float32)
+Y_train = torch.from_numpy(Y_train)
+Y_test = torch.from_numpy(Y_test)
 </pre></div>
 </div>
 </div>
@@ -623,13 +708,13 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># z-score normalization</span>
-<span class="n">train_mean</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-<span class="n">train_std</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
-<span class="n">X_train</span> <span class="o">-=</span> <span class="n">train_mean</span>
-<span class="n">X_train</span> <span class="o">/=</span> <span class="n">train_std</span>
-<span class="n">X_test</span> <span class="o">-=</span> <span class="n">train_mean</span>
-<span class="n">X_test</span> <span class="o">/=</span> <span class="n">train_std</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># z-score normalization
+train_mean = X_train.mean()
+train_std = X_train.std()
+X_train -= train_mean
+X_train /= train_std
+X_test -= train_mean
+X_test /= train_std
 </pre></div>
 </div>
 </div>
@@ -639,11 +724,11 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert labels to 1-hot</span>
-<span class="n">eye</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">Y_train</span> <span class="o">=</span> <span class="n">eye</span><span class="p">[</span><span class="n">Y_train</span><span class="p">]</span>
-<span class="n">Y_test</span> <span class="o">=</span> <span class="n">eye</span><span class="p">[</span><span class="n">Y_test</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;First label vector: &quot;</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Convert labels to 1-hot
+eye = torch.eye(10, dtype=torch.float32)
+Y_train = eye[Y_train]
+Y_test = eye[Y_test]
+print(&quot;First label vector: &quot;, Y_train[0])
 </pre></div>
 </div>
 </div>
@@ -666,10 +751,10 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">mclass_loss</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
-    <span class="n">true</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">true</span> <span class="o">!=</span> <span class="n">pred</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def mclass_loss(true, pred):
+    true = torch.argmax(true, dim=1)
+    pred = torch.argmax(pred, dim=1)
+    return torch.mean((true != pred).to(torch.float32))
 </pre></div>
 </div>
 </div>
@@ -679,9 +764,9 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">falkon.hopt</span>
-<span class="kn">from</span> <span class="nn">falkon</span> <span class="kn">import</span> <span class="n">FalkonOptions</span>
-<span class="kn">from</span> <span class="nn">falkon.hopt.objectives</span> <span class="kn">import</span> <span class="n">NystromCompReg</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import falkon.hopt
+from falkon import FalkonOptions
+from falkon.hopt.objectives import NystromCompReg
 </pre></div>
 </div>
 </div>
@@ -689,7 +774,7 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">flk_opt</span> <span class="o">=</span> <span class="n">FalkonOptions</span><span class="p">(</span><span class="n">use_cpu</span><span class="o">=</span><span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">())</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>flk_opt = FalkonOptions(use_cpu=not torch.cuda.is_available())
 </pre></div>
 </div>
 </div>
@@ -698,11 +783,11 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sigma_init</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">GaussianKernel</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma_init</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="n">flk_opt</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sigma_init = torch.tensor([1.0] * X_train.shape[1], dtype=torch.float32).requires_grad_()
+kernel = falkon.kernels.GaussianKernel(sigma=sigma_init, opt=flk_opt)
 
-<span class="n">penalty_init</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">centers_init</span> <span class="o">=</span> <span class="n">X_train</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+penalty_init = torch.tensor(1e-5, dtype=torch.float32)
+centers_init = X_train[np.random.choice(X_train.shape[0], size=(500, ), replace=False)].clone()
 </pre></div>
 </div>
 </div>
@@ -711,11 +796,11 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">NystromCompReg</span><span class="p">(</span>
-    <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">penalty_init</span><span class="o">=</span><span class="n">penalty_init</span><span class="p">,</span> <span class="n">centers_init</span><span class="o">=</span><span class="n">centers_init</span><span class="p">,</span>  <span class="c1"># The initial hp values</span>
-    <span class="n">opt_penalty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">opt_centers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Whether the various hps are to be optimized</span>
-    <span class="p">)</span>
-<span class="n">opt_hp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = NystromCompReg(
+    kernel=kernel, penalty_init=penalty_init, centers_init=centers_init,  # The initial hp values
+    opt_penalty=True, opt_centers=True,  # Whether the various hps are to be optimized
+    )
+opt_hp = torch.optim.Adam(model.parameters(), lr=0.1)
 </pre></div>
 </div>
 </div>
@@ -724,17 +809,17 @@ First label vector:  tensor([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tr_loss</span><span class="p">,</span> <span class="n">tr_err</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>tr_loss, tr_err = [], []
 
-<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">50</span><span class="p">):</span>
-    <span class="n">opt_hp</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-    <span class="n">loss</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">)</span>
-    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-    <span class="n">opt_hp</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+for epoch in range(50):
+    opt_hp.zero_grad()
+    loss = model(X_train, Y_train)
+    loss.backward()
+    opt_hp.step()
 
-    <span class="n">tr_loss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-    <span class="n">tr_err</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mclass_loss</span><span class="p">(</span><span class="n">Y_train</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_train</span><span class="p">)))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2"> Loss </span><span class="si">{</span><span class="n">tr_loss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> Error </span><span class="si">{</span><span class="n">tr_err</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+    tr_loss.append(loss.item())
+    tr_err.append(mclass_loss(Y_train, model.predict(X_train)))
+    print(f&quot;Epoch {epoch} Loss {tr_loss[-1]:.3f} Error {tr_err[-1] * 100:.2f}%&quot;)
 </pre></div>
 </div>
 </div>
@@ -799,9 +884,9 @@ Epoch 49 Loss 682.500 Error 0.00%
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Evaluate the test error:</span>
-<span class="n">ts_preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test error: </span><span class="si">{</span><span class="n">mclass_loss</span><span class="p">(</span><span class="n">Y_test</span><span class="p">,</span> <span class="n">ts_preds</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Evaluate the test error:
+ts_preds = model.predict(X_test)
+print(f&quot;Test error: {mclass_loss(Y_test, ts_preds) * 100:.2f}%&quot;)
 </pre></div>
 </div>
 </div>
@@ -818,8 +903,8 @@ Test error: 0.83%
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final value of lambda: </span><span class="si">%.3e</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">penalty</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final value of sigma: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">detach</span><span class="p">()))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>print(&quot;Final value of lambda: %.3e&quot; % (model.penalty))
+print(&quot;Final value of sigma: %s&quot; % (model.kernel.sigma.detach()))
 </pre></div>
 </div>
 </div>

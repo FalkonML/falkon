@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -131,15 +132,33 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference/index.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/models.html">falkon.models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/models.html#falkon">Falkon</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/models.html#logisticfalkon">LogisticFalkon</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/models.html#incorefalkon">InCoreFalkon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/models.html#falkon">Falkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/models.html#falkon.models.Falkon"><code class="docutils literal notranslate"><span class="pre">Falkon</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/models.html#logisticfalkon">LogisticFalkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/models.html#falkon.models.LogisticFalkon"><code class="docutils literal notranslate"><span class="pre">LogisticFalkon</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/models.html#incorefalkon">InCoreFalkon</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/models.html#falkon.models.InCoreFalkon"><code class="docutils literal notranslate"><span class="pre">InCoreFalkon</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/kernels.html">falkon.kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/kernels.html#kernel">Kernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/kernels.html#diffkernel">DiffKernel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/kernels.html#kernel">Kernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/kernels.html#falkon.kernels.kernel.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/kernels.html#diffkernel">DiffKernel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/kernels.html#falkon.kernels.diff_kernel.DiffKernel"><code class="docutils literal notranslate"><span class="pre">DiffKernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/kernels.html#keopskernelmixin">KeopsKernelMixin</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/kernels.html#falkon.kernels.keops_helpers.KeopsKernelMixin"><code class="docutils literal notranslate"><span class="pre">KeopsKernelMixin</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="api_reference/kernels.html#radial-kernels">Radial kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/kernels.html#gaussian-kernel">Gaussian kernel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/kernels.html#laplacian-kernel">Laplacian kernel</a></li>
@@ -155,17 +174,32 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/options.html">falkon.options</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/options.html#falkonoptions">FalkonOptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/options.html#falkonoptions">FalkonOptions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/options.html#falkon.options.FalkonOptions"><code class="docutils literal notranslate"><span class="pre">FalkonOptions</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/gsc_losses.html">falkon.gsc_losses</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/gsc_losses.html#loss">Loss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/gsc_losses.html#logistic-loss">Logistic loss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/gsc_losses.html#loss">Loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/gsc_losses.html#falkon.gsc_losses.Loss"><code class="docutils literal notranslate"><span class="pre">Loss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/gsc_losses.html#logistic-loss">Logistic loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/gsc_losses.html#falkon.gsc_losses.LogisticLoss"><code class="docutils literal notranslate"><span class="pre">LogisticLoss</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/gsc_losses.html#weighted-binary-cross-entropy-loss">Weighted binary cross entropy loss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/gsc_losses.html#falkon.gsc_losses.WeightedCrossEntropyLoss"><code class="docutils literal notranslate"><span class="pre">WeightedCrossEntropyLoss</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/preconditioner.html">falkon.preconditioner</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/preconditioner.html#preconditioner">Preconditioner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/preconditioner.html#preconditioner">Preconditioner</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/preconditioner.html#falkon.preconditioner.preconditioner.Preconditioner"><code class="docutils literal notranslate"><span class="pre">Preconditioner</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="api_reference/preconditioner.html#cholesky-preconditioners">Cholesky preconditioners</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/preconditioner.html#falkonpreconditioner">FalkonPreconditioner</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/preconditioner.html#logisticpreconditioner">LogisticPreconditioner</a></li>
@@ -174,7 +208,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/optimization.html">falkon.optim</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/optimization.html#optimizer">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/optimization.html#optimizer">Optimizer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/optimization.html#falkon.optim.Optimizer"><code class="docutils literal notranslate"><span class="pre">Optimizer</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="api_reference/optimization.html#conjugate-gradient-methods">Conjugate gradient methods</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/optimization.html#conjugategradient">ConjugateGradient</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/optimization.html#falkonconjugategradient">FalkonConjugateGradient</a></li>
@@ -183,33 +220,80 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/outofcore.html">falkon.ooc_ops</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/outofcore.html#gpu-lauum">gpu_lauum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/outofcore.html#gpu-cholesky">gpu_cholesky</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/outofcore.html#falkon.ooc_ops.gpu_cholesky"><code class="docutils literal notranslate"><span class="pre">gpu_cholesky()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/outofcore.html#gpu-lauum">gpu_lauum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/outofcore.html#falkon.ooc_ops.gpu_lauum"><code class="docutils literal notranslate"><span class="pre">gpu_lauum()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/mmv_ops.html">falkon.mmv_ops</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#fmm">fmm</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#fmmv">fmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#fdmmv">fdmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#low-level-functions">Low-level functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#run-keops-mmv">run_keops_mmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/mmv_ops.html#falkon.mmv_ops.keops.run_keops_mmv"><code class="docutils literal notranslate"><span class="pre">run_keops_mmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#fmm">fmm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/mmv_ops.html#falkon.mmv_ops.fmm.fmm"><code class="docutils literal notranslate"><span class="pre">fmm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#fmmv">fmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.fmmv"><code class="docutils literal notranslate"><span class="pre">fmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#fdmmv">fdmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.fdmmv"><code class="docutils literal notranslate"><span class="pre">fdmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#incore-fmmv">incore_fmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/mmv_ops.html#falkon.mmv_ops.fmmv_incore.incore_fmmv"><code class="docutils literal notranslate"><span class="pre">incore_fmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#incore-fdmmv">incore_fdmmv</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/mmv_ops.html#falkon.mmv_ops.fmmv_incore.incore_fdmmv"><code class="docutils literal notranslate"><span class="pre">incore_fdmmv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/mmv_ops.html#low-level-functions">Low-level functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/mmv_ops.html#falkon.mmv_ops.fmm.sparse_mm_run_thread"><code class="docutils literal notranslate"><span class="pre">sparse_mm_run_thread()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/mmv_ops.html#falkon.mmv_ops.fmmv.sparse_mmv_run_thread"><code class="docutils literal notranslate"><span class="pre">sparse_mmv_run_thread()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/sparse.html">falkon.sparse</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/sparse.html#sparsetensor">SparseTensor</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/sparse.html#sparse-operations">Sparse operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/sparse.html#sparsetensor">SparseTensor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/sparse.html#falkon.sparse.sparse_tensor.SparseTensor"><code class="docutils literal notranslate"><span class="pre">SparseTensor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/sparse.html#falkon.sparse.sparse_tensor.SparseType"><code class="docutils literal notranslate"><span class="pre">SparseType</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/sparse.html#sparse-operations">Sparse operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/sparse.html#falkon.sparse.sparse_matmul"><code class="docutils literal notranslate"><span class="pre">sparse_matmul()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/sparse.html#falkon.sparse.sparse_square_norm"><code class="docutils literal notranslate"><span class="pre">sparse_square_norm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/sparse.html#falkon.sparse.sparse_norm"><code class="docutils literal notranslate"><span class="pre">sparse_norm()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/center_selector.html">falkon.center_selection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/center_selector.html#centerselector">CenterSelector</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/center_selector.html#uniformselector">UniformSelector</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api_reference/center_selector.html#fixedselector">FixedSelector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/center_selector.html#centerselector">CenterSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/center_selector.html#falkon.center_selection.CenterSelector"><code class="docutils literal notranslate"><span class="pre">CenterSelector</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/center_selector.html#uniformselector">UniformSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/center_selector.html#falkon.center_selection.UniformSelector"><code class="docutils literal notranslate"><span class="pre">UniformSelector</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference/center_selector.html#fixedselector">FixedSelector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/center_selector.html#falkon.center_selection.FixedSelector"><code class="docutils literal notranslate"><span class="pre">FixedSelector</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference/hopt.html">falkon.hopt</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api_reference/hopt.html#objectives">Objectives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference/hopt.html#falkon.hopt.objectives.objectives.HyperoptObjective"><code class="docutils literal notranslate"><span class="pre">HyperoptObjective</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/hopt.html#nystrom-complexity-regularization">Nystrom Complexity Regularization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/hopt.html#stochastic-nystrom-computational-regularization">Stochastic Nystrom Computational Regularization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api_reference/hopt.html#complexity-regularization">Complexity Regularization</a></li>
@@ -238,8 +322,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Install</li>
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Install</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/install.rst.txt" rel="nofollow"> View page source</a>
       </li>
