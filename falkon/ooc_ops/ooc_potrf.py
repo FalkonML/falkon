@@ -110,7 +110,7 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
         device_info.append(
             (0.0, g)
         )
-
+        torch.cuda.current_stream(g).synchronize()
     parallel_potrf(device_info, block_allocations, A)
     return A
 

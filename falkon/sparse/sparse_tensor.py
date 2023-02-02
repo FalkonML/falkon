@@ -18,7 +18,7 @@ class SparseType(Enum):
         return str(self)
 
 
-class SparseTensor():
+class SparseTensor:
     """Wrapper class to represent sparse 2D matrices in CSR or CSC format.
 
     The wrapper holds three 1D torch tensors which give the sparse representation
