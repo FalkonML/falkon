@@ -196,10 +196,14 @@ def run_keops_mmv(X1: torch.Tensor,
     keopscore.config.config.use_cuda = comp_dev_type == 'cuda'  # workaround for keops issue#248
     out = create_output_mat(out, data_devs, is_sparse=False, shape=(N, T), dtype=X1.dtype,
                             comp_dev_type=comp_dev_type, other_mat=X1, output_stride="C")
+    rec_multVar_highdim = None
+    if D > 100:
+        rec_multVar_highdim = 1
     fn = Genred(formula, aliases,
                 reduction_op=reduction, axis=axis,
                 dtype_acc=opt.keops_acc_dtype,
-                sum_scheme=opt.keops_sum_scheme)
+                sum_scheme=opt.keops_sum_scheme,
+                rec_multVar_highdim=rec_multVar_highdim)
     if differentiable:
         # For differentiable inputs we don't split, since we don't know how to
         # split the backward pass.
