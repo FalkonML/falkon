@@ -129,7 +129,7 @@ def get_extensions():
         link_args += ['-lcusparse', '-l', 'cusparse',
                       '-lcublas', '-l', 'cublas',
                       '-lcusolver', '-l', 'cusolver']
-        libraries.extend(['cusolver', 'cublas', 'cusparse'])
+        libraries.extend(['cusolver', 'cublas', 'cusparse', 'torch_cuda_linalg'])
 
     print(f"Defining C-extension on platform {sys.platform}. compile args: {extra_compile_args}  "
           f"macros: {macros}  link args: {link_args}")
