@@ -200,7 +200,7 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestLaplacianKernel():
+class TestLaplacianKernel:
     naive_fn = naive_diff_laplacian_kernel
     k_class = LaplacianKernel
 
@@ -262,7 +262,7 @@ class TestLaplacianKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestGaussianKernel():
+class TestGaussianKernel:
     naive_fn = naive_diff_gaussian_kernel
     k_class = GaussianKernel
 
@@ -299,7 +299,7 @@ class TestGaussianKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestMaternKernel():
+class TestMaternKernel:
     naive_fn = naive_diff_matern_kernel
     k_class = MaternKernel
 
@@ -337,7 +337,7 @@ class TestMaternKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestLinearKernel():
+class TestLinearKernel:
     naive_fn = naive_diff_linear_kernel
     k_class = LinearKernel
     beta = torch.tensor(2.0)
@@ -361,7 +361,7 @@ class TestLinearKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestPolynomialKernel():
+class TestPolynomialKernel:
     naive_fn = naive_diff_polynomial_kernel
     k_class = PolynomialKernel
     beta = torch.tensor(2.0)
@@ -388,12 +388,61 @@ class TestPolynomialKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestLargeComputations():
+class TestLargeComputations:
     naive_fn = naive_diff_gaussian_kernel
     k_class = GaussianKernel
     n = 1500
     m = 250
     d = 3
+    t = 2
+    max_mem = 1 * 2 ** 20
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
+                                  max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+    sigma = torch.Tensor([3.0])
+
+    @pytest.fixture(scope="class")
+    def A(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.n, self.d, 'float32', False, seed=92))
+
+    @pytest.fixture(scope="class")
+    def B(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.m, self.d, 'float32', False, seed=93))
+
+    @pytest.fixture(scope="class")
+    def v(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.m, self.t, 'float32', False, seed=94))
+
+    @pytest.fixture(scope="class")
+    def w(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.n, self.t, 'float32', False, seed=95))
+
+    @pytest.mark.parametrize("order", ["C", "F"])
+    def test_dense_kernel(self, A, B, v, w, rtol, atol, input_dev, comp_dev, order):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, self.sigma, order=order, device=input_dev,
+                                     dtype=np.float32)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                       w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma,
+                       grad_check=False)
+
+    @keops_mark
+    def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="C", device=input_dev,
+                                     dtype=np.float32)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
+        run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                       w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma,
+                       grad_check=False)
+
+
+@pytest.mark.parametrize("input_dev,comp_dev", device_marks)
+class TestKeopsLargeD:
+    naive_fn = naive_diff_gaussian_kernel
+    k_class = GaussianKernel
+    n = 100
+    m = 250
+    # when d > 100 we set a special flag in keops.
+    d = 110
     t = 2
     max_mem = 1 * 2 ** 20
     basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
