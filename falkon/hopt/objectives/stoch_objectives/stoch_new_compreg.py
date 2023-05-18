@@ -93,10 +93,8 @@ def calc_trace_fwd(init_val: torch.Tensor,
     """ Nystrom kernel trace forward """
     if trace_type == "ste":
         assert k_mn_zy is not None and t is not None, "Incorrect arguments to trace_fwd"
-        solve1 = torch.triangular_solve(k_mn_zy[:, :t], kmm_chol, upper=False,
-                                        transpose=False).solution  # m * t
-        solve2 = torch.triangular_solve(solve1, kmm_chol, upper=False,
-                                        transpose=True).solution.contiguous()  # m * t
+        solve1 = torch.linalg.solve_triangular(kmm_chol, k_mn_zy[:, :t], upper=False)  # m * t
+        solve2 = torch.linalg.solve_triangular(kmm_chol.T, solve1, upper=True).contiguous()  # m * t
         init_val -= solve1.square_().sum(0).mean()
     elif trace_type == "direct":
         assert k_mn is not None, "Incorrect arguments to trace_fwd"
@@ -107,10 +105,8 @@ def calc_trace_fwd(init_val: torch.Tensor,
         assert k_mn_zy is not None and t is not None, "Incorrect arguments to trace_fwd"
         k_subs = k_mn_zy
         assert k_subs.shape == (kmm_chol.shape[0], t), "Shape incorrect"  # m * t
-        solve1 = torch.triangular_solve(
-            k_subs, kmm_chol, upper=False, transpose=False).solution  # m * t
-        solve2 = torch.triangular_solve(
-            solve1, kmm_chol, upper=False, transpose=True).solution.contiguous()  # m * t
+        solve1 = torch.linalg.solve_triangular(kmm_chol, k_subs, upper=False)  # m * t
+        solve2 = torch.linalg.solve(kmm_chol.T, solve1, upper=True).contiguous()  # m * t
         norm = X.shape[0] / t
         init_val -= solve1.square_().sum() * norm
     else:

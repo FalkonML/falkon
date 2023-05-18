@@ -61,7 +61,7 @@ class GCV(HyperoptObjective):
         kmm = self.kernel(self.centers, self.centers)
         L = jittering_cholesky(kmm)  # L @ L.T = kmm
         # A = L^{-1} K_mn / (sqrt(n*pen))
-        A = torch.triangular_solve(kmn, L, upper=False).solution / sqrt_var
+        A = torch.linalg.solve_triangular(L, kmn, upper=False) / sqrt_var
         AAT = A @ A.T
         # B = A @ A.T + I
         B = AAT + torch.eye(AAT.shape[0], device=X.device, dtype=X.dtype)
@@ -70,8 +70,8 @@ class GCV(HyperoptObjective):
         AY = A @ Y
         # numerator is (1/n)*||(I - A.T @ LB^{-T} @ LB^{-1} @ A) @ Y||^2
         # compute A.T @ LB^{-T} @ LB^{-1} @ A @ Y
-        tmp1 = torch.triangular_solve(AY, LB, upper=False).solution
-        tmp2 = torch.triangular_solve(tmp1, LB, upper=False, transpose=True).solution
+        tmp1 = torch.linalg.solve_triangular(LB, AY, upper=False)
+        tmp2 = torch.linalg.solve_triangular(LB.T, tmp1, upper=True)
         d = tmp2
         return L, A, LB, d
 
@@ -82,7 +82,7 @@ class GCV(HyperoptObjective):
         tmp3 = Y - A.T @ d
         numerator = torch.square(tmp3)
         # Denominator (1/n * Tr(I - H))^2
-        C = torch.triangular_solve(A, LB, upper=False).solution
+        C = torch.linalg.solve_triangular(LB, A, upper=False)
         denominator = (1 - torch.square(C).sum() / X.shape[0]) ** 2
         loss = (numerator / denominator).mean()
 
@@ -96,7 +96,7 @@ class GCV(HyperoptObjective):
             L, A, LB, d = self._calc_intermediate(self.x_train, self.y_train)
             sqrt_var = torch.sqrt(self.penalty * (X.shape[0] - 1))
             kms = self.kernel(self.centers, X)
-            tmp1 = torch.triangular_solve(d / sqrt_var, L, upper=False, transpose=True).solution
+            tmp1 = torch.linalg.solve_triangular(L.T, d / sqrt_var, upper=True)
             return kms.T @ tmp1
 
     def _save_losses(self, gcv):

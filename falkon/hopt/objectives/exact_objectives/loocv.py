@@ -71,8 +71,8 @@ class LOOCV(HyperoptObjective):
         with torch.autograd.no_grad():
             L, A, LB, C, c = self._calc_intermediate(self.x_train, self.y_train)
             # Predictions are handled directly.
-            tmp1 = torch.triangular_solve(c, LB, upper=False, transpose=True).solution
-            tmp2 = torch.triangular_solve(tmp1, L, upper=False, transpose=True).solution
+            tmp1 = torch.linalg.solve_triangular(LB.T, c, upper=True)
+            tmp2 = torch.linalg.solve_triangular(L.T, tmp1, upper=True)
             kms = self.kernel(self.centers, X)
             return kms.T @ tmp2
 
@@ -84,13 +84,13 @@ class LOOCV(HyperoptObjective):
         kmn = self.kernel(self.centers, X)
         kmm = self.kernel(self.centers, self.centers)
         L = jittering_cholesky(kmm)  # L @ L.T = kmm
-        A = torch.triangular_solve(kmn, L, upper=False).solution / sqrt_var  # m, n
+        A = torch.linalg.solve_triangular(L, kmn, upper=False) / sqrt_var  # m, n
         AAT = A @ A.T  # m, m
         B = AAT + torch.eye(AAT.shape[0], device=X.device, dtype=X.dtype)  # m, m
         LB = jittering_cholesky(B)  # LB @ LB.T = B  m, m
 
         # C = LB^{-1} A
-        C = torch.triangular_solve(A, LB, upper=False).solution  # m, n
+        C = torch.linalg.solve_triangular(LB, A, upper=False)  # m, n
 
         c = C @ Y / sqrt_var
         return L, A, LB, C, c

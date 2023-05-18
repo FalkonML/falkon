@@ -52,8 +52,8 @@ class SGPR(HyperoptObjective):
         with torch.autograd.no_grad():
             L, A, AAT, LB, c = self._calc_intermediate(self.x_train, self.y_train)
             kms = self.kernel(self.centers, X)
-            tmp1 = torch.triangular_solve(kms, L, upper=False).solution
-            tmp2 = torch.triangular_solve(tmp1, LB, upper=False).solution
+            tmp1 = torch.linalg.solve_triangular(L, kms, upper=False)
+            tmp2 = torch.linalg.solve_triangular(LB, tmp1, upper=False)
             return tmp2.T @ c
 
     def _save_losses(self, log_det, datafit, trace):
@@ -72,13 +72,13 @@ class SGPR(HyperoptObjective):
         L = jittering_cholesky(kmm)
 
         # A = L^{-1} K_mn / (sqrt(n*pen))
-        A = torch.triangular_solve(kmn, L, upper=False).solution / sqrt_var
+        A = torch.linalg.solve_triangular(L, kmn, upper=False) / sqrt_var
         AAT = A @ A.T
         # B = A @ A.T + I
         B = AAT + torch.eye(AAT.shape[0], device=X.device, dtype=X.dtype)
         LB = jittering_cholesky(B)  # LB @ LB.T = B
         AY = A @ Y
-        c = torch.triangular_solve(AY, LB, upper=False).solution / sqrt_var
+        c = torch.linalg.solve_triangular(LB, AY, upper=False) / sqrt_var
 
         return L, A, AAT, LB, c
 
