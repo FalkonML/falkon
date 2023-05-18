@@ -363,7 +363,7 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
                     c_dev_grads_old[c_idx].add_(c_grad)
                 if grads[1] is not None:
                     grads[1][j: j + lenj, :].copy_(c_dev_m2_g, non_blocking=True)
-                    #grads[1][j: j + lenj, :] = c_dev_m2_g.to(grads[1].device, non_blocking=True, copy=False)
+                    # grads[1][j: j + lenj, :] = c_dev_m2_g.to(grads[1].device, non_blocking=True, copy=False)
                 if grads[2] is not None:
                     grads[2][j: j + lenj, :].copy_(c_dev_v_g, non_blocking=True)
                 if not incore:
@@ -371,7 +371,7 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
             # end iter over M
             if grads[0] is not None:
                 grads[0][i: i + leni, :].copy_(c_dev_m1_g, non_blocking=True)
-                #grads[0][i: i + leni, :] = c_dev_m1_g.to(grads[0].device, non_blocking=True, copy=False)
+                # grads[0][i: i + leni, :] = c_dev_m1_g.to(grads[0].device, non_blocking=True, copy=False)
         if tid != -1 and s1 is not None:
             s1.synchronize()
         # end iter over N

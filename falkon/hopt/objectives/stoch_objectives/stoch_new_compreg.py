@@ -106,7 +106,7 @@ def calc_trace_fwd(init_val: torch.Tensor,
         k_subs = k_mn_zy
         assert k_subs.shape == (kmm_chol.shape[0], t), "Shape incorrect"  # m * t
         solve1 = torch.linalg.solve_triangular(kmm_chol, k_subs, upper=False)  # m * t
-        solve2 = torch.linalg.solve(kmm_chol.T, solve1, upper=True).contiguous()  # m * t
+        solve2 = torch.linalg.solve_triangular(kmm_chol.T, solve1, upper=True).contiguous()  # m * t
         norm = X.shape[0] / t
         init_val -= solve1.square_().sum() * norm
     else:

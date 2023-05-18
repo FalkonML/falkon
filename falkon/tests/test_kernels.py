@@ -294,9 +294,9 @@ class TestGaussianKernel:
         if comp_dev == "cpu":
             assert (
                 f"The size of tensor a ({d}) must match the size of tensor b ({d - 1})"
-                    in str(excinfo.value) or
+                in str(excinfo.value) or
                 f"a Tensor with {d - 1} elements cannot be converted to Scalar"
-                    in str(excinfo.value)
+                in str(excinfo.value)
             )
         # If on GPU the 'size mismatch' message is in the base exception (since it's reraised
         # by PropagatingThread) but I'm not sure how to fetch it.
@@ -431,7 +431,7 @@ class TestLargeComputations:
 
     @keops_mark
     def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
-        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="C", device=input_dev,
+        A, B, v, w, sigma = fix_mats(A, B, v, w, self.sigma, order="C", device=input_dev,
                                      dtype=np.float32)
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
         run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
@@ -480,7 +480,7 @@ class TestKeopsLargeD:
 
     @keops_mark
     def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
-        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="C", device=input_dev,
+        A, B, v, w, sigma = fix_mats(A, B, v, w, self.sigma, order="C", device=input_dev,
                                      dtype=np.float32)
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
         run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
