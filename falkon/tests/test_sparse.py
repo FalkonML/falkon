@@ -75,7 +75,7 @@ class TestSparseNorm():
             exp = exp_norm
 
         act = function(csr_mat, out=None)
-        torch.testing.assert_allclose(act, torch.from_numpy(exp).to(dtype=act.dtype))
+        torch.testing.assert_close(act, torch.from_numpy(exp).to(dtype=act.dtype))
 
     def test_norm_with_out(self, csr_mat, function):
         exp_norm = np.linalg.norm(csr_mat.to_scipy(copy=True).todense(), axis=1).reshape(-1, 1)
@@ -88,12 +88,12 @@ class TestSparseNorm():
         out = torch.empty(csr_mat.shape[0], 1, dtype=csr_mat.dtype, device=csr_mat.device)
         act = function(csr_mat, out=out)
         assert out.data_ptr() == act.data_ptr()
-        torch.testing.assert_allclose(act, torch.from_numpy(exp).to(dtype=act.dtype))
+        torch.testing.assert_close(act, torch.from_numpy(exp).to(dtype=act.dtype))
 
         out = torch.empty(csr_mat.shape[0], dtype=csr_mat.dtype, device=csr_mat.device)
         act = function(csr_mat, out=out)
         assert out.data_ptr() == act.data_ptr()
-        torch.testing.assert_allclose(act, torch.from_numpy(exp).to(dtype=act.dtype).reshape(-1))
+        torch.testing.assert_close(act, torch.from_numpy(exp).to(dtype=act.dtype).reshape(-1))
 
 
 class TestSparseBdot():
@@ -123,7 +123,7 @@ class TestSparseBdot():
 
         act = bdot(csr_mat, csr_mat, out=None)
 
-        torch.testing.assert_allclose(act, torch.from_numpy(exp_bdot).to(dtype=act.dtype))
+        torch.testing.assert_close(act, torch.from_numpy(exp_bdot).to(dtype=act.dtype))
 
     def test_bdot_diff_mat(self, csr_mat, csr_mat2):
         dense1 = np.asarray(csr_mat.to_scipy(copy=True).todense())
@@ -132,7 +132,7 @@ class TestSparseBdot():
 
         act = bdot(csr_mat, csr_mat2, out=None)
 
-        torch.testing.assert_allclose(act, torch.from_numpy(exp_bdot).to(dtype=act.dtype))
+        torch.testing.assert_close(act, torch.from_numpy(exp_bdot).to(dtype=act.dtype))
 
 
 @pytest.mark.parametrize("device", [
@@ -250,7 +250,7 @@ class TestMatMul():
         mat2_csc = SparseTensor.from_scipy(scipy.sparse.csc_matrix(mat2))
         sparse_matmul(mat1_csr, mat2_csc, out)
 
-        torch.testing.assert_allclose(out, expected)
+        torch.testing.assert_close(out, expected)
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_cuda_matmul_wrong_format(self, mat1, mat2, expected):
@@ -276,7 +276,7 @@ class TestMatMul():
         mat2_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(mat2)).to(device=dev)
         sparse_matmul(mat1_csr, mat2_csr, out)
 
-        torch.testing.assert_allclose(out.cpu(), expected)
+        torch.testing.assert_close(out.cpu(), expected)
 
 
 if __name__ == "__main__":

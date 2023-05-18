@@ -41,7 +41,7 @@ def test_copy_host_to_dev(mat, order):
     opt = FalkonOptions(max_gpu_mem=0.0)
     with memory_checker(opt):
         copy(in_mat, output)
-    torch.testing.assert_allclose(in_mat, output.cpu(), rtol=1e-15, atol=1e-15)
+    torch.testing.assert_close(in_mat, output.cpu(), rtol=1e-15, atol=1e-15)
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
@@ -53,7 +53,7 @@ def test_copy_vec_host_to_dev(row_vec, col_vec, order):
         opt = FalkonOptions(max_gpu_mem=0.0)
         with memory_checker(opt):
             copy(in_vec, output)
-        torch.testing.assert_allclose(in_vec, output.cpu(), rtol=1e-15, atol=1e-15)
+        torch.testing.assert_close(in_vec, output.cpu(), rtol=1e-15, atol=1e-15)
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
@@ -66,7 +66,7 @@ def test_copy_dev_to_host(mat, order):
     with memory_checker(opt):
         copy(in_mat, output)
 
-    torch.testing.assert_allclose(in_mat.cpu(), output.cpu(), rtol=1e-15, atol=1e-15)
+    torch.testing.assert_close(in_mat.cpu(), output.cpu(), rtol=1e-15, atol=1e-15)
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
@@ -108,7 +108,7 @@ def test_diff_sizes(mat, order, in_dev, size, out_size):
     with memory_checker(opt):
         copy(in_mat, output)
 
-    torch.testing.assert_allclose(in_mat.cpu(), output.cpu(), rtol=1e-15, atol=1e-15)
+    torch.testing.assert_close(in_mat.cpu(), output.cpu(), rtol=1e-15, atol=1e-15)
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")

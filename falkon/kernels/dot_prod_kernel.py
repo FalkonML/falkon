@@ -141,7 +141,7 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
     >>> k = LinearKernel(beta=0.0, gamma=2.0)
     >>> X = torch.randn(100, 3)  # 100 samples in 3 dimensions
     >>> kernel_matrix = k(X, X)
-    >>> torch.testing.assert_allclose(kernel_matrix, X @ X.T * 2)
+    >>> torch.testing.assert_close(kernel_matrix, X @ X.T * 2)
     """
 
     def __init__(self,

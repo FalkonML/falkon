@@ -117,17 +117,18 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
 
         assert mm_out.data_ptr() == actual.data_ptr(), "MM Output data tensor was not used"
         assert mm_out_wgrad.data_ptr() == actual_wgrad.data_ptr(), "MM Output data tensor was not used"
-        torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
-                                      msg="MM Wgrad and normal return different stuff")
-        torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                      msg="MM with out and without return different stuff")
-        torch.testing.assert_allclose(expected_mm, actual, rtol=rtol, atol=atol,
-                                      msg="MM result is incorrect")
+        torch.testing.assert_close(actual_wgrad, actual, rtol=rtol, atol=atol,
+                                   msg="MM Wgrad and normal return different stuff")
+        torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                                   msg="MM with out and without return different stuff")
+        torch.testing.assert_close(expected_mm, actual, rtol=rtol, atol=atol,
+                                   msg="MM result is incorrect")
 
         # 2. MM gradients
         if grad_check:
             def autogradcheck_mm(_m1, _m2, *_kernel_params):
                 return kernel_wgrad(_m1, _m2, opt=opt)
+
             torch.autograd.gradcheck(
                 autogradcheck_mm, inputs=(m1_wgrad, m2_wgrad, *kernel_wgrad.diff_params.values()),
                 check_undefined_grad=False,  # TODO: Set to true this causes random segfaults with linear kernel.
@@ -147,18 +148,19 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
             actual_wgrad.sum(), [m1_wgrad, m2_wgrad, v_wgrad] + list(kernel_wgrad.diff_params.values()))
     assert mmv_out.data_ptr() == actual.data_ptr(), "MMV Output data tensor was not used"
     assert mmv_out_wgrad.data_ptr() == actual_wgrad.data_ptr(), "MMV Output data tensor was not used"
-    torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
-                                  msg="MMV Wgrad and normal return different stuff")
-    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                  msg="MMV with out and without return different stuff")
+    torch.testing.assert_close(actual_wgrad, actual, rtol=rtol, atol=atol,
+                               msg="MMV Wgrad and normal return different stuff")
+    torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                               msg="MMV with out and without return different stuff")
     expected_mmv = expected_mm @ v
-    torch.testing.assert_allclose(expected_mmv, actual, rtol=rtol, atol=atol,
-                                  msg="MMV result is incorrect")
+    torch.testing.assert_close(expected_mmv, actual, rtol=rtol, atol=atol,
+                               msg="MMV result is incorrect")
 
     # 4. MMV gradients
     if grad_check:
         def autogradcheck_mmv(_m1, _m2, _v, *_kernel_params):
             return kernel_wgrad.mmv(_m1, _m2, _v, opt=opt)
+
         torch.autograd.gradcheck(autogradcheck_mmv, inputs=(
             m1_wgrad, m2_wgrad, v_wgrad, *kernel_wgrad.diff_params.values()))
 
@@ -180,13 +182,13 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
 
     assert dmmv_out.data_ptr() == actual.data_ptr(), "D-MMV Output data tensor was not used"
     if dmmv_grad_allowed:
-        torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
-                                      msg="MMV Wgrad and normal return different stuff")
-    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                  msg="D-MMV with out and without return different stuff")
+        torch.testing.assert_close(actual_wgrad, actual, rtol=rtol, atol=atol,
+                                   msg="MMV Wgrad and normal return different stuff")
+    torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                               msg="D-MMV with out and without return different stuff")
     expected_dmmv = expected_mm.T @ (expected_mmv + w)
-    torch.testing.assert_allclose(expected_dmmv, actual, rtol=rtol, atol=atol,
-                                  msg="D-MMV result is incorrect")
+    torch.testing.assert_close(expected_dmmv, actual, rtol=rtol, atol=atol,
+                               msg="D-MMV result is incorrect")
 
     # 6. D-MMV gradients
     if grad_check and dmmv_grad_allowed:

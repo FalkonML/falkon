@@ -72,13 +72,13 @@ class TestNormSquare():
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
         exp = torch.norm(mat, p=2, dim=0, keepdim=True).pow_(2)
         act = square_norm(mat, dim=0, keepdim=True)
-        torch.testing.assert_allclose(exp, act)
+        torch.testing.assert_close(exp, act)
 
     def test_simple_grad(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
         exp = torch.norm(mat, p=2, dim=0, keepdim=True).pow(2)
         act = square_norm(mat, 0, True)
-        torch.testing.assert_allclose(exp, act)
+        torch.testing.assert_close(exp, act)
         if dtype == np.float32:
             return
         torch.autograd.gradcheck(lambda m: square_norm(m, 0, True), inputs=[mat])
@@ -88,13 +88,13 @@ class TestNormSquare():
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
         exp = torch.norm(mat, p=2, dim=-1, keepdim=True).pow_(2)
         act = square_norm(mat, dim=-1, keepdim=True)
-        torch.testing.assert_allclose(exp, act)
+        torch.testing.assert_close(exp, act)
 
     def test_negdim_grad(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
         exp = torch.norm(mat, p=2, dim=-1, keepdim=False).pow(2)
         act = square_norm(mat, dim=-1, keepdim=False)
-        torch.testing.assert_allclose(exp, act)
+        torch.testing.assert_close(exp, act)
         if dtype == np.float32:
             return
         torch.autograd.gradcheck(lambda m: square_norm(m, dim=-1, keepdim=False), inputs=[mat])
@@ -104,13 +104,13 @@ class TestNormSquare():
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device)
         exp = torch.norm(mat, p=2, dim=1, keepdim=False).pow_(2)
         act = square_norm(mat, dim=1, keepdim=False)
-        torch.testing.assert_allclose(exp, act)
+        torch.testing.assert_close(exp, act)
 
     def test_nokeep_grad(self, mat, order, dtype, device):
         mat = fix_mat(mat, order=order, dtype=dtype, numpy=False).to(device=device).requires_grad_()
         exp = torch.norm(mat, p=2, dim=0, keepdim=False).pow(2)
         act = square_norm(mat, dim=0, keepdim=False)
-        torch.testing.assert_allclose(exp, act)
+        torch.testing.assert_close(exp, act)
         if dtype == np.float32:
             return
         torch.autograd.gradcheck(lambda m: square_norm(m, dim=0, keepdim=False), inputs=[mat])
