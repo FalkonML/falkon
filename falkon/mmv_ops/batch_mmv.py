@@ -91,6 +91,8 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: torch.Tensor, vout: to
                     c_host_vout.copy_(c_dev_vout, non_blocking=True)
             # end iter over N
         # end iter over B
+        if dev.type == 'cuda':
+            tcd.current_stream(dev).synchronize()
     # exit context manager (device, stream)
 
 
