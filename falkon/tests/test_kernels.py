@@ -292,8 +292,12 @@ class TestGaussianKernel:
                            w=w,
                            rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma)
         if comp_dev == "cpu":
-            assert f"The size of tensor a ({d}) must match the size of tensor b ({d - 1})" in str(
-                excinfo.value)
+            assert (
+                f"The size of tensor a ({d}) must match the size of tensor b ({d - 1})"
+                    in str(excinfo.value) or
+                f"a Tensor with {d - 1} elements cannot be converted to Scalar"
+                    in str(excinfo.value)
+            )
         # If on GPU the 'size mismatch' message is in the base exception (since it's reraised
         # by PropagatingThread) but I'm not sure how to fetch it.
 
