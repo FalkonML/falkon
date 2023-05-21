@@ -19,7 +19,7 @@ def validate_sigma(sigma: Union[float, torch.Tensor]) -> torch.Tensor:
         try:
             sigma.item()
             return sigma
-        except ValueError:
+        except (ValueError, RuntimeError):
             pass
         # Sigma is a vector ('diag')
         if sigma.dim() == 1 or sigma.shape[1] == 1:

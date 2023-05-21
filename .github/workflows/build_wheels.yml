@@ -9,24 +9,53 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, macos-10.15]
-        python-version: ['3.8', '3.9', '3.10']
-        torch-version: ['1.10.2', '1.11.0']
-        cuda-version: ['cpu', 'cu102', 'cu113']
+        os: [ubuntu-20.04]
+        # support version based on: https://download.pytorch.org/whl/torch/
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        torch-version: [1.11.0, 1.13.0, 2.0.0]
+        cuda-version: ['cpu', 'cu113', 'cu115', 'cu116', 'cu117', 'cu118']
         exclude:
-          - torch-version: '1.10.2'
-            python-version: '3.10'
-          - os: macos-10.15
+          - torch-version: 1.11.0
+            python-version: '3.11'
+          - torch-version: 1.11.0
+            cuda-version: 'cu116'
+          - torch-version: 1.11.0
+            cuda-version: 'cu117'
+          - torch-version: 1.11.0
+            cuda-version: 'cu118'
+
+          - torch-version: 1.13.0
             cuda-version: 'cu102'
-          - os: macos-10.15
+          - torch-version: 1.13.0
             cuda-version: 'cu113'
+          - torch-version: 1.13.0
+            cuda-version: 'cu115'
+          - torch-version: 1.13.0
+            cuda-version: 'cu118'
+
+          - torch-version: 2.0.0
+            python-version: '3.7'
+          - torch-version: 2.0.0
+            cuda-version: 'cu102'
+          - torch-version: 2.0.0
+            cuda-version: 'cu113'
+          - torch-version: 2.0.0
+            cuda-version: 'cu115'
+          - torch-version: 2.0.0
+            cuda-version: 'cu116'
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade pip
+        run: |
+          pip install --upgrade setuptools
+          pip install ninja
 
       - name: Free up disk space
         if: ${{ runner.os == 'Linux' }}
@@ -36,14 +65,15 @@ jobs:
       - name: Install CUDA ${{ matrix.cuda-version }}
         if: ${{ matrix.cuda-version != 'cpu' }}
         run: |
-          bash .github/workflows/cuda/${{ matrix.cuda-version }}-${{ runner.os }}.sh
+          bash .github/workflows/cuda/${{ runner.os }}.sh ${{ matrix.cuda-version }}
 
       - name: Install PyTorch ${{ matrix.torch-version }}+${{ matrix.cuda-version }}
         run: |
-          pip install numpy typing-extensions dataclasses scipy
-          pip install --no-index --no-cache-dir torch==${{ matrix.torch-version }} -f https://download.pytorch.org/whl/${{ matrix.cuda-version }}/torch_stable.html
+          pip install numpy scipy
+          pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/${{ matrix.cuda-version }}
           python -c "import torch; print('PyTorch:', torch.__version__)"
           python -c "import torch; print('CUDA:', torch.version.cuda)"
+          python -c "import torch; print('CUDA Available:', torch.cuda.is_available())"
 
       - name: Install build prerequisites
         run: |
@@ -53,20 +83,25 @@ jobs:
         if: ${{ matrix.cuda-version == 'cpu' }}
         run: |
           FORCE_ONLY_CPU=1 pip install -e .
-        shell:
-          bash
 
       - name: Install main package for GPU
         if: ${{ matrix.cuda-version != 'cpu' }}
         run: |
-          source .github/workflows/cuda/${{ matrix.cuda-version }}-${{ runner.os }}-env.sh
-          python setup.py develop
+          source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
+          pip install -e .
         shell:
           bash
 
+      - name: Test installation
+        run: |
+          python -c "import falkon; print('falkon:', falkon.__version__)" 
+
       - name: Build wheel
         run: |
+          pip install wheel
           python setup.py bdist_wheel --dist-dir=dist
+        shell:
+          bash
 
       - name: Upload wheel
         uses: actions/upload-artifact@v2

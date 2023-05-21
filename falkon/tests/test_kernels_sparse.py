@@ -104,11 +104,11 @@ def run_sparse_test(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt, 
                         extra_mem=m1.shape[0] * m2.shape[0] * sizeof_dtype(m1.dtype)) as new_opt:
         actual_noout = kernel(s_m1, s_m2, opt=new_opt)
     assert mm_out.data_ptr() == actual.data_ptr(), "sparse MM Output data tensor was not used"
-    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                  msg="sparse MM with out and without return different stuff")
+    torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                               msg="sparse MM with out and without return different stuff")
     expected_mm = naive_fn(m1, m2, **kernel_params)
-    torch.testing.assert_allclose(expected_mm, actual, rtol=rtol, atol=atol,
-                                  msg="sparse MM result is incorrect")
+    torch.testing.assert_close(expected_mm, actual, rtol=rtol, atol=atol,
+                               msg="sparse MM result is incorrect")
 
     # 2. MMV
     mmv_out = torch.empty(s_m1.shape[0], v.shape[1], dtype=s_m1.dtype, device=s_m1.device)
@@ -118,11 +118,11 @@ def run_sparse_test(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt, 
                         extra_mem=m1.shape[0] * v.shape[1] * sizeof_dtype(m1.dtype)) as new_opt:
         actual_noout = kernel.mmv(s_m1, s_m2, v, opt=new_opt)
     assert mmv_out.data_ptr() == actual.data_ptr(), "sparse MMV Output data tensor was not used"
-    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                  msg="sparse MMV with out and without return different stuff")
+    torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                               msg="sparse MMV with out and without return different stuff")
     expected_mmv = expected_mm @ v
-    torch.testing.assert_allclose(expected_mmv, actual, rtol=rtol, atol=atol,
-                                  msg="sparse MMV result is incorrect")
+    torch.testing.assert_close(expected_mmv, actual, rtol=rtol, atol=atol,
+                               msg="sparse MMV result is incorrect")
 
     # 3. dMMV
     dmmv_out = torch.empty(s_m2.shape[0], v.shape[1], dtype=s_m2.dtype, device=s_m2.device)
@@ -132,11 +132,11 @@ def run_sparse_test(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt, 
                         extra_mem=m2.shape[0] * v.shape[1] * sizeof_dtype(m1.dtype)) as new_opt:
         actual_noout = kernel.dmmv(s_m1, s_m2, v, w, opt=new_opt)
     assert dmmv_out.data_ptr() == actual.data_ptr(), "sparse D-MMV Output data tensor was not used"
-    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                  msg="sparse D-MMV with out and without return different stuff")
+    torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                               msg="sparse D-MMV with out and without return different stuff")
     expected_dmmv = expected_mm.T @ (expected_mmv + w)
-    torch.testing.assert_allclose(expected_dmmv, actual, rtol=rtol, atol=atol,
-                                  msg="sparse D-MMV result is incorrect")
+    torch.testing.assert_close(expected_dmmv, actual, rtol=rtol, atol=atol,
+                               msg="sparse D-MMV result is incorrect")
 
 
 def run_sparse_test_wsigma(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt,

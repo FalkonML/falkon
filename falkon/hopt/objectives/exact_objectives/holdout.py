@@ -72,16 +72,16 @@ class HoldOut(HyperoptObjective):
         kmm = self.kernel(self.centers, self.centers)
         L = jittering_cholesky(kmm)  # L @ L.T = kmm
         # A = L^{-1} K_mn / (sqrt(n*pen))
-        A = torch.triangular_solve(kmn, L, upper=False).solution / sqrt_var
+        A = torch.linalg.solve_triangular(L, kmn, upper=False) / sqrt_var
         AAT = A @ A.T
         # B = A @ A.T + I
         B = AAT + torch.eye(AAT.shape[0], device=X.device, dtype=X.dtype)
         LB = jittering_cholesky(B)  # LB @ LB.T = B
         AYtr = A @ Y
-        c = torch.triangular_solve(AYtr, LB, upper=False).solution / sqrt_var
+        c = torch.linalg.solve_triangular(LB, AYtr, upper=False) / sqrt_var
 
-        tmp1 = torch.triangular_solve(c, LB, upper=False, transpose=True).solution
-        alpha = torch.triangular_solve(tmp1, L, upper=False, transpose=True).solution
+        tmp1 = torch.linalg.solve_triangular(LB.T, c, upper=True)
+        alpha = torch.linalg.solve_triangular(L.T, tmp1, upper=True)
         return alpha
 
     def _save_losses(self, holdout):

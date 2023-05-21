@@ -5,31 +5,30 @@ import platform
 import sys
 from typing import Any, Tuple, List
 
+import numpy
+import torch
+from torch.__config__ import parallel_info
+from torch.utils.cpp_extension import (
+    CUDA_HOME,
+    BuildExtension,
+    CppExtension,
+    CUDAExtension,
+)
 from setuptools import setup, find_packages, Extension, dist
 
-try:
-    import torch
-except ImportError:
-    raise ImportError("PyTorch must be pre-installed before installing Falkon.")
-from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CUDA_HOME, CppExtension
+WITH_CUDA = False
+if torch.cuda.is_available():
+    WITH_CUDA = CUDA_HOME is not None or torch.version.hip
+if os.getenv('FORCE_ONLY_CPU', '0') == '1':
+    WITH_CUDA = False
+WITH_SYMBOLS = os.getenv("WITH_SYMBOLS", "0") == "1"
 
-ONLY_CPU = os.getenv('FORCE_ONLY_CPU', '0')
-FORCE_CUDA = os.getenv('FORCE_CUDA', '0')
-WITH_CUDA = (
-    (torch.cuda.is_available() and CUDA_HOME is not None and ONLY_CPU != '1') or
-    (FORCE_CUDA == '1')
-)
-
+WITH_CYTHON = False
 try:
     from Cython.Build import cythonize
+    WITH_CYTHON = True
 except ImportError:
     cythonize = None
-    WITH_CYTHON = False
-else:
-    WITH_CYTHON = True
-
-
-CURRENT_DIR = "."
 
 
 def get_version(root_dir):
@@ -38,46 +37,8 @@ def get_version(root_dir):
     return version
 
 
-def parallel_backend():
-    # https://github.com/suphoff/pytorch_parallel_extension_cpp/blob/master/setup.py
-    from torch.__config__ import parallel_info
-    parallel_info_string = parallel_info()
-    parallel_info_array = parallel_info_string.splitlines()
-    backend_lines = [line for line in parallel_info_array if line.startswith('ATen parallel backend:')]
-    if len(backend_lines) != 1:
-        return None
-    backend = backend_lines[0].rsplit(': ')[1]
-    return backend
-
-
-def parallel_extra_compile_args(is_torch: bool):
-    if is_torch:
-        backend = parallel_backend()
-        if backend == 'OpenMP' and sys.platform != 'darwin':
-            p_args = ['-DAT_PARALLEL_OPENMP']
-            if sys.platform == 'win32':
-                p_args.append('/openmp')
-            else:
-                p_args.append('-fopenmp')
-            return p_args
-        elif backend == 'native thread pool':
-            return ['-DAT_PARALLEL_NATIVE']
-        elif backend == 'native thread pool and TBB':
-            return ['-DAT_PARALLEL_NATIVE_TBB']
-        else:
-            return []
-    else:
-        info = torch.__config__.parallel_info()
-        if 'OpenMP not found' not in info and sys.platform != 'darwin':
-            if sys.platform == 'win32':
-                return ['/openmp']
-            else:
-                return ['-fopenmp']
-        else:
-            return []
-
-
 def torch_version():
+    import torch
     version = torch.__version__
     split_version = version.split(".")
     # With torch 1.10.0 the version 'number' include CUDA version (e.g. '1.10.0+cu102').
@@ -99,60 +60,85 @@ def get_extensions():
     extensions = []
 
     # All C/CUDA routines are compiled into a single extension
-    extension_cls = CppExtension
-    ext_dir = osp.join(CURRENT_DIR, 'falkon', 'csrc')
+    ext_cls = CppExtension
+    ext_dir = osp.join('.', 'falkon', 'csrc')
     ext_files = (glob.glob(osp.join(ext_dir, '*.cpp')) +
                  glob.glob(osp.join(ext_dir, 'cpu', '*.cpp')))
 
-    extra_compile_args = {
-        'cxx': parallel_extra_compile_args(is_torch=True)
-    }
-    link_args = []
     libraries = []
     macros: List[Tuple[str, Any]] = torch_version_macros()
+    undef_macros = []
+    extra_compile_args = {'cxx': ['-O3']}
+    if not os.name == 'nt':  # Not on Windows:
+        extra_compile_args['cxx'] += ['-Wno-sign-compare']
+    if sys.platform == 'darwin':  # On macOS:
+        extra_compile_args['cxx'] += ['-D_LIBCPP_DISABLE_AVAILABILITY']
+    extra_link_args = [] if WITH_SYMBOLS else ['-s']
+
+    info = parallel_info()
+    if ('backend: OpenMP' in info and 'OpenMP not found' not in info
+            and sys.platform != 'darwin'):
+        extra_compile_args['cxx'] += ['-DAT_PARALLEL_OPENMP']
+        if sys.platform == 'win32':
+            extra_compile_args['cxx'] += ['/openmp']
+        else:
+            extra_compile_args['cxx'] += ['-fopenmp']
+    else:
+        print('Compiling without OpenMP...')
 
     # Compile for mac arm64
-    if sys.platform == 'darwin' and platform.machine() == 'arm64':
-        extra_compile_args['cxx'] += ['-arch', 'arm64']
-        link_args += ['-arch', 'arm64']
+    if sys.platform == "darwin" and platform.machine() == "arm64":
+        extra_compile_args["cxx"] += ["-arch", "arm64"]
+        extra_link_args += ["-arch", "arm64"]
 
     if WITH_CUDA:
-        extension_cls = CUDAExtension
+        ext_cls = CUDAExtension
         cuda_files = (glob.glob(osp.join(ext_dir, 'cuda', '*.cu')) +
                       glob.glob(osp.join(ext_dir, 'cuda', '*.cpp')))
         ext_files.extend(cuda_files)
         macros.append(('WITH_CUDA', None))
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
-        nvcc_flags += ['--expt-relaxed-constexpr', '--expt-extended-lambda', '-O2']
+        nvcc_flags.append('-O3')
+        if torch.version.hip:
+            # USE_ROCM was added to later versions of PyTorch
+            # Define here to support older PyTorch versions as well:
+            macros += [('USE_ROCM', None)]
+            undef_macros += ['__HIP_NO_HALF_CONVERSIONS__']
+        else:
+            nvcc_flags += ['--expt-relaxed-constexpr']
         extra_compile_args['nvcc'] = nvcc_flags
-        link_args += ['-lcusparse', '-l', 'cusparse',
-                      '-lcublas', '-l', 'cublas',
-                      '-lcusolver', '-l', 'cusolver']
-        libraries.extend(['cusolver', 'cublas', 'cusparse', 'torch_cuda_linalg'])
+        extra_link_args += ['-lcusparse', '-l', 'cusparse',
+                            '-lcublas', '-l', 'cublas',
+                            '-lcusolver', '-l', 'cusolver',
+                            '-ltorch_cuda_linalg', '-l', 'torch_cuda_linalg']
+        libraries += ['cusolver', 'cublas', 'cusparse', 'torch_cuda_linalg']
 
     print(f"Defining C-extension on platform {sys.platform}. compile args: {extra_compile_args}  "
-          f"macros: {macros}  link args: {link_args}")
+          f"macros: {macros}  link args: {extra_link_args}")
+    # remove generated 'hip' files, in case of rebuilds
+    ext_files = [path for path in ext_files if 'hip' not in path]
+
     extensions.append(
-        extension_cls(
+        ext_cls(
             "falkon.c_ext",
             sources=ext_files,
             include_dirs=[ext_dir],
             define_macros=macros,
             extra_compile_args=extra_compile_args,
-            extra_link_args=link_args,
+            extra_link_args=extra_link_args,
             libraries=libraries,
         )
     )
 
     # Cyblas helpers
     file_ext = '.pyx' if WITH_CYTHON else '.c'
-    extra_compile_args = parallel_extra_compile_args(is_torch=False)
-    extra_compile_args += ['-shared', '-fPIC', '-O3', '-Wall', '-std=c99']
+    extra_compile_args = ['-shared', '-fPIC', '-O3', '-Wall', '-std=c99']
+    if 'OpenMP not found' not in info and sys.platform != 'darwin':
+        extra_compile_args.append('-fopenmp')
     extra_link_args = ['-fPIC']
-    import numpy
     print(f"Defining Cython extension on platform {sys.platform}. "
-          f"compile args: {extra_compile_args}  link args: {link_args}")
+          f"compile args: {extra_compile_args}  link args: {extra_link_args}")
     cyblas_ext = [Extension('falkon.la_helpers.cyblas',
                             sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
                             include_dirs=[numpy.get_include()],
@@ -172,9 +158,8 @@ install_requires = [
     'numpy',
     'scikit-learn',
     'psutil',
-    'dataclasses;python_version<"3.7"',
-    'keopscore @ git+https://github.com/getkeops/keops@ad044a671fdc3c2790b0321f6b9f9b5aa3d220df#subdirectory=keopscore',
-    'pykeops @ git+https://github.com/getkeops/keops@ad044a671fdc3c2790b0321f6b9f9b5aa3d220df#subdirectory=pykeops',
+    'keopscore @ git+https://github.com/getkeops/keops.git@main#subdirectory=keopscore',
+    'pykeops @ git+https://github.com/getkeops/keops.git@main#subdirectory=pykeops',
 ]
 test_requires = [
     'pandas',
@@ -196,11 +181,6 @@ doc_requires = [
     # Also pandoc, must be installed system-wide with apt
 ]
 
-extras = {
-    'test': test_requires,
-    'doc': doc_requires
-}
-
 # Make sure we have numpy setup before attempting to run anything else.
 # Numpy is actually needed only to get the include-directories for Cython.
 # https://stackoverflow.com/questions/19919905/how-to-bootstrap-numpy-installation-in-setup-py
@@ -210,19 +190,19 @@ setup(
     name="falkon",
     version=get_version("falkon"),
     description="Fast, GPU enabled, approximate kernel ridge regression solver.",
-    python_requires='~=3.7',
-    setup_requires=[
-        'setuptools>=18.0',  # Setuptools 18.0 properly handles Cython extensions.
-        'numpy',
-        'scipy',  # Only when compiling Cython (due to dependency on scipy lapack bindings)
-    ],
+    python_requires='>=3.7',
     tests_require=test_requires,
-    extras_require=extras,
-    ext_modules=get_extensions(),
-    packages=find_packages(),
-    cmdclass={
-        'build_ext': BuildExtension.with_options(no_python_abi_suffix=True, use_ninja=True)
+    extras_require={
+        'test': test_requires,
+        'doc': doc_requires
     },
     install_requires=install_requires,
+    ext_modules=get_extensions(),
+    cmdclass={
+        'build_ext': BuildExtension.with_options(
+            no_python_abi_suffix=True
+        )
+    },
+    packages=find_packages(),
     include_package_data=True,  # Since we have a MANIFEST.in this will take all from there.
 )

@@ -14,7 +14,15 @@ from .benchmark_utils import Dataset
 __all__ = (
     "get_load_fn", "get_cv_fn",
     "BaseDataset", "HiggsDataset", "SusyDataset", "MillionSongsDataset",
-    "TimitDataset", "NycTaxiDataset", "YelpDataset", "FlightsDataset"
+    "TimitDataset", "NycTaxiDataset", "YelpDataset", "FlightsDataset",
+    "FlightsClsDataset", "CIFAR10Dataset", "CIFAR10RGBDataset",
+    "SVHNDataset", "FashionMnistDataset", "MnistSmallDataset", "MnistDataset",
+    "SmallHiggsDataset", "IctusDataset", "SyntheticDataset", "ChietDataset",
+    "EnergyDataset", "BostonDataset", "ProteinDataset", "Kin40kDataset",
+    "CodRnaDataset", "SvmGuide1Dataset", "PhishingDataset", "SpaceGaDataset",
+    "CadataDataset", "MgDataset", "CpuSmallDataset", "AbaloneDataset",
+    "CaspDataset", "BlogFeedbackDataset", "CovTypeDataset", "Ijcnn1Dataset",
+    "BuzzDataset", "Road3DDataset", "HouseEelectricDataset",
 )
 
 
@@ -25,7 +33,7 @@ def load_from_npz(dset_name, folder, dtype, verbose=False):
     y_data = np.load(y_file).astype(as_np_dtype(dtype))
     if verbose:
         print("Loaded %s. X: %s - Y: %s" % (dset_name, x_data.shape, y_data.shape))
-    return (x_data, y_data)
+    return x_data, y_data
 
 
 def load_from_t(dset_name, folder, verbose=False):
@@ -143,7 +151,7 @@ def rgb_to_bw(X, dim=32):
     return 0.2126 * R + 0.7152 * G + 0.0722 * B
 
 
-class MyKFold():
+class MyKFold:
     def __init__(self, n_splits, shuffle, seed=92):
         self.n_splits = n_splits
         self.shuffle = shuffle
@@ -169,7 +177,7 @@ class MyKFold():
             current = stop
 
 
-class BaseDataset():
+class BaseDataset:
     def load_data(self, dtype, as_torch=False, as_tf=False):
         X, Y = self.read_data(dtype)
         print(f"Loaded {self.dset_name} dataset in {dtype} precision.", flush=True)
@@ -246,7 +254,7 @@ class BaseDataset():
 
     def to_tensorflow(self, Xtr, Ytr, Xts, Yts, **kwargs):
         # By default tensorflow is happy with numpy arrays
-        return (Xtr, Ytr, Xts, Yts, kwargs)
+        return Xtr, Ytr, Xts, Yts, kwargs
 
     @property
     @abstractmethod

@@ -9,28 +9,44 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        python-version: ['3.8']
-        torch-version: ['1.10.2', '1.11.0']
+        os: [ubuntu-20.04]
+        python-version: ['3.8.12']
+        torch-version: [1.13.1, 2.0.1]
 
     steps:
       - name: Checkout with submodules
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
+        uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install PyTorch ${{ matrix.torch-version }}
+      - name: Upgrade pip
         run: |
-          pip install torch==${{ matrix.torch-version}}+cpu -f https://download.pytorch.org/whl/torch_stable.html
+          pip install --upgrade setuptools
+          pip install ninja
+
+      - name: Free up disk space
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo rm -rf /usr/share/dotnet
+
+      - name: Install setup dependencies (PyTorch ${{ matrix.torch-version }}+cpu)
+        run: |
+          pip install numpy
+          pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/cpu
+          python -c "import torch; print('PyTorch:', torch.__version__)"
+          python -c "import torch; print('CUDA:', torch.version.cuda)"
+          python -c "import torch; print('CUDA Available:', torch.cuda.is_available())"
 
       - name: Install main package
         run: |
-          pip install -e .[test]
+          python setup.py develop
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-cov
 
       - name: Run test-suite
         run: |

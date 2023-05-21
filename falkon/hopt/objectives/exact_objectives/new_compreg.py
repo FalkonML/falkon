@@ -31,7 +31,7 @@ class NystromCompReg(HyperoptObjective):
         Kdiag = self.kernel(X, X, diag=True).sum()
 
         L, A, AAT, LB, c = self._calc_intermediate(X, Y)
-        C = torch.triangular_solve(A, LB, upper=False).solution  # m*n
+        C = torch.linalg.solve_triangular(LB, A, upper=False)  # m * n
 
         datafit = (torch.square(Y).sum() - torch.square(c / sqrt_var).sum())
         ndeff = (C / sqrt_var).square().sum()
@@ -46,8 +46,8 @@ class NystromCompReg(HyperoptObjective):
             raise RuntimeError("Call forward at least once before calling predict.")
         with torch.autograd.no_grad():
             L, A, AAT, LB, c = self._calc_intermediate(self.x_train, self.y_train)
-            tmp1 = torch.triangular_solve(c, LB, upper=False, transpose=True).solution
-            tmp2 = torch.triangular_solve(tmp1, L, upper=False, transpose=True).solution
+            tmp1 = torch.linalg.solve_triangular(LB.T, c, upper=True)
+            tmp2 = torch.linalg.solve_triangular(L.T, tmp1, upper=True)
             kms = self.kernel(self.centers, X)
             return kms.T @ tmp2
 
@@ -58,14 +58,14 @@ class NystromCompReg(HyperoptObjective):
         kmm = self.kernel(self.centers, self.centers)
 
         L = jittering_cholesky(kmm)
-        A = torch.triangular_solve(kmn, L, upper=False).solution
+        A = torch.linalg.solve_triangular(L, kmn, upper=False)
         AAT = A @ A.T  # m*n @ n*m = m*m in O(n * m^2), equivalent to kmn @ knm.
         # B = A @ A.T + I
         B = AAT / variance + torch.eye(AAT.shape[0], device=X.device, dtype=X.dtype)
         LB = jittering_cholesky(B)  # LB @ LB.T = B
 
         AY = A @ Y  # m*1
-        c = torch.triangular_solve(AY, LB, upper=False).solution  # m*p
+        c = torch.linalg.solve_triangular(LB, AY, upper=False)  # m * p
 
         return L, A, AAT, LB, c
 

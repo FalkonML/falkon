@@ -190,7 +190,7 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
         dev_v, flat_offset = _extract_flat(flat_gpu, size=(blk_m, T), other=v, offset=flat_offset)
 
     with ExitStack() as stack, torch.inference_mode():
-        s1, s2 = _init_two_streams(stack, dev, tid)
+        s1, s2 = _init_two_streams(stack, dev, tid)  # enters stream 1
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
 
@@ -226,11 +226,11 @@ def sparse_mmv_run_thread(m1: SparseTensor, m2: SparseTensor, v: torch.Tensor,
                 if not incore:
                     s2.synchronize()
                 c_dev_out.addmm_(c_dev_ker, c_dev_v)
-
-                # Copy output to host
                 if not incore:
-                    copy(c_dev_out, out[i: i + leni], non_blocking=True)
+                    s1.synchronize()  # sync necessary to avoid s2 overwriting dev_v/dev_w
             # end iter over M
+            if not incore:  # Copy output to host
+                copy(c_dev_out, out[i: i + leni], non_blocking=True)
         if tid != -1 and s1 is not None:
             s1.synchronize()
         # end iter over N
@@ -352,22 +352,26 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
                 c_dev_ker = kernel.compute_diff(c_dev_m1, c_dev_m2, diag=False)
                 if not incore:
                     s2.synchronize()
+                # main MMV operation on current block
                 c_dev_mmv = c_dev_ker @ c_dev_v
+                # Build inputs for torch.autograd.grad
                 c_inputs = [c_dev_m1, c_dev_m2, c_dev_v] + list(kernel.diff_params.values())
-                c_dev_grads_old = [c_dev_m1_g, c_dev_m2_g, c_dev_v_g] + grads[3:]
                 c_dev_grads = torch.autograd.grad(
                     c_dev_mmv, [c_inputs[idx] for idx in input_idxs], grad_outputs=c_dev_out)
+                c_dev_grads_old = [c_dev_m1_g, c_dev_m2_g, c_dev_v_g] + grads[3:]
                 for c_grad, c_idx in zip(c_dev_grads, input_idxs):
                     c_dev_grads_old[c_idx].add_(c_grad)
                 if grads[1] is not None:
-                    grads[1][j: j + lenj, :] = c_dev_m2_g.to(grads[1].device, non_blocking=True, copy=False)
+                    grads[1][j: j + lenj, :].copy_(c_dev_m2_g, non_blocking=True)
+                    # grads[1][j: j + lenj, :] = c_dev_m2_g.to(grads[1].device, non_blocking=True, copy=False)
                 if grads[2] is not None:
-                    grads[2][j: j + lenj, :] = c_dev_v_g.to(grads[2].device, non_blocking=True, copy=False)
+                    grads[2][j: j + lenj, :].copy_(c_dev_v_g, non_blocking=True)
                 if not incore:
                     s1.synchronize()  # sync necessary to avoid s2 overwriting dev_v/dev_w
             # end iter over M
             if grads[0] is not None:
-                grads[0][i: i + leni, :] = c_dev_m1_g.to(grads[0].device, non_blocking=True, copy=False)
+                grads[0][i: i + leni, :].copy_(c_dev_m1_g, non_blocking=True)
+                # grads[0][i: i + leni, :] = c_dev_m1_g.to(grads[0].device, non_blocking=True, copy=False)
         if tid != -1 and s1 is not None:
             s1.synchronize()
         # end iter over N

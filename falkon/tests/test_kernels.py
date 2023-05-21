@@ -117,17 +117,18 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
 
         assert mm_out.data_ptr() == actual.data_ptr(), "MM Output data tensor was not used"
         assert mm_out_wgrad.data_ptr() == actual_wgrad.data_ptr(), "MM Output data tensor was not used"
-        torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
-                                      msg="MM Wgrad and normal return different stuff")
-        torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                      msg="MM with out and without return different stuff")
-        torch.testing.assert_allclose(expected_mm, actual, rtol=rtol, atol=atol,
-                                      msg="MM result is incorrect")
+        torch.testing.assert_close(actual_wgrad, actual, rtol=rtol, atol=atol,
+                                   msg="MM Wgrad and normal return different stuff")
+        torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                                   msg="MM with out and without return different stuff")
+        torch.testing.assert_close(expected_mm, actual, rtol=rtol, atol=atol,
+                                   msg="MM result is incorrect")
 
         # 2. MM gradients
         if grad_check:
             def autogradcheck_mm(_m1, _m2, *_kernel_params):
                 return kernel_wgrad(_m1, _m2, opt=opt)
+
             torch.autograd.gradcheck(
                 autogradcheck_mm, inputs=(m1_wgrad, m2_wgrad, *kernel_wgrad.diff_params.values()),
                 check_undefined_grad=False,  # TODO: Set to true this causes random segfaults with linear kernel.
@@ -147,18 +148,19 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
             actual_wgrad.sum(), [m1_wgrad, m2_wgrad, v_wgrad] + list(kernel_wgrad.diff_params.values()))
     assert mmv_out.data_ptr() == actual.data_ptr(), "MMV Output data tensor was not used"
     assert mmv_out_wgrad.data_ptr() == actual_wgrad.data_ptr(), "MMV Output data tensor was not used"
-    torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
-                                  msg="MMV Wgrad and normal return different stuff")
-    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                  msg="MMV with out and without return different stuff")
+    torch.testing.assert_close(actual_wgrad, actual, rtol=rtol, atol=atol,
+                               msg="MMV Wgrad and normal return different stuff")
+    torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                               msg="MMV with out and without return different stuff")
     expected_mmv = expected_mm @ v
-    torch.testing.assert_allclose(expected_mmv, actual, rtol=rtol, atol=atol,
-                                  msg="MMV result is incorrect")
+    torch.testing.assert_close(expected_mmv, actual, rtol=rtol, atol=atol,
+                               msg="MMV result is incorrect")
 
     # 4. MMV gradients
     if grad_check:
         def autogradcheck_mmv(_m1, _m2, _v, *_kernel_params):
             return kernel_wgrad.mmv(_m1, _m2, _v, opt=opt)
+
         torch.autograd.gradcheck(autogradcheck_mmv, inputs=(
             m1_wgrad, m2_wgrad, v_wgrad, *kernel_wgrad.diff_params.values()))
 
@@ -180,13 +182,13 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
 
     assert dmmv_out.data_ptr() == actual.data_ptr(), "D-MMV Output data tensor was not used"
     if dmmv_grad_allowed:
-        torch.testing.assert_allclose(actual_wgrad, actual, rtol=rtol, atol=atol,
-                                      msg="MMV Wgrad and normal return different stuff")
-    torch.testing.assert_allclose(actual_noout, actual, rtol=rtol, atol=atol,
-                                  msg="D-MMV with out and without return different stuff")
+        torch.testing.assert_close(actual_wgrad, actual, rtol=rtol, atol=atol,
+                                   msg="MMV Wgrad and normal return different stuff")
+    torch.testing.assert_close(actual_noout, actual, rtol=rtol, atol=atol,
+                               msg="D-MMV with out and without return different stuff")
     expected_dmmv = expected_mm.T @ (expected_mmv + w)
-    torch.testing.assert_allclose(expected_dmmv, actual, rtol=rtol, atol=atol,
-                                  msg="D-MMV result is incorrect")
+    torch.testing.assert_close(expected_dmmv, actual, rtol=rtol, atol=atol,
+                               msg="D-MMV result is incorrect")
 
     # 6. D-MMV gradients
     if grad_check and dmmv_grad_allowed:
@@ -198,7 +200,7 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestLaplacianKernel():
+class TestLaplacianKernel:
     naive_fn = naive_diff_laplacian_kernel
     k_class = LaplacianKernel
 
@@ -260,7 +262,7 @@ class TestLaplacianKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestGaussianKernel():
+class TestGaussianKernel:
     naive_fn = naive_diff_gaussian_kernel
     k_class = GaussianKernel
 
@@ -290,14 +292,18 @@ class TestGaussianKernel():
                            w=w,
                            rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma)
         if comp_dev == "cpu":
-            assert f"The size of tensor a ({d}) must match the size of tensor b ({d - 1})" in str(
-                excinfo.value)
+            assert (
+                f"The size of tensor a ({d}) must match the size of tensor b ({d - 1})"
+                in str(excinfo.value) or
+                f"a Tensor with {d - 1} elements cannot be converted to Scalar"
+                in str(excinfo.value)
+            )
         # If on GPU the 'size mismatch' message is in the base exception (since it's reraised
         # by PropagatingThread) but I'm not sure how to fetch it.
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestMaternKernel():
+class TestMaternKernel:
     naive_fn = naive_diff_matern_kernel
     k_class = MaternKernel
 
@@ -335,7 +341,7 @@ class TestMaternKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestLinearKernel():
+class TestLinearKernel:
     naive_fn = naive_diff_linear_kernel
     k_class = LinearKernel
     beta = torch.tensor(2.0)
@@ -359,7 +365,7 @@ class TestLinearKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestPolynomialKernel():
+class TestPolynomialKernel:
     naive_fn = naive_diff_polynomial_kernel
     k_class = PolynomialKernel
     beta = torch.tensor(2.0)
@@ -386,7 +392,7 @@ class TestPolynomialKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestLargeComputations():
+class TestLargeComputations:
     naive_fn = naive_diff_gaussian_kernel
     k_class = GaussianKernel
     n = 1500
@@ -425,7 +431,56 @@ class TestLargeComputations():
 
     @keops_mark
     def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
-        A, B, v, w, sigma = fix_mats(A, B, v, w, sigma, order="C", device=input_dev,
+        A, B, v, w, sigma = fix_mats(A, B, v, w, self.sigma, order="C", device=input_dev,
+                                     dtype=np.float32)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
+        run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                       w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma,
+                       grad_check=False)
+
+
+@pytest.mark.parametrize("input_dev,comp_dev", device_marks)
+class TestKeopsLargeD:
+    naive_fn = naive_diff_gaussian_kernel
+    k_class = GaussianKernel
+    n = 100
+    m = 250
+    # when d > 100 we set a special flag in keops.
+    d = 110
+    t = 2
+    max_mem = 1 * 2 ** 20
+    basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
+                                  max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+    sigma = torch.Tensor([3.0])
+
+    @pytest.fixture(scope="class")
+    def A(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.n, self.d, 'float32', False, seed=92))
+
+    @pytest.fixture(scope="class")
+    def B(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.m, self.d, 'float32', False, seed=93))
+
+    @pytest.fixture(scope="class")
+    def v(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.m, self.t, 'float32', False, seed=94))
+
+    @pytest.fixture(scope="class")
+    def w(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.n, self.t, 'float32', False, seed=95))
+
+    @pytest.mark.parametrize("order", ["C", "F"])
+    def test_dense_kernel(self, A, B, v, w, rtol, atol, input_dev, comp_dev, order):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, self.sigma, order=order, device=input_dev,
+                                     dtype=np.float32)
+        opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
+                       w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma,
+                       grad_check=False)
+
+    @keops_mark
+    def test_keops_kernel(self, A, B, v, w, sigma, rtol, atol, input_dev, comp_dev):
+        A, B, v, w, sigma = fix_mats(A, B, v, w, self.sigma, order="C", device=input_dev,
                                      dtype=np.float32)
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="force")
         run_dense_test(TestGaussianKernel.k_class, TestGaussianKernel.naive_fn, m1=A, m2=B, v=v,
