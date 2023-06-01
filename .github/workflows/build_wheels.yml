@@ -103,8 +103,12 @@ jobs:
         shell:
           bash
 
-      - name: Upload wheel
-        uses: actions/upload-artifact@v2
+      - name: Upload wheel (sftp)
+        uses: Creepios/sftp-action@v1.0.5
         with:
-          name: whl-${{ matrix.torch-version }}+${{ matrix.cuda-version }}
-          path: dist/*.whl
+          host: ${{ secrets.SFTP_IP }}
+          port: 22
+          username: ${{ secrets.SFTP_USER }}
+          password: ${{ secrets.SFTP_PWD }}
+          localPath: dist
+          remotePath: falkon/whl/torch-${{ matrix.torch-version }}+${{ matrix.cuda-version }}
