@@ -11,9 +11,9 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         # support version based on: https://download.pytorch.org/whl/torch/
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
-        torch-version: [1.11.0, 1.13.0, 2.0.0]
-        cuda-version: ['cpu', 'cu113', 'cu115', 'cu116', 'cu117', 'cu118']
+        python-version: ['3.7']#, '3.8', '3.9', '3.10', '3.11']
+        torch-version: [1.11.0]#, 1.13.0, 2.0.0]
+        cuda-version: ['cpu']#, 'cu113', 'cu115', 'cu116', 'cu117', 'cu118']
         exclude:
           - torch-version: 1.11.0
             python-version: '3.11'
@@ -106,9 +106,9 @@ jobs:
       - name: Upload wheel (sftp)
         uses: Creepios/sftp-action@v1.0.5
         with:
-          host: ${{ secrets.SFTP_IP }}
+          host: "130.251.1.28"
           port: 22
-          username: ${{ secrets.SFTP_USER }}
-          password: ${{ secrets.SFTP_PWD }}
+          username: "${{ secrets.SFTP_USER }}"
+          password: "${{ secrets.SFTP_PWD }}"
           localPath: dist
           remotePath: falkon/whl/torch-${{ matrix.torch-version }}+${{ matrix.cuda-version }}
