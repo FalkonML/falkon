@@ -104,7 +104,7 @@ jobs:
           bash
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: whl-${{ matrix.torch-version }}+${{ matrix.cuda-version }}
+          name: torch-${{ matrix.torch-version }}_${{ matrix.cuda-version }}
           path: dist/*.whl
