@@ -106,7 +106,7 @@ def get_extensions():
             macros += [('USE_ROCM', None)]
             undef_macros += ['__HIP_NO_HALF_CONVERSIONS__']
         else:
-            nvcc_flags += ['--expt-relaxed-constexpr']
+            nvcc_flags += ['--expt-relaxed-constexpr', '--extended-lambda']
         extra_compile_args['nvcc'] = nvcc_flags
         extra_link_args += ['-lcusparse', '-l', 'cusparse',
                             '-lcublas', '-l', 'cublas',

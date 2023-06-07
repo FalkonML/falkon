@@ -22,18 +22,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Upgrade pip
-        run: |
-          pip install --upgrade pip setuptools
-          pip install ninja
-
       - name: Free up disk space
         if: ${{ runner.os == 'Linux' }}
         run: |
           sudo rm -rf /usr/share/dotnet
 
+      - name: Setup venv
+        run: |
+          python -m venv flk-env
+          source flk-env/bin/activate
+
       - name: Install setup dependencies (PyTorch ${{ matrix.torch-version }}+cpu)
         run: |
+          source flk-env/bin/activate
+          echo "Python is located at $(which python)"
+          pip install --upgrade pip setuptools wheel ninja
           pip install numpy
           pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/cpu
           python -c "import torch; print('PyTorch:', torch.__version__)"
@@ -42,13 +45,15 @@ jobs:
 
       - name: Install main package
         run: |
+          source flk-env/bin/activate
           pip install -e .
-#          python setup.py develop
 
       - name: Install test dependencies
         run: |
+          source flk-env/bin/activate
           pip install pytest pytest-cov
 
       - name: Run test-suite
         run: |
+          source flk-env/bin/activate
           pytest --cov-report=term-missing --cov-report=xml:coverage.xml --cov=falkon --cov-config setup.cfg
