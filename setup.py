@@ -4,6 +4,7 @@ import os.path as osp
 import platform
 import sys
 from typing import Any, Tuple, List
+from setuptools import setup, find_packages, Extension, dist
 
 import numpy
 import torch
@@ -14,7 +15,6 @@ from torch.utils.cpp_extension import (
     CppExtension,
     CUDAExtension,
 )
-from setuptools import setup, find_packages, Extension, dist
 
 WITH_CUDA = False
 if torch.cuda.is_available():
