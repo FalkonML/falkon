@@ -70,28 +70,29 @@ def torch_version():
 _HAS_EXT = False
 
 try:
-    # try to import the compiled module (via setup.py)
-    lib_path = _get_extension_path("_C")
-    torch.ops.load_library(lib_path)
-    _HAS_EXT = True
+    if not _HAS_EXT:
+        # try to import the compiled module (via setup.py)
+        lib_path = _get_extension_path("_C")
+        torch.ops.load_library(lib_path)
+        _HAS_EXT = True
 
-    # Check torch version vs. compilation version
-    # Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
-    # https://github.com/rusty1s/pytorch_scatter/blob/master/torch_scatter/__init__.py
-    flk_cuda_version = torch.ops.falkon._cuda_version()
-    if torch.cuda.is_available() and flk_cuda_version != -1:
-        if flk_cuda_version < 10000:
-            f_major, f_minor = int(str(flk_cuda_version)[0]), int(str(flk_cuda_version)[2])
-        else:
-            f_major, f_minor = int(str(flk_cuda_version)[0:2]), int(str(flk_cuda_version)[3])
-        t_major, t_minor = [int(x) for x in torch.version.cuda.split('.')]
+        # Check torch version vs. compilation version
+        # Copyright (c) 2020 Matthias Fey <matthias.fey@tu-dortmund.de>
+        # https://github.com/rusty1s/pytorch_scatter/blob/master/torch_scatter/__init__.py
+        flk_cuda_version = torch.ops.falkon._cuda_version()
+        if torch.cuda.is_available() and flk_cuda_version != -1:
+            if flk_cuda_version < 10000:
+                f_major, f_minor = int(str(flk_cuda_version)[0]), int(str(flk_cuda_version)[2])
+            else:
+                f_major, f_minor = int(str(flk_cuda_version)[0:2]), int(str(flk_cuda_version)[3])
+            t_major, t_minor = [int(x) for x in torch.version.cuda.split('.')]
 
-        if t_major != f_major:
-            raise RuntimeError(
-                f'PyTorch and Falkon were compiled with different CUDA versions. '
-                f'PyTorch has CUDA version {t_major}.{t_minor} and Falkon has CUDA version '
-                f'{f_major}.{f_minor}. Please reinstall Falkon such that its version matches '
-                f'your PyTorch install.')
+            if t_major != f_major:
+                raise RuntimeError(
+                    f'PyTorch and Falkon were compiled with different CUDA versions. '
+                    f'PyTorch has CUDA version {t_major}.{t_minor} and Falkon has CUDA version '
+                    f'{f_major}.{f_minor}. Please reinstall Falkon such that its version matches '
+                    f'your PyTorch install.')
 except ImportError:
     # if failed, try with JIT compilation
     ext_dir = os.path.dirname(os.path.abspath(__file__))
@@ -131,33 +132,23 @@ except ImportError:
     name = "falkon.c_ext._C"
     build_dir = _get_build_directory(name, verbose=False)
     sources = sorted(sources)
-    if len(os.listdir(build_dir)) > 0:
+    if len(os.listdir(build_dir)) == 0:
         # If the build exists, we assume the extension has been built and we can load it.
-        _C = load(
-            name=name,
-            sources=sources,
-            extra_cflags=extra_cflags,
-            extra_ldflags=extra_ldflags,
-            extra_cuda_cflags=extra_cuda_cflags,
-            extra_include_paths=extra_include_paths,
-            is_python_module=False,
-            is_standalone=False,
-        )
-    else:
-        # Build from scratch. Remove the build directory just to be safe: pytorch jit might stuck
-        # if the build directory exists.
+        # Otherwise we must build from scratch.
+        # Remove the build directory just to be safe: pytorch jit might stuck if the build
+        # directory exists.
         shutil.rmtree(build_dir)
         print("Building C extension. This might take a couple of minutes.")
-        _C = load(
-            name=name,
-            sources=sources,
-            extra_cflags=extra_cflags,
-            extra_ldflags=extra_ldflags,
-            extra_cuda_cflags=extra_cuda_cflags,
-            extra_include_paths=extra_include_paths,
-            is_python_module=False,
-            is_standalone=False,
-        )
+    load(
+        name=name,
+        sources=sources,
+        extra_cflags=extra_cflags,
+        extra_ldflags=extra_ldflags,
+        extra_cuda_cflags=extra_cuda_cflags,
+        extra_include_paths=extra_include_paths,
+        is_python_module=False,
+        is_standalone=False,
+    )
     _HAS_EXT = True
 
 
