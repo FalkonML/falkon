@@ -40,7 +40,8 @@ def _dot_kernel_extra_mem(
         # count here), the output sparse (assumed to be the same size as the dense n*m),
         # the various work buffers (for safety assume them to also be n*m).
         extra_nm += 2
-    return base | {'nm': extra_nm}
+    base['nm'] = extra_nm
+    return base
 
 
 def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor,

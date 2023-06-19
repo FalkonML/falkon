@@ -65,7 +65,7 @@ def _distance_kernel_extra_mem(
     elif kernel_cls == MaternKernel and kernel_params['nu'] == float('inf'):
         kernel_cls = GaussianKernel
     if not is_sparse:  # Dense, can be differentiable
-        out_dict = base | div_sigma | sq_norms
+        out_dict = {**base, **div_sigma, **sq_norms}
         if is_differentiable:
             extra_nm += 1  # To allocate out buffer
         if kernel_cls == LaplacianKernel and is_differentiable:
@@ -76,12 +76,13 @@ def _distance_kernel_extra_mem(
                 if is_differentiable:
                     extra_nm += 1
     else:  # Sparse
-        out_dict = base | sq_norms
+        out_dict = {**base, **sq_norms}
         # CUDA spspmm is impossible to evaluate. There is the output dense (which we don't
         # count here), the output sparse (assumed to be the same size as the dense n*m),
         # the various work buffers (for safety assume them to also be n*m).
         extra_nm = 2
-    return out_dict | {'nm': extra_nm}
+    out_dict['nm'] = extra_nm
+    return out_dict
 
 
 def _sq_dist(mat1, mat2, norm_mat1, norm_mat2, out: Optional[torch.Tensor]) -> torch.Tensor:
