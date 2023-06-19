@@ -27,16 +27,10 @@ def incore_fmmv(mat: torch.Tensor,
         out = create_same_stride(out_shape, mat, mat.dtype, device=mat.device, pin_memory=False)
     out.fill_(0.0)
 
-    if mat.is_cuda:
-        if transpose:
-            out.addmm_(mat.T, vec, beta=0.0)
-        else:
-            out.addmm_(mat, vec, beta=0.0)
+    if transpose:
+        out.addmm_(mat.T, vec, beta=0.0)
     else:
-        if transpose:
-            out.addmm_(mat.T, vec, beta=0.0)
-        else:
-            out.addmm_(mat, vec, beta=0.0)
+        out.addmm_(mat, vec, beta=0.0)
     return out
 
 

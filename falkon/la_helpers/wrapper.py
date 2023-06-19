@@ -1,16 +1,12 @@
-"""Wrap the the various linear-algebra helpers which use
-1. cython (for numpy arrays)
-2. torch-extension (for cuda tensors)
-In order to provide a unified interface
+"""Wrap the the various linear-algebra helpers which use c extension
 """
-from typing import Union, Optional
+from typing import Optional
 
-import numpy as np
 import torch
 
-from falkon.utils.helpers import check_same_device
-from falkon.la_helpers.cpu_trsm import cpu_trsm
 from falkon import c_ext
+from falkon.la_helpers.cpu_trsm import cpu_trsm
+from falkon.utils.helpers import check_same_device
 
 __all__ = (
     "zero_triang",

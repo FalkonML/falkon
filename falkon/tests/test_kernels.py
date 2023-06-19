@@ -503,33 +503,21 @@ class TestKeopsLargeD:
 @pytest.mark.benchmark
 class TestBenchmark:
     k_class = GaussianKernel
-    n = 200000
-    m = 5000
-    d = 20
-    t = 5
     basic_options = FalkonOptions()
     num_rep = 10
     sigma = torch.Tensor([3.0])
 
-    @pytest.fixture(scope="class")
-    def A(self) -> torch.Tensor:
-        return torch.from_numpy(gen_random(self.n, self.d, 'float32', False, seed=92))
-
-    @pytest.fixture(scope="class")
-    def B(self) -> torch.Tensor:
-        return torch.from_numpy(gen_random(self.m, self.d, 'float32', False, seed=93))
-
-    @pytest.fixture(scope="class")
-    def v(self) -> torch.Tensor:
-        return torch.from_numpy(gen_random(self.m, self.t, 'float32', False, seed=94))
-
-    @pytest.fixture(scope="class")
-    def w(self) -> torch.Tensor:
-        return torch.from_numpy(gen_random(self.n, self.t, 'float32', False, seed=95))
-
     @pytest.mark.parametrize("order", ["C", "F"])
     @pytest.mark.parametrize("dev", ["cpu", "cuda:0"])
-    def test_dense_kernel(self, A, B, v, w, order, dev):
+    @pytest.mark.parametrize("n", [20_000, 200_000])
+    @pytest.mark.parametrize("m", [2_000, 20_000])
+    @pytest.mark.parametrize("d", [1, 10, 100])
+    @pytest.mark.parametrize("t", [1, 10, 100])
+    def test_dense_kernel(self, n, m, d, t, order, dev):
+        A = torch.from_numpy(gen_random(n, d, 'float32', F=False, seed=92))
+        B = torch.from_numpy(gen_random(m, d, 'float32', F=False, seed=93))
+        v = torch.from_numpy(gen_random(m, t, 'float32', F=False, seed=94))
+        w = torch.from_numpy(gen_random(n, t, 'float32', F=False, seed=95))
         A, B, v, w, sigma = fix_mats(
             A, B, v, w, self.sigma, order=order, device=dev, dtype=np.float32)
         opt = dataclasses.replace(self.basic_options, keops_active="no")
@@ -540,9 +528,10 @@ class TestBenchmark:
             kernel.mmv(A, B, v)
             t_e = time.time()
             t_elapsed.append(t_e - t_s)
-        print(f"Timings (RBF MMv, order={order}, input={A.device}): "
+        print(f"Timings (RBF MMv, order={order}, input={str(A.device):8}, n={n:8d}, m={m:8d}, d={d:8d}, t={t:8d}): "
               f"{np.mean(t_elapsed):.4f}s  +-  {np.std(t_elapsed):.4f}s"
               f" -- min={np.min(t_elapsed):.4f}s")
+
 
 if __name__ == "__main__":
     pytest.main()

@@ -4,9 +4,8 @@ import os.path as osp
 import platform
 import sys
 from typing import Any, Tuple, List
-from setuptools import setup, find_packages, Extension, dist
+from setuptools import setup, find_packages
 
-import numpy
 import torch
 from torch.__config__ import parallel_info
 from torch.utils.cpp_extension import (
@@ -22,13 +21,6 @@ if torch.cuda.is_available():
 if os.getenv('FORCE_ONLY_CPU', '0') == '1':
     WITH_CUDA = False
 WITH_SYMBOLS = os.getenv("WITH_SYMBOLS", "0") == "1"
-
-# WITH_CYTHON = False
-# try:
-#     from Cython.Build import cythonize
-#     WITH_CYTHON = True
-# except ImportError:
-#     cythonize = None
 
 
 def get_version(root_dir):
@@ -134,24 +126,6 @@ def get_extensions():
             libraries=libraries,
         )
     )
-
-    # Cyblas helpers
-    # file_ext = '.pyx' if WITH_CYTHON else '.c'
-    # extra_compile_args = ['-shared', '-fPIC', '-O3', '-Wall', '-std=c99']
-    # if 'OpenMP not found' not in info and sys.platform != 'darwin':
-    #     extra_compile_args.append('-fopenmp')
-    # extra_link_args = ['-fPIC']
-    # print(f"Defining Cython extension on platform {sys.platform}. "
-    #       f"compile args: {extra_compile_args}  link args: {extra_link_args}")
-    # cyblas_ext = [Extension('falkon.la_helpers.cyblas',
-    #                         sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
-    #                         include_dirs=[numpy.get_include()],
-    #                         extra_compile_args=extra_compile_args,
-    #                         #define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
-    #                         extra_link_args=extra_link_args)]
-    # if WITH_CYTHON:
-    #     cyblas_ext = cythonize(cyblas_ext)
-    # extensions.extend(cyblas_ext)
     return extensions
 
 
@@ -184,11 +158,6 @@ doc_requires = [
     'ghp-import',
     # Also pandoc, must be installed system-wide with apt
 ]
-
-# Make sure we have numpy setup before attempting to run anything else.
-# Numpy is actually needed only to get the include-directories for Cython.
-# https://stackoverflow.com/questions/19919905/how-to-bootstrap-numpy-installation-in-setup-py
-# dist.Distribution().fetch_build_eggs(['numpy'])
 
 setup(
     name="falkon",

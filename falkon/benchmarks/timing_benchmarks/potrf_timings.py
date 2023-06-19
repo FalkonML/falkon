@@ -10,7 +10,6 @@ from scipy.linalg.lapack import spotrf, dpotrf
 
 import falkon
 from falkon.ooc_ops.ooc_potrf import gpu_cholesky
-from falkon.la_helpers.cyblas import add_symmetrize
 from falkon.utils import devices
 
 
@@ -24,7 +23,7 @@ def gen_random(a, b, dtype, F=False, seed=0):
 
 def gen_random_pd(t, dtype, F=False, seed=0):
     A = gen_random(t, t, dtype, F, seed)
-    add_symmetrize(A)
+    A = A + A.T
     A.flat[::t + 1] += t
     return A
 

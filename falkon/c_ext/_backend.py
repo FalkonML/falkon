@@ -20,14 +20,12 @@ from torch.utils.cpp_extension import _get_build_directory, load
 
 def _get_extension_path(lib_name):
     lib_dir = os.path.dirname(__file__)
-    print(f"{lib_dir=} {lib_name=}")
     loader_details = (
         importlib.machinery.ExtensionFileLoader, importlib.machinery.EXTENSION_SUFFIXES
     )
 
     extfinder = importlib.machinery.FileFinder(lib_dir, loader_details)
     ext_specs = extfinder.find_spec(lib_name)
-    print(f"{ext_specs=}")
     if ext_specs is None:
         raise ImportError
 
@@ -94,7 +92,7 @@ try:
                 f'PyTorch has CUDA version {t_major}.{t_minor} and Falkon has CUDA version '
                 f'{f_major}.{f_minor}. Please reinstall Falkon such that its version matches '
                 f'your PyTorch install.')
-except ImportError as e:
+except ImportError:
     # if failed, try with JIT compilation
     ext_dir = os.path.dirname(os.path.abspath(__file__))
     pt_version = torch_version()
@@ -123,7 +121,6 @@ except ImportError as e:
             '-lcusparse',
             '-lcublas',
             '-lcusolver',
-            '-l', 'cusolver',
             '-ltorch_cuda_linalg',
         ]
     else:
@@ -145,13 +142,12 @@ except ImportError as e:
             extra_include_paths=extra_include_paths,
             is_python_module=False,
             is_standalone=False,
-            verbose=True,
         )
     else:
         # Build from scratch. Remove the build directory just to be safe: pytorch jit might stuck
         # if the build directory exists.
         shutil.rmtree(build_dir)
-        print("Setting up C extension")
+        print("Building C extension. This might take a couple of minutes.")
         _C = load(
             name=name,
             sources=sources,
@@ -161,19 +157,18 @@ except ImportError as e:
             extra_include_paths=extra_include_paths,
             is_python_module=False,
             is_standalone=False,
-            verbose=True,
         )
     _HAS_EXT = True
 
 
 def _assert_has_ext():
     if not _HAS_EXT:
-        raise RuntimeError(  # TODO: Change msg
+        raise RuntimeError(
             "Couldn't load custom C++ ops. This can happen if your PyTorch and "
-            "torchvision versions are incompatible, or if you had errors while compiling "
-            "torchvision from source. For further information on the compatible versions, check "
-            "https://github.com/pytorch/vision#installation for the compatibility matrix. "
-            "Please check your PyTorch version with torch.__version__ and your torchvision "
-            "version with torchvision.__version__ and verify if they are compatible, and if not "
-            "please reinstall torchvision so that it matches your PyTorch install."
+            "falkon versions are incompatible, or if you had errors while compiling "
+            "falkon from source. For further information on the compatible versions, check "
+            "https://github.com/falkonml/falkon#installation for the compatibility matrix. "
+            "Please check your PyTorch version with torch.__version__ and your falkon "
+            "version with falkon.__version__ and verify if they are compatible, and if not "
+            "please reinstall falkon so that it matches your PyTorch install."
         )

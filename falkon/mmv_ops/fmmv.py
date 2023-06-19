@@ -21,7 +21,7 @@ from falkon.utils.helpers import (
 )
 from falkon.utils.tensor_helpers import (
     create_same_stride,
-    extract_fortran, create_fortran,
+    extract_fortran,
 )
 
 

@@ -77,7 +77,7 @@ jobs:
 
       - name: Install build prerequisites
         run: |
-          pip install wheel Cython
+          pip install wheel
 
       - name: Install main package for CPU
         if: ${{ matrix.cuda-version == 'cpu' }}
