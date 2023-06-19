@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 
 import torch
 
@@ -7,7 +8,7 @@ from falkon.options import FalkonOptions, CholeskyOptions
 from falkon.utils.devices import DeviceInfo, get_device_info
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import (
-    is_f_contig, copy_same_stride, extract_fortran
+    is_f_contig, copy_same_stride, create_fortran
 )
 from falkon.utils.device_copy import copy
 from falkon.c_ext import parallel_potrf, cusolver_potrf_buffer_size, cusolver_potrf
@@ -45,23 +46,20 @@ def _ic_cholesky(A, upper, device):
 
     n = A.shape[0]
 
-    tc_device = torch.device("cuda:%d" % (device))
+    tc_device = torch.device(f"cuda:{device}")
     tc_stream = torch.cuda.current_stream(tc_device)
     with torch.cuda.device(tc_device), torch.cuda.stream(tc_stream):
-        # Determine necessary buffer size
-        potrf_bsize = cusolver_potrf_buffer_size(A=A, upper=upper, n=n, lda=n)
-
-        # Allocate flat GPU buffer, and extract buffers
         if A.is_cuda:
-            potrf_wspace = torch.empty(size=(potrf_bsize, ), dtype=A.dtype, device=tc_device)
             Agpu = A
         else:
-            gpu_buf = torch.empty(size=(n * n + potrf_bsize, ), dtype=A.dtype, device=tc_device)
-            potrf_wspace = gpu_buf[:potrf_bsize]
-            Agpu = extract_fortran(gpu_buf, (n, n), offset=potrf_bsize)
-            # Copy A to device memory
+            Agpu = create_fortran((n, n), dtype=A.dtype, device=tc_device)
             copy(A, Agpu, non_blocking=True)
 
+        # Determine necessary buffer size
+        potrf_bsize = cusolver_potrf_buffer_size(A=Agpu, upper=upper, n=n, lda=n)
+
+        # Allocate workspace and info buffers
+        potrf_wspace = torch.empty(size=(potrf_bsize, ), dtype=A.dtype, device=tc_device)
         dev_info = torch.tensor(4, dtype=torch.int32, device=tc_device)
 
         # Run cholesky
@@ -97,21 +95,25 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
 
     block_sizes = calc_block_sizes(
         max_block_size, num_gpus, N, opt.chol_par_blk_multiplier)
-    block_allocations = []
+    block_allocations = defaultdict(list)
     cur_n = 0
     for i, bs in enumerate(block_sizes):
-        block_allocations.append(
-            (cur_n, cur_n + bs, bs, i % num_gpus, i)
-        )
+        block_allocations["start"].append(cur_n)
+        block_allocations["end"].append(cur_n + bs)
+        block_allocations["size"].append(bs)
+        block_allocations["device_id"].append(i % num_gpus)
+        block_allocations["id"].append(i)
         cur_n += bs
 
-    device_info = []
     for g in range(num_gpus):
-        device_info.append(
-            (0.0, g)
-        )
         torch.cuda.current_stream(g).synchronize()
-    parallel_potrf(device_info, block_allocations, A)
+    parallel_potrf(devices=list(range(num_gpus)),
+                   block_starts=block_allocations["start"],
+                   block_ends=block_allocations["end"],
+                   block_sizes=block_allocations["size"],
+                   block_devices=block_allocations["device_id"],
+                   block_ids=block_allocations["id"],
+                   A=A)
     return A
 
 
@@ -188,7 +190,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
             device = [d for d in gpu_info if d.Id == A.device.index][0]
         except IndexError:
             # This should never happen!
-            raise RuntimeError("Device of matrix A (%s) is not recognized" % (A.device))
+            raise RuntimeError(f"Device of matrix A ({A.device}) is not recognized")
     else:
         device = max(gpu_info, key=lambda g_: g_.actual_free_mem)
     ic = can_do_ic(A, device) and not opt.chol_force_ooc

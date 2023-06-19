@@ -17,7 +17,7 @@ from falkon.utils.tensor_helpers import create_same_stride, create_fortran
 
 
 @dataclass(frozen=True)
-class ArgsFmm():
+class ArgsFmm:
     X1: Union[torch.Tensor, SparseTensor]
     X2: Union[torch.Tensor, SparseTensor]
     out: torch.Tensor
@@ -45,7 +45,8 @@ def mm_run_starter(proc_idx, queue, device_id):
     is_sparse = isinstance(X1, SparseTensor) and isinstance(X2, SparseTensor)
 
     avail_mem = max_mem / sizeof_dtype(computation_dtype)
-    extra_mem = kernel.extra_mem()
+    extra_mem = kernel.extra_mem(
+        is_differentiable=differentiable, is_sparse=is_sparse, dtype=X1.dtype)
 
     if differentiable:
         diff_coef_nm = 10

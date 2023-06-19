@@ -1,8 +1,9 @@
 import numpy as np
 import scipy.sparse
+import torch
 
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.la_helpers.cyblas import copy_triang
+from falkon.c_ext import copy_triang
 
 
 def gen_random_multi(*sizes, dtype, F=False, seed=0):
@@ -22,14 +23,11 @@ def gen_random(a, b, dtype, F=False, seed=0):
 
 
 def gen_random_pd(t, dtype, F=False, seed=0):
-    A = gen_random(t, t, dtype, F, seed)
+    A = torch.from_numpy(gen_random(t, t, dtype, F, seed))
     copy_triang(A, upper=True)
-    # A += A.T
-    # A *= 2
-    # A += 20
     A *= 1
     A += 2
-    A.flat[::t + 1] += t * 4
+    A += torch.eye(t, dtype=A.dtype) * t * 4
     return A
 
 

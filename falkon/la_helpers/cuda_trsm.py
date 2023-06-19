@@ -30,7 +30,7 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: bool, trans
             vF.copy_(v)
             s.synchronize()  # sync is necessary here for correctness. Not sure why! TODO: Is it still needed?
         else:
-            vF = copy_transpose(input=v, output=vF.T).T
+            vF = copy_transpose(v, out=vF.T).T
 
         cublas_trsm(A=A, lda=A.stride(1), B=vF, ldb=vF.stride(1), alpha=alpha,
                     left=True, upper=not lower, transpose=transpose, unitriangular=False,
@@ -39,5 +39,5 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: bool, trans
             vout = vF
         else:
             vout = create_C(v.size(), v.dtype, device)
-            vout = copy_transpose(input=vF, output=vout.T).T
+            vout = copy_transpose(vF, out=vout.T).T
     return vout

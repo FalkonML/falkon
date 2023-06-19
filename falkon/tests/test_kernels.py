@@ -1,4 +1,5 @@
 import dataclasses
+import time
 
 import numpy as np
 import pytest
@@ -12,6 +13,7 @@ from falkon.tests.naive_kernels import *
 from falkon.utils import decide_cuda
 from falkon.utils.switches import decide_keops
 from falkon.utils.helpers import sizeof_dtype
+from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 
 cuda_mark = pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 keops_mark = pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")
@@ -29,6 +31,19 @@ t = 2
 max_mem = 2 * 2 ** 20
 basic_options = FalkonOptions(debug=True, compute_arch_speed=False,
                               max_cpu_mem=max_mem, max_gpu_mem=max_mem)
+
+
+def fix_options(opt):
+    # FIXME: On some systems (nest but not sperone), checking memory
+    #        usage for CPU functions fails miserably due to inconsistent
+    #        memory numbers being reported at random. We simply replace CPU
+    #        with a high number to avoid checking.
+    extra_cpu_mem = 10 * 2 ** 30 if opt.use_cpu else 0
+    return dataclasses.replace(
+        opt,
+        max_cpu_mem=opt.max_cpu_mem + extra_cpu_mem,
+        max_gpu_mem=opt.max_gpu_mem + CUDA_EXTRA_MM_RAM,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -90,13 +105,7 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
     v_wgrad = v.clone().requires_grad_()
     w_wgrad = w.clone().requires_grad_()
     kernel_params_wgrad = {k: v.clone().requires_grad_() for k, v in kernel.diff_params.items()}
-
-    # FIXME: On some systems (nest but not sperone), checking memory
-    #        usage for CPU functions fails miserably due to inconsistent
-    #        memory numbers being reported at random. We simply replace CPU
-    #        with a high number to avoid checking.
-    extra_mem = 10 * 2 ** 30 if opt.use_cpu else 0
-    opt = dataclasses.replace(opt, max_cpu_mem=opt.max_cpu_mem + extra_mem)
+    opt = fix_options(opt)
 
     kernel_wgrad = k_cls(**kernel.nondiff_params, **kernel_params_wgrad, opt=opt)
 
@@ -107,8 +116,8 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
         mm_out_wgrad = torch.empty(m1.shape[0], m2.shape[0], dtype=m1.dtype, device=m1.device)
         with memory_checker(opt) as new_opt:
             actual = kernel(m1, m2, out=mm_out, opt=new_opt)
-        with memory_checker(opt, extra_mem=m1.shape[0] * m2.shape[0] * sizeof_dtype(
-                m1.dtype)) as new_opt:
+        with memory_checker(
+                opt, extra_mem=m1.shape[0] * m2.shape[0] * sizeof_dtype(m1.dtype)) as new_opt:
             actual_noout = kernel(m1, m2, opt=new_opt)
         with memory_checker(opt) as new_opt:
             actual_wgrad = kernel_wgrad(m1_wgrad, m2_wgrad, out=mm_out_wgrad, opt=new_opt)
@@ -139,13 +148,15 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
     mmv_out_wgrad = torch.empty(m1.shape[0], v.shape[1], dtype=m1.dtype, device=m1.device)
     with memory_checker(opt) as new_opt:
         actual = kernel.mmv(m1, m2, v, out=mmv_out, opt=new_opt)
-    with memory_checker(opt,
-                        extra_mem=m1.shape[0] * v.shape[1] * sizeof_dtype(m1.dtype)) as new_opt:
+    with memory_checker(
+            opt, extra_mem=m1.shape[0] * v.shape[1] * sizeof_dtype(m1.dtype)) as new_opt:
         actual_noout = kernel.mmv(m1, m2, v, opt=new_opt)
     with memory_checker(opt) as new_opt:
-        actual_wgrad = kernel_wgrad.mmv(m1_wgrad, m2_wgrad, v_wgrad, out=mmv_out_wgrad, opt=new_opt)
+        actual_wgrad = kernel_wgrad.mmv(
+            m1_wgrad, m2_wgrad, v_wgrad, out=mmv_out_wgrad, opt=new_opt)
         torch.autograd.grad(
-            actual_wgrad.sum(), [m1_wgrad, m2_wgrad, v_wgrad] + list(kernel_wgrad.diff_params.values()))
+            actual_wgrad.sum(),
+            [m1_wgrad, m2_wgrad, v_wgrad] + list(kernel_wgrad.diff_params.values()))
     assert mmv_out.data_ptr() == actual.data_ptr(), "MMV Output data tensor was not used"
     assert mmv_out_wgrad.data_ptr() == actual_wgrad.data_ptr(), "MMV Output data tensor was not used"
     torch.testing.assert_close(actual_wgrad, actual, rtol=rtol, atol=atol,
@@ -230,6 +241,7 @@ class TestLaplacianKernel:
         s_wgrad = sigma.clone().requires_grad_()
 
         opt = dataclasses.replace(basic_options, use_cpu=comp_dev == "cpu", keops_active="no")
+        opt = fix_options(opt)
 
         kernel = self.k_class(s_wgrad, opt=opt)
 
@@ -487,6 +499,50 @@ class TestKeopsLargeD:
                        w=w, rtol=rtol[A.dtype], atol=atol[A.dtype], opt=opt, sigma=sigma,
                        grad_check=False)
 
+
+@pytest.mark.benchmark
+class TestBenchmark:
+    k_class = GaussianKernel
+    n = 200000
+    m = 5000
+    d = 20
+    t = 5
+    basic_options = FalkonOptions()
+    num_rep = 10
+    sigma = torch.Tensor([3.0])
+
+    @pytest.fixture(scope="class")
+    def A(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.n, self.d, 'float32', False, seed=92))
+
+    @pytest.fixture(scope="class")
+    def B(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.m, self.d, 'float32', False, seed=93))
+
+    @pytest.fixture(scope="class")
+    def v(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.m, self.t, 'float32', False, seed=94))
+
+    @pytest.fixture(scope="class")
+    def w(self) -> torch.Tensor:
+        return torch.from_numpy(gen_random(self.n, self.t, 'float32', False, seed=95))
+
+    @pytest.mark.parametrize("order", ["C", "F"])
+    @pytest.mark.parametrize("dev", ["cpu", "cuda:0"])
+    def test_dense_kernel(self, A, B, v, w, order, dev):
+        A, B, v, w, sigma = fix_mats(
+            A, B, v, w, self.sigma, order=order, device=dev, dtype=np.float32)
+        opt = dataclasses.replace(self.basic_options, keops_active="no")
+        kernel = self.k_class(sigma, opt)
+        t_elapsed = []
+        for _ in range(self.num_rep):
+            t_s = time.time()
+            kernel.mmv(A, B, v)
+            t_e = time.time()
+            t_elapsed.append(t_e - t_s)
+        print(f"Timings (RBF MMv, order={order}, input={A.device}): "
+              f"{np.mean(t_elapsed):.4f}s  +-  {np.std(t_elapsed):.4f}s"
+              f" -- min={np.min(t_elapsed):.4f}s")
 
 if __name__ == "__main__":
     pytest.main()

@@ -1,6 +1,7 @@
+from collections import defaultdict
 from contextlib import ExitStack
 from dataclasses import dataclass
-from typing import Optional, Union, Tuple, Dict
+from typing import Optional, Union, Tuple
 
 import numpy as np
 import torch
@@ -20,7 +21,7 @@ from falkon.utils.helpers import (
 )
 from falkon.utils.tensor_helpers import (
     create_same_stride,
-    extract_fortran,
+    extract_fortran, create_fortran,
 )
 
 
@@ -53,49 +54,47 @@ def _init_two_streams(stack: ExitStack,
     return s1, s2
 
 
-def _sparse_mmv_blk_sizes(n, d, m, t, avail_mem, extra_mem, incore: bool, m1_density: float,
-                          m2_density: float):
-    # Memory needs:
-    # chunk of x1: n + 2*d*n*density
-    # chunk of x2: d + 2*d*m*density (because is transposed)
-    # chunk of kernel: n + 2*n*m*density (assume density=1)
-    # dense matrices: kernel (n*m) + output (n*t) + vector (m*t)
-    coef_nm = 3  # Both dense and sparse spspmm output must be allocated.
-    coef_n, coef_m, coef_rest = 0, 0, 0
-    if not incore:
-        coef_n += 2 + 2 * d * m1_density + t
-        coef_m += 2 * d * m2_density + t
-        coef_rest = d
+def _mmv_blk_sizes(
+        n: int, d: int, m: int, t: int, avail_mem: float,
+        m1_ic: bool, m2_ic: bool, v_ic: bool, out_ic: bool,
+        m1_sparsity: float, m2_sparsity: float, dtype: Union[np.dtype, torch.dtype],
+        kernel: 'falkon.kernels.Kernel', is_differentiable: bool, is_sparse: bool
+) -> Tuple[int, int, int]:
+    extra_mem = kernel.extra_mem(is_differentiable, is_sparse, dtype)
+    normal_mem = defaultdict(int)
+    normal_mem['nm'] = 1  # kernel block
+    if is_sparse:
+        m1_sparsity = m1_sparsity * 2  # to account for the storage complexity of CSR matrices
+        m2_sparsity = m2_sparsity * 2  # to account for the storage complexity of CSR matrices
+    multiplier = 1
+    if is_differentiable:
+        multiplier = 2  # for gradients
+    if not m1_ic:
+        normal_mem['n'] += d * m1_sparsity * multiplier
+    if not m2_ic:
+        normal_mem['m'] += d * m2_sparsity * multiplier
+    if not out_ic:
+        normal_mem['n'] += t * multiplier
+    if not v_ic:
+        normal_mem['m'] += t * multiplier
+
     blk_n, blk_m = select_dim_over_nm_v2(
         max_n=n, max_m=m, max_mem=avail_mem,
-        coef_nm=coef_nm + extra_mem.get('nm', 0),
-        coef_n=coef_n + extra_mem.get('n', 0) + extra_mem.get('nd', 0) * d,
-        coef_m=coef_m + extra_mem.get('m', 0) + extra_mem.get('md', 0) * d,
-        rest=coef_rest + extra_mem.get('d', 0))
-    # here mem_needed is only the dense blocks!
+        coef_nm=normal_mem['nm'] + extra_mem.get('nm', 0),
+        coef_n=normal_mem['n'] + extra_mem.get('n', 0) + extra_mem.get('nd', 0) * d,
+        coef_m=normal_mem['m'] + extra_mem.get('m', 0) + extra_mem.get('md', 0) * d,
+        rest=normal_mem['0'] + extra_mem.get('d', 0) * d + extra_mem.get('0', 0)
+    )
     mem_needed = blk_m * blk_n
-    if not incore:
-        mem_needed += (blk_n + blk_m) * t
-    return blk_n, blk_m, mem_needed
-
-
-def _dense_mmv_blk_sizes(n: int, d: int, m: int, t: int, avail_mem: float,
-                         extra_mem: Dict[str, float], m1_ic: bool, m2_ic: bool, v_ic: bool,
-                         out_ic: bool) -> Tuple[int, int, int]:
-    coef_nm = 1  # for the kernel block
-    coef_n = d if not m1_ic else 0  # For m1
-    coef_m = d if not m2_ic else 0  # For m2
-    coef_n = coef_n + t if not out_ic else coef_n  # For output vector
-    coef_m = coef_m + t if not v_ic else coef_m  # For v
-    blk_n, blk_m = select_dim_over_nm_v2(
-        max_n=n, max_m=m, max_mem=avail_mem,
-        coef_nm=coef_nm + extra_mem.get('nm', 0),
-        coef_n=coef_n + extra_mem.get('n', 0) + extra_mem.get('nd', 0) * d,
-        coef_m=coef_m + extra_mem.get('m', 0) + extra_mem.get('md', 0) * d,
-        rest=extra_mem.get('d', 0))
-    mem_needed = blk_m * blk_n  # for the kernel block
-    mem_needed += blk_n * coef_n  # for m1 and output vector
-    mem_needed += blk_m * coef_m  # for m2 and v
+    if not out_ic:
+        mem_needed += blk_n * t
+    if not v_ic:
+        mem_needed += blk_m * t
+    if not is_sparse:
+        if not m1_ic:
+            mem_needed += blk_n * d
+        if not m2_ic:
+            mem_needed += blk_m * d
     return blk_n, blk_m, mem_needed
 
 
@@ -106,35 +105,25 @@ def mmv_run_starter(proc_idx, queue, device_id):
     max_mem = a.max_mem
     differentiable = a.differentiable
     dev = _dev_from_id(device_id)
-    incore = _is_incore(dev, X1.device)
     is_sparse = isinstance(X1, SparseTensor) and isinstance(X2, SparseTensor)
 
     # Choose batch sizes
     avail_mem = max_mem / sizeof_dtype(X1.dtype)
-    extra_mem = kernel.extra_mem()
-    n, d = X1.shape
-    m, t = v.shape
+    m1_ic, m2_ic, v_ic, out_ic = (_is_incore(dev, X1.device), _is_incore(dev, X2.device),
+                                  _is_incore(dev, v.device), _is_incore(dev, out.device))
+    blk_n, blk_m, mem_needed = _mmv_blk_sizes(
+        n=X1.size(-2), d=X1.size(-1), m=X2.size(-2), t=v.size(-1), avail_mem=avail_mem,
+        m1_ic=m1_ic, m2_ic=m2_ic, v_ic=v_ic, out_ic=out_ic,
+        m1_sparsity=X1.density if is_sparse else 1.0,
+        m2_sparsity=X2.density if is_sparse else 1.0,
+        dtype=X1.dtype, kernel=kernel, is_differentiable=differentiable, is_sparse=is_sparse
+    )
     if differentiable:
-        diff_coef_nm = 4
         assert not is_sparse, "Sparse + differentiable mmvs are not supported"
-        blk_n, blk_m = select_dim_over_nm_v2(
-            max_n=n, max_m=m, max_mem=avail_mem,
-            coef_nm=diff_coef_nm + extra_mem.get('nm', 0),
-            coef_n=2 * (d + t + extra_mem.get('n', 0) + extra_mem.get('nd', 0) * d),
-            coef_m=2 * (d + t + extra_mem.get('m', 0) + extra_mem.get('md', 0) * d),
-            rest=extra_mem.get('d', 0))
         return mmv_diff_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, dev, tid=proc_idx)
     if is_sparse:
-        blk_n, blk_m, mem_needed = _sparse_mmv_blk_sizes(
-            n=n, m=m, d=d, t=t, avail_mem=avail_mem, extra_mem=extra_mem, incore=incore,
-            m1_density=X1.density, m2_density=X2.density)
         return sparse_mmv_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, mem_needed, dev, tid=proc_idx)
     else:
-        m1_ic, m2_ic, v_ic, out_ic = (_is_incore(dev, X1.device), _is_incore(dev, X2.device),
-                                      _is_incore(dev, v.device), _is_incore(dev, out.device))
-        blk_n, blk_m, mem_needed = _dense_mmv_blk_sizes(
-            n=n, m=m, d=d, t=t, avail_mem=avail_mem, extra_mem=extra_mem, m1_ic=m1_ic, m2_ic=m2_ic,
-            v_ic=v_ic, out_ic=out_ic)
         return mmv_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, mem_needed, dev, tid=proc_idx)
 
 
@@ -248,6 +237,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
     M, T = v.shape
 
     # Initialize extra buffers
+    # dev_ker = create_fortran((blk_n, blk_m), dtype=m1.dtype, device=dev)
     flat_gpu = torch.empty(size=(mem_needed,), dtype=m1.dtype, device=dev)
     flat_offset = 0
     dev_ker, flat_offset = _extract_flat(flat_gpu, size=(blk_n, blk_m), other=out,
@@ -274,6 +264,8 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
         s1, s2 = _init_two_streams(stack, dev, tid)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
+            # c_dev_m1 = m1[i: i + leni, :].to(dev, copy=False, non_blocking=True)
+            # c_dev_out = out[i: i + leni, :].to(dev, copy=False, non_blocking=True)
             if m1_ic:
                 c_dev_m1 = m1[i: i + leni, :]
             else:
@@ -290,6 +282,7 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
                     c_dev_m2 = m2[j: j + lenj, :]
                 else:
                     c_dev_m2 = copy(m2[j: j + lenj, :], dev_m2[:lenj, :], non_blocking=True)
+                # c_dev_m2 = m2[j: j + lenj].to(dev, copy=False, non_blocking=True)
                 if v_ic:
                     c_dev_v = v[j: j + lenj, :]
                 else:
@@ -297,6 +290,10 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
                         if dev.type == 'cuda':
                             stack2.enter_context(tcd.stream(s2))
                         c_dev_v = copy(v[j: j + lenj, :], dev_v[:lenj, :], non_blocking=True)
+                # with ExitStack() as stack2:
+                #     if dev.type == 'cuda':
+                #         stack2.enter_context(tcd.stream(s2))
+                #     c_dev_v = v[j: j + lenj, :].to(dev, copy=False, non_blocking=True)
                 c_dev_ker = dev_ker[:leni, :lenj].fill_(0.0)
 
                 c_dev_ker = kernel.compute(c_dev_m1, c_dev_m2, c_dev_ker, diag=False)
@@ -308,6 +305,8 @@ def mmv_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Tensor]
             # end iter over M
             if not out_ic:
                 copy(c_dev_out, out[i: i + leni], non_blocking=True)
+            # if not out_ic:
+            #     out[i: i + leni].copy_(c_dev_out, non_blocking=True)
         if tid != -1 and s1 is not None:
             s1.synchronize()
         # end iter over N
@@ -361,17 +360,17 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
                 c_dev_grads_old = [c_dev_m1_g, c_dev_m2_g, c_dev_v_g] + grads[3:]
                 for c_grad, c_idx in zip(c_dev_grads, input_idxs):
                     c_dev_grads_old[c_idx].add_(c_grad)
+                # Move grads to host
                 if grads[1] is not None:
                     grads[1][j: j + lenj, :].copy_(c_dev_m2_g, non_blocking=True)
-                    # grads[1][j: j + lenj, :] = c_dev_m2_g.to(grads[1].device, non_blocking=True, copy=False)
                 if grads[2] is not None:
                     grads[2][j: j + lenj, :].copy_(c_dev_v_g, non_blocking=True)
                 if not incore:
                     s1.synchronize()  # sync necessary to avoid s2 overwriting dev_v/dev_w
             # end iter over M
+            # Move grads to host
             if grads[0] is not None:
                 grads[0][i: i + leni, :].copy_(c_dev_m1_g, non_blocking=True)
-                # grads[0][i: i + leni, :] = c_dev_m1_g.to(grads[0].device, non_blocking=True, copy=False)
         if tid != -1 and s1 is not None:
             s1.synchronize()
         # end iter over N
@@ -379,67 +378,47 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
     return grads
 
 
-def _sparse_dmmv_blk_sizes(n, d, m, t, avail_mem, extra_mem: dict, incore: bool,
-                           dev_out_exists: bool, m1_density: float, m2_density: float):
-    # Memory needs:
-    # chunk of X1              : n + 2*d*n*density
-    # full X2                  : d + 2*d*m*density (it's transposed)
-    # sparse output (internal) : n + 2*n*m*density (density assumed = 1)
-    # And the dense matrices: kernel(m*n), w(n*t), v(m*t), output(m*t)
-    coef_nm = 3  # Both dense and sparse spspmm output must be allocated.
-    coef_nd, coef_md, coef_nt, coef_mt = 0, 0, 0, 0
-    coef_nt += 1  # for dev_w allocation
-    if not incore:
-        coef_nd += 2 * m1_density  # for x1-chunk
-        coef_md += 2 * m2_density  # for x2
-        coef_mt += 1  # for v
-        if not dev_out_exists:
-            coef_mt += 1  # for output
-    blk_n = select_dim_over_n(
-        max_n=n, m=m, d=d, max_mem=avail_mem,
-        coef_nm=coef_nm + extra_mem.get('nm', 0),
-        coef_nd=coef_nd + extra_mem.get('nd', 0),
-        coef_md=coef_md + extra_mem.get('md', 0),
-        coef_n=coef_nt * t + 2 + extra_mem.get('n', 0) + t * extra_mem.get('nt', 0),
-        coef_m=coef_mt * t + extra_mem.get('m', 0) + t * extra_mem.get('mt', 0),
-        coef_d=1 + extra_mem.get('d', 0), rest=0)
-
-    mem_needed = blk_n * m
-    mem_needed += blk_n * t  # dev_w
-    if not incore:
-        mem_needed += m * t
-        if not dev_out_exists:
-            mem_needed += m * t
-
-    return blk_n, mem_needed
-
-
-def _dense_dmmv_blk_sizes(n, d, m, t, avail_mem: float, extra_mem: dict,
-                          m1_ic: bool, m2_ic: bool, v_ic: bool, out_ic: bool) -> Tuple[int, int]:
-    coef_nd, coef_md, coef_mt = 0, 0, 0
-    coef_nm = 1  # for kernel block
-    coef_nt = 1  # for dev_w allocation
+def _dmmv_blk_sizes(
+        n: int, d: int, m: int, t: int, avail_mem: float,
+        m1_ic: bool, m2_ic: bool, v_ic: bool, w_ic: bool, out_ic: bool,
+        m1_sparsity: float, m2_sparsity: float, dtype: Union[np.dtype, torch.dtype],
+        kernel: 'falkon.kernels.Kernel', is_differentiable: bool, is_sparse: bool
+) -> Tuple[int, int]:
+    extra_mem = kernel.extra_mem(is_differentiable, is_sparse, dtype)
+    normal_mem = defaultdict(int)
+    normal_mem['nm'] = 1  # kernel block
+    normal_mem['nt'] = 1  # w block (TODO: This alloc should be removed if it's IC)
+    if is_sparse:
+        m1_sparsity = m1_sparsity * 2  # to account for the storage complexity of CSR matrices
+        m2_sparsity = m2_sparsity * 2  # to account for the storage complexity of CSR matrices
     if not m1_ic:
-        coef_nd += 1  # x1
+        normal_mem['nd'] += m1_sparsity
     if not m2_ic:
-        coef_md += 1  # x2
-    if not v_ic:
-        coef_mt += 1  # v
+        normal_mem['md'] += m2_sparsity
     if not out_ic:
-        coef_mt += 1  # output
+        normal_mem['mt'] += 1
+    if not v_ic:
+        normal_mem['mt'] += 1
+
     blk_n = select_dim_over_n(
         max_n=n, m=m, d=d, max_mem=avail_mem,
-        coef_nm=coef_nm + extra_mem.get('nm', 0),
-        coef_nd=coef_nd + extra_mem.get('nd', 0),
-        coef_md=coef_md + extra_mem.get('md', 0),
-        coef_n=coef_nt * t + extra_mem.get('n', 0) + t * extra_mem.get('nt', 0),
-        coef_m=coef_mt * t + extra_mem.get('m', 0) + t * extra_mem.get('mt', 0),
-        coef_d=extra_mem.get('d', 0), rest=0)
-    mem_needed = blk_n * m
-    mem_needed += blk_n * t * coef_nt
-    mem_needed += blk_n * d * coef_nd
-    mem_needed += m * d * coef_md
-    mem_needed += m * t * coef_mt
+        coef_nm=normal_mem['nm'] + extra_mem.get('nm', 0),
+        coef_nd=normal_mem['nd'] + extra_mem.get('nd', 0),
+        coef_md=normal_mem['md'] + extra_mem.get('md', 0),
+        coef_n=(normal_mem['nt'] + extra_mem.get('nt', 0)) * t + extra_mem.get('n', 0),
+        coef_m=(normal_mem['mt'] + extra_mem.get('mt', 0)) * t + extra_mem.get('m', 0),
+        coef_d=extra_mem.get('d', 0),
+        rest=extra_mem.get('0', 0),
+    )
+    mem_needed = blk_n * (m + t)  # for kernel block and w
+    if not m1_ic and not is_sparse:
+        mem_needed += blk_n * d  # m1
+    if not m2_ic and not is_sparse:
+        mem_needed += m * d  # m2
+    if not v_ic:
+        mem_needed += m * t
+    if not out_ic:
+        mem_needed += m * t
     return blk_n, mem_needed
 
 
@@ -450,27 +429,22 @@ def dmmv_run_starter(proc_idx, queue, device_id):
     max_mem = a.max_mem
     assert not a.differentiable, "D-MMV not implemented for differentiable outputs"
     dev = _dev_from_id(device_id)
-    incore = _is_incore(dev, X1.device)
-    dev_out_exists = out.device == dev  # out has already been allocated on the computation device
     is_sparse = isinstance(X1, SparseTensor) and isinstance(X2, SparseTensor)
 
     # Choose batch sizes
     avail_mem = max_mem / sizeof_dtype(X1.dtype)
-    extra_mem = kernel.extra_mem()
-    n, d = X1.shape
-    m, t = v.shape
+    blk_n, mem_needed = _dmmv_blk_sizes(
+        n=X1.size(-2), d=X1.size(-1), m=X2.size(-2), t=v.size(-1), avail_mem=avail_mem,
+        m1_ic=_is_incore(dev, X1.device), m2_ic=_is_incore(dev, X2.device),
+        v_ic=_is_incore(dev, v.device), w_ic=_is_incore(dev, w.device) if w is not None else False,
+        out_ic=_is_incore(dev, out.device),
+        m1_sparsity=X1.density if is_sparse else 1.0,
+        m2_sparsity=X2.density if is_sparse else 1.0,
+        dtype=X1.dtype, kernel=kernel, is_differentiable=False, is_sparse=is_sparse)
 
     if is_sparse:
-        blk_n, mem_needed = _sparse_dmmv_blk_sizes(
-            n=n, d=d, m=m, t=t, avail_mem=avail_mem, extra_mem=extra_mem, incore=incore,
-            dev_out_exists=dev_out_exists, m1_density=X1.density, m2_density=X2.density)
         sparse_dmmv_run_thread(X1, X2, v, w, out, kernel, blk_n, mem_needed, dev, tid=proc_idx)
     else:
-        m1_ic, m2_ic, v_ic, out_ic = (_is_incore(dev, X1.device), _is_incore(dev, X2.device),
-                                      _is_incore(dev, v.device), _is_incore(dev, out.device))
-        blk_n, mem_needed = _dense_dmmv_blk_sizes(
-            n=n, d=d, m=m, t=t, avail_mem=avail_mem, extra_mem=extra_mem,
-            m1_ic=m1_ic, m2_ic=m2_ic, v_ic=v_ic, out_ic=out_ic)
         dmmv_run_thread(X1, X2, v, w, out, kernel, blk_n, mem_needed, dev, tid=proc_idx)
 
 
@@ -819,11 +793,11 @@ def fdmmv(X1: Union[torch.Tensor, SparseTensor], X2: Union[torch.Tensor, SparseT
                 bwidth = block_sizes[i + 1] - block_sizes[i]
                 if bwidth <= 0:
                     continue
-                if len(gpu_info) == 1 and out.device.index == gpu_info[i].Id:
+                if len(gpu_info) == 1 and out.device.index == g.Id:
                     cur_out_gpu = out
                 else:
-                    cur_out_gpu = create_same_stride((M, T), out, out.dtype, f'cuda:{gpu_info[i].Id}')
-                gpu_info[i].usable_memory -= M * T * sizeof_dtype(X1.dtype)
+                    cur_out_gpu = create_same_stride((M, T), out, out.dtype, f'cuda:{g.Id}')
+                    g.usable_memory -= M * T * sizeof_dtype(X1.dtype)
                 wrlk.append(cur_out_gpu)
                 if is_sparse:
                     X1_block = X1.narrow_rows(block_sizes[i], bwidth)

@@ -96,7 +96,7 @@ class TestSparseNorm():
         torch.testing.assert_close(act, torch.from_numpy(exp).to(dtype=act.dtype).reshape(-1))
 
 
-class TestSparseBdot():
+class TestSparseBdot:
     def test_non_csr(self, csr_mat, csc_mat):
         with pytest.raises(RuntimeError) as exc_info:
             bdot(csc_mat, csr_mat, out=None)
@@ -139,7 +139,7 @@ class TestSparseBdot():
     "cpu",
     pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))
 ])
-class TestMyTranspose():
+class TestMyTranspose:
     def test_simple_transpose(self, device, csr_mat):
         arr = csr_mat.to(device=device)
         tr_arr = arr.transpose_csc()
@@ -154,7 +154,7 @@ class TestMyTranspose():
     "cpu",
     pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))
 ])
-class TestNarrow():
+class TestNarrow:
     def test_start_zero(self, device, csr_mat):
         arr = csr_mat.to(device=device)
 
@@ -200,7 +200,7 @@ class TestNarrow():
         assert sm_coo.data.tolist() == []
 
 
-class TestMatMul():
+class TestMatMul:
     @pytest.fixture(scope="class")
     def mat1(self):
         return torch.randn(200, 10)

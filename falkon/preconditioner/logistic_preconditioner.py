@@ -170,7 +170,7 @@ class LogisticPreconditioner(Preconditioner):
             W = self.loss.ddf(Y, alpha)
         with TicToc("W-Multiply", debug=self.params.debug):
             W.sqrt_()
-            vec_mul_triang(C, W.numpy().reshape(-1), side=0, upper=False)
+            vec_mul_triang(C, W.view(-1), side=0, upper=False)
 
         # LAUUM side depends on CUDA or CPU version because the matrix is initially symmetric and
         # the CUDA version will write the result on the opposite side (i.e. `write_opposite=True`)

@@ -151,7 +151,7 @@ def sparse_square_norm(A: SparseTensor, out: torch.Tensor) -> torch.Tensor:
     if A.shape[0] != out.shape[0]:
         raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
-    return sparse_row_norm_sq(A.indexptr, A.data, out)
+    return sparse_row_norm_sq(A.indexptr, A.data, out=out)
 
 
 def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
@@ -184,7 +184,7 @@ def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
     if A.shape[0] != out.shape[0]:
         raise ValueError("Dimension 0 of A must match the length of tensor 'out'.")
 
-    return sparse_row_norm(A.indexptr, A.data, out)
+    return sparse_row_norm(A.indexptr, A.data, out=out)
 
 
 def bdot(A: SparseTensor, B: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
@@ -213,4 +213,4 @@ def bdot(A: SparseTensor, B: SparseTensor, out: Optional[torch.Tensor]) -> torch
     if A.shape[0] != out.shape[0]:
         raise ValueError("Output shape must match the number of rows in the input matrices.")
 
-    return sparse_bdot(A.indexptr, A.index, A.data, B.indexptr, B.index, B.data, out)
+    return sparse_bdot(A.indexptr, A.index, A.data, B.indexptr, B.index, B.data, out=out)

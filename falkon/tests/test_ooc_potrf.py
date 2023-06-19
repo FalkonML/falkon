@@ -11,6 +11,7 @@ from falkon.utils import decide_cuda
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import move_tensor
 from falkon.options import FalkonOptions
+from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 
 if decide_cuda():
     from falkon.ooc_ops.ooc_potrf import gpu_cholesky
@@ -38,7 +39,7 @@ def run_potrf_test(np_data, dtype, order, opt, input_device, upper, clean, overw
     orig_stride = A.stride()
     orig_ptr = A.data_ptr()
 
-    with memory_checker(opt) as new_opt:
+    with memory_checker(opt, extra_mem=CUDA_EXTRA_MM_RAM) as new_opt:
         C_gpu = gpu_cholesky(A, upper=upper, clean=clean, overwrite=overwrite, opt=new_opt)
 
     assert orig_stride == C_gpu.stride(), "gpu_potrf modified matrix stride."

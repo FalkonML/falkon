@@ -28,13 +28,42 @@ and for more advanced usage, extensive documentation is available at https://fal
 If you find a bug, please open a new issue on GitHub!
 
 
-## Installing
+## Installation
 
-Prerequisites are PyTorch >= 1.9 (with the CUDA toolkit if GPU support is desired) and a patched version of KeOps (which
-is distributed as a git submodule of this repository), `cmake`, and a C++ compiler which can compile PyTorch extensions
-(i.e. capable of compiling with `-std=c++14`).
+**Dependencies**: 
+ - Please install [PyTorch](https://pytorch.org/get-started/locally/) and 
+[numpy](https://numpy.org/install/) first.
+ - `cmake` and a C++ compiler are also needed for [KeOps](https://www.kernel-operations.io/keops/python/installation.html) acceleration (optional but strongly recommended).
 
-Once the prerequisites are met, you can `pip install .` from the root of this repository.
+To install from source, you can run
+
+```bash
+pip install git+https://github.com/FalkonML/falkon.git
+```
+
+We alternatively provide pre-built pip wheels for the following combinations of PyTorch and CUDA:
+
+| Linux        | `cu113` | `cu115` | `cu116` | `cu117` | `cu118` |
+|--------------|---------|---------|---------|---------|---------|
+| torch 1.11.0 | ✅      | ✅      |         |         |         |
+| torch 1.12.0 | ✅      |         | ✅      |         |         |
+| torch 1.13.0 |         |         | ✅      | ✅      |         |
+| torch 2.0.0  |         |         |         | ✅      | ✅      |
+
+For other combinations, and previous versions of Falkon, please check [here](https://falkon.dibris.unige.it/index.html)
+for a list of supported wheels.
+
+To install a wheel for a specific PyTorch + CUDA combination, you can run
+```bash
+# e.g., torch 1.13.0 + cu117
+pip install falkon -f https://falkon.dibris.unige.it/torch-1.13.0_cu117.html
+```
+
+Similarly for CPU packages
+```bash
+# e.g., torch 2.0.0 + cpu
+pip install falkon -f https://falkon.dibris.unige.it/torch-2.0.0_cpu.html
+```
 
 **More detailed installation instructions are available in [the documentation](https://falkonml.github.io/falkon/install.html).**
 
@@ -55,7 +84,7 @@ If you find this library useful for your work, please cite the following publica
 ```
 @inproceedings{falkonlibrary2020,
     title = {Kernel methods through the roof: handling billions of points efficiently},
-    authors = {Meanti, Giacomo and Carratino, Luigi and Rosasco, Lorenzo and Rudi, Alessandro},
+    author = {Meanti, Giacomo and Carratino, Luigi and Rosasco, Lorenzo and Rudi, Alessandro},
     year = {2020},
     booktitle = {Advances in Neural Information Processing Systems 32}
 }
@@ -63,7 +92,7 @@ If you find this library useful for your work, please cite the following publica
 ```
 @inproceedings{falkonhopt2022,
     title = {Efficient Hyperparameter Tuning for Large Scale Kernel Ridge Regression},
-    authors = {Meanti, Giacomo and Carratino, Luigi and De Vito, Ernesto and Rosasco, Lorenzo},
+    author = {Meanti, Giacomo and Carratino, Luigi and De Vito, Ernesto and Rosasco, Lorenzo},
     year = {2022},
     booktitle = {Proceedings of The 25th International Conference on Artificial Intelligence and Statistics}
 }

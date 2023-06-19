@@ -25,6 +25,24 @@ def validate_diff_float(num: Union[float, torch.Tensor], param_name: str) -> tor
             raise TypeError(f"Parameter {param_name} must be a scalar or a tensor.")
 
 
+def _dot_kernel_extra_mem(
+        is_differentiable: bool,
+        is_sparse: bool):
+    base = {
+        '0': 0,
+    }
+    extra_nm = 0
+    # Normalize Matern to Gaussian or Laplacian
+    if is_differentiable:
+        extra_nm += 1  # To allocate out buffer
+    elif is_sparse:
+        # CUDA spspmm is impossible to evaluate. There is the output dense (which we don't
+        # count here), the output sparse (assumed to be the same size as the dense n*m),
+        # the various work buffers (for safety assume them to also be n*m).
+        extra_nm += 2
+    return base | {'nm': extra_nm}
+
+
 def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor,
                    out: Optional[torch.Tensor], diag: bool) -> torch.Tensor:
     if diag:
@@ -167,8 +185,8 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
         ]
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self) -> Dict[str, float]:
-        return {}
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+        return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
     def detach(self) -> 'LinearKernel':
         return LinearKernel(beta=self.beta.detach(), gamma=self.gamma.detach(), opt=self.params)
@@ -237,8 +255,8 @@ class PolynomialKernel(DiffKernel, KeopsKernelMixin):
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self) -> Dict[str, float]:
-        return {}
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+        return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
     def detach(self) -> 'PolynomialKernel':
         return PolynomialKernel(beta=self.beta.detach(), gamma=self.gamma.detach(),
@@ -292,18 +310,18 @@ class SigmoidKernel(DiffKernel, KeopsKernelMixin):
         if self.keops_can_handle_mmv(X1, X2, v, opt):
             warnings.warn("KeOps MMV implementation for %s kernel is not available. "
                           "Falling back to matrix-multiplication based implementation."
-                          % (self.name))
+                          % self.name)
         return super()._decide_mmv_impl(X1, X2, v, opt)
 
     def _decide_dmmv_impl(self, X1, X2, v, w, opt):
         if self.keops_can_handle_dmmv(X1, X2, v, w, opt):
             warnings.warn("KeOps dMMV implementation for %s kernel is not available. "
                           "Falling back to matrix-multiplication based implementation."
-                          % (self.name))
+                          % self.name)
         return super()._decide_dmmv_impl(X1, X2, v, w, opt)
 
-    def extra_mem(self) -> Dict[str, float]:
-        return {}
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+        return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
     def detach(self) -> 'SigmoidKernel':
         return SigmoidKernel(beta=self.beta, gamma=self.gamma, opt=self.params)

@@ -23,12 +23,12 @@ if os.getenv('FORCE_ONLY_CPU', '0') == '1':
     WITH_CUDA = False
 WITH_SYMBOLS = os.getenv("WITH_SYMBOLS", "0") == "1"
 
-WITH_CYTHON = False
-try:
-    from Cython.Build import cythonize
-    WITH_CYTHON = True
-except ImportError:
-    cythonize = None
+# WITH_CYTHON = False
+# try:
+#     from Cython.Build import cythonize
+#     WITH_CYTHON = True
+# except ImportError:
+#     cythonize = None
 
 
 def get_version(root_dir):
@@ -61,9 +61,13 @@ def get_extensions():
 
     # All C/CUDA routines are compiled into a single extension
     ext_cls = CppExtension
-    ext_dir = osp.join('.', 'falkon', 'csrc')
-    ext_files = (glob.glob(osp.join(ext_dir, '*.cpp')) +
-                 glob.glob(osp.join(ext_dir, 'cpu', '*.cpp')))
+    ext_dir = osp.join('.', 'falkon', 'c_ext')
+    ext_files = (
+        glob.glob(osp.join(ext_dir, 'ops', 'cpu', '*.cpp')) +
+        glob.glob(osp.join(ext_dir, 'ops', 'autograd', '*.cpp')) +
+        glob.glob(osp.join(ext_dir, 'ops', '*.cpp')) +
+        glob.glob(osp.join(ext_dir, '*.cpp'))
+    )
 
     libraries = []
     macros: List[Tuple[str, Any]] = torch_version_macros()
@@ -93,9 +97,9 @@ def get_extensions():
 
     if WITH_CUDA:
         ext_cls = CUDAExtension
-        cuda_files = (glob.glob(osp.join(ext_dir, 'cuda', '*.cu')) +
-                      glob.glob(osp.join(ext_dir, 'cuda', '*.cpp')))
-        ext_files.extend(cuda_files)
+        ext_files.extend(
+            glob.glob(osp.join(ext_dir, 'ops', 'cuda', '*.cu'))
+        )
         macros.append(('WITH_CUDA', None))
         nvcc_flags = os.getenv('NVCC_FLAGS', '')
         nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
@@ -121,7 +125,7 @@ def get_extensions():
 
     extensions.append(
         ext_cls(
-            "falkon.c_ext",
+            "falkon.c_ext._C",
             sources=ext_files,
             include_dirs=[ext_dir],
             define_macros=macros,
@@ -132,22 +136,22 @@ def get_extensions():
     )
 
     # Cyblas helpers
-    file_ext = '.pyx' if WITH_CYTHON else '.c'
-    extra_compile_args = ['-shared', '-fPIC', '-O3', '-Wall', '-std=c99']
-    if 'OpenMP not found' not in info and sys.platform != 'darwin':
-        extra_compile_args.append('-fopenmp')
-    extra_link_args = ['-fPIC']
-    print(f"Defining Cython extension on platform {sys.platform}. "
-          f"compile args: {extra_compile_args}  link args: {extra_link_args}")
-    cyblas_ext = [Extension('falkon.la_helpers.cyblas',
-                            sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
-                            include_dirs=[numpy.get_include()],
-                            extra_compile_args=extra_compile_args,
-                            #define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
-                            extra_link_args=extra_link_args)]
-    if WITH_CYTHON:
-        cyblas_ext = cythonize(cyblas_ext)
-    extensions.extend(cyblas_ext)
+    # file_ext = '.pyx' if WITH_CYTHON else '.c'
+    # extra_compile_args = ['-shared', '-fPIC', '-O3', '-Wall', '-std=c99']
+    # if 'OpenMP not found' not in info and sys.platform != 'darwin':
+    #     extra_compile_args.append('-fopenmp')
+    # extra_link_args = ['-fPIC']
+    # print(f"Defining Cython extension on platform {sys.platform}. "
+    #       f"compile args: {extra_compile_args}  link args: {extra_link_args}")
+    # cyblas_ext = [Extension('falkon.la_helpers.cyblas',
+    #                         sources=[osp.join('falkon', 'la_helpers', 'cyblas' + file_ext)],
+    #                         include_dirs=[numpy.get_include()],
+    #                         extra_compile_args=extra_compile_args,
+    #                         #define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+    #                         extra_link_args=extra_link_args)]
+    # if WITH_CYTHON:
+    #     cyblas_ext = cythonize(cyblas_ext)
+    # extensions.extend(cyblas_ext)
     return extensions
 
 
@@ -184,7 +188,7 @@ doc_requires = [
 # Make sure we have numpy setup before attempting to run anything else.
 # Numpy is actually needed only to get the include-directories for Cython.
 # https://stackoverflow.com/questions/19919905/how-to-bootstrap-numpy-installation-in-setup-py
-dist.Distribution().fetch_build_eggs(['numpy'])
+# dist.Distribution().fetch_build_eggs(['numpy'])
 
 setup(
     name="falkon",
@@ -203,6 +207,6 @@ setup(
             no_python_abi_suffix=True
         )
     },
-    packages=find_packages(),
+    packages=find_packages(exclude=('test', )),
     include_package_data=True,  # Since we have a MANIFEST.in this will take all from there.
 )

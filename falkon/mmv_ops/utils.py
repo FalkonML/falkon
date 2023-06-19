@@ -10,11 +10,12 @@ from falkon.utils.devices import DeviceInfo
 from falkon.utils.fake_queue import FakeQueue
 from falkon.utils.tensor_helpers import is_contig, extract_same_stride, create_fortran, create_C, create_same_stride
 
-__all__ = ("_setup_opt", "_check_contiguity", "_get_gpu_info", "_get_cpu_ram",
-           "_start_wait_processes", "_gpu_tns_same_memory", "_call_direct",
-           "ensure_batch_dim", "_extract_flat", "_is_incore", "_dev_from_id",
-           "create_output_mat",
-           )
+__all__ = (
+    "_setup_opt", "_check_contiguity", "_get_gpu_info", "_get_cpu_ram",
+    "_start_wait_processes", "_gpu_tns_same_memory", "_call_direct",
+    "ensure_batch_dim", "_extract_flat", "_is_incore", "_dev_from_id",
+    "create_output_mat", "CUDA_EXTRA_MM_RAM",
+)
 
 
 def _setup_opt(opt: Optional[BaseOptions], is_cpu=False) -> BaseOptions:
@@ -29,12 +30,21 @@ def _check_contiguity(*args: Tuple[Optional[torch.Tensor], str]) -> None:
             raise ValueError(f"Tensor '{name}' must be memory contiguous")
 
 
+# Recently? Pytorch addmm and similar (baddbmm) require 8 extra megs of device memory.
+# This *could* be related to a switch to using cublasLt, but more investigation is needed.
+CUDA_EXTRA_MM_RAM = 8519680
+
+
 def _get_gpu_info(opt: BaseOptions, slack: float = 0.9) -> List[DeviceInfo]:
     # List available devices, get their relative speed and split
     # computations based on device relative speed.
     gpu_info = [v for k, v in devices.get_device_info(opt).items() if v.isGPU]
     for g in gpu_info:
         g.usable_memory = min(g.free_memory * slack, opt.max_gpu_mem * slack)
+        if g.usable_memory < 0:
+            raise MemoryError(
+                f"Usable memory on device {g.Id} is less than 0. Either there is no "
+                f"free memory available, or the `max_gpu_mem` setting is too low.")
     return gpu_info
 
 

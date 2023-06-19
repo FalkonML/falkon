@@ -12,14 +12,13 @@ from falkon.tests.naive_kernels import *
 from falkon.utils import decide_cuda
 from falkon.utils.switches import decide_keops
 from falkon.utils.helpers import sizeof_dtype
+from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 
 cuda_mark = pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 keops_mark = pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")
 device_marks = [
     pytest.param("cpu", "cpu"),
-    pytest.param("cpu", "cuda", marks=[cuda_mark, pytest.mark.xfail(
-        raises=MemoryError, strict=True,
-        reason="Sparse kernels are not respecting assigned memory (a bug)")]),
+    pytest.param("cpu", "cuda", marks=[cuda_mark]),
     pytest.param("cuda", "cuda", marks=[cuda_mark, pytest.mark.xfail(
         raises=NotImplementedError, strict=True,
         reason="Sparse kernels are not implemented for in-core CUDA operations")]),
@@ -93,8 +92,18 @@ def atol():
     }
 
 
+def fix_options(opt):
+    return dataclasses.replace(
+        opt,
+        max_cpu_mem=opt.max_cpu_mem,
+        max_gpu_mem=opt.max_gpu_mem + CUDA_EXTRA_MM_RAM,
+    )
+
+
 def run_sparse_test(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol, opt, **kernel_params):
     kernel = k_cls(**kernel_params)
+    opt = fix_options(opt)
+    print(f"max mem: {opt.max_gpu_mem}")
 
     # 1. MM
     mm_out = torch.empty(s_m2.shape[0], s_m1.shape[0], dtype=s_m1.dtype, device=s_m1.device).T
@@ -153,7 +162,7 @@ def run_sparse_test_wsigma(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestLaplacianKernel():
+class TestLaplacianKernel:
     naive_fn = naive_diff_laplacian_kernel
     k_class = LaplacianKernel
 

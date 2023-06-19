@@ -458,7 +458,7 @@ class Kernel(torch.nn.Module, ABC):
         """
         pass
 
-    def extra_mem(self) -> Dict[str, float]:
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
         """Compute the amount of extra memory which will be needed when computing this kernel.
 
         Often kernel computation needs some extra memory allocations. To avoid using too large
@@ -470,16 +470,25 @@ class Kernel(torch.nn.Module, ABC):
         the return dictionary will be: `{'nd': 1}`. Other possible coefficients are on `d`, `n`, `m`
         which are respectively the data-dimension, the number of data-points in the first data
         matrix and the number of data-points in the second matrix. Pairwise combinations of the
-        three dimensions are possible (i.e. `nd`, `nm`, `md`).
+        three dimensions are possible (i.e. `nd`, `nm`, `md`), and a special key '0' can be
+        used to specify a base memory needed independently of data dimensions.
         Make sure to specify the dictionary keys as is written here since they will not be
         recognized otherwise.
+
+        Parameters
+        ----------
+        is_differentiable : bool
+        is_sparse : bool
+        dtype: torch.dtype or np.dtype
+        density1 : float or None
+        density2 : float or None
 
         Returns
         -------
         extra_allocs : dictionary
             A dictionary from strings indicating on which dimensions the extra-allocation is
-            needed (allowed strings: `'n', 'm', 'd', 'nm', 'nd', 'md'`) to floating-point numbers
-            indicating how many extra-allocations are needed.
+            needed (allowed strings: `'n', 'm', 'd', 'nm', 'nd', 'md', '0'`) to floating-point
+            numbers indicating how many extra-allocations are needed.
         """
         return {}
 

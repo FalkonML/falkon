@@ -8,16 +8,10 @@ from typing import Union, Optional
 import numpy as np
 import torch
 
-from falkon.la_helpers.cyblas import (
-    vec_mul_triang as c_vec_mul_triang,
-    mul_triang as c_mul_triang,
-    copy_triang as c_copy_triang,
-    potrf as c_potrf
-)
 from falkon.utils.helpers import check_same_device
-from .cpu_trsm import cpu_trsm
+from falkon.la_helpers.cpu_trsm import cpu_trsm
+from falkon import c_ext
 
-arr_type = Union[torch.Tensor, np.ndarray]
 __all__ = (
     "zero_triang",
     "mul_triang",
@@ -29,7 +23,7 @@ __all__ = (
 )
 
 
-def zero_triang(mat: arr_type, upper: bool) -> arr_type:
+def zero_triang(mat: torch.Tensor, upper: bool) -> torch.Tensor:
     """Set the upper/lower triangle of a square matrix to 0.
 
     Note that the diagonal will be preserved, and that this function
@@ -38,31 +32,19 @@ def zero_triang(mat: arr_type, upper: bool) -> arr_type:
     Parameters
     ----------
     mat
-        The input 2D tensor, or numpy array. This can also be a CUDA tensor.
+        The input 2D tensor. This can also be a CUDA tensor.
     upper
         Whether to zero-out the upper, or the lower triangular part of `mat`.
 
     Returns
     -------
     mat
-        The same tensor, or numpy array as was passed as a parameter,
-        with the upper or lower triangle zeroed-out.
+        The same tensor as was passed as a input with the upper or lower triangle zeroed-out.
     """
-    out_torch_convert = False
-    if isinstance(mat, torch.Tensor):
-        if mat.is_cuda:
-            from falkon.c_ext import mul_triang
-            return mul_triang(mat, upper=upper, preserve_diag=True, multiplier=0.0)
-        else:
-            out_torch_convert = True
-            mat = mat.numpy()
-    out = c_mul_triang(mat, upper=upper, preserve_diag=1, multiplier=0.0)
-    if out_torch_convert:
-        return torch.from_numpy(out)
-    return out
+    return c_ext.mul_triang(mat, upper=upper, preserve_diag=True, multiplier=0.0)
 
 
-def mul_triang(mat: arr_type, upper: bool, preserve_diag: bool, multiplier: float) -> arr_type:
+def mul_triang(mat: torch.Tensor, upper: bool, preserve_diag: bool, multiplier: float) -> torch.Tensor:
     """Multiply a triangular matrix by a scalar.
 
     The input is a square matrix, and parameters determine what exactly is the triangular
@@ -73,7 +55,7 @@ def mul_triang(mat: arr_type, upper: bool, preserve_diag: bool, multiplier: floa
     Parameters
     ----------
     mat
-        The input square tensor, or numpy array. This can also be a CUDA tensor.
+        The input square tensor. This can also be a CUDA tensor.
     upper
         Whether to consider the upper, or the lower triangular part of `mat`.
     preserve_diag
@@ -85,24 +67,12 @@ def mul_triang(mat: arr_type, upper: bool, preserve_diag: bool, multiplier: floa
     Returns
     -------
     mat
-        The same tensor, or numpy array as was passed as a parameter, with the desired
-        operation performed on it.
+        The same tensor as was passed as input, with the desired operation performed on it.
     """
-    out_torch_convert = False
-    if isinstance(mat, torch.Tensor):
-        if mat.is_cuda:
-            from falkon.c_ext import mul_triang
-            return mul_triang(mat, upper=upper, preserve_diag=preserve_diag, multiplier=multiplier)
-        else:
-            out_torch_convert = True
-            mat = mat.numpy()
-    out = c_mul_triang(mat, upper=upper, preserve_diag=int(preserve_diag), multiplier=multiplier)
-    if out_torch_convert:
-        return torch.from_numpy(out)
-    return out
+    return c_ext.mul_triang(mat, upper=upper, preserve_diag=preserve_diag, multiplier=multiplier)
 
 
-def copy_triang(mat: arr_type, upper: bool) -> arr_type:
+def copy_triang(mat: torch.Tensor, upper: bool) -> torch.Tensor:
     """Copy one triangle of `mat` to the other, making it symmetric.
 
     The input is a square matrix: CUDA and CPU tensors as well as numpy arrays are supported.
@@ -119,58 +89,25 @@ def copy_triang(mat: arr_type, upper: bool) -> arr_type:
     Returns
     -------
     mat
-        The same tensor, or numpy array as was passed as a parameter, with the desired
-        operation performed on it. The output matrix will be symmetric.
+        The same tensor, with the desired operation performed on it.
+        The output matrix will be symmetric.
     """
-    out_torch_convert = False
-    if isinstance(mat, torch.Tensor):
-        if mat.is_cuda:
-            from falkon.c_ext import copy_triang
-            return copy_triang(mat, upper=upper)
-        else:
-            out_torch_convert = True
-            mat = mat.numpy()
-    out = c_copy_triang(mat, upper=upper)
-    if out_torch_convert:
-        return torch.from_numpy(out)
-    return out
+    return c_ext.copy_triang(mat, upper=upper)
 
 
-def vec_mul_triang(mat: arr_type, multipliers: arr_type, upper: bool, side: int) -> arr_type:
-    out_torch_convert = False
-    if isinstance(mat, torch.Tensor):
-        if mat.is_cuda:
-            from falkon.c_ext import vec_mul_triang
-            multipliers = multipliers.reshape(-1)
-            return vec_mul_triang(mat, multipliers, upper, side)
-        else:
-            out_torch_convert = True
-            mat = mat.numpy()
-    if isinstance(multipliers, torch.Tensor):
-        multipliers = multipliers.numpy().reshape(-1)
-    out = c_vec_mul_triang(mat, multiplier=multipliers, upper=upper, side=side)
-    if out_torch_convert:
-        return torch.from_numpy(out)
-    return out
+def vec_mul_triang(mat: torch.Tensor, multipliers: torch.Tensor, upper: bool, side: int) -> torch.Tensor:
+    multipliers = multipliers.reshape(-1)
+    return c_ext.vec_mul_triang(mat, multipliers, upper=upper, side=side == 1)
 
 
-def potrf(mat: arr_type, upper: bool, clean: bool, overwrite: bool, cuda: bool) -> arr_type:
-    out_torch_convert = False
-    if isinstance(mat, torch.Tensor):
-        if mat.is_cuda or cuda:
-            raise NotImplementedError("'potrf' is only implemented for CPU tensors. "
-                                      "See the ooc_ops module for CUDA implementations.")
-        else:
-            out_torch_convert = True
-            mat = mat.numpy()
-    out = c_potrf(mat, upper=upper, clean=clean, overwrite=overwrite)
-    if out_torch_convert:
-        return torch.from_numpy(out)
-    return out
+def potrf(mat: torch.Tensor, upper: bool, clean: bool, overwrite: bool, cuda: bool) -> torch.Tensor:
+    if mat.is_cuda or cuda:
+        raise NotImplementedError("'potrf' is only implemented for CPU tensors. "
+                                  "See the ooc_ops module for CUDA implementations.")
+    return c_ext.potrf(mat, upper=upper, clean=clean, overwrite=overwrite)
 
 
-def trsm(v: arr_type, A: arr_type, alpha: float, lower: int = 0, transpose: int = 0) -> arr_type:
-    out_torch_convert = False
+def trsm(v: torch.Tensor, A: torch.Tensor, alpha: float, lower: int = 0, transpose: int = 0) -> torch.Tensor:
     if isinstance(A, torch.Tensor):
         if isinstance(v, torch.Tensor):
             if not check_same_device(A, v):
@@ -179,21 +116,16 @@ def trsm(v: arr_type, A: arr_type, alpha: float, lower: int = 0, transpose: int 
                 from falkon.la_helpers.cuda_trsm import cuda_trsm
                 return cuda_trsm(A, v, alpha, bool(lower), bool(transpose))
             else:
-                out_torch_convert = True
                 A = A.numpy()
                 v = v.numpy()
         else:  # v is numpy array (thus CPU)
             if A.is_cuda:
                 raise ValueError("A and v must be on the same device.")
-            else:
-                out_torch_convert = True
-                A = A.numpy()
+            A = A.numpy()
 
     vout = cpu_trsm(A, v, alpha, lower, transpose)
-    if out_torch_convert:
-        return torch.from_numpy(vout)
-    return vout
+    return torch.from_numpy(vout)
 
 
 def square_norm(mat: torch.Tensor, dim: int, keepdim: Optional[bool] = None) -> torch.Tensor:
-    return torch.ops.falkon.square_norm(mat, dim, keepdim)
+    return c_ext.square_norm(mat, dim, keepdim)

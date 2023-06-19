@@ -1,13 +1,17 @@
-from typing import Union, Optional, Dict
+from typing import Union, Optional, Dict, Type
 
+import numpy as np
 import torch
+from falkon.utils.helpers import sizeof_dtype
 
+import falkon
 from falkon import sparse
 from falkon.kernels.diff_kernel import DiffKernel
 from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
 from falkon.kernels import KeopsKernelMixin
 from falkon.la_helpers import square_norm
+from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 
 SQRT3 = 1.7320508075688772
 SQRT5 = 2.23606797749979
@@ -34,19 +38,67 @@ def validate_sigma(sigma: Union[float, torch.Tensor]) -> torch.Tensor:
             raise TypeError("Sigma must be a scalar or a tensor.")
 
 
+def _distance_kernel_extra_mem(
+        is_differentiable: bool,
+        is_sparse: bool,
+        kernel_cls: Type['falkon.kernels.Kernel'],
+        dtype: Union[np.dtype, torch.dtype],
+        density1: Optional[float] = None,
+        density2: Optional[float] = None,
+        **kernel_params):
+    # TODO: Consider CPU-CPU case (especially wrt to sparse mm)
+    base = {
+        '0': CUDA_EXTRA_MM_RAM / sizeof_dtype(dtype),
+    }
+    div_sigma = {
+        'nd': 1,
+        'md': 1,
+    }
+    sq_norms = {
+        'm': 1,
+        'n': 1,
+    }
+    extra_nm = 0
+    # Normalize Matern to Gaussian or Laplacian
+    if kernel_cls == MaternKernel and kernel_params['nu'] == 0.5:
+        kernel_cls = LaplacianKernel
+    elif kernel_cls == MaternKernel and kernel_params['nu'] == float('inf'):
+        kernel_cls = GaussianKernel
+    if not is_sparse:  # Dense, can be differentiable
+        out_dict = base | div_sigma | sq_norms
+        if is_differentiable:
+            extra_nm += 1  # To allocate out buffer
+        if kernel_cls == LaplacianKernel and is_differentiable:
+            extra_nm += 1  # To save intermediate outputs
+        if kernel_cls == MaternKernel:
+            if kernel_params['nu'] == 1.5 or kernel_params['nu'] == 2.5:
+                extra_nm += 1
+                if is_differentiable:
+                    extra_nm += 1
+    else:  # Sparse
+        out_dict = base | sq_norms
+        # CUDA spspmm is impossible to evaluate. There is the output dense (which we don't
+        # count here), the output sparse (assumed to be the same size as the dense n*m),
+        # the various work buffers (for safety assume them to also be n*m).
+        extra_nm = 2
+    return out_dict | {'nm': extra_nm}
+
+
 def _sq_dist(mat1, mat2, norm_mat1, norm_mat2, out: Optional[torch.Tensor]) -> torch.Tensor:
     if mat1.dim() == 3:
         if out is None:
-            out = torch.baddbmm(norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1)  # b*n*m
+            out = torch.baddbmm(
+                norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1)  # b*n*m
         else:
-            out = torch.baddbmm(norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1,
-                                out=out)  # b*n*m
+            out = torch.baddbmm(
+                norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1, out=out)  # b*n*m
     else:
         if out is None:
-            out = torch.addmm(norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1)  # n*m
+            out = torch.addmm(
+                norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1)  # n*m
         else:
-            out = torch.addmm(norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1,
-                              out=out)  # n*m
+            out = torch.addmm(
+                norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1, out=out)  # n*m
     out.add_(norm_mat2.transpose(-2, -1))
     out.clamp_min_(1e-20)
     return out
@@ -56,7 +108,7 @@ def _sparse_sq_dist(X1_csr: SparseTensor, X2_csr: SparseTensor,
                     X1: SparseTensor, X2: SparseTensor,
                     out: torch.Tensor) -> torch.Tensor:
     sq1 = torch.empty(X1_csr.size(0), dtype=X1_csr.dtype, device=X1_csr.device)
-    sparse.sparse_square_norm(X1_csr, sq1)  # TODO: This must be implemented for CUDA tensors
+    sparse.sparse_square_norm(X1_csr, sq1)
     sq1 = sq1.reshape(-1, 1)
     sq2 = torch.empty(X2_csr.size(0), dtype=X2_csr.dtype, device=X2_csr.device)
     sparse.sparse_square_norm(X2_csr, sq2)
@@ -88,17 +140,18 @@ def _rbf_diag_core(mat1, mat2, out: Optional[torch.Tensor], sigma: torch.Tensor)
     return out
 
 
-def rbf_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
+def rbf_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma: torch.Tensor) -> torch.Tensor:
     """
     Note 1: if out is None, then this function will be differentiable wrt all three remaining inputs.
     Note 2: this function can deal with batched inputs
 
     Parameters
     ----------
-    sigma
     mat1
     mat2
     out
+    diag
+    sigma
 
     Returns
     -------
@@ -145,8 +198,10 @@ def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
     orig_out = out
     out = _sq_dist(mat1_div_sig, mat2_div_sig, norm_sq_mat1, norm_sq_mat2, out)
     out.sqrt_()  # Laplacian: sqrt of squared-difference
-    # The gradient calculation needs the output of sqrt_
-    if orig_out is None:  # TODO: We could be more explicit in the parameters about whether the gradient is or isn't needed
+    # The gradient calculation needs the output of sqrt_ so we can't overwrite it when
+    # differentiability is required.
+    # TODO: We could be more explicit in the parameters about whether the gradient is or isn't needed
+    if orig_out is None:
         out = out.neg()
     else:
         out.neg_()
@@ -327,15 +382,15 @@ class GaussianKernel(DiffKernel, KeopsKernelMixin):
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self) -> Dict[str, float]:
-        return {
-            # Data-matrix / sigma in prepare + Data-matrix / sigma in apply
-            'nd': 2,
-            'md': 1,
-            # Norm results in prepare
-            'm': 1,
-            'n': 1,
-        }
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+        return _distance_kernel_extra_mem(
+            is_differentiable=is_differentiable,
+            is_sparse=is_sparse,
+            dtype=dtype,
+            density1=density1,
+            density2=density2,
+            kernel_cls=self.__class__,
+        )
 
     def detach(self) -> 'GaussianKernel':
         return GaussianKernel(self.sigma.detach(), opt=self.params)
@@ -393,15 +448,15 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self) -> Dict[str, float]:
-        return {
-            # Data-matrix / sigma in prepare + Data-matrix / sigma in apply
-            'nd': 2,
-            'md': 1,
-            # Norm results in prepare
-            'm': 1,
-            'n': 1,
-        }
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+        return _distance_kernel_extra_mem(
+            is_differentiable=is_differentiable,
+            is_sparse=is_sparse,
+            dtype=dtype,
+            density1=density1,
+            density2=density2,
+            kernel_cls=self.__class__,
+        )
 
     def detach(self) -> 'LaplacianKernel':
         return LaplacianKernel(self.sigma.detach(), opt=self.params)
@@ -483,19 +538,16 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self) -> Dict[str, float]:
-        extra_mem = {
-            # Data-matrix / sigma
-            'nd': 1,
-            'md': 1,
-            # Norm results in prepare
-            'm': 1,
-            'n': 1,
-        }
-        if self.nu in {1.5, 2.5}:
-            # Extra kernel block in transform
-            extra_mem['nm'] = 1
-        return extra_mem
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+        return _distance_kernel_extra_mem(
+            is_differentiable=is_differentiable,
+            is_sparse=is_sparse,
+            dtype=dtype,
+            density1=density1,
+            density2=density2,
+            kernel_cls=self.__class__,
+            nu=self.nu,
+        )
 
     def detach(self) -> 'MaternKernel':
         return MaternKernel(self.sigma.detach(), self.nondiff_params["nu"], opt=self.params)
