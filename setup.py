@@ -163,7 +163,7 @@ setup(
     name="falkon",
     version=get_version("falkon"),
     description="Fast, GPU enabled, approximate kernel ridge regression solver.",
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     tests_require=test_requires,
     extras_require={
         'test': test_requires,
