@@ -35,17 +35,51 @@ to speed-up certain sparse operations. MKL shared libraries are usually distribu
 In case sparse matrix support is not needed, the MKL library will not be loaded.
 
 
+
 Installing
 ----------
 
-You can install Falkon
+There are three ways of installing Falkon:
 
-.. code-block:: bash
+1. **From source** by running
 
-   $ pip install git+https://github.com/falkonml/falkon.git
+    .. code-block:: bash
 
-This will take a while since there are both Cython extensions which need to be compiled (if Cython is installed),
-and PyTorch extensions which take some time to compile.
+      $ pip install git+https://github.com/falkonml/falkon.git
+
+2. **From pypi with JIT compilation** (the C++ extension will be compiled when the library is first used):
+
+    .. code-block:: bash
+
+      $ pip install falkon
+
+3. **From pre-built wheels** which are available for the following versions of PyTorch and CUDA:
+
+     ============== ========= ========= ========= ========= =========
+      Linux          `cu113`   `cu115`   `cu116`   `cu117`   `cu118`
+     ============== ========= ========= ========= ========= =========
+      torch 1.11.0   ✅         ✅
+      torch 1.13.0                       ✅         ✅
+      torch 2.0.0                                  ✅         ✅
+     ============== ========= ========= ========= ========= =========
+
+    As an example, if you **already have installed** PyTorch 1.13 and CUDA 11.7 on your system, you should run
+
+    .. code-block:: bash
+
+      $ pip install falkon -f https://falkon.dibris.unige.it/torch-1.13.0_cu117.html
+
+    Similarly for CPU packages
+
+    .. code-block:: bash
+
+      $ pip install falkon -f https://falkon.dibris.unige.it/torch-2.0.0_cpu.html
+
+    please check `here <https://falkon.dibris.unige.it/index.html>`__ for a list of supported wheels.
+
+For options 1 and 2, you will need the CUDA toolkit to be setup properly on your system in order to compile the sources.
+Compilation may take a few minutes. To speed it up you can try to install ``ninja`` (``pip install ninja``) which
+parallelizes the build process.
 
 
 Testing the installation

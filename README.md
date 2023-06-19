@@ -13,7 +13,7 @@ The basic algorithm is a Nyström approximation to kernel ridge regression, whic
  1. The number of centers `M` - this controls the quality of the approximation: a higher number of centers will
     produce more accurate results at the expense of more computation time, and higher memory requirements.
  2. The penalty term, which controls the amount of regularization.
- 3. The kernel function. A good default is always the Gaussian (or RBF) kernel
+ 3. The kernel function. A good default is always the Gaussian (RBF) kernel
     ([`falkon.kernels.GaussianKernel`](https://falkonml.github.io/falkon/api_reference/kernels.html#gaussian-kernel)).
 
 For more information about the algorithm and the optimized solver, you can download our paper:
@@ -31,8 +31,7 @@ If you find a bug, please open a new issue on GitHub!
 ## Installation
 
 **Dependencies**: 
- - Please install [PyTorch](https://pytorch.org/get-started/locally/) and 
-[numpy](https://numpy.org/install/) first.
+ - Please install [PyTorch](https://pytorch.org/get-started/locally/) first.
  - `cmake` and a C++ compiler are also needed for [KeOps](https://www.kernel-operations.io/keops/python/installation.html) acceleration (optional but strongly recommended).
 
 To install from source, you can run
@@ -44,11 +43,10 @@ pip install git+https://github.com/FalkonML/falkon.git
 We alternatively provide pre-built pip wheels for the following combinations of PyTorch and CUDA:
 
 | Linux        | `cu113` | `cu115` | `cu116` | `cu117` | `cu118` |
-|--------------|---------|---------|---------|---------|---------|
-| torch 1.11.0 | ✅      | ✅      |         |         |         |
-| torch 1.12.0 | ✅      |         | ✅      |         |         |
-| torch 1.13.0 |         |         | ✅      | ✅      |         |
-| torch 2.0.0  |         |         |         | ✅      | ✅      |
+|--------------|-------|---------|--------|---------|---------|
+| torch 1.11.0 | ✅    | ✅      |        |         |         |
+| torch 1.13.0 |       |         | ✅     | ✅      |         |
+| torch 2.0.0  |       |         |        | ✅      | ✅      |
 
 For other combinations, and previous versions of Falkon, please check [here](https://falkon.dibris.unige.it/index.html)
 for a list of supported wheels.
