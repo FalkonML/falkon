@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Implementing A Custom Kernel &mdash; falkon 0.7.5 documentation</title>
+  <title>Implementing A Custom Kernel &mdash; falkon 0.8.2 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/nbsphinx-code-cells.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -32,14 +32,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> falkon
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            falkon
           </a>
               <div class="version">
-                0.7.5
+                0.8.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -324,7 +328,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="examples.html">Examples</a></li>
       <li class="breadcrumb-item active">Implementing A Custom Kernel</li>
       <li class="wy-breadcrumbs-aside">
@@ -336,286 +340,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS for nbsphinx extension */
-
-/* remove conflicting styling from Sphinx themes */
-div.nbinput.container div.prompt *,
-div.nboutput.container div.prompt *,
-div.nbinput.container div.input_area pre,
-div.nboutput.container div.output_area pre,
-div.nbinput.container div.input_area .highlight,
-div.nboutput.container div.output_area .highlight {
-    border: none;
-    padding: 0;
-    margin: 0;
-    box-shadow: none;
-}
-
-div.nbinput.container > div[class*=highlight],
-div.nboutput.container > div[class*=highlight] {
-    margin: 0;
-}
-
-div.nbinput.container div.prompt *,
-div.nboutput.container div.prompt * {
-    background: none;
-}
-
-div.nboutput.container div.output_area .highlight,
-div.nboutput.container div.output_area pre {
-    background: unset;
-}
-
-div.nboutput.container div.output_area div.highlight {
-    color: unset;  /* override Pygments text color */
-}
-
-/* avoid gaps between output lines */
-div.nboutput.container div[class*=highlight] pre {
-    line-height: normal;
-}
-
-/* input/output containers */
-div.nbinput.container,
-div.nboutput.container {
-    display: -webkit-flex;
-    display: flex;
-    align-items: flex-start;
-    margin: 0;
-    width: 100%;
-}
-@media (max-width: 540px) {
-    div.nbinput.container,
-    div.nboutput.container {
-        flex-direction: column;
-    }
-}
-
-/* input container */
-div.nbinput.container {
-    padding-top: 5px;
-}
-
-/* last container */
-div.nblast.container {
-    padding-bottom: 5px;
-}
-
-/* input prompt */
-div.nbinput.container div.prompt pre {
-    color: #307FC1;
-}
-
-/* output prompt */
-div.nboutput.container div.prompt pre {
-    color: #BF5B3D;
-}
-
-/* all prompts */
-div.nbinput.container div.prompt,
-div.nboutput.container div.prompt {
-    width: 4.5ex;
-    padding-top: 5px;
-    position: relative;
-    user-select: none;
-}
-
-div.nbinput.container div.prompt > div,
-div.nboutput.container div.prompt > div {
-    position: absolute;
-    right: 0;
-    margin-right: 0.3ex;
-}
-
-@media (max-width: 540px) {
-    div.nbinput.container div.prompt,
-    div.nboutput.container div.prompt {
-        width: unset;
-        text-align: left;
-        padding: 0.4em;
-    }
-    div.nboutput.container div.prompt.empty {
-        padding: 0;
-    }
-
-    div.nbinput.container div.prompt > div,
-    div.nboutput.container div.prompt > div {
-        position: unset;
-    }
-}
-
-/* disable scrollbars and line breaks on prompts */
-div.nbinput.container div.prompt pre,
-div.nboutput.container div.prompt pre {
-    overflow: hidden;
-    white-space: pre;
-}
-
-/* input/output area */
-div.nbinput.container div.input_area,
-div.nboutput.container div.output_area {
-    -webkit-flex: 1;
-    flex: 1;
-    overflow: auto;
-}
-@media (max-width: 540px) {
-    div.nbinput.container div.input_area,
-    div.nboutput.container div.output_area {
-        width: 100%;
-    }
-}
-
-/* input area */
-div.nbinput.container div.input_area {
-    border: 1px solid #e0e0e0;
-    border-radius: 2px;
-    /*background: #f5f5f5;*/
-}
-
-/* override MathJax center alignment in output cells */
-div.nboutput.container div[class*=MathJax] {
-    text-align: left !important;
-}
-
-/* override sphinx.ext.imgmath center alignment in output cells */
-div.nboutput.container div.math p {
-    text-align: left;
-}
-
-/* standard error */
-div.nboutput.container div.output_area.stderr {
-    background: #fdd;
-}
-
-/* ANSI colors */
-.ansi-black-fg { color: #3E424D; }
-.ansi-black-bg { background-color: #3E424D; }
-.ansi-black-intense-fg { color: #282C36; }
-.ansi-black-intense-bg { background-color: #282C36; }
-.ansi-red-fg { color: #E75C58; }
-.ansi-red-bg { background-color: #E75C58; }
-.ansi-red-intense-fg { color: #B22B31; }
-.ansi-red-intense-bg { background-color: #B22B31; }
-.ansi-green-fg { color: #00A250; }
-.ansi-green-bg { background-color: #00A250; }
-.ansi-green-intense-fg { color: #007427; }
-.ansi-green-intense-bg { background-color: #007427; }
-.ansi-yellow-fg { color: #DDB62B; }
-.ansi-yellow-bg { background-color: #DDB62B; }
-.ansi-yellow-intense-fg { color: #B27D12; }
-.ansi-yellow-intense-bg { background-color: #B27D12; }
-.ansi-blue-fg { color: #208FFB; }
-.ansi-blue-bg { background-color: #208FFB; }
-.ansi-blue-intense-fg { color: #0065CA; }
-.ansi-blue-intense-bg { background-color: #0065CA; }
-.ansi-magenta-fg { color: #D160C4; }
-.ansi-magenta-bg { background-color: #D160C4; }
-.ansi-magenta-intense-fg { color: #A03196; }
-.ansi-magenta-intense-bg { background-color: #A03196; }
-.ansi-cyan-fg { color: #60C6C8; }
-.ansi-cyan-bg { background-color: #60C6C8; }
-.ansi-cyan-intense-fg { color: #258F8F; }
-.ansi-cyan-intense-bg { background-color: #258F8F; }
-.ansi-white-fg { color: #C5C1B4; }
-.ansi-white-bg { background-color: #C5C1B4; }
-.ansi-white-intense-fg { color: #A1A6B2; }
-.ansi-white-intense-bg { background-color: #A1A6B2; }
-
-.ansi-default-inverse-fg { color: #FFFFFF; }
-.ansi-default-inverse-bg { background-color: #000000; }
-
-.ansi-bold { font-weight: bold; }
-.ansi-underline { text-decoration: underline; }
-
-
-div.nbinput.container div.input_area div[class*=highlight] > pre,
-div.nboutput.container div.output_area div[class*=highlight] > pre,
-div.nboutput.container div.output_area div[class*=highlight].math,
-div.nboutput.container div.output_area.rendered_html,
-div.nboutput.container div.output_area > div.output_javascript,
-div.nboutput.container div.output_area:not(.rendered_html) > img{
-    padding: 5px;
-    margin: 0;
-}
-
-/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
-div.nbinput.container div.input_area > div[class^='highlight'],
-div.nboutput.container div.output_area > div[class^='highlight']{
-    overflow-y: hidden;
-}
-
-/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
-.prompt .copybtn {
-    display: none;
-}
-
-/* Some additional styling taken form the Jupyter notebook CSS */
-.jp-RenderedHTMLCommon table,
-div.rendered_html table {
-  border: none;
-  border-collapse: collapse;
-  border-spacing: 0;
-  color: black;
-  font-size: 12px;
-  table-layout: fixed;
-}
-.jp-RenderedHTMLCommon thead,
-div.rendered_html thead {
-  border-bottom: 1px solid black;
-  vertical-align: bottom;
-}
-.jp-RenderedHTMLCommon tr,
-.jp-RenderedHTMLCommon th,
-.jp-RenderedHTMLCommon td,
-div.rendered_html tr,
-div.rendered_html th,
-div.rendered_html td {
-  text-align: right;
-  vertical-align: middle;
-  padding: 0.5em 0.5em;
-  line-height: normal;
-  white-space: normal;
-  max-width: none;
-  border: none;
-}
-.jp-RenderedHTMLCommon th,
-div.rendered_html th {
-  font-weight: bold;
-}
-.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
-div.rendered_html tbody tr:nth-child(odd) {
-  background: #f5f5f5;
-}
-.jp-RenderedHTMLCommon tbody tr:hover,
-div.rendered_html tbody tr:hover {
-  background: rgba(66, 165, 245, 0.2);
-}
-
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<section id="Implementing-A-Custom-Kernel">
+  <section id="Implementing-A-Custom-Kernel">
 <h1>Implementing A Custom Kernel<a class="headerlink" href="#Implementing-A-Custom-Kernel" title="Permalink to this heading"></a></h1>
 <p>In this notebook we will show how to implement a custom kernel in Falkon.</p>
 <p>There are several complementary parts to a kernel, which can be added to support different operations. We will go through them one-by-one in this notebook:</p>
@@ -629,16 +354,16 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import matplotlib.pyplot as plt
-plt.style.use(&#39;ggplot&#39;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;ggplot&#39;</span><span class="p">)</span>
 
-from sklearn import datasets
-import torch
-import numpy as np
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-import falkon
-from falkon import FalkonOptions
-from falkon.kernels import Kernel, DiffKernel, KeopsKernelMixin
+<span class="kn">import</span> <span class="nn">falkon</span>
+<span class="kn">from</span> <span class="nn">falkon</span> <span class="kn">import</span> <span class="n">FalkonOptions</span>
+<span class="kn">from</span> <span class="nn">falkon.kernels</span> <span class="kn">import</span> <span class="n">Kernel</span><span class="p">,</span> <span class="n">DiffKernel</span><span class="p">,</span> <span class="n">KeopsKernelMixin</span>
 </pre></div>
 </div>
 </div>
@@ -657,28 +382,28 @@ from falkon.kernels import Kernel, DiffKernel, KeopsKernelMixin
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>X, Y = datasets.fetch_california_housing(return_X_y=True)
-num_train = int(X.shape[0] * 0.8)
-num_test = X.shape[0] - num_train
-shuffle_idx = np.arange(X.shape[0])
-np.random.shuffle(shuffle_idx)
-train_idx = shuffle_idx[:num_train]
-test_idx = shuffle_idx[num_train:]
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">fetch_california_housing</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">num_train</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">)</span>
+<span class="n">num_test</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">num_train</span>
+<span class="n">shuffle_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">shuffle_idx</span><span class="p">)</span>
+<span class="n">train_idx</span> <span class="o">=</span> <span class="n">shuffle_idx</span><span class="p">[:</span><span class="n">num_train</span><span class="p">]</span>
+<span class="n">test_idx</span> <span class="o">=</span> <span class="n">shuffle_idx</span><span class="p">[</span><span class="n">num_train</span><span class="p">:]</span>
 
-Xtrain, Ytrain = X[train_idx], Y[train_idx]
-Xtest, Ytest = X[test_idx], Y[test_idx]
-# convert numpy -&gt; pytorch
-Xtrain = torch.from_numpy(Xtrain).to(dtype=torch.float32)
-Xtest = torch.from_numpy(Xtest).to(dtype=torch.float32)
-Ytrain = torch.from_numpy(Ytrain).to(dtype=torch.float32)
-Ytest = torch.from_numpy(Ytest).to(dtype=torch.float32)
-# z-score normalization
-train_mean = Xtrain.mean(0, keepdim=True)
-train_std = Xtrain.std(0, keepdim=True)
-Xtrain -= train_mean
-Xtrain /= train_std
-Xtest -= train_mean
-Xtest /= train_std
+<span class="n">Xtrain</span><span class="p">,</span> <span class="n">Ytrain</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">train_idx</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+<span class="n">Xtest</span><span class="p">,</span> <span class="n">Ytest</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">test_idx</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="n">test_idx</span><span class="p">]</span>
+<span class="c1"># convert numpy -&gt; pytorch</span>
+<span class="n">Xtrain</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Xtrain</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">Xtest</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Xtest</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">Ytrain</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Ytrain</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">Ytest</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">Ytest</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="c1"># z-score normalization</span>
+<span class="n">train_mean</span> <span class="o">=</span> <span class="n">Xtrain</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">train_std</span> <span class="o">=</span> <span class="n">Xtrain</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">Xtrain</span> <span class="o">-=</span> <span class="n">train_mean</span>
+<span class="n">Xtrain</span> <span class="o">/=</span> <span class="n">train_std</span>
+<span class="n">Xtest</span> <span class="o">-=</span> <span class="n">train_mean</span>
+<span class="n">Xtest</span> <span class="o">/=</span> <span class="n">train_std</span>
 </pre></div>
 </div>
 </div>
@@ -686,17 +411,17 @@ Xtest /= train_std
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def rmse(true, pred):
-    return torch.sqrt(torch.mean((true.reshape(-1, 1) - pred.reshape(-1, 1))**2))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">rmse</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">true</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">pred</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
 
-def learn_with_kernel(kernel):
-    flk_opt = FalkonOptions(use_cpu=True)
-    model = falkon.Falkon(
-        kernel=kernel, penalty=1e-5, M=1000, options=flk_opt,
-        error_every=1, error_fn=rmse)
-    model.fit(Xtrain, Ytrain)
-    ts_err = rmse(Ytest, model.predict(Xtest))
-    print(&quot;Test RMSE: %.2f&quot; % (ts_err))
+<span class="k">def</span> <span class="nf">learn_with_kernel</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
+    <span class="n">flk_opt</span> <span class="o">=</span> <span class="n">FalkonOptions</span><span class="p">(</span><span class="n">use_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">Falkon</span><span class="p">(</span>
+        <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">penalty</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">flk_opt</span><span class="p">,</span>
+        <span class="n">error_every</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">error_fn</span><span class="o">=</span><span class="n">rmse</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xtrain</span><span class="p">,</span> <span class="n">Ytrain</span><span class="p">)</span>
+    <span class="n">ts_err</span> <span class="o">=</span> <span class="n">rmse</span><span class="p">(</span><span class="n">Ytest</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">Xtest</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Test RMSE: </span><span class="si">%.2f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ts_err</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -718,32 +443,32 @@ def learn_with_kernel(kernel):
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>class BasicLinearKernel(Kernel):
-    def __init__(self, lengthscale, options):
-        # The base class takes as inputs a name for the kernel, and
-        # an instance of `FalkonOptions`.
-        super().__init__(&quot;basic_linear&quot;, options)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">BasicLinearKernel</span><span class="p">(</span><span class="n">Kernel</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+        <span class="c1"># The base class takes as inputs a name for the kernel, and</span>
+        <span class="c1"># an instance of `FalkonOptions`.</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;basic_linear&quot;</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
 
-        self.lengthscale = lengthscale
+        <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span> <span class="o">=</span> <span class="n">lengthscale</span>
 
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool) -&gt; torch.Tensor:
-        # To support different devices/data types, you must make sure
-        # the lengthscale is compatible with the data.
-        lengthscale = self.lengthscale.to(device=X1.device, dtype=X1.dtype)
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># To support different devices/data types, you must make sure</span>
+        <span class="c1"># the lengthscale is compatible with the data.</span>
+        <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
-        scaled_X1 = X1 * lengthscale
+        <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
 
-        if diag:
-            out.copy_(torch.sum(scaled_X1 * X2, dim=-1))
-        else:
-            # The dot-product row-by-row on `X1` and `X2` can be computed
-            # on many rows at a time with matrix multiplication.
-            out = torch.matmul(scaled_X1, X2.T, out=out)
+        <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">scaled_X1</span> <span class="o">*</span> <span class="n">X2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The dot-product row-by-row on `X1` and `X2` can be computed</span>
+            <span class="c1"># on many rows at a time with matrix multiplication.</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scaled_X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
 
-        return out
+        <span class="k">return</span> <span class="n">out</span>
 
-    def compute_sparse(self, X1, X2, out, diag, **kwargs) -&gt; torch.Tensor:
-        raise NotImplementedError(&quot;Sparse not implemented&quot;)
+    <span class="k">def</span> <span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">diag</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Sparse not implemented&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -753,9 +478,9 @@ def learn_with_kernel(kernel):
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Initialize the kernel
-lengthscale_init = torch.tensor([1.0])
-k = BasicLinearKernel(lengthscale_init, options=falkon.FalkonOptions())
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the kernel</span>
+<span class="n">lengthscale_init</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">])</span>
+<span class="n">k</span> <span class="o">=</span> <span class="n">BasicLinearKernel</span><span class="p">(</span><span class="n">lengthscale_init</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">falkon</span><span class="o">.</span><span class="n">FalkonOptions</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -763,8 +488,8 @@ k = BasicLinearKernel(lengthscale_init, options=falkon.FalkonOptions())
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The kernel matrix
-k(torch.randn(5, 3), torch.randn(5, 3))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The kernel matrix</span>
+<span class="n">k</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -785,8 +510,8 @@ tensor([[-1.3538,  4.0383, -0.5058, -3.1306, -0.3159],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Kernel-vector product
-k.mmv(torch.randn(4, 3), torch.randn(4, 3), v=torch.randn(4, 1))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Kernel-vector product</span>
+<span class="n">k</span><span class="o">.</span><span class="n">mmv</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">v</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -806,8 +531,8 @@ tensor([[6.1084],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Double kernel-vector product
-k.dmmv(torch.randn(3, 3), torch.randn(4, 3), v=torch.randn(4, 1), w=torch.randn(3, 1))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Double kernel-vector product</span>
+<span class="n">k</span><span class="o">.</span><span class="n">dmmv</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">v</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">w</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -827,8 +552,8 @@ tensor([[ -3.6467],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Learning on the california housing dataset
-learn_with_kernel(k)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Learning on the california housing dataset</span>
+<span class="n">learn_with_kernel</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -873,44 +598,44 @@ Test RMSE: 2.19
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>class DiffLinearKernel(DiffKernel):
-    def __init__(self, lengthscale, options):
-        # Super-class constructor call. We do not specify core_fn
-        # but we must specify the hyperparameter of this kernel (lengthscale)
-        super().__init__(&quot;diff_linear&quot;,
-                         options,
-                         core_fn=None,
-                         lengthscale=lengthscale)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DiffLinearKernel</span><span class="p">(</span><span class="n">DiffKernel</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+        <span class="c1"># Super-class constructor call. We do not specify core_fn</span>
+        <span class="c1"># but we must specify the hyperparameter of this kernel (lengthscale)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;diff_linear&quot;</span><span class="p">,</span>
+                         <span class="n">options</span><span class="p">,</span>
+                         <span class="n">core_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">lengthscale</span><span class="o">=</span><span class="n">lengthscale</span><span class="p">)</span>
 
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool):
-        lengthscale = self.lengthscale.to(device=X1.device, dtype=X1.dtype)
-        scaled_X1 = X1 * lengthscale
-        if diag:
-            out.copy_(torch.sum(scaled_X1 * X2, dim=-1))
-        else:
-            out = torch.matmul(scaled_X1, X2.T, out=out)
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
+        <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">scaled_X1</span> <span class="o">*</span> <span class="n">X2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scaled_X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
 
-        return out
+        <span class="k">return</span> <span class="n">out</span>
 
-    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool):
-        # The implementation here is similar to `compute` without in-place operations.
-        lengthscale = self.lengthscale.to(device=X1.device, dtype=X1.dtype)
-        scaled_X1 = X1 * lengthscale
+    <span class="k">def</span> <span class="nf">compute_diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="c1"># The implementation here is similar to `compute` without in-place operations.</span>
+        <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
 
-        if diag:
-            return torch.sum(scaled_X1 * X2, dim=-1)
+        <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">scaled_X1</span> <span class="o">*</span> <span class="n">X2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
-        return torch.matmul(scaled_X1, X2.T)
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scaled_X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
-    def detach(self):
-        # Clones the class with detached hyperparameters
-        return DiffLinearKernel(
-            lengthscale=self.lengthscale.detach(),
-            options=self.params
-        )
+    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Clones the class with detached hyperparameters</span>
+        <span class="k">return</span> <span class="n">DiffLinearKernel</span><span class="p">(</span>
+            <span class="n">lengthscale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+        <span class="p">)</span>
 
-    def compute_sparse(self, X1, X2, out, diag, **kwargs) -&gt; torch.Tensor:
-        raise NotImplementedError(&quot;Sparse not implemented&quot;)
+    <span class="k">def</span> <span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">diag</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Sparse not implemented&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -920,9 +645,9 @@ Test RMSE: 2.19
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Initialize the kernel, with a lengthscale which requires grad.
-lengthscale_init = torch.tensor([1.0]).requires_grad_()
-k = DiffLinearKernel(lengthscale_init, options=falkon.FalkonOptions())
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the kernel, with a lengthscale which requires grad.</span>
+<span class="n">lengthscale_init</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">])</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+<span class="n">k</span> <span class="o">=</span> <span class="n">DiffLinearKernel</span><span class="p">(</span><span class="n">lengthscale_init</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">falkon</span><span class="o">.</span><span class="n">FalkonOptions</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -930,9 +655,9 @@ k = DiffLinearKernel(lengthscale_init, options=falkon.FalkonOptions())
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Kernel matrix. Notice how the outputs has a `grad_fn`
-k_mat = k(torch.randn(5, 3), torch.randn(5, 3))
-k_mat
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Kernel matrix. Notice how the outputs has a `grad_fn`</span>
+<span class="n">k_mat</span> <span class="o">=</span> <span class="n">k</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">k_mat</span>
 </pre></div>
 </div>
 </div>
@@ -954,8 +679,8 @@ tensor([[ 2.7480,  1.6149, -1.2979, -2.3070, -1.1852],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Gradient of the kernel with respect to the lengthscale.
-torch.autograd.grad(k_mat.sum(), k.lengthscale)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Gradient of the kernel with respect to the lengthscale.</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">k_mat</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">k</span><span class="o">.</span><span class="n">lengthscale</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -972,15 +697,15 @@ torch.autograd.grad(k_mat.sum(), k.lengthscale)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># kernel-vector product + gradient
-m1 = torch.randn(4, 3).requires_grad_()
-m2 = torch.randn(2, 3)
-v = torch.randn(2, 1)
-k_mmv = k.mmv(m1, m2, v)
-print(&quot;Kernel-vector product&quot;)
-print(k_mmv)
-print(&quot;Gradients:&quot;)
-print(torch.autograd.grad(k_mmv.sum(), [k.lengthscale, m1]))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># kernel-vector product + gradient</span>
+<span class="n">m1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+<span class="n">m2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">k_mmv</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">mmv</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Kernel-vector product&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">k_mmv</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Gradients:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">k_mmv</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">lengthscale</span><span class="p">,</span> <span class="n">m1</span><span class="p">]))</span>
 </pre></div>
 </div>
 </div>
@@ -1005,8 +730,8 @@ Gradients:
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Learning on the california housing dataset
-learn_with_kernel(k)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Learning on the california housing dataset</span>
+<span class="n">learn_with_kernel</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1051,56 +776,56 @@ Test RMSE: 2.19
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>class KeopsLinearKernel(DiffKernel, KeopsKernelMixin):
-    def __init__(self, lengthscale, options):
-        super().__init__(&quot;my-keops-linear&quot;,
-                         options,
-                         core_fn=None,
-                         lengthscale=lengthscale)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">KeopsLinearKernel</span><span class="p">(</span><span class="n">DiffKernel</span><span class="p">,</span> <span class="n">KeopsKernelMixin</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;my-keops-linear&quot;</span><span class="p">,</span>
+                         <span class="n">options</span><span class="p">,</span>
+                         <span class="n">core_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">lengthscale</span><span class="o">=</span><span class="n">lengthscale</span><span class="p">)</span>
 
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool):
-        lengthscale = self.lengthscale.to(device=X1.device, dtype=X1.dtype)
-        scaled_X1 = X1 * lengthscale
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
 
-        if diag:
-            out.copy_(torch.sum(scaled_X1 * X2, dim=-1))
-        else:
-            out = torch.matmul(scaled_X1, X2.T, out=out)
+        <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">scaled_X1</span> <span class="o">*</span> <span class="n">X2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scaled_X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
 
-        return out
+        <span class="k">return</span> <span class="n">out</span>
 
-    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool):
-        scaled_X1 = X1 * self.lengthscale
+    <span class="k">def</span> <span class="nf">compute_diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span>
 
-        if diag:
-            return torch.sum(scaled_X1 * X2, dim=-1)
+        <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">scaled_X1</span> <span class="o">*</span> <span class="n">X2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
-        return torch.matmul(scaled_X1, X2.T)
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scaled_X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
-    def detach(self):
-        return KeopsLinearKernel(
-            lengthscale=self.lengthscale.detach(),
-            options=self.params
-        )
+    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">KeopsLinearKernel</span><span class="p">(</span>
+            <span class="n">lengthscale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+        <span class="p">)</span>
 
-    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
-        # Keops formula for kernel-vector.
-        formula = &#39;(scale * (X | Y)) * v&#39;
-        aliases = [
-            &#39;X = Vi(%d)&#39; % (X1.shape[1]),
-            &#39;Y = Vj(%d)&#39; % (X2.shape[1]),
-            &#39;v = Vj(%d)&#39; % (v.shape[1]),
-            &#39;scale = Pm(%d)&#39; % (self.lengthscale.shape[0]),
-        ]
-        other_vars = [
-            self.lengthscale.to(dtype=X1.dtype, device=X1.device),
-        ]
-        # Call to the executor of the formula.
-        return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
+    <span class="k">def</span> <span class="nf">keops_mmv_impl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">opt</span><span class="p">):</span>
+        <span class="c1"># Keops formula for kernel-vector.</span>
+        <span class="n">formula</span> <span class="o">=</span> <span class="s1">&#39;(scale * (X | Y)) * v&#39;</span>
+        <span class="n">aliases</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;X = Vi(</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">X1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="s1">&#39;Y = Vj(</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">X2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="s1">&#39;v = Vj(</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="s1">&#39;scale = Pm(</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="p">]</span>
+        <span class="n">other_vars</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="c1"># Call to the executor of the formula.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">keops_mmv</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">formula</span><span class="p">,</span> <span class="n">aliases</span><span class="p">,</span> <span class="n">other_vars</span><span class="p">,</span> <span class="n">opt</span><span class="p">)</span>
 
 
-    def compute_sparse(self, X1, X2, out: torch.Tensor, diag: bool, **kwargs) -&gt; torch.Tensor:
-        raise NotImplementedError(&quot;Sparse not implemented&quot;)
+    <span class="k">def</span> <span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Sparse not implemented&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1111,8 +836,8 @@ Test RMSE: 2.19
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>lengthscale_init = torch.tensor([1.0]).requires_grad_()
-k = KeopsLinearKernel(lengthscale_init, options=falkon.FalkonOptions(use_cpu=True))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lengthscale_init</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">])</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+<span class="n">k</span> <span class="o">=</span> <span class="n">KeopsLinearKernel</span><span class="p">(</span><span class="n">lengthscale_init</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">falkon</span><span class="o">.</span><span class="n">FalkonOptions</span><span class="p">(</span><span class="n">use_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1120,15 +845,15 @@ k = KeopsLinearKernel(lengthscale_init, options=falkon.FalkonOptions(use_cpu=Tru
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># kernel-vector product + gradient
-m1 = torch.randn(4, 3).requires_grad_()
-m2 = torch.randn(2, 3)
-v = torch.randn(2, 1)
-k_mmv = k.mmv(m1, m2, v)
-print(&quot;Kernel-vector product&quot;)
-print(k_mmv)
-print(&quot;Gradients:&quot;)
-print(torch.autograd.grad(k_mmv.sum(), [k.lengthscale, m1]))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># kernel-vector product + gradient</span>
+<span class="n">m1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+<span class="n">m2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">k_mmv</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">mmv</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Kernel-vector product&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">k_mmv</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Gradients:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">k_mmv</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">lengthscale</span><span class="p">,</span> <span class="n">m1</span><span class="p">]))</span>
 </pre></div>
 </div>
 </div>
@@ -1153,10 +878,10 @@ Gradients:
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Learning on the california housing dataset.
-# Due to differences in floating point code, results may be slightly
-# different from the other implementations.
-learn_with_kernel(k)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Learning on the california housing dataset.</span>
+<span class="c1"># Due to differences in floating point code, results may be slightly</span>
+<span class="c1"># different from the other implementations.</span>
+<span class="n">learn_with_kernel</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1199,8 +924,8 @@ Test RMSE: 2.19
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from falkon.sparse import SparseTensor
-from falkon.sparse import sparse_matmul, bdot
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">falkon.sparse</span> <span class="kn">import</span> <span class="n">SparseTensor</span>
+<span class="kn">from</span> <span class="nn">falkon.sparse</span> <span class="kn">import</span> <span class="n">sparse_matmul</span><span class="p">,</span> <span class="n">bdot</span>
 </pre></div>
 </div>
 </div>
@@ -1208,51 +933,51 @@ from falkon.sparse import sparse_matmul, bdot
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>class SparseLinearKernel(Kernel):
-    def __init__(self, lengthscale, options):
-        # The base class takes as inputs a name for the kernel, and
-        # an instance of `FalkonOptions`.
-        super().__init__(&quot;sparse_linear&quot;, options)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">SparseLinearKernel</span><span class="p">(</span><span class="n">Kernel</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+        <span class="c1"># The base class takes as inputs a name for the kernel, and</span>
+        <span class="c1"># an instance of `FalkonOptions`.</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;sparse_linear&quot;</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
 
-        self.lengthscale = lengthscale
+        <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span> <span class="o">=</span> <span class="n">lengthscale</span>
 
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool) -&gt; torch.Tensor:
-        lengthscale = self.lengthscale.to(device=X1.device, dtype=X1.dtype)
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
-        scaled_X1 = X1 * lengthscale
+        <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
 
-        if diag:
-            out.copy_(torch.sum(scaled_X1 * X2, dim=-1))
-        else:
-            # The dot-product row-by-row on `X1` and `X2` can be computed
-            # on many rows at a time with matrix multiplication.
-            out = torch.matmul(scaled_X1, X2.T, out=out)
+        <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">scaled_X1</span> <span class="o">*</span> <span class="n">X2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The dot-product row-by-row on `X1` and `X2` can be computed</span>
+            <span class="c1"># on many rows at a time with matrix multiplication.</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scaled_X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
 
-        return out
+        <span class="k">return</span> <span class="n">out</span>
 
-    def compute_sparse(self,
-                       X1: SparseTensor,
-                       X2: SparseTensor,
-                       out: torch.Tensor,
-                       diag: bool,
-                       **kwargs) -&gt; torch.Tensor:
-        # The inputs will be matrix X1(n*d) in CSR format, and X2(d*n) in CSC format.
+    <span class="k">def</span> <span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">X1</span><span class="p">:</span> <span class="n">SparseTensor</span><span class="p">,</span>
+                       <span class="n">X2</span><span class="p">:</span> <span class="n">SparseTensor</span><span class="p">,</span>
+                       <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+                       <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                       <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># The inputs will be matrix X1(n*d) in CSR format, and X2(d*n) in CSC format.</span>
 
-        # To support different devices/data types, you must make sure
-        # the lengthscale is compatible with the data.
-        lengthscale = self.lengthscale.to(device=X1.device, dtype=X1.dtype)
+        <span class="c1"># To support different devices/data types, you must make sure</span>
+        <span class="c1"># the lengthscale is compatible with the data.</span>
+        <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
-        if diag:
-            # The diagonal is a dot-product between rows of X1 and X2.
-            # The batched-dot is only implemented on CPU.
-            out = bdot(X1, X2.transpose_csr(), out)
-        else:
-            # Otherwise we need to matrix-multiply. Note that X2 is already
-            # transposed correctly.
-            out = sparse_matmul(X1, X2, out)
+        <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
+            <span class="c1"># The diagonal is a dot-product between rows of X1 and X2.</span>
+            <span class="c1"># The batched-dot is only implemented on CPU.</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">bdot</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">transpose_csr</span><span class="p">(),</span> <span class="n">out</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Otherwise we need to matrix-multiply. Note that X2 is already</span>
+            <span class="c1"># transposed correctly.</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">sparse_matmul</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
 
-        out.mul_(lengthscale)
-        return out
+        <span class="n">out</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="n">lengthscale</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
 </pre></div>
 </div>
 </div>
@@ -1263,13 +988,13 @@ from falkon.sparse import sparse_matmul, bdot
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>indexptr = torch.tensor([0, 1, 3, 4], dtype=torch.long)
-index = torch.tensor([1, 0, 1, 0], dtype=torch.long)
-value = torch.tensor([5, 1, 8, 2], dtype=torch.float32)
-sp1 = SparseTensor(indexptr=indexptr, index=index, data=value, size=(3, 2), sparse_type=&quot;csr&quot;)
-# Converted to dense:
-dense1 = torch.from_numpy(sp1.to_scipy().todense())
-dense1
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">indexptr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+<span class="n">value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">sp1</span> <span class="o">=</span> <span class="n">SparseTensor</span><span class="p">(</span><span class="n">indexptr</span><span class="o">=</span><span class="n">indexptr</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">sparse_type</span><span class="o">=</span><span class="s2">&quot;csr&quot;</span><span class="p">)</span>
+<span class="c1"># Converted to dense:</span>
+<span class="n">dense1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">sp1</span><span class="o">.</span><span class="n">to_scipy</span><span class="p">()</span><span class="o">.</span><span class="n">todense</span><span class="p">())</span>
+<span class="n">dense1</span>
 </pre></div>
 </div>
 </div>
@@ -1288,12 +1013,12 @@ tensor([[0., 5.],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>indexptr = torch.tensor([0, 1, 2, 4], dtype=torch.long)
-index = torch.tensor([1, 0, 0, 1], dtype=torch.long)
-value = torch.tensor([2, 1, 3, 4], dtype=torch.float32)
-sp2 = SparseTensor(indexptr=indexptr, index=index, data=value, size=(3, 2), sparse_type=&quot;csr&quot;)
-dense2 = torch.from_numpy(sp2.to_scipy().todense())
-dense2
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">indexptr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+<span class="n">value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">sp2</span> <span class="o">=</span> <span class="n">SparseTensor</span><span class="p">(</span><span class="n">indexptr</span><span class="o">=</span><span class="n">indexptr</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">sparse_type</span><span class="o">=</span><span class="s2">&quot;csr&quot;</span><span class="p">)</span>
+<span class="n">dense2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">sp2</span><span class="o">.</span><span class="n">to_scipy</span><span class="p">()</span><span class="o">.</span><span class="n">todense</span><span class="p">())</span>
+<span class="n">dense2</span>
 </pre></div>
 </div>
 </div>
@@ -1312,9 +1037,9 @@ tensor([[0., 2.],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Initialize the kernel
-lengthscale_init = torch.tensor([1.0])
-k = SparseLinearKernel(lengthscale_init, options=falkon.FalkonOptions())
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the kernel</span>
+<span class="n">lengthscale_init</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">])</span>
+<span class="n">k</span> <span class="o">=</span> <span class="n">SparseLinearKernel</span><span class="p">(</span><span class="n">lengthscale_init</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">falkon</span><span class="o">.</span><span class="n">FalkonOptions</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -1322,7 +1047,7 @@ k = SparseLinearKernel(lengthscale_init, options=falkon.FalkonOptions())
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>k(sp1, sp2) == k(dense1, dense2)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">k</span><span class="p">(</span><span class="n">sp1</span><span class="p">,</span> <span class="n">sp2</span><span class="p">)</span> <span class="o">==</span> <span class="n">k</span><span class="p">(</span><span class="n">dense1</span><span class="p">,</span> <span class="n">dense2</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>

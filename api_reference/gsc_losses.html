@@ -1,20 +1,19 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>falkon.gsc_losses &mdash; falkon 0.7.5 documentation</title>
+  <title>falkon.gsc_losses &mdash; falkon 0.8.2 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -32,14 +31,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> falkon
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            falkon
           </a>
               <div class="version">
-                0.7.5
+                0.8.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -324,7 +327,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">API Reference</a></li>
       <li class="breadcrumb-item active">falkon.gsc_losses</li>
       <li class="wy-breadcrumbs-aside">
@@ -336,37 +339,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<section id="module-falkon">
+  <section id="module-falkon">
 <span id="falkon-gsc-losses"></span><h1>falkon.gsc_losses<a class="headerlink" href="#module-falkon" title="Permalink to this heading"></a></h1>
 <section id="loss">
 <h2>Loss<a class="headerlink" href="#loss" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="falkon.gsc_losses.Loss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.gsc_losses.</span></span><span class="sig-name descname"><span class="pre">Loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><span class="pre">Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.gsc_losses.Loss" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.gsc_losses.</span></span><span class="sig-name descname"><span class="pre">Loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><span class="pre">Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.gsc_losses.Loss" title="Permalink to this definition"></a></dt>
 <dd><p>Abstract generalized self-concordant loss function class.</p>
 <p>Such loss functions must be three times differentiable; but for the logistic Falkon algorithm
 only the first two derivatives are used.
@@ -378,7 +357,7 @@ which calculates the second derivative.</p>
 calculate kernel-vector products using the loss derivatives for vectors. These functions are
 specific to the logistic Falkon algorithm.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>name</strong> – A descriptive name for the loss function (e.g. “logistic”, “softmax”)</p></li>
 <li><p><strong>kernel</strong> – The kernel function used for training a LogFalkon model</p></li>
@@ -401,13 +380,13 @@ products.</p></li>
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.gsc_losses.Loss.__call__" title="Permalink to this definition"></a></dt>
 <dd><p>Abstract method. Should return the loss for predicting <cite>y2</cite> with true labels <cite>y1</cite>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y1</strong> (<em>torch.Tensor</em>) – One of the two inputs to the loss. This should be interpreted as the <cite>true</cite> labels.</p></li>
 <li><p><strong>y2</strong> (<em>torch.Tensor</em>) – The other loss input. Should be interpreted as the predicted labels.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>torch.Tensor</em> – The loss calculated for the two inputs.</p>
 </dd>
 </dl>
@@ -418,14 +397,14 @@ products.</p></li>
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ddf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.gsc_losses.Loss.ddf" title="Permalink to this definition"></a></dt>
 <dd><p>Abstract method. Should return the second derivative of the loss wrt <cite>y2</cite>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y1</strong> (<em>torch.Tensor</em>) – One of the two inputs to the loss. This should be interpreted as the <cite>true</cite> labels.</p></li>
 <li><p><strong>y2</strong> (<em>torch.Tensor</em>) – The other loss input. Should be interpreted as the predicted labels. The derivative
 should be computed with respect to this tensor.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>torch.Tensor</em> – The second derivative of the loss with respect to <cite>y2</cite>. It will be a tensor of the
 same shape as the two inputs.</p>
 </dd>
@@ -437,14 +416,14 @@ same shape as the two inputs.</p>
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.gsc_losses.Loss.df" title="Permalink to this definition"></a></dt>
 <dd><p>Abstract method. Should return the derivative of the loss wrt <cite>y2</cite>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y1</strong> (<em>torch.Tensor</em>) – One of the two inputs to the loss. This should be interpreted as the <cite>true</cite> labels.</p></li>
 <li><p><strong>y2</strong> (<em>torch.Tensor</em>) – The other loss input. Should be interpreted as the predicted labels. The derivative
 should be computed with respect to this tensor.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>torch.Tensor</em> – The derivative of the loss with respect to <cite>y2</cite>. It will be a tensor of the same shape
 as the two inputs.</p>
 </dd>
@@ -453,14 +432,14 @@ as the two inputs.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.gsc_losses.Loss.knmp_grad">
-<span class="sig-name descname"><span class="pre">knmp_grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#falkon.gsc_losses.Loss.knmp_grad" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">knmp_grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#falkon.gsc_losses.Loss.knmp_grad" title="Permalink to this definition"></a></dt>
 <dd><p>Computes a kernel vector product where the vector is the first derivative of this loss</p>
 <p>Given kernel function <span class="math notranslate nohighlight">\(K\)</span>, the loss represented by this class <span class="math notranslate nohighlight">\(\mathcal{l}\)</span>,
 number of samples <span class="math notranslate nohighlight">\(n\)</span>, this function follows equation</p>
 <div class="math notranslate nohighlight">
 \[\dfrac{1}{n} K(X_c, X) &#64; (\mathcal{l}'(Y, K(X, X_c) &#64; u))\]</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>X</strong> (<em>torch.Tensor</em>) – Data matrix of shape (n x d) with <cite>n</cite> samples in <cite>d</cite> dimensions.</p></li>
 <li><p><strong>Xc</strong> (<em>torch.Tensor</em>) – Center matrix of shape (m x d) with <cite>m</cite> centers in <cite>d</cite> dimensions.</p></li>
@@ -474,7 +453,7 @@ Options passed as an argument take precedence over the options used to build thi
 class instance.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p><strong>grad_mul</strong> (<em>torch.Tensor</em>) – A tensor of shape (m x 1) coming from the multiplication of the kernel matrix
 <cite>K(Xc, X)</cite> and the loss calculated on predictions with weights <cite>u</cite>.
@@ -488,14 +467,14 @@ The formula followed is: <cite>(1/n) * K(Xc, X) &#64; df(Y, K(X, Xc) &#64; u)</c
 
 <dl class="py method">
 <dt class="sig sig-object py" id="falkon.gsc_losses.Loss.knmp_hess">
-<span class="sig-name descname"><span class="pre">knmp_hess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.gsc_losses.Loss.knmp_hess" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">knmp_hess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="headerlink" href="#falkon.gsc_losses.Loss.knmp_hess" title="Permalink to this definition"></a></dt>
 <dd><p>Compute a kernel-vector product with a rescaling with the second derivative</p>
 <p>Given kernel function <span class="math notranslate nohighlight">\(K\)</span>, the loss represented by this class <span class="math notranslate nohighlight">\(\mathcal{l}\)</span>,
 number of samples <span class="math notranslate nohighlight">\(n\)</span>, this function follows equation</p>
 <div class="math notranslate nohighlight">
 \[\dfrac{1}{n} K(X_c, X) &#64; (\mathcal{l}''(Y, f) * K(X, X_c) &#64; u)\]</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>X</strong> (<em>torch.Tensor</em>) – Data matrix of shape (n x d) with <cite>n</cite> samples in <cite>d</cite> dimensions.</p></li>
 <li><p><strong>Xc</strong> (<em>torch.Tensor</em>) – Center matrix of shape (m x d) with <cite>m</cite> centers in <cite>d</cite> dimensions.</p></li>
@@ -511,7 +490,7 @@ Options passed as an argument take precedence over the options used to build thi
 class instance.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>A tensor of shape (m x t), the output of the computation.</em></p>
 </dd>
 </dl>
@@ -524,12 +503,12 @@ class instance.</p></li>
 <h2>Logistic loss<a class="headerlink" href="#logistic-loss" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="falkon.gsc_losses.LogisticLoss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.gsc_losses.</span></span><span class="sig-name descname"><span class="pre">LogisticLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><span class="pre">Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.gsc_losses.LogisticLoss" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.gsc_losses.</span></span><span class="sig-name descname"><span class="pre">LogisticLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><span class="pre">Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.gsc_losses.LogisticLoss" title="Permalink to this definition"></a></dt>
 <dd><p>Wrapper for the logistic loss, to be used in conjunction with the <a class="reference internal" href="models.html#falkon.models.LogisticFalkon" title="falkon.models.LogisticFalkon"><code class="xref py py-class docutils literal notranslate"><span class="pre">LogisticFalkon</span></code></a> estimator.</p>
 <p>Usage of this loss assumes a binary classification problem with labels -1 and +1. For different
 choices of labels, see <a class="reference internal" href="#falkon.gsc_losses.WeightedCrossEntropyLoss" title="falkon.gsc_losses.WeightedCrossEntropyLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">WeightedCrossEntropyLoss</span></code></a>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>kernel</strong> (<a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><em>falkon.kernels.kernel.Kernel</em></a>) – The kernel function used for training a <a class="reference internal" href="models.html#falkon.models.LogisticFalkon" title="falkon.models.LogisticFalkon"><code class="xref py py-class docutils literal notranslate"><span class="pre">LogisticFalkon</span></code></a> model</p></li>
 <li><p><strong>opt</strong> (<a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><em>FalkonOptions</em></a>) – Falkon options container. Will be passed to the kernel when computing kernel-vector
@@ -549,13 +528,13 @@ products.</p></li>
 <dd><p>Compute the logistic loss between two 1-dimensional tensors</p>
 <p>The formula used is <span class="math notranslate nohighlight">\(\log(1 + \exp(-y_1 * y_2))\)</span></p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y1</strong> – The first input tensor. Must be 1D</p></li>
 <li><p><strong>y2</strong> – The second input tensor. Must be 1D</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>loss</em> – The logistic loss between the two input vectors.</p>
 </dd>
 </dl>
@@ -569,13 +548,13 @@ products.</p></li>
 <div class="math notranslate nohighlight">
 \[y_1^2 \dfrac{1}{1 + \exp(-y_1 * y_2)} \dfrac{1}{1 + \exp(y_1 * y_2)}\]</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y1</strong> – The first input tensor. Must be 1D</p></li>
 <li><p><strong>y2</strong> – The second input tensor. Must be 1D</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>dd_loss</em> – The second derivative of the logistic loss, calculated between the two input vectors.</p>
 </dd>
 </dl>
@@ -589,13 +568,13 @@ products.</p></li>
 <div class="math notranslate nohighlight">
 \[\dfrac{-y_1}{1 + \exp(y_1 * y_2)}\]</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y1</strong> – The first input tensor. Must be 1D</p></li>
 <li><p><strong>y2</strong> – The second input tensor. Must be 1D</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>d_loss</em> – The derivative of the logistic loss, calculated between the two input vectors.</p>
 </dd>
 </dl>
@@ -608,13 +587,13 @@ products.</p></li>
 <h2>Weighted binary cross entropy loss<a class="headerlink" href="#weighted-binary-cross-entropy-loss" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="falkon.gsc_losses.WeightedCrossEntropyLoss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.gsc_losses.</span></span><span class="sig-name descname"><span class="pre">WeightedCrossEntropyLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><span class="pre">Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.gsc_losses.WeightedCrossEntropyLoss" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">falkon.gsc_losses.</span></span><span class="sig-name descname"><span class="pre">WeightedCrossEntropyLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><span class="pre">Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="options.html#falkon.options.FalkonOptions" title="falkon.options.FalkonOptions"><span class="pre">FalkonOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#falkon.gsc_losses.WeightedCrossEntropyLoss" title="Permalink to this definition"></a></dt>
 <dd><p>Wrapper for the weighted binary cross-entropy loss, to be used with the <a class="reference internal" href="models.html#falkon.models.LogisticFalkon" title="falkon.models.LogisticFalkon"><code class="xref py py-class docutils literal notranslate"><span class="pre">LogisticFalkon</span></code></a> estimator.</p>
 <p>Using this loss assumes a binary classification problem with labels 0 and +1. Additionally,
 this loss allows to place a different weight to samples belonging to one of the two classes
 (see the <cite>neg_weight</cite> parameter).</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>kernel</strong> (<a class="reference internal" href="kernels.html#falkon.kernels.kernel.Kernel" title="falkon.kernels.kernel.Kernel"><em>falkon.kernels.kernel.Kernel</em></a>) – The kernel function used for training a <a class="reference internal" href="models.html#falkon.models.LogisticFalkon" title="falkon.models.LogisticFalkon"><code class="xref py py-class docutils literal notranslate"><span class="pre">LogisticFalkon</span></code></a> model</p></li>
 <li><p><strong>neg_weight</strong> (<em>float</em>) – The weight to be assigned to samples belonging to the negative (0-labeled) class.
@@ -640,14 +619,14 @@ products.</p></li>
 <div class="math notranslate nohighlight">
 \[\mathrm{true} * \log(1 + e^{-\mathrm{pred}}) + w * (1 - \mathrm{true}) * \log(1 + e^{\mathrm{pred}})\]</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>true</strong> – The label tensor. Must be 1D, with values 0 or 1.</p></li>
 <li><p><strong>pred</strong> – The prediction tensor. Must be 1D. These are “logits” so need not be scaled before
 hand.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>loss</em> – The weighted BCE loss between the two input vectors.</p>
 </dd>
 </dl>
@@ -661,13 +640,13 @@ hand.</p></li>
 <div class="math notranslate nohighlight">
 \[\dfrac{-(\mathrm{true} * (w - 1) - w) * e^{\mathrm{pred}}}{(e^{\mathrm{pred}} + 1)^2}\]</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>true</strong> – The label tensor. Must be 1D</p></li>
 <li><p><strong>pred</strong> – The prediction tensor. Must be 1D</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>dd_loss</em> – The second derivative of the weighted BCE loss between the two input vectors.</p>
 </dd>
 </dl>
@@ -681,13 +660,13 @@ hand.</p></li>
 <div class="math notranslate nohighlight">
 \[\dfrac{-(w * \mathrm{true} - w) * e^{\mathrm{pred}} - \mathrm{true}}{e^{\mathrm{pred}} + 1}\]</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>true</strong> – The label tensor. Must be 1D</p></li>
 <li><p><strong>pred</strong> – The prediction tensor. Must be 1D</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>d_loss</em> – The derivative of the weighted BCE loss between the two input vectors.</p>
 </dd>
 </dl>
