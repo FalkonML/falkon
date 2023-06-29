@@ -15,10 +15,11 @@ from torch.utils.cpp_extension import (
     CUDAExtension,
 )
 
-WITH_CUDA = False
-if torch.cuda.is_available():
-    WITH_CUDA = CUDA_HOME is not None or torch.version.hip
 if os.getenv('FORCE_ONLY_CPU', '0') == '1':
+    WITH_CUDA = False
+elif CUDA_HOME is not None:
+    WITH_CUDA = True
+else:
     WITH_CUDA = False
 WITH_SYMBOLS = os.getenv("WITH_SYMBOLS", "0") == "1"
 
