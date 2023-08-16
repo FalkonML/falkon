@@ -115,7 +115,9 @@ def get_extensions():
         #                    '-lcublas', '-l', 'cublas',
         #                    '-lcusolver', '-l', 'cusolver',
         #                    '-ltorch_cuda_linalg', '-l', 'torch_cuda_linalg']
-        libraries += ['cusolver', 'cublas', 'cusparse', 'torch_cuda_linalg']
+        libraries += ['cusolver', 'cublas', 'cusparse']
+        if torch.__version__ > (1, 11):
+            libraries.append('torch_cuda_linalg')
 
     print(f"Defining C-extension on platform {sys.platform}. compile args: {extra_compile_args}  "
           f"macros: {macros}  link args: {extra_link_args}")
