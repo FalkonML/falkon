@@ -18,12 +18,12 @@ from falkon.tests.gen_random import gen_random, gen_random_pd
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("device", [
     "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
-class TestConjugateGradient():
+class TestConjugateGradient:
     t = 200
 
     @pytest.fixture()
     def mat(self):
-        return torch.from_numpy(gen_random_pd(self.t, 'float64', F=False, seed=9))
+        return gen_random_pd(self.t, 'float64', F=False, seed=9)
 
     @pytest.fixture()
     def conjgrad(self):
