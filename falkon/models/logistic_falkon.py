@@ -187,7 +187,6 @@ class LogisticFalkon(FalkonBase):
             precond = falkon.preconditioner.LogisticPreconditioner(self.kernel, self.loss, self.options)
 
             # Define the validation callback TODO: this is almost identical to the generic cback in model_utils.py
-            validation_cback = None
             if self.error_fn is not None and self.error_every is not None:
                 def validation_cback(it, beta, train_time):
                     self.fit_times_.append(self.fit_times_[0] + train_time)
@@ -211,6 +210,8 @@ class LogisticFalkon(FalkonBase):
                     print(f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - "
                           f"{err_str} loss {loss:.4f} - "
                           f"{err_str} {err_name} {err:.4f} ", flush=True)
+            else:
+                validation_cback = None
 
             # Start iterative training procedure:
             # each iteration computes preconditioner and falkon iterations.
