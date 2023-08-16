@@ -174,7 +174,6 @@ void parallel_potrf_runner(
     const auto data_buf = at::empty(buf_size, buf_opt);
 
     AT_DISPATCH_FLOATING_TYPES(scalar_type, "dispatch_parallel_potrf", [&] {
-    scalar_t *A_data = A.data_ptr<scalar_t>();
     const scalar_t mone = -1.0;
     const scalar_t one = 1.0;
 

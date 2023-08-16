@@ -117,10 +117,12 @@ def get_extensions():
         #                    '-ltorch_cuda_linalg', '-l', 'torch_cuda_linalg']
         libraries += ['cusolver', 'cublas', 'cusparse']
         if torch.__version__ > (1, 11):
+            print(f"torch version {torch.__version__} comps to 1.11 as {torch.__version__ > (1, 11)=}")
+            print(f"torch version {torch.__version__} comps to 1.12 as {torch.__version__ >= (1, 12)=}")
             libraries.append('torch_cuda_linalg')
 
     print(f"Defining C-extension on platform {sys.platform}. compile args: {extra_compile_args}  "
-          f"macros: {macros}  link args: {extra_link_args}")
+          f"macros: {macros}  link args: {extra_link_args}  libraries {libraries}")
     # remove generated 'hip' files, in case of rebuilds
     ext_files = [path for path in ext_files if 'hip' not in path]
 
