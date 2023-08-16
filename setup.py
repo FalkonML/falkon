@@ -10,6 +10,7 @@ import torch
 from torch.__config__ import parallel_info
 from torch.utils.cpp_extension import (
     CUDA_HOME,
+    TORCH_LIB_PATH,
     BuildExtension,
     CppExtension,
     CUDAExtension,
@@ -105,10 +106,15 @@ def get_extensions():
         else:
             nvcc_flags += ['--expt-relaxed-constexpr', '--extended-lambda']
         extra_compile_args['nvcc'] = nvcc_flags
-        extra_link_args += ['-lcusparse', '-l', 'cusparse',
-                            '-lcublas', '-l', 'cublas',
-                            '-lcusolver', '-l', 'cusolver',
-                            '-ltorch_cuda_linalg', '-l', 'torch_cuda_linalg']
+        extra_link_args += [
+            '-L', os.path.join(CUDA_HOME, 'lib'),
+            '-L', TORCH_LIB_PATH,
+            '-Wl,-rpath', TORCH_LIB_PATH,
+        ]
+        #extra_link_args += ['-lcusparse', '-l', 'cusparse',
+        #                    '-lcublas', '-l', 'cublas',
+        #                    '-lcusolver', '-l', 'cusolver',
+        #                    '-ltorch_cuda_linalg', '-l', 'torch_cuda_linalg']
         libraries += ['cusolver', 'cublas', 'cusparse', 'torch_cuda_linalg']
 
     print(f"Defining C-extension on platform {sys.platform}. compile args: {extra_compile_args}  "
