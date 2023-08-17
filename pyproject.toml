@@ -1,0 +1,27 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "ninja",
+    "torch",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+addopts = "-m 'not benchmark and not full'"
+testpaths = [
+    "falkon/tests",
+]
+markers = [
+    # marks tests which are only used for timing purposes (deselect with '-m "not benchmark"')
+    "benchmark",
+    # tests which should only be run for very exhaustive testing. Not generally useful.
+    "full",
+]
+
+[tool.coverage.run]
+branch = true
+source = "falkon"
+omit = [
+    "falkon/tests/*", "falkon/hopt/*", "falkon/benchmarks/*", "falkon/csrc/*",
+]

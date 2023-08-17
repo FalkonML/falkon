@@ -73,20 +73,16 @@ jobs:
           python -c "import torch; print('CUDA:', torch.version.cuda)"
           python -c "import torch; print('CUDA Available:', torch.cuda.is_available())"
 
-      - name: Install build prerequisites
-        run: |
-          pip install wheel
-
       - name: Install main package for CPU
         if: ${{ matrix.cuda-version == 'cpu' }}
         run: |
-          FORCE_ONLY_CPU=1 pip install -e .
+          FORCE_ONLY_CPU=1 pip install --no-build-isolation --editable .
 
       - name: Install main package for GPU
         if: ${{ matrix.cuda-version != 'cpu' }}
         run: |
           source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
-          pip install -e .
+          pip install --no-build-isolation --editable .
         shell:
           bash
 
@@ -98,7 +94,7 @@ jobs:
         run: |
           pip install wheel
           source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
-          python setup.py bdist_wheel --dist-dir=dist
+          python build --no-isolation
         shell:
           bash
 
