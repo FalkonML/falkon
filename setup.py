@@ -111,10 +111,6 @@ def get_extensions():
             '-L', TORCH_LIB_PATH,
             '-Wl,-rpath', TORCH_LIB_PATH,
         ]
-        #extra_link_args += ['-lcusparse', '-l', 'cusparse',
-        #                    '-lcublas', '-l', 'cublas',
-        #                    '-lcusolver', '-l', 'cusolver',
-        #                    '-ltorch_cuda_linalg', '-l', 'torch_cuda_linalg']
         libraries += ['cusolver', 'cublas', 'cusparse']
         if torch.__version__ >= (1, 12):
             libraries.append('torch_cuda_linalg')
@@ -152,7 +148,7 @@ test_requires = [
     'pandas',
     'pytest',
     'pytest-cov',
-    'coverage',
+    'coverage[toml]',
     'codecov',
     'flake8',
 ]
@@ -171,6 +167,9 @@ doc_requires = [
 setup(
     name="falkon",
     version=get_version("falkon"),
+    author="Giacomo Meanti",
+    author_email="giacomo.meanti@iit.it",
+    url="https://falkonml.github.io/falkon/",
     description="Fast, GPU enabled, approximate kernel ridge regression solver.",
     python_requires='>=3.8',
     tests_require=test_requires,
@@ -185,6 +184,15 @@ setup(
             no_python_abi_suffix=True
         )
     },
-    packages=find_packages(exclude=('test', )),
-    include_package_data=True,  # Since we have a MANIFEST.in this will take all from there.
+    packages=find_packages(where="."),
+    # Files in MANIFEST.in are included in sdist and in wheel only if include_package_data is True
+    include_package_data=True,
+    exclude_package_data={
+        "falkon.c_ext": [
+            "*.cpp", "*.h", "*.cu", "ops/*.cpp", "ops/*.h", "ops/*.cu",
+            "ops/autograd/*.cpp", "ops/autograd/*.cu", "ops/autograd/*.h",
+            "ops/cpu/*.cpp", "ops/cpu/*.cu", "ops/cpu/*.h",
+            "ops/cuda/*.cpp", "ops/cuda/*.cu", "ops/cuda/*.h",
+        ]
+    }
 )
