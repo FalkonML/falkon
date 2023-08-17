@@ -51,4 +51,4 @@ jobs:
       - name: Run test-suite
         run: |
           source flk-env/bin/activate
-          pytest --cov-report=term-missing --cov-report=xml:coverage.xml --cov=falkon --cov-config setup.cfg
+          pytest --cov-report=term-missing --cov-report=xml:coverage.xml --cov=falkon --cov-config pyproject.toml

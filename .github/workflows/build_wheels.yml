@@ -82,6 +82,7 @@ jobs:
         if: ${{ matrix.cuda-version != 'cpu' }}
         run: |
           source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
+          pip install wheel
           pip install --no-build-isolation --editable .
         shell:
           bash
@@ -92,8 +93,8 @@ jobs:
 
       - name: Build wheel
         run: |
-          pip install wheel
           source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
+          pip install wheel
           python build --no-isolation
         shell:
           bash
