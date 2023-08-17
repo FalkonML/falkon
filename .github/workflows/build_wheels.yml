@@ -94,7 +94,7 @@ jobs:
       - name: Build wheel
         run: |
           source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
-          pip install wheel
+          pip install build
           python -m build --no-isolation
         shell:
           bash
