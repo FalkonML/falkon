@@ -21,7 +21,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = "falkon"
+source = ["falkon"]
 omit = [
     "falkon/tests/*", "falkon/hopt/*", "falkon/benchmarks/*", "falkon/csrc/*",
 ]
