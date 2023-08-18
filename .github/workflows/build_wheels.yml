@@ -76,6 +76,7 @@ jobs:
       - name: Install main package for CPU
         if: ${{ matrix.cuda-version == 'cpu' }}
         run: |
+          pip install wheel
           FORCE_ONLY_CPU=1 pip install --no-build-isolation --editable .
 
       - name: Install main package for GPU
