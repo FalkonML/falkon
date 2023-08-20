@@ -37,8 +37,8 @@ def _choose_var_strat(model, var_strat, var_dist, ind_pt, learn_ind=True, num_cl
     if var_strat == "multi_task":
         try:
             num_classes = int(num_classes)
-        except TypeError:
-            raise RuntimeError("Multi-task variational strategy must specify integer num_classes")
+        except TypeError as e:
+            raise RuntimeError("Multi-task variational strategy must specify integer num_classes") from e
 
         return gpytorch.variational.MultitaskVariationalStrategy(
             VariationalStrategy(model, ind_pt, var_dist, learn_inducing_locations=learn_ind),
@@ -157,7 +157,7 @@ class MultiTaskApproxGP(BaseModel):
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
-class GPTrainer():
+class GPTrainer:
     def __init__(self,
                  model,
                  err_fn,
@@ -444,7 +444,12 @@ class MultiClassVGP(GPTrainer):
         num_ind_pt = self.model.inducing_points.shape[0]
         ker = self.model.covar_module
         num_ker_params = ker._parameters['raw_lengthscale'].shape
-        var_dist_params = self.model.variational_strategy.base_variational_strategy._variational_distribution._parameters
+        var_dist_params = (
+            self.model.variational_strategy
+                .base_variational_strategy
+                ._variational_distribution
+                ._parameters
+        )
         var_dist_num_params = sum([sum(p.shape) for p in var_dist_params.values()])
         return (
             f"MultiClassVGP<num_inducing_points={num_ind_pt}, kernel={ker}, num_classes={self.num_classes}, "

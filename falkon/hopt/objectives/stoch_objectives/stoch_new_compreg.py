@@ -32,9 +32,9 @@ class StochasticNystromCompReg(HyperoptObjective):
             centers_transform: Optional[torch.distributions.Transform] = None,
             pen_transform: Optional[torch.distributions.Transform] = None,
     ):
-        super(StochasticNystromCompReg, self).__init__(kernel, centers_init, penalty_init,
-                                                       opt_centers, opt_penalty,
-                                                       centers_transform, pen_transform)
+        super().__init__(kernel, centers_init, penalty_init,
+                         opt_centers, opt_penalty,
+                         centers_transform, pen_transform)
         self.flk_opt = flk_opt
         self.num_trace_est = num_trace_est
         self.flk_maxiter = flk_maxiter
@@ -370,9 +370,7 @@ class NystromCompRegFn(torch.autograd.Function):
                     inputs_need_grad=ctx.needs_input_grad, output=bwd,
                     num_nondiff_inputs=NystromCompRegFn.num_nondiff_inputs,
                     retain_graph=False, allow_unused=False)
-                grads = []
-                for g in grads_:
-                    grads.append(g if g is None else g.to(X.device))
+                grads = [g if g is None else g.to(X.device) for g in grads_]
 
         deff_fwd, dfit_fwd, trace_fwd = fwd
         ctx.grads = grads

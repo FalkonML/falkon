@@ -221,7 +221,7 @@ def choose_fn(dtype, f64_fn, f32_fn, fn_name):
     if dtype == np.float32:
         return f32_fn
 
-    raise TypeError("No %s function exists for data type %s." % (fn_name, dtype))
+    raise TypeError(f"No {fn_name} function exists for data type {dtype}.")
 
 
 def sizeof_dtype(dtype: Union[torch.dtype, np.dtype, Type]) -> int:
@@ -241,10 +241,7 @@ def sizeof_dtype(dtype: Union[torch.dtype, np.dtype, Type]) -> int:
 
 
 def check_sparse(*args: Union[torch.Tensor, SparseTensor]) -> List[bool]:
-    out = []
-    for t in args:
-        out.append(isinstance(t, SparseTensor))
-    return out
+    return [isinstance(t, SparseTensor) for t in args]
 
 
 def check_same_dtype(*args: Optional[Union[torch.Tensor, SparseTensor]]) -> bool:

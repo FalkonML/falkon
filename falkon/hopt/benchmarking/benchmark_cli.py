@@ -83,7 +83,7 @@ def sigma_pen_init(data, sigma_type: str,
 
     if penalty_init == 'auto':
         penalty_init = AUTO_PEN_MULTIPLIER / data['Xtr'].shape[0]
-        print("Initial penalty (auto with multiplier %f) is: %.4e" % (AUTO_PEN_MULTIPLIER, penalty_init))
+        print(f"Initial penalty (auto with multiplier {AUTO_PEN_MULTIPLIER}) is: {penalty_init:.4e})")
     else:
         penalty_init = float(penalty_init)
 

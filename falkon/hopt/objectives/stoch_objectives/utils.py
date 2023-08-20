@@ -60,7 +60,7 @@ def calc_grads_tensors(inputs: Sequence[torch.Tensor],
 
     grads_idx = 0
     results = []
-    for i, i_grad in enumerate(inputs_need_grad):
+    for _, i_grad in enumerate(inputs_need_grad):
         if i_grad:
             results.append(grads[grads_idx])
             grads_idx += 1

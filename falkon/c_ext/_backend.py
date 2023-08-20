@@ -85,7 +85,7 @@ try:
                 f_major, f_minor = int(str(flk_cuda_version)[0]), int(str(flk_cuda_version)[2])
             else:
                 f_major, f_minor = int(str(flk_cuda_version)[0:2]), int(str(flk_cuda_version)[3])
-            t_major, t_minor = [int(x) for x in torch.version.cuda.split('.')]
+            t_major, t_minor = (int(x) for x in torch.version.cuda.split('.'))
 
             if t_major != f_major:
                 raise RuntimeError(

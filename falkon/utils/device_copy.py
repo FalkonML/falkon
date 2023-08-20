@@ -16,25 +16,25 @@ def check_copy(origin, dest, check_dtypes=True):
     if check_dtypes:
         # Data-types
         if origin.dtype != dest.dtype:
-            raise ValueError("Data types of origin and destination (%s, %s) do not match." % (
-                origin.dtype, dest.dtype))
+            raise ValueError(f"Data types of origin and destination "
+                             f"({origin.dtype}, {dest.dtype}) do not match.")
     # Sizes
     if origin.size() != dest.size():
-        raise ValueError("Size of origin (%s) does not match size of destination (%s)" % (
-            origin.size(), dest.size()))
+        raise ValueError(f"Size of origin ({origin.size()}) does not "
+                         f"match size of destination ({dest.size()})")
     # Contiguity
     if is_f_contig(origin, strict=False):
         if not is_f_contig(dest, strict=False):
             raise ValueError(
-                "origin is F-contig (strides %s), while destination is not (strides %s)" % (
-                    origin.stride(), dest.stride()))
+                f"origin is F-contig (strides {origin.stride()}), while destination "
+                f"is not (strides {dest.stride()})")
     elif is_contig(origin):  # H is C-contiguous
         if not is_contig(dest) or is_f_contig(dest, strict=True):
             raise ValueError(
-                "origin is C-contig (strides %s), while destination is not (strides %s)" % (
-                    origin.stride(), dest.stride()))
+                f"origin is C-contig (strides {origin.stride()}), while destination "
+                f"is not (strides {dest.stride()})")
     else:
-        raise ValueError("origin is not memory-contiguous (strides %s)" % (origin.stride(),))
+        raise ValueError(f"origin is not memory-contiguous (strides {origin.stride()})")
 
 
 def copy(origin, dest, non_blocking=False, allow_dtype_change=False):

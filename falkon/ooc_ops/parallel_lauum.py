@@ -143,7 +143,11 @@ def par_lauum_f_lower(A: torch.Tensor,
                     if is_cuda:  # If col_r is already in GPU no copy needed.
                         col_r = A[br.start:N, br.start:br.end]
                     else:
-                        col_r = copy(A[br.start:N, br.start: br.end], whole_col_r[:N - br.start, :br.length], non_blocking=True)
+                        col_r = copy(
+                            A[br.start:N, br.start: br.end],
+                            whole_col_r[:N - br.start, :br.length],
+                            non_blocking=True
+                        )
                     # Restrict column b to only the last 'r' rows
                     ccb = col_b[br.start - b_start:, :]
 
@@ -171,7 +175,11 @@ def par_lauum_f_lower(A: torch.Tensor,
                         if is_cuda:
                             A[bb.start:bb.end, br.start:br.end].copy_(ccb[:br.length, :bb.length].T)
                         else:
-                            _temp_cpu = copy(ccb[:br.length, :bb.length], temp_bb[:br.length, :bb.length], non_blocking=True)
+                            _temp_cpu = copy(
+                                ccb[:br.length, :bb.length],
+                                temp_bb[:br.length, :bb.length],
+                                non_blocking=True
+                            )
                             s1.synchronize()  # must wait for data to be onto CPU.
                             A[bb.start:bb.end, br.start:br.end].copy_(_temp_cpu.T)
                     else:
@@ -208,7 +216,11 @@ def par_lauum_c_lower(A: torch.Tensor,
         whole_col_b = f_gpu[:N * max_block_size]
         whole_col_r = f_gpu[N * max_block_size: 2 * N * max_block_size]
         syrk_out = extract_fortran(f_gpu, size=(max_block_size, max_block_size), offset=2 * N * max_block_size)
-        lauum_out = extract_fortran(f_gpu, size=(max_block_size, max_block_size), offset=2 * N * max_block_size + max_block_size ** 2)
+        lauum_out = extract_fortran(
+            f_gpu,
+            size=(max_block_size, max_block_size),
+            offset=2 * N * max_block_size + max_block_size ** 2
+        )
         syrk_out.fill_(0.0)
 
         for b in range(len(block_allocs)):
@@ -238,23 +250,39 @@ def par_lauum_c_lower(A: torch.Tensor,
                     # SYRK on g_b[bb.length:, :] with output replacing g_b[:bb.length, :]
                     # C = beta*C + alpha * op(A) @ op(A).T
                     if not is_last_row:
-                        cublas_syrk(A=whole_col_b[bb.length * max_block_size:], lda=max_block_size, alpha=1.0,
-                                    C=syrk_out, ldc=max_block_size, beta=0.0,
-                                    upper=True, transpose=False,
-                                    n=bb.length, k=N - b_start - bb.length)
+                        cublas_syrk(
+                            A=whole_col_b[bb.length * max_block_size:],
+                            lda=max_block_size,
+                            alpha=1.0,
+                            C=syrk_out,
+                            ldc=max_block_size,
+                            beta=0.0,
+                            upper=True,
+                            transpose=False,
+                            n=bb.length,
+                            k=N - b_start - bb.length
+                        )
 
                     with torch.cuda.stream(s3):
                         if independent_output:
                             s1.synchronize()  # we need col_b to be loaded
                         # Lower LAUUM for C-contig is equal to upper LAUUM for F-contig
-                        c_lauum_in = whole_col_b[:bb.length * max_block_size].view(bb.length, max_block_size)[:, :bb.length]
+                        c_lauum_in = whole_col_b[:bb.length * max_block_size].view(
+                            bb.length, max_block_size)[:, :bb.length]
                         c_lauum_out = lauum_out[:bb.length, :bb.length]
 
                         if independent_output:
                             c_lauum_out.copy_(c_lauum_in)
                         else:
                             c_lauum_out.copy_(c_lauum_in.T)
-                        lauum_cuda(n=bb.length, A=c_lauum_in, lda=max_block_size, B=c_lauum_out, ldb=max_block_size, lower=False)
+                        lauum_cuda(
+                            n=bb.length,
+                            A=c_lauum_in,
+                            lda=max_block_size,
+                            B=c_lauum_out,
+                            ldb=max_block_size,
+                            lower=False
+                        )
 
                     s1.wait_stream(s3)  # all subsequent work on s1 will need cur_lauum_out
                     if not is_last_row:

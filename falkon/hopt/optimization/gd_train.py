@@ -15,14 +15,15 @@ __all__ = [
 
 
 def hp_grad(model: HyperoptObjective, *loss_terms, accumulate_grads=True, verbose=True):
-    grads = []
     hparams = list(model.parameters())
     if verbose:
-        for loss in loss_terms:
-            grads.append(torch.autograd.grad(loss, hparams, retain_graph=True, allow_unused=True))
+        grads = [
+            torch.autograd.grad(loss, hparams, retain_graph=True, allow_unused=True)
+            for loss in loss_terms
+        ]
     else:
         loss = reduce(torch.add, loss_terms)
-        grads.append(torch.autograd.grad(loss, hparams, retain_graph=False))
+        grads = [torch.autograd.grad(loss, hparams, retain_graph=False)]
 
     if accumulate_grads:
         for g in grads:

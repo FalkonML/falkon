@@ -22,8 +22,7 @@ def jittering_cholesky(mat, upper=False):
     last_exception = None
     for eps in epsilons:
         try:
-            out = cholesky(mat + eye * eps, upper=upper, check_errors=True)
-            return out
-        except RuntimeError as e:
+            return cholesky(mat + eye * eps, upper=upper, check_errors=True)
+        except RuntimeError as e:  # noqa: PERF203
             last_exception = e
     raise last_exception

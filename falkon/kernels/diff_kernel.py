@@ -50,7 +50,7 @@ class DiffKernel(Kernel, abc.ABC):
         the constructor.
     """
     def __init__(self, name, options, core_fn, **kernel_params):
-        super(DiffKernel, self).__init__(name=name, opt=options)
+        super().__init__(name=name, opt=options)
         self.core_fn = core_fn
         self._other_params = {}
         for k, v in kernel_params.items():
@@ -137,9 +137,9 @@ class DiffKernel(Kernel, abc.ABC):
         sparsity = check_sparse(X1, X2)
         diff = (
             (not any(sparsity)) and
-            any([
+            any(
                 t.requires_grad for t in [X1, X2, v, w] + list(self.diff_params.values())
                 if t is not None
-            ])
+            )
         )
         return dmmv_impl(X1, X2, v, w, self, out, diff, params)

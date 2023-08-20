@@ -46,12 +46,11 @@ class DeviceInfo:
             return 'cuda:%s' % self.Id
 
     def __repr__(self):
-        return ("DeviceInfo(Id={Id}, speed={speed}, total_memory={total_memory}, "
-                "used_memory={used_memory}, free_memory={free_memory}, "
-                "usable_memory={usable_memory})".format(
-                    Id=self.Id, speed=self.speed, total_memory=self.total_memory,
-                    used_memory=self.used_memory, free_memory=self.free_memory,
-                    usable_memory=self.usable_memory))
+        return (
+            f"DeviceInfo(Id={self.Id}, speed={self.speed}, total_memory={self.total_memory}, "
+            f"used_memory={self.used_memory}, free_memory={self.free_memory}, "
+            f"usable_memory={self.usable_memory})"
+        )
 
 
 def _get_cpu_device_info(opt: BaseOptions, data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
@@ -141,7 +140,7 @@ def _measure_performance(g, mem):
         tt = tm.toc_val()
         f *= 2
 
-    print('%s:%s - speed: %s' % (dev.type, dev.index, (float(f) ** 3) / tt))
+    print(f"{dev.dtype}:{dev.index} - speed: {(float(f) ** 3) / tt}")
 
     del a
     if g >= 0:
@@ -162,7 +161,7 @@ def _cpu_used_mem(uss=True) -> int:
     try:
         # http://grodola.blogspot.com/2016/02/psutil-4-real-process-memory-and-environ.html
         return process.memory_full_info().uss  # Unique set size
-    except:  # noqa 722
+    except:  # noqa: E722
         return process.memory_info().rss  # in bytes
 
 
@@ -210,4 +209,4 @@ def num_gpus(opt: BaseOptions) -> int:
     global __COMP_DATA
     if len(__COMP_DATA) == 0:
         get_device_info(opt)
-    return len([c for c in __COMP_DATA.keys() if c >= 0])
+    return len([c for c in __COMP_DATA if c >= 0])

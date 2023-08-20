@@ -30,7 +30,7 @@ class HyperoptObjective(torch.nn.Module):
         centers_transform
         pen_transform
         """
-        super(HyperoptObjective, self).__init__()
+        super().__init__()
 
         if not isinstance(kernel, falkon.kernels.DiffKernel):
             raise TypeError("Kernel must inherit from `DiffKernel` for hyperparameter optimization.")

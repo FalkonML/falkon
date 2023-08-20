@@ -223,7 +223,7 @@ class UniformSelector(CenterSelector):
         num_centers = self.num_centers
         if num_centers > N:
             warnings.warn("Number of centers M greater than the "
-                          f"number of data-points. Setting `num_centers` to {N}")
+                          f"number of data-points. Setting `num_centers` to {N}", stacklevel=2)
             num_centers = N
         idx = self.random_gen.choice(N, size=num_centers, replace=False)
 

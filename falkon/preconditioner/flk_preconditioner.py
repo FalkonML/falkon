@@ -8,7 +8,13 @@ from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils import TicToc, decide_cuda
 from falkon.utils.helpers import check_same_device
 from falkon.utils.tensor_helpers import create_same_stride, is_f_contig, create_fortran
-from .pc_utils import *
+from .pc_utils import (
+    inplace_add_diag_th,
+    inplace_set_diag_th,
+    potrf_wrapper,
+    lauum_wrapper,
+    check_init,
+)
 from .preconditioner import Preconditioner
 
 

@@ -43,7 +43,7 @@ class SGPRBaseModel(gpytorch.models.ExactGP):
         return None
 
 
-class GpytorchSGPR():
+class GpytorchSGPR:
     def __init__(self,
                  inducing_points,
                  err_fn,

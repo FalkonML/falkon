@@ -188,9 +188,9 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     if A.is_cuda:
         try:
             device = [d for d in gpu_info if d.Id == A.device.index][0]
-        except IndexError:
+        except IndexError as e:
             # This should never happen!
-            raise RuntimeError(f"Device of matrix A ({A.device}) is not recognized")
+            raise RuntimeError(f"Device of matrix A ({A.device}) is not recognized") from e
     else:
         device = max(gpu_info, key=lambda g_: g_.actual_free_mem)
     ic = can_do_ic(A, device) and not opt.chol_force_ooc

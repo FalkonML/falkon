@@ -9,7 +9,16 @@ import torch.cuda as tcd
 import torch.cuda.comm
 
 import falkon
-from falkon.mmv_ops.utils import *
+from falkon.mmv_ops.utils import (
+    _dev_from_id,
+    _is_incore,
+    _extract_flat,
+    _call_direct,
+    _get_gpu_info,
+    _start_wait_processes,
+    _check_contiguity,
+    create_output_mat
+)
 from falkon.options import BaseOptions
 from falkon.sparse import SparseTensor
 from falkon.utils.device_copy import copy
@@ -342,12 +351,16 @@ def mmv_diff_run_thread(m1: torch.Tensor, m2: torch.Tensor, v: Optional[torch.Te
             for j in range(0, M, blk_m):
                 lenj = min(blk_m, M - j)
                 c_dev_m2 = m2[j: j + lenj, :].to(dev, non_blocking=True, copy=False)
-                c_dev_m2_g = None if grads[1] is None else grads[1][j: j + lenj, :].to(dev, non_blocking=True, copy=False)
+                c_dev_m2_g = None if grads[1] is None else grads[1][j: j + lenj, :].to(
+                    dev, non_blocking=True, copy=False
+                )
                 with ExitStack() as stack_s2:
                     if not incore:
                         stack_s2.enter_context(tcd.stream(s2))
                     c_dev_v = v[j: j + lenj, :].to(dev, non_blocking=True, copy=False)
-                    c_dev_v_g = None if grads[2] is None else grads[2][j: j + lenj, :].to(dev, non_blocking=True, copy=False)
+                    c_dev_v_g = None if grads[2] is None else grads[2][j: j + lenj, :].to(
+                        dev, non_blocking=True, copy=False
+                    )
                 c_dev_ker = kernel.compute_diff(c_dev_m1, c_dev_m2, diag=False)
                 if not incore:
                     s2.synchronize()
@@ -655,7 +668,7 @@ class KernelMmvFnFull(torch.autograd.Function):
             differentiable = False
         else:
             _check_contiguity((X1, 'X1'), (X2, 'X2'), (v, 'v'), (out, 'out'))
-            differentiable = any([t.requires_grad for t in [X1, X2, v] + [*kernel_params]])
+            differentiable = any(t.requires_grad for t in [X1, X2, v] + [*kernel_params])
         data_devs = (X1.device, X2.device, v.device)
         comp_dev_type = 'cpu' if opt.use_cpu or not torch.cuda.is_available() else 'cuda'
         N, D = X1.shape
@@ -665,9 +678,9 @@ class KernelMmvFnFull(torch.autograd.Function):
                                 comp_dev_type=comp_dev_type, other_mat=X1)
 
         with torch.inference_mode():
-            if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):
+            if comp_dev_type == 'cpu' and all(ddev.type == 'cpu' for ddev in data_devs):
                 KernelMmvFnFull.run_cpu_cpu(X1, X2, v, out, kernel, opt, False)
-            elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):
+            elif comp_dev_type == 'cuda' and all(ddev.type == 'cuda' for ddev in data_devs):
                 KernelMmvFnFull.run_gpu_gpu(X1, X2, v, out, kernel, opt, False)
             elif comp_dev_type == 'cuda':
                 KernelMmvFnFull.run_cpu_gpu(X1, X2, v, out, kernel, opt, False)
@@ -771,10 +784,10 @@ def fdmmv(X1: Union[torch.Tensor, SparseTensor], X2: Union[torch.Tensor, SparseT
         out = create_output_mat(out, data_devs, is_sparse, shape=(M, T), dtype=v.dtype,
                                 comp_dev_type=comp_dev_type, other_mat=X1)
 
-        if comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):
+        if comp_dev_type == 'cpu' and all(ddev.type == 'cpu' for ddev in data_devs):
             args = ArgsFmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel, max_mem=opt.max_cpu_mem)
             _call_direct(dmmv_run_starter, (args, -1))
-        elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):
+        elif comp_dev_type == 'cuda' and all(ddev.type == 'cuda' for ddev in data_devs):
             if is_sparse:
                 raise NotImplementedError("In-core, sparse fdmmv not implemented. "
                                           "Use the out-of-core version instead.")

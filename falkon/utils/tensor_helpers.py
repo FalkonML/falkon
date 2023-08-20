@@ -14,13 +14,13 @@ __all__ = (
 
 def _fcontig_strides(sizes) -> Tuple[int, ...]:
     if len(sizes) == 0:
-        return tuple()
+        return ()
     return tuple([1] + np.cumprod(sizes)[:-1].tolist())
 
 
 def _ccontig_strides(sizes) -> Tuple[int, ...]:
     if len(sizes) == 0:
-        return tuple()
+        return ()
     return tuple(np.cumprod(sizes[1:][::-1])[::-1].tolist() + [1])
 
 
@@ -211,10 +211,7 @@ def is_contig_vec(tensor: torch.Tensor) -> bool:
 def is_contig(tensor: torch.Tensor) -> bool:
     # noinspection PyArgumentList
     stride = tensor.stride()
-    for s in stride:
-        if s == 1:
-            return True
-    return False
+    return any(s == 1 for s in stride)
 
 
 def cast_tensor(tensor: torch.Tensor, dtype: torch.dtype, warn: bool = True) -> torch.Tensor:
@@ -232,10 +229,9 @@ def cast_tensor(tensor: torch.Tensor, dtype: torch.dtype, warn: bool = True) -> 
         raise RuntimeError("cast_tensor can only cast to float types")
 
     if warn:
-        warnings.warn("Changing type of %s tensor from %s to %s. "
+        warnings.warn(f"Changing type of {tensor.size()} tensor from {tensor.dtype} to {dtype}. "
                       "This will use more memory. If possible change 'inter_type' and "
-                      "'final_type', or cast the original data to the appropriate type." %
-                      (tensor.size(), tensor.dtype, dtype))
+                      "'final_type', or cast the original data to the appropriate type.")
     out_np = tensor.numpy().astype(
         np_dtype, order='K', casting='unsafe', copy=True)
     return torch.from_numpy(out_np)

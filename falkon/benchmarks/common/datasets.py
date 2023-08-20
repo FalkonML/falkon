@@ -32,7 +32,7 @@ def load_from_npz(dset_name, folder, dtype, verbose=False):
     x_data = np.asarray(load_npz(x_file).todense()).astype(as_np_dtype(dtype))
     y_data = np.load(y_file).astype(as_np_dtype(dtype))
     if verbose:
-        print("Loaded %s. X: %s - Y: %s" % (dset_name, x_data.shape, y_data.shape))
+        print(f"Loaded {dset_name}. X: {x_data.shape} - Y: {y_data.shape}")
     return x_data, y_data
 
 
@@ -44,8 +44,8 @@ def load_from_t(dset_name, folder, verbose=False):
     x_data_ts, y_data_ts = load_svmlight_file(file_ts)
     x_data_ts = np.asarray(x_data_ts.todense())
     if verbose:
-        print("Loaded %s. train X: %s - Y: %s - test X: %s - Y: %s" %
-              (dset_name, x_data_tr.shape, y_data_tr.shape, x_data_ts.shape, y_data_ts.shape))
+        print(f"Loaded {dset_name}. train X: {x_data_tr.shape} - Y: {y_data_tr.shape} - "
+              f"test X: {x_data_ts.shape} - Y: {y_data_ts.shape}")
     x_data = np.concatenate((x_data_tr, x_data_ts))
     y_data = np.concatenate((y_data_tr, y_data_ts))
     return x_data, y_data
@@ -133,7 +133,12 @@ def convert_to_binary_y(Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, n
     return Ytr.reshape(-1, 1), Yts.reshape(-1, 1), {}
 
 
-def convert_to_onehot(Ytr: np.ndarray, Yts: np.ndarray, num_classes: int, damping: bool = False) -> Tuple[np.ndarray, np.ndarray, dict]:
+def convert_to_onehot(
+        Ytr: np.ndarray,
+        Yts: np.ndarray,
+        num_classes: int,
+        damping: bool = False
+) -> Tuple[np.ndarray, np.ndarray, dict]:
     eye = np.eye(num_classes, dtype=as_np_dtype(Ytr.dtype))
     if damping:
         damp_val = 1 / (num_classes - 1)
@@ -190,8 +195,7 @@ class BaseDataset:
         Xtr, Xts, other_X = self.preprocess_x(Xtr, Xts)
         Ytr, Yts, other_Y = self.preprocess_y(Ytr, Yts)
         print("Data-preprocessing completed.", flush=True)
-        kwargs = dict()
-        kwargs.update(other_X)
+        kwargs = dict(*other_X)
         kwargs.update(other_Y)
         if as_torch:
             return self.to_torch(Xtr, Ytr, Xts, Yts, **kwargs)
@@ -215,8 +219,7 @@ class BaseDataset:
             Ytr, Yts, other_Y = self.preprocess_y(Ytr, Yts)
             print("Preprocessing complete (iter %d) - Divided into %d train, %d test points" %
                   (iteration, Xtr.shape[0], Xts.shape[0]))
-            kwargs = dict()
-            kwargs.update(other_X)
+            kwargs = dict(*other_X)
             kwargs.update(other_Y)
             if as_torch:
                 yield self.to_torch(Xtr, Ytr, Xts, Yts, **kwargs)
@@ -301,15 +304,15 @@ class RandomSplitDataset(BaseDataset, ABC):
 class Hdf5Dataset(BaseDataset, ABC):
     def read_data(self, dtype):
         with h5py.File(self.file_name, 'r') as h5py_file:
-            if 'X_train' in h5py_file.keys() and 'X_test' in h5py_file.keys() and \
-                    'Y_train' in h5py_file.keys() and 'Y_test' in h5py_file.keys():
+            if 'X_train' in h5py_file and 'X_test' in h5py_file and \
+                    'Y_train' in h5py_file and 'Y_test' in h5py_file:
                 X_train = np.array(h5py_file['X_train'], dtype=as_np_dtype(dtype))
                 Y_train = np.array(h5py_file['Y_train'], dtype=as_np_dtype(dtype))
                 X_test = np.array(h5py_file['X_test'], dtype=as_np_dtype(dtype))
                 Y_test = np.array(h5py_file['Y_test'], dtype=as_np_dtype(dtype))
                 X = np.concatenate([X_train, X_test], axis=0)
                 Y = np.concatenate([Y_train, Y_test], axis=0)
-            elif 'X' in h5py_file.keys() and 'Y' in h5py_file.keys():
+            elif 'X' in h5py_file and 'Y' in h5py_file:
                 X = np.array(h5py_file['X'], dtype=as_np_dtype(dtype))
                 Y = np.array(h5py_file['Y'], dtype=as_np_dtype(dtype))
             else:
@@ -1047,11 +1050,11 @@ def get_load_fn(dset: Dataset):
     try:
         return __LOADERS[dset].load_data
     except KeyError:
-        raise KeyError(dset, f"No loader function found for dataset {dset}.")
+        raise KeyError(dset, f"No loader function found for dataset {dset}.") from None
 
 
 def get_cv_fn(dset: Dataset):
     try:
         return __LOADERS[dset].load_data_cv
     except KeyError:
-        raise KeyError(dset, f"No CV-loader function found for dataset {dset}.")
+        raise KeyError(dset, f"No CV-loader function found for dataset {dset}.") from None

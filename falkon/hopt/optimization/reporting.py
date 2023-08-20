@@ -29,7 +29,7 @@ def get_writer(name=None):
 
 class EarlyStop(Exception):
     def __init__(self, msg):
-        super(EarlyStop, self).__init__(msg)
+        super().__init__(msg)
 
 
 def report_losses(losses: Sequence[torch.Tensor],
@@ -103,13 +103,16 @@ def pred_reporting(model: HyperoptObjective,
         model = flk_model
 
     # Predict in mini-batches
-    test_preds, train_preds = [], []
     c_mb_size = mb_size or Xts.shape[0]
-    for i in range(0, Xts.shape[0], c_mb_size):
-        test_preds.append(model.predict(Xts[i: i + c_mb_size]).detach().cpu())
+    test_preds = [
+        model.predict(Xts[i: i + c_mb_size]).detach().cpu()
+        for i in range(0, Xts.shape[0], c_mb_size)
+    ]
     c_mb_size = mb_size or Xtr.shape[0]
-    for i in range(0, Xtr.shape[0], c_mb_size):
-        train_preds.append(model.predict(Xtr[i: i + c_mb_size]).detach().cpu())
+    train_preds = [
+        model.predict(Xtr[i: i + c_mb_size]).detach().cpu()
+        for i in range(0, Xtr.shape[0], c_mb_size)
+    ]
     test_preds = torch.cat(test_preds, dim=0)
     train_preds = torch.cat(train_preds, dim=0)
     test_err, err_name = err_fn(Yts.detach().cpu(), test_preds)
@@ -176,11 +179,8 @@ def epoch_bookkeeping(
     # Early stop if no training-error improvement in the past `early_stop_patience` epochs.
     if early_stop_patience is not None and len(logs) >= early_stop_patience:
         if "train_error" in logs[-1]:
-            past_errs = []
             past_logs = logs[-early_stop_patience:]  # Last n logs from most oldest to most recent
-            for plog in past_logs:
-                if 'train_error' in plog:
-                    past_errs.append(abs(plog['train_error']))
+            past_errs = [abs(plog['train_error']) for plog in past_logs if 'train_error' in plog]
             if np.argmin(past_errs) == 0:  # The minimal error in the oldest log
                 raise EarlyStop(f"Early stopped at epoch {epoch} with past errors: {past_errs}.")
     # Increase solution accuracy for the falkon solver.

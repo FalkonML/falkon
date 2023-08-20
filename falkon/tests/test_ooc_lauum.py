@@ -212,11 +212,17 @@ class TestLauumKernel:
 
         mat = get_mat(order="F", dtype=dtype)
         gpu_in = move_tensor(mat, device)
-        gpu_in_strided = torch.cat([gpu_in, torch.zeros(gpu_in.shape[0], 10, device=device, dtype=gpu_in.dtype)], 1).T
+        gpu_in_strided = torch.cat([
+            gpu_in,
+            torch.zeros(gpu_in.shape[0], 10, device=device, dtype=gpu_in.dtype)
+        ], 1).T
         gpu_in_strided = gpu_in_strided[:gpu_in.shape[0], :gpu_in.shape[0]]
         gpu_in_strided.copy_(gpu_in)
         gpu_out = move_tensor(mat, device)
-        gpu_out_strided = torch.cat([gpu_out, torch.zeros(gpu_out.shape[0], 10, device=device, dtype=gpu_in.dtype)], 1).T
+        gpu_out_strided = torch.cat([
+            gpu_out,
+            torch.zeros(gpu_out.shape[0], 10, device=device, dtype=gpu_in.dtype)
+        ], 1).T
         gpu_out_strided = gpu_out_strided[:gpu_out.shape[0], :gpu_out.shape[0]]
         gpu_out_strided.fill_(0.0)
 

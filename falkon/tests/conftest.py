@@ -52,8 +52,9 @@ def memory_checker(opt: FalkonOptions, extra_mem=0, check_cpu=True):
         used_ram = _cpu_used_mem(uss=True) - start_ram - extra_mem
         if used_ram > opt.max_cpu_mem:
             raise MemoryError(
-                "Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)" %
-                (used_ram / 2 ** 20, opt.max_cpu_mem / 2 ** 20))
+                f"Memory usage ({used_ram / 2 ** 20:.2f}MB) exceeds allowed usage "
+                f"({opt.max_cpu_mem / 2 ** 20:.2f}MB)"
+            )
 
 
 def numpy_to_torch_type(dt):
@@ -124,6 +125,6 @@ def fix_mat_dt(t, dtype=None, numpy=False):
 
 
 def make_tuple(val, length):
-    if isinstance(val, tuple) or isinstance(val, list):
+    if isinstance(val, (tuple, list)):
         assert len(val) == length, "Input to `make_tuple` is already a list of the incorrect length."
     return tuple([val] * length)

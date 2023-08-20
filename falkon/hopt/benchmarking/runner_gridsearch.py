@@ -13,7 +13,7 @@ def write_gridspec_file(out_file, sigmas, penalties):
     with open(out_file, "w") as fh:
         fh.write("sigma,penalty\n")
         for ex in itertools.product(sigmas, penalties):
-            fh.write("%.8e,%.8e\n" % (ex[0], ex[1]))
+            fh.write(f"{ex[0]:.8e},{ex[1]:.8e}\n")
 
 
 def run_gs(
@@ -104,7 +104,11 @@ def run():
             penalties = dset_params['penalties']
             if model == 'svgp':
                 min_penalty = 1e-4 / dset_params['train_size']
-                penalties = np.logspace(np.log10(min_penalty), np.log10(dset_params['penalties'].max()), len(dset_params['penalties']))
+                penalties = np.logspace(
+                    np.log10(min_penalty),
+                    np.log10(dset_params['penalties'].max()),
+                    len(dset_params['penalties'])
+                )
             write_gridspec_file(gs_file, dset_params['sigmas'], penalties)
             run_gs(val_pct=model_params.get('val_pct', 0.2),
                    num_centers=dset_params['num_centers'],

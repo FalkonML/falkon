@@ -276,11 +276,11 @@ def get_err_fns(dset: Dataset) -> List[ERROR_FN_TYPE]:
     try:
         return ERROR_METRICS[dset]
     except KeyError:
-        raise KeyError(dset, f"No error metrics found for dataset {dset}.")
+        raise KeyError(dset, f"No error metrics found for dataset {dset}.") from None
 
 
 def get_tf_err_fn(dset: Dataset) -> ERROR_FN_TYPE:
     try:
         return TF_ERROR_METRICS[dset]
     except KeyError:
-        raise KeyError(dset, f"No tensorflow error metric found for dataset {dset}.")
+        raise KeyError(dset, f"No tensorflow error metric found for dataset {dset}.") from None

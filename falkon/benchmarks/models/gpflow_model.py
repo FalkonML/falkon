@@ -27,12 +27,14 @@ def data_generator(X, Y, batch_size):
         bstart = bend
 
 
-class TrainableGPR():
-    def __init__(self,
-                 kernel,
-                 num_iter,
-                 err_fn,
-                 lr):
+class TrainableGPR:
+    def __init__(
+        self,
+        kernel,
+        num_iter,
+        err_fn,
+        lr
+    ):
         self.kernel = kernel
         self.num_iter = num_iter
         self.err_fn = err_fn
@@ -85,14 +87,16 @@ class TrainableGPR():
                 % (self.kernel, self.num_iter, self.lr, self.model))
 
 
-class TrainableSGPR():
-    def __init__(self,
-                 kernel,
-                 inducing_points,
-                 num_iter,
-                 err_fn,
-                 train_hyperparams: bool = True,
-                 lr: float = 0.001,):
+class TrainableSGPR:
+    def __init__(
+        self,
+        kernel,
+        inducing_points,
+        num_iter,
+        err_fn,
+        train_hyperparams: bool = True,
+        lr: float = 0.001,
+    ):
         self.train_hyperparams = train_hyperparams
         self.lr = lr
         self.kernel = kernel
@@ -192,7 +196,7 @@ class TrainableSGPR():
                     'variance_g': grads[1],
                     'elbo': self.model.elbo().numpy(),
                 }
-                print("ELBO: %10.3f -- TRAINING LOSS: %10.3f" % (new_row['elbo'], self.model.training_loss()))
+                print(f"ELBO: {new_row['elbo']:10.3f} - TRAINING LOSS: {self.model.training_loss():10.3f}")
                 tr_err, tr_err_name = self.err_fn(Y, train_preds)
                 ts_err, ts_err_name = self.err_fn(Yval, test_preds)
                 new_row["train_%s" % tr_err_name] = tr_err
@@ -215,20 +219,22 @@ class TrainableSGPR():
                    self.train_hyperparams, self.model))
 
 
-class TrainableSVGP():
-    def __init__(self,
-                 kernel,
-                 inducing_points,
-                 batch_size,
-                 num_iter,
-                 err_fn,
-                 var_dist,
-                 classif=None,
-                 error_every=100,
-                 train_hyperparams: bool = True,
-                 optimize_centers: bool = True,
-                 lr: float = 0.001,
-                 natgrad_lr: float = 0.01):
+class TrainableSVGP:
+    def __init__(
+        self,
+        kernel,
+        inducing_points,
+        batch_size,
+        num_iter,
+        err_fn,
+        var_dist,
+        classif=None,
+        error_every=100,
+        train_hyperparams: bool = True,
+        optimize_centers: bool = True,
+        lr: float = 0.001,
+        natgrad_lr: float = 0.01,
+    ):
         self.train_hyperparams = train_hyperparams
         self.optimize_centers = optimize_centers
         self.lr = lr
@@ -312,11 +318,12 @@ class TrainableSVGP():
             tf_dt = tf.float32
         else:
             tf_dt = tf.float64
-        train_dataset = tf.data.Dataset.from_generator(generator, args=(self.batch_size, ), output_types=(tf_dt, tf_dt)) \
-            .prefetch(self.batch_size * 10) \
-            .repeat() \
-            .shuffle(min(N // self.batch_size, 1_000_000 // self.batch_size)) \
-            .batch(1)
+        train_dataset = tf.data.Dataset.from_generator(
+            generator, args=(self.batch_size, ), output_types=(tf_dt, tf_dt)
+        ).prefetch(self.batch_size * 10) \
+         .repeat() \
+         .shuffle(min(N // self.batch_size, 1_000_000 // self.batch_size)) \
+         .batch(1)
         train_iter = iter(train_dataset)
 
         loss = self.model.training_loss_closure(train_iter)
@@ -394,11 +401,12 @@ class TrainableSVGP():
         else:
             tf_dt = tf.float64
         print(tf_dt)
-        train_dataset = tf.data.Dataset.from_generator(generator, args=(self.batch_size, ), output_types=(tf_dt, tf_dt)) \
-            .prefetch(self.batch_size * 10) \
-            .repeat() \
-            .shuffle(min(N // self.batch_size, 1_000_000 // self.batch_size)) \
-            .batch(1)
+        train_dataset = tf.data.Dataset.from_generator(
+            generator, args=(self.batch_size, ), output_types=(tf_dt, tf_dt)
+        ).prefetch(self.batch_size * 10) \
+         .repeat() \
+         .shuffle(min(N // self.batch_size, 1_000_000 // self.batch_size)) \
+         .batch(1)
         train_iter = iter(train_dataset)
         loss = self.model.training_loss_closure(train_iter)
 

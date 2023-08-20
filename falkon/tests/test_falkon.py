@@ -202,8 +202,8 @@ class TestWeightedFalkon:
         err_m1 = error_fn(preds_m1, Y[Y == -1])[0]
         err_p1 = error_fn(preds_p1, Y[Y == 1])[0]
 
-        print("Weighted errors: -1 (%f) +1 (%f) -- Normal errors: -1 (%f) +1 (%f)" % (
-            err_weight_m1, err_weight_p1, err_m1, err_p1))
+        print(f"Weighted errors: -1 ({err_weight_m1}) +1 ({err_weight_p1}) - "
+              f"Normal errors: -1 ({err_m1}) +1 ({err_p1})")
 
         assert err_weight_m1 < err_m1, "Error of weighted class is higher than without weighting"
         assert err_weight_p1 >= err_p1, "Error of unweighted class is lower than in flk with no weights"
@@ -350,6 +350,6 @@ class TestStressInCore:
         for i in range(len(actual)):
             try:
                 np.testing.assert_allclose(expected.numpy(), actual[i].numpy(), rtol=1e-7)
-            except:  # noqa E722
+            except:  # noqa: E722,PERF203
                 wrong += 1
-        assert wrong == 0, "%d results were not equal" % (wrong)
+        assert wrong == 0, f"{wrong} results were not equal"

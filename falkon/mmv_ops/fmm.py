@@ -6,12 +6,20 @@ import torch
 import torch.cuda as tcd
 
 import falkon
-from falkon.mmv_ops.utils import *
+from falkon.mmv_ops.utils import (
+    _extract_flat,
+    _call_direct,
+    _get_gpu_info,
+    _start_wait_processes,
+    _check_contiguity
+)
 from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.device_copy import copy
 from falkon.utils.helpers import (
-    sizeof_dtype, select_dim_over_nm, calc_gpu_block_sizes
+    sizeof_dtype,
+    select_dim_over_nm,
+    calc_gpu_block_sizes
 )
 from falkon.utils.tensor_helpers import create_same_stride, create_fortran
 
@@ -377,7 +385,7 @@ class KernelMmFnFull(torch.autograd.Function):
             _check_contiguity((X1, 'X1'), (X2, 'X2'), (out, 'out'))
             differentiable = (
                 isinstance(kernel, falkon.kernels.DiffKernel) and
-                any([t.requires_grad for t in [X1, X2] + [*kernel_params]])
+                any(t.requires_grad for t in [X1, X2] + [*kernel_params])
             )
 
         N = X1.shape[0]
@@ -430,7 +438,8 @@ class KernelMmFnFull(torch.autograd.Function):
         # We must rerun MM in differentiable mode this time.
         with torch.autograd.enable_grad():
             if ctx.diag:
-                out = KernelMmFnFull.run_diag(X1, X2, outputs, ctx.kernel, True, sparse=False)  # TODO: Handle sparsity better
+                # TODO: Handle sparsity better
+                out = KernelMmFnFull.run_diag(X1, X2, outputs, ctx.kernel, True, sparse=False)
             elif comp_dev_type == 'cpu' and data_dev.type == 'cpu':
                 out = KernelMmFnFull.run_cpu_cpu(X1, X2, outputs, ctx.kernel, ctx.comp_dtype, ctx.opt, True)
             elif comp_dev_type == 'cuda' and data_dev.type == 'cuda':
@@ -439,7 +448,7 @@ class KernelMmFnFull(torch.autograd.Function):
                 out = KernelMmFnFull.run_cpu_gpu(X1, X2, outputs, ctx.kernel, ctx.comp_dtype, ctx.opt, True)
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
-            if isinstance(out, tuple) or isinstance(out, list):
+            if isinstance(out, (tuple, list)):
                 bwd = sum(out)
             else:
                 bwd = out
@@ -455,7 +464,7 @@ class KernelMmFnFull(torch.autograd.Function):
             bwd, needs_grad, retain_graph=False, allow_unused=True)
         grads_idx = 0
         results = []
-        for i, i_grad in enumerate(ctx.needs_input_grad):
+        for _, i_grad in enumerate(ctx.needs_input_grad):
             if i_grad:
                 results.append(grads[grads_idx])
                 grads_idx += 1

@@ -65,8 +65,7 @@ def _start_wait_processes(target, args) -> List[Any]:
         processes.append(process)
     for p in processes:
         p.start()
-    for p in processes:
-        outputs.append(p.join())
+    outputs.extend([p.join() for p in processes])
     return outputs
 
 

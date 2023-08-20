@@ -127,6 +127,5 @@ def test_wrong_stride(mat, order, in_dev):
         output = torch.empty_strided(in_mat.size(), (1, in_mat.shape[0]), dtype=in_mat.dtype, device=out_dev)
 
     opt = FalkonOptions(max_gpu_mem=0.0)
-    with memory_checker(opt):
-        with pytest.raises(ValueError):
-            copy(in_mat, output)
+    with memory_checker(opt), pytest.raises(ValueError):
+        copy(in_mat, output)

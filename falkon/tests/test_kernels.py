@@ -5,11 +5,23 @@ import numpy as np
 import pytest
 import torch
 
-from falkon.kernels import *
+from falkon.kernels import (
+    GaussianKernel,
+    LaplacianKernel,
+    MaternKernel,
+    LinearKernel,
+    PolynomialKernel,
+)
 from falkon.options import FalkonOptions
 from falkon.tests.conftest import memory_checker, fix_mats
 from falkon.tests.gen_random import gen_random
-from falkon.tests.naive_kernels import *
+from falkon.tests.naive_kernels import (
+    naive_diff_gaussian_kernel,
+    naive_diff_matern_kernel,
+    naive_diff_laplacian_kernel,
+    naive_diff_polynomial_kernel,
+    naive_diff_linear_kernel,
+)
 from falkon.utils import decide_cuda
 from falkon.utils.switches import decide_keops
 from falkon.utils.helpers import sizeof_dtype
@@ -187,7 +199,7 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt,
         try:
             actual_wgrad = kernel_wgrad.dmmv(m1_wgrad, m2_wgrad, v_wgrad, w_wgrad, opt=new_opt)
         except NotImplementedError as e:
-            assert new_opt.keops_active == "no", "KeOps D-MMV raise error %s unexpectedly" % (e)
+            assert new_opt.keops_active == "no", f"KeOps D-MMV raise error {e} unexpectedly"
             # On the other hand it is expected that we throw a not implemented error.
             dmmv_grad_allowed = False
 

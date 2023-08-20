@@ -171,8 +171,9 @@ class FalkonBase(base.BaseEstimator, ABC):
                 return True
             elif self.options.debug:
                 print(
-                    "Cannot store full kernel matrix: not enough memory (have %.2fGB, need %.2fGB)" %
-                    (available_ram / 2 ** 30, necessary_ram / 2 ** 30))
+                    f"Cannot store full kernel matrix: not enough memory "
+                    f"(have {available_ram / 2 ** 30:.2f}GB, need {necessary_ram / 2 ** 30:.2f}GB)"
+                )
                 return False
         else:
             return False

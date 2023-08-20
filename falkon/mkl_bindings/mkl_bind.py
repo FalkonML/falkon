@@ -45,7 +45,7 @@ class MklError(Exception):
         super().__init__(msg)
 
 
-class Mkl():
+class Mkl:
     sparse_matrix_t = ctypes.POINTER(MklSparseMatrix)
     MKL_OPERATION_T = {
         'n': 10,
@@ -230,7 +230,7 @@ class Mkl():
                     try:
                         libmkl = ctypes.cdll.LoadLibrary(so_file)
                         break
-                    except (OSError, ImportError) as err:
+                    except (OSError, ImportError) as err:  # noqa: PERF203
                         libmkl_loading_errors.append(err)
             else:
                 libmkl = ctypes.cdll.LoadLibrary(so_file)
@@ -238,9 +238,9 @@ class Mkl():
             libmkl_loading_errors.append(err)
 
         if libmkl is None:
-            ierr_msg = ("Unable to load the MKL libraries through either of %s. "
-                        "Try setting $LD_LIBRARY_PATH.") % (potential_sos)
-            ierr_msg += "\n\t" + "\n\t".join(map(lambda x: str(x), libmkl_loading_errors))
+            ierr_msg = (f"Unable to load the MKL libraries through either of {potential_sos}. "
+                        "Try setting $LD_LIBRARY_PATH.")
+            ierr_msg += "\n\t" + "\n\t".join([str(err) for err in libmkl_loading_errors])
             raise ImportError(ierr_msg)
         return libmkl
 
@@ -265,7 +265,7 @@ class Mkl():
                 self.mkl_sparse_destroy(csc_ref)
         return True
 
-    def mkl_create_sparse(self, mat: SparseTensor) -> sparse_matrix_t:  # noqa 821
+    def mkl_create_sparse(self, mat: SparseTensor) -> sparse_matrix_t:
         """Create a MKL sparse matrix from a SparseTensor object
 
         The object created is an opaque container which can be passed to sparse MKL operations.
@@ -324,7 +324,7 @@ class Mkl():
         Mkl.mkl_check_return_val(ret_val, fn)
         return ref
 
-    def mkl_create_sparse_from_scipy(self, matrix: _scipy_sparse_type) -> sparse_matrix_t:  # noqa 821
+    def mkl_create_sparse_from_scipy(self, matrix: _scipy_sparse_type) -> sparse_matrix_t:
         """Create a MKL sparse matrix from a scipy sparse matrix.
 
         The object created is an opaque container which can be passed to sparse MKL operations.
@@ -396,8 +396,7 @@ class Mkl():
             nnz = sparse_matrix.nnz
 
         if (nnz > int_max) or (max(sparse_matrix.shape) > int_max):
-            msg = "MKL interface is {t} and cannot hold matrix {m}".format(
-                m=repr(sparse_matrix), t=self.NP_INT)
+            msg = f"MKL interface is {self.NP_INT} and cannot hold matrix {repr(sparse_matrix)}"
             raise ValueError(msg)
 
         # Cast indexes to MKL_INT type
@@ -508,7 +507,7 @@ class Mkl():
                             sparse_type=output_type.lower())
 
     def mkl_convert_csr(self, mkl_mat: sparse_matrix_t,
-            destroy_original=False) -> sparse_matrix_t:  # noqa 821
+            destroy_original=False) -> sparse_matrix_t:
         """Convert a MKL matrix from CSC format to CSR format.
 
         Parameters

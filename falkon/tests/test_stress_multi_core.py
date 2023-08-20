@@ -100,11 +100,11 @@ class TestStressOocLauum:
             for j in range(len(actual[i])):
                 try:
                     np.testing.assert_allclose(expected.numpy(), actual[i][j].numpy(), rtol=1e-7)
-                except AssertionError:
-                    raise
+                except AssertionError:  # noqa: PERF203
                     print(f"Result {j} from process {i} is incorrect")
                     wrong += 1
-        assert wrong == 0, "%d results were not equal" % (wrong)
+                    raise
+        assert wrong == 0, f"{wrong} results were not equal"
 
 
 def _runner_str(fname_X, fname_Y, fname_out, num_centers, num_rep, max_iter, gpu_num):
@@ -212,7 +212,7 @@ class TestStressInCore:
             for j in range(len(actual[i])):
                 try:
                     np.testing.assert_allclose(expected.numpy(), actual[i][j].numpy(), rtol=1e-7)
-                except AssertionError:
+                except AssertionError:  # noqa: PERF203
                     print(f"Result {j} from process {i} is incorrect")
                     wrong += 1
-        assert wrong == 0, "%d results were not equal" % (wrong)
+        assert wrong == 0, f"{wrong} results were not equal"

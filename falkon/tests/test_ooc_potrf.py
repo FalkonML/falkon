@@ -94,7 +94,7 @@ class TestInCorePyTest:
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 @pytest.mark.parametrize("overwrite", [True, False])
-class TestOutOfCorePyTest():
+class TestOutOfCorePyTest:
     basic_options = FalkonOptions(debug=True, chol_force_ooc=True)
 
     def test_start_cuda_fail(self, pd_data, dtype, overwrite):

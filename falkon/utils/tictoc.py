@@ -30,8 +30,7 @@ class TicToc:
         if _print and self.should_print:
             indent_level = len(times)
             indent_str = self._get_indent_str(indent_level)
-            print("{indent_str}{mp_name}::[{title}]".format(
-                indent_str=indent_str, mp_name=mp_name, title=self.title), flush=True)
+            print(f"{indent_str}{mp_name}::[{self.title}]", flush=True)
         times.append(time.time())
 
     def toc(self):
@@ -42,9 +41,7 @@ class TicToc:
         indent_level = len(times)
         indent_str = self._get_indent_str(indent_level)
         if self.should_print:
-            print("{indent_str}{mp_name}::[{title}] complete in {t_elapsed:.3f}s".format(
-                indent_str=indent_str, mp_name=mp_name, title=self.title, t_elapsed=t_elapsed
-            ), flush=True)
+            print(f"{indent_str}{mp_name}::[{self.title}] complete in {t_elapsed:.3f}s", flush=True)
 
     def toc_val(self):
         mp_name = self.mp_name
@@ -53,7 +50,7 @@ class TicToc:
 
     @property
     def mp_name(self):
-        return ("%s.%s" % (mpr.current_process().name, thr.current_thread().name))
+        return f"{mpr.current_process().name}.{thr.current_thread().name}"
 
     @staticmethod
     def _get_indent_str(level):

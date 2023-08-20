@@ -17,12 +17,12 @@ def validate_diff_float(num: Union[float, torch.Tensor], param_name: str) -> tor
             num.item()
             return num
         except ValueError:
-            raise ValueError(f"Parameter {param_name} must be a scalar.")
+            raise ValueError(f"Parameter {param_name} must be a scalar.") from None
     else:
         try:
             return torch.tensor([float(num)], dtype=torch.float64)
         except TypeError:
-            raise TypeError(f"Parameter {param_name} must be a scalar or a tensor.")
+            raise TypeError(f"Parameter {param_name} must be a scalar or a tensor.") from None
 
 
 def _dot_kernel_extra_mem(

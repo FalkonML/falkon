@@ -180,7 +180,7 @@ def run_keops_mmv(X1: torch.Tensor,
     backend = _decide_backend(opt, D)
     data_devs = [X1.device, X2.device, v.device]
 
-    if any([ddev.type == 'cuda' for ddev in data_devs]) and (not backend.startswith("GPU")):
+    if any(ddev.type == 'cuda' for ddev in data_devs) and (not backend.startswith("GPU")):
         warnings.warn("KeOps backend was chosen to be CPU, but GPU input tensors found. "
                       "Defaulting to 'GPU_1D' backend. To force usage of the CPU backend, "
                       "please pass CPU tensors; to avoid this warning if the GPU backend is "
@@ -208,9 +208,9 @@ def run_keops_mmv(X1: torch.Tensor,
         # For differentiable inputs we don't split, since we don't know how to
         # split the backward pass.
         out = fn(X1, X2, v, *other_vars, out=out, backend=backend)
-    elif comp_dev_type == 'cpu' and all([ddev.type == 'cpu' for ddev in data_devs]):  # incore CPU
+    elif comp_dev_type == 'cpu' and all(ddev.type == 'cpu' for ddev in data_devs):  # incore CPU
         out = fn(X1, X2, v, *other_vars, out=out, backend=backend)
-    elif comp_dev_type == 'cuda' and all([ddev.type == 'cuda' for ddev in data_devs]):  # incore CUDA
+    elif comp_dev_type == 'cuda' and all(ddev.type == 'cuda' for ddev in data_devs):  # incore CUDA
         device = data_devs[0]
         with torch.cuda.device(device):
             sync_current_stream(device)

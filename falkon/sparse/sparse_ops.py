@@ -36,12 +36,12 @@ def _sparse_matmul_cpu(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
             try:
                 # noinspection PyUnboundLocalVariable
                 mkl.mkl_sparse_destroy(mkl_sp_1)
-            except:  # noqa E722
+            except:  # noqa: E722
                 pass
             try:
                 # noinspection PyUnboundLocalVariable
                 mkl.mkl_sparse_destroy(mkl_sp_2)
-            except:  # noqa E722
+            except:  # noqa: E722
                 pass
     except ImportError:
         warnings.warn("Failed to load MKL. Using Scipy sparse matrix multiplication instead.")

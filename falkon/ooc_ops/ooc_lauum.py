@@ -89,7 +89,13 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
     return A
 
 
-def gpu_lauum(A: torch.Tensor, upper: bool, overwrite: bool = True, write_opposite: bool = False, opt: Optional[FalkonOptions] = None):
+def gpu_lauum(
+        A: torch.Tensor,
+        upper: bool,
+        overwrite: bool = True,
+        write_opposite: bool = False,
+        opt: Optional[FalkonOptions] = None
+):
     """
     Parameters
     -----------

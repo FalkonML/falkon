@@ -220,7 +220,12 @@ class TestPotrf:
             torch.testing.assert_close(exp_upper.to(our_chol.dtype), our_chol, rtol=self.rtol[dtype], atol=0)
             assert torch.tril(our_chol, -1).sum() == 0
         else:
-            torch.testing.assert_close(exp_upper.to(our_chol.dtype), torch.triu(our_chol), rtol=self.rtol[dtype], atol=0)
+            torch.testing.assert_close(
+                exp_upper.to(our_chol.dtype),
+                torch.triu(our_chol),
+                rtol=self.rtol[dtype],
+                atol=0
+            )
             torch.testing.assert_close(torch.tril(mat, -1), torch.tril(our_chol, -1))
 
     def test_lower(self, mat, exp_lower, clean, overwrite, order, dtype):
@@ -236,7 +241,12 @@ class TestPotrf:
             torch.testing.assert_close(exp_lower.to(our_chol.dtype), our_chol, rtol=self.rtol[dtype], atol=0)
             assert torch.triu(our_chol, 1).sum() == 0
         else:
-            np.testing.assert_allclose(exp_lower.to(our_chol.dtype), torch.tril(our_chol), rtol=self.rtol[dtype], atol=0)
+            np.testing.assert_allclose(
+                exp_lower.to(our_chol.dtype),
+                torch.tril(our_chol),
+                rtol=self.rtol[dtype],
+                atol=0
+            )
             np.testing.assert_allclose(torch.triu(mat, 1), torch.triu(our_chol, 1))
 
 
@@ -432,13 +442,13 @@ class TestVecMulTriang:
         vec_cuda = vec.cuda()
 
         cpu_times = []
-        for i in range(num_rep):
+        for _ in range(num_rep):
             t_s = time.time()
             out_cpu = vec_mul_triang(mat, vec, True, 1)
             cpu_times.append(time.time() - t_s)
 
         gpu_times = []
-        for i in range(num_rep):
+        for _ in range(num_rep):
             t_s = time.time()
             out_cuda = vec_mul_triang(mat_cuda, vec_cuda, True, 1)
             torch.cuda.synchronize()

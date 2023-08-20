@@ -18,9 +18,9 @@ class SGPR(HyperoptObjective):
             opt_penalty: bool,
             centers_transform: Optional[torch.distributions.Transform] = None,
             pen_transform: Optional[torch.distributions.Transform] = None, ):
-        super(SGPR, self).__init__(kernel, centers_init, penalty_init,
-                                   opt_centers, opt_penalty,
-                                   centers_transform, pen_transform)
+        super().__init__(kernel, centers_init, penalty_init,
+                         opt_centers, opt_penalty,
+                         centers_transform, pen_transform)
         self.x_train, self.y_train = None, None
         self.losses: Optional[Dict[str, torch.Tensor]] = None
 

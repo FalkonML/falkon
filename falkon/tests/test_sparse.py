@@ -45,7 +45,7 @@ def csc_mat() -> SparseTensor:
 
 
 @pytest.mark.parametrize("function", [sparse_norm, sparse_square_norm])
-class TestSparseNorm():
+class TestSparseNorm:
     def test_non_csr(self, csc_mat, function):
         with pytest.raises(RuntimeError) as exc_info:
             function(csc_mat, out=None)
@@ -143,11 +143,15 @@ class TestMyTranspose:
     def test_simple_transpose(self, device, csr_mat):
         arr = csr_mat.to(device=device)
         tr_arr = arr.transpose_csc()
-        assert tr_arr.shape == (2, 3), "expected transpose shape to be %s, but found %s" % ((2, 3), tr_arr.shape)
+        assert tr_arr.shape == (2, 3), \
+            f"expected transpose shape to be {(2, 3)}, but found {tr_arr.shape}"
         tr_mat = tr_arr.to_scipy().tocoo()
-        assert tr_mat.row.tolist() == [1, 0, 1, 0], "expected rows %s, but found %s" % ([1, 0, 1, 0], tr_mat.row.tolist())
-        assert tr_mat.col.tolist() == [0, 1, 1, 2], "expected cols %s, but found %s" % ([0, 1, 1, 2], tr_mat.col.tolist())
-        assert tr_mat.data.tolist() == [2, 1, 3, 4], "expected data %s, but found %s" % ([2, 1, 3, 4], tr_mat.data.tolist())
+        assert tr_mat.row.tolist() == [1, 0, 1, 0], \
+            f"expected rows {[1, 0, 1, 0]}, but found {tr_mat.row.tolist()}"
+        assert tr_mat.col.tolist() == [0, 1, 1, 2], \
+            f"expected cols {[0, 1, 1, 2]}, but found {tr_mat.col.tolist()}"
+        assert tr_mat.data.tolist() == [2, 1, 3, 4], \
+            f"expected data {[2, 1, 3, 4]}, but found {tr_mat.data.tolist()}"
 
 
 @pytest.mark.parametrize("device", [
@@ -218,14 +222,18 @@ class TestMatMul:
         pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))
     ])
     def test_matmul_zeros(self, mat1, mat2, expected, device):
-        mat1_zero_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(torch.zeros_like(mat1).numpy())).to(device=device)
+        mat1_zero_csr = SparseTensor.from_scipy(
+            scipy.sparse.csr_matrix(torch.zeros_like(mat1).numpy())
+        ).to(device=device)
         mat2_csc = SparseTensor.from_scipy(scipy.sparse.csc_matrix(mat2.numpy())).to(device=device)
         out = torch.empty_like(expected).to(device)
         sparse_matmul(mat1_zero_csr, mat2_csc, out)
         assert torch.all(out == 0.0)
 
         mat1_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(mat1.numpy())).to(device=device)
-        mat2_zero_csc = SparseTensor.from_scipy(scipy.sparse.csc_matrix(torch.zeros_like(mat2).numpy())).to(device=device)
+        mat2_zero_csc = SparseTensor.from_scipy(
+            scipy.sparse.csc_matrix(torch.zeros_like(mat2).numpy())
+        ).to(device=device)
         out = torch.empty_like(expected).to(device=device)
         sparse_matmul(mat1_csr, mat2_zero_csc, out)
         assert torch.all(out == 0.0)

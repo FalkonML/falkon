@@ -25,9 +25,6 @@ class Preconditioner(ABC):
     :class:`falkon.preconditioner.FalkonPreconditioner` :
         for an actual preconditioner implementation
     """
-    def __init__(self):
-        pass
-
     @abstractmethod
     def apply(self, v):
         pass

@@ -27,7 +27,9 @@ def decide_cuda(opt: Optional[BaseOptions] = None):
     return True
 
 
-def decide_keops(opt: KeopsOptions = KeopsOptions()):
+def decide_keops(opt: Optional[KeopsOptions] = None):
+    if opt is None:
+        opt = KeopsOptions()
     if opt.keops_active.lower() == "no":
         return False
     if opt.keops_active.lower() == "force":
@@ -35,7 +37,7 @@ def decide_keops(opt: KeopsOptions = KeopsOptions()):
     # If not 'no' or 'force' we can choose depending on whether keops works.
     if not hasattr(decide_keops, 'keops_works'):
         try:
-            import pykeops  # noqa F401
+            import pykeops  # noqa: F401
             # pykeops.clean_pykeops()          # just in case old build files are still present
             # pykeops.test_torch_bindings()
             decide_keops.keops_works = True

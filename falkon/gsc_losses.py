@@ -214,7 +214,8 @@ class Loss(ABC):
 
 
 class LogisticLoss(Loss):
-    """Wrapper for the logistic loss, to be used in conjunction with the :class:`~falkon.models.LogisticFalkon` estimator.
+    """Wrapper for the logistic loss, to be used in conjunction with the
+    :class:`~falkon.models.LogisticFalkon` estimator.
 
     Usage of this loss assumes a binary classification problem with labels -1 and +1. For different
     choices of labels, see :class:`WeightedCrossEntropyLoss`.
@@ -321,7 +322,8 @@ class LogisticLoss(Loss):
 
 
 class WeightedCrossEntropyLoss(Loss):
-    r"""Wrapper for the weighted binary cross-entropy loss, to be used with the :class:`~falkon.models.LogisticFalkon` estimator.
+    r"""Wrapper for the weighted binary cross-entropy loss, to be used with the
+    :class:`~falkon.models.LogisticFalkon` estimator.
 
     Using this loss assumes a binary classification problem with labels 0 and +1. Additionally,
     this loss allows to place a different weight to samples belonging to one of the two classes

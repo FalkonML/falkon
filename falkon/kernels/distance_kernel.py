@@ -35,7 +35,7 @@ def validate_sigma(sigma: Union[float, torch.Tensor]) -> torch.Tensor:
         try:
             return torch.tensor([float(sigma)], dtype=torch.float64)
         except TypeError:
-            raise TypeError("Sigma must be a scalar or a tensor.")
+            raise TypeError("Sigma must be a scalar or a tensor.") from None
 
 
 def _distance_kernel_extra_mem(
@@ -70,11 +70,11 @@ def _distance_kernel_extra_mem(
             extra_nm += 1  # To allocate out buffer
         if kernel_cls == LaplacianKernel and is_differentiable:
             extra_nm += 1  # To save intermediate outputs
-        if kernel_cls == MaternKernel:
-            if kernel_params['nu'] == 1.5 or kernel_params['nu'] == 2.5:
+        if (kernel_cls == MaternKernel and
+                (kernel_params['nu'] == 1.5 or kernel_params['nu'] == 2.5)):
+            extra_nm += 1
+            if is_differentiable:
                 extra_nm += 1
-                if is_differentiable:
-                    extra_nm += 1
     else:  # Sparse
         out_dict = {**base, **sq_norms}
         # CUDA spspmm is impossible to evaluate. There is the output dense (which we don't
@@ -244,7 +244,9 @@ def matern_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma, nu):
     if nu == 1.5:
         # (1 + sqrt(3)*D) * exp(-sqrt(3)*D))
         out.sqrt_()
-        if orig_out is None:  # TODO: We could be more explicit in the parameters about whether the gradient is or isn't needed
+        # TODO: We could be more explicit in the parameters about whether the gradient
+        #  is or isn't needed
+        if orig_out is None:
             out = out.mul(SQRT3)
         else:
             out.mul_(SQRT3)
@@ -254,7 +256,9 @@ def matern_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma, nu):
     elif nu == 2.5:
         # (1 + sqrt(5)*D + (sqrt(5)*D)^2 / 3 ) * exp(-sqrt(5)*D)
         out_sqrt = torch.sqrt(out)
-        if orig_out is None:  # TODO: We could be more explicit in the parameters about whether the gradient is or isn't needed
+        # TODO: We could be more explicit in the parameters about whether the gradient
+        #  is or isn't needed
+        if orig_out is None:
             out_sqrt = out_sqrt.mul(SQRT5)
         else:
             out_sqrt.mul_(SQRT5)
@@ -562,7 +566,7 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
             try:
                 out_nu = round(nu.item(), ndigits=2)
             except ValueError:
-                raise ValueError("nu=%s is not convertible to a scalar." % (nu))
+                raise ValueError("nu=%s is not convertible to a scalar." % nu) from None
         elif isinstance(nu, float):
             out_nu = round(nu, ndigits=2)
         else:

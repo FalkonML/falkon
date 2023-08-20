@@ -168,7 +168,7 @@ chol_par_blk_multiplier
 
 
 @dataclass
-class BaseOptions():
+class BaseOptions:
     """A set of options which are common to different modules
     """
     debug: bool = False
@@ -203,7 +203,7 @@ class BaseOptions():
 
 
 @dataclass
-class KeopsOptions():
+class KeopsOptions:
     """A set of options which relate to usage of KeOps
     """
     keops_acc_dtype: str = "auto"
@@ -220,7 +220,7 @@ class KeopsOptions():
 
 
 @dataclass
-class ConjugateGradientOptions():
+class ConjugateGradientOptions:
     """A set of options related to conjugate gradient optimization
     """
     cg_epsilon_32: float = 1e-7
@@ -235,7 +235,7 @@ class ConjugateGradientOptions():
         elif dtype == torch.float64:
             return self.cg_epsilon_64
         else:
-            raise TypeError("Data-type %s invalid" % (dtype))
+            raise TypeError(f"Data-type {str(dtype)} invalid")
 
     def get_conjgrad_options(self):
         return ConjugateGradientOptions(cg_epsilon_32=self.cg_epsilon_32,
@@ -246,7 +246,7 @@ class ConjugateGradientOptions():
 
 
 @dataclass
-class PreconditionerOptions():
+class PreconditionerOptions:
     """Options related to calculation of the preconditioner
 
     See Also
@@ -264,7 +264,7 @@ class PreconditionerOptions():
         elif dtype == torch.float64:
             return self.pc_epsilon_64
         else:
-            raise TypeError("Data-type %s invalid" % (dtype))
+            raise TypeError(f"Data-type {str(dtype)} invalid")
 
     def get_pc_options(self):
         return PreconditionerOptions(pc_epsilon_32=self.pc_epsilon_32,
@@ -273,7 +273,7 @@ class PreconditionerOptions():
 
 
 @dataclass(frozen=False)
-class CholeskyOptions():
+class CholeskyOptions:
     """Options related to the out-of-core POTRF (Cholesky decomposition) operation
 
     """
@@ -300,7 +300,7 @@ class FalkonOptions(
 
 # Fix documentation: FalkonOptions must inherit all params from its super-classes.
 def _reset_doc(cls, params):
-    cls.__doc__ = "%s\n\nParameters\n----------%s\n" % (cls.__doc__, params)
+    cls.__doc__ = f"{cls.__doc__}\n\nParameters\n----------{params}\n"
 
 
 _reset_doc(BaseOptions, _docs["base"])
@@ -310,6 +310,8 @@ _reset_doc(PreconditionerOptions, _docs["pc"])
 _reset_doc(CholeskyOptions, _docs["chol"])
 
 
-FalkonOptions.__doc__ = "%s\n\nParameters\n----------%s%s%s%s%s\n\n%s" % (
-    FalkonOptions.__doc__, _docs["base"], _docs["keops"], _docs["cg"], _docs["pc"],
-    _docs["chol"], _docs["extra"])
+FalkonOptions.__doc__ = (
+    f"{FalkonOptions.__doc__}\n\nParameters\n----------"
+    f"{_docs['base']}{_docs['keops']}{_docs['cg']}{_docs['pc']}{_docs['chol']}"
+    f"\n\n{_docs['extra']}"
+)

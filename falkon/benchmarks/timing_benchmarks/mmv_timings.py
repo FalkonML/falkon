@@ -45,7 +45,10 @@ if __name__ == "__main__":
     num_gpus = args.num_gpus
 
     kernel = GaussianKernel(3.0)
-    Ns = [1000, 5000, 20000, 50000, 100000, 200000, 400000, 600_000, 1_000_000, 2_000_000, 10_000_000, 50_000_000, 100_000_000]
+    Ns = [
+        1000, 5000, 20000, 50000, 100000, 200000, 400000, 600_000, 1_000_000,
+        2_000_000, 10_000_000, 50_000_000, 100_000_000
+    ]
     KeopsDs = [10, 50, 100, 250, 500, 750, 1000, 1250, 1500, 1750, 2000]
     OurDs = [10, 50, 100, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7000, 10000]
     defaultM = 20_000
@@ -66,7 +69,8 @@ if __name__ == "__main__":
             'kernel': kernel,
             'dtype': torch.float32,
             'num_reps': 10,
-            'fn': 'kernel._keops_mmv_impl(X1, X2, v, kernel, out=None, opt=FalkonOptions(keops_active="force", compute_arch_speed=False));',
+            'fn': ('kernel._keops_mmv_impl(X1, X2, v, kernel, out=None, '
+                   'opt=FalkonOptions(keops_active="force", compute_arch_speed=False));'),
         },
         {
             'exp_name': 'varying N - Our 32',
@@ -80,7 +84,8 @@ if __name__ == "__main__":
             'kernel': kernel,
             'dtype': torch.float32,
             'num_reps': 10,
-            'fn': 'kernel.mmv(X1, X2, v, out=None, opt=FalkonOptions(keops_active="no", compute_arch_speed=False));'
+            'fn': ('kernel.mmv(X1, X2, v, out=None, '
+                   'opt=FalkonOptions(keops_active="no", compute_arch_speed=False));'),
         },
         {
             'exp_name': 'varying D - KeOps 32',
@@ -94,7 +99,8 @@ if __name__ == "__main__":
             'kernel': kernel,
             'dtype': torch.float32,
             'num_reps': 10,
-            'fn': 'kernel.keops_mmv_impl(X1, X2, v, kernel, out=None, opt=FalkonOptions(keops_active="force", compute_arch_speed=False));'
+            'fn': ('kernel.keops_mmv_impl(X1, X2, v, kernel, out=None, '
+                   'opt=FalkonOptions(keops_active="force", compute_arch_speed=False));'),
         },
         {
             'exp_name': 'varying D - Our 32',

@@ -4,11 +4,21 @@ import numpy as np
 import pytest
 import torch
 
-from falkon.kernels import *
+from falkon.kernels import (
+    LaplacianKernel,
+    GaussianKernel,
+    PolynomialKernel,
+    MaternKernel,
+)
 from falkon.options import FalkonOptions
 from falkon.tests.conftest import memory_checker, fix_mats
 from falkon.tests.gen_random import gen_random, gen_sparse_matrix
-from falkon.tests.naive_kernels import *
+from falkon.tests.naive_kernels import (
+    naive_diff_polynomial_kernel,
+    naive_diff_matern_kernel,
+    naive_diff_gaussian_kernel,
+    naive_diff_laplacian_kernel,
+)
 from falkon.utils import decide_cuda
 from falkon.utils.switches import decide_keops
 from falkon.utils.helpers import sizeof_dtype
@@ -157,7 +167,7 @@ def run_sparse_test_wsigma(k_cls, naive_fn, s_m1, s_m2, m1, m2, v, w, rtol, atol
     except Exception as e:
         # Always raise the base exception
         if hasattr(e, '__cause__') and e.__cause__ is not None:
-            raise e.__cause__
+            raise e.__cause__ from e
         raise e
 
 
@@ -178,7 +188,7 @@ class TestLaplacianKernel:
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestGaussianKernel():
+class TestGaussianKernel:
     naive_fn = naive_diff_gaussian_kernel
     k_class = GaussianKernel
 
@@ -194,7 +204,7 @@ class TestGaussianKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestMaternKernel():
+class TestMaternKernel:
     naive_fn = naive_diff_matern_kernel
     k_class = MaternKernel
 
@@ -214,7 +224,7 @@ class TestMaternKernel():
 
 
 @pytest.mark.parametrize("input_dev,comp_dev", device_marks)
-class TestPolynomialKernel():
+class TestPolynomialKernel:
     naive_fn = naive_diff_polynomial_kernel
     k_class = PolynomialKernel
     beta = torch.tensor(1.0)
@@ -235,5 +245,5 @@ class TestPolynomialKernel():
         except Exception as e:
             # Always raise the base exception
             if hasattr(e, '__cause__') and e.__cause__ is not None:
-                raise e.__cause__
+                raise e.__cause__ from None
             raise e

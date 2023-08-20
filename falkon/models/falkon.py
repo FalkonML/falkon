@@ -6,7 +6,7 @@ import torch
 
 import falkon
 from falkon.models.model_utils import FalkonBase
-from falkon.options import *
+from falkon.options import FalkonOptions
 from falkon.utils import TicToc
 from falkon.utils.devices import get_device_info
 
@@ -214,7 +214,7 @@ class Falkon(FalkonBase):
             if self.use_cuda_:
                 ny_points = ny_points.pin_memory()
 
-            with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug):
+            with TicToc(f"Calcuating Preconditioner of size {num_centers}", debug=self.options.debug):
                 pc_opt: FalkonOptions = dataclasses.replace(self.options,
                                                             use_cpu=not _use_cuda_preconditioner)
                 if pc_opt.debug:

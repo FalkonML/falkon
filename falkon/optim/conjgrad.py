@@ -39,7 +39,7 @@ class StopOptimizationException(Exception):
         self.message = message
 
 
-class Optimizer(object):
+class Optimizer:
     """Base class for optimizers. This is an empty shell at the moment.
     """
     def __init__(self):

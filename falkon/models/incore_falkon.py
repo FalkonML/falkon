@@ -211,7 +211,10 @@ class InCoreFalkon(FalkonBase):
             num_centers = ny_points.shape[0]
 
             pc_stream = torch.cuda.Stream(X.device)
-            with TicToc("Calcuating Preconditioner of size %d" % (num_centers), debug=self.options.debug), torch.cuda.stream(pc_stream):
+            with (
+                    TicToc(f"Calcuating Preconditioner of size {num_centers}", debug=self.options.debug),
+                    torch.cuda.stream(pc_stream)
+            ):
                 precond = falkon.preconditioner.FalkonPreconditioner(
                     self.penalty, self.kernel, self.options)
                 self.precond = precond

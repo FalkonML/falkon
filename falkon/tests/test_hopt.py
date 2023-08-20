@@ -59,7 +59,7 @@ def test_exact_objectives(model_cls, kernel):
 
     from torch import autograd
     autograd.set_detect_anomaly(True)
-    for epoch in range(50):
+    for _ in range(50):
         # print(model.kernel.beta, model.kernel.gamma, model.kernel.degree)
         opt_hp.zero_grad()
         loss = model(X_train, Y_train)
@@ -67,7 +67,7 @@ def test_exact_objectives(model_cls, kernel):
         loss.backward()
         opt_hp.step()
     ts_err = torch.mean((model.predict(X_test) - Y_test)**2)
-    print("Model %s obtains %.4f error" % (model_cls, ts_err))
+    print(f"Model {model_cls} obtains {ts_err:.4f} error")
     # assert ts_err < 300
 
 
@@ -100,12 +100,12 @@ def test_stoch_objectives(kernel):
                                      flk_opt=flk_opt, flk_maxiter=100, num_trace_est=10)
     opt_hp = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    for epoch in range(100):
+    for _ in range(100):
         opt_hp.zero_grad()
         loss = model(X_train, Y_train)
         loss.backward()
         print("Loss", loss.item())
         opt_hp.step()
     ts_err = torch.mean((model.predict(X_test) - Y_test)**2)
-    print("Model %s obtains %.4f error" % (model.__class__, ts_err))
+    print(f"Model {model.__class__} obtains {ts_err:.4f} error")
     # assert ts_err < 300

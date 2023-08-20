@@ -144,7 +144,7 @@ class TestFalkonConjugateGradient:
         vec_rhs = move_tensor(vec_rhs, device)
 
         sol = None
-        for i in range(30):
+        for _ in range(30):
             sol = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty,
                             initial_solution=sol, max_iter=6)
             print()
