@@ -3,7 +3,7 @@ import torch
 
 import falkon.kernels
 from falkon import FalkonOptions
-from falkon.hopt.objectives import SGPR, CompReg, GCV, HoldOut, LOOCV, NystromCompReg, StochasticNystromCompReg
+from falkon.hopt.objectives import GCV, LOOCV, SGPR, CompReg, HoldOut, NystromCompReg, StochasticNystromCompReg
 from falkon.kernels import GaussianKernel, PolynomialKernel
 
 n, d = 1000, 10

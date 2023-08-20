@@ -6,19 +6,18 @@ from typing import List
 import numpy as np
 import torch
 
-from falkon.utils.stream_utils import sync_current_stream
-from falkon.utils.helpers import sizeof_dtype
-from falkon.utils.tensor_helpers import create_fortran, extract_same_stride, extract_fortran
-from falkon.utils.device_copy import copy
 from falkon.c_ext import (
-    lauum_cuda,
+    cublas_2d_copy_to_host_async,
+    cublas_gemm,
     cublas_syrk,
     cublas_trmm,
-    cublas_gemm,
     cuda_2d_copy_async,
-    cublas_2d_copy_to_host_async,
+    lauum_cuda,
 )
-
+from falkon.utils.device_copy import copy
+from falkon.utils.helpers import sizeof_dtype
+from falkon.utils.stream_utils import sync_current_stream
+from falkon.utils.tensor_helpers import create_fortran, extract_fortran, extract_same_stride
 
 __all__ = ("par_lauum_c_lower", "par_lauum_f_lower", "BlockAlloc")
 

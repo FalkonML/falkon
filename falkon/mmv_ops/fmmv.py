@@ -1,7 +1,7 @@
 from collections import defaultdict
 from contextlib import ExitStack
 from dataclasses import dataclass
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -10,28 +10,20 @@ import torch.cuda.comm
 
 import falkon
 from falkon.mmv_ops.utils import (
-    _dev_from_id,
-    _is_incore,
-    _extract_flat,
     _call_direct,
-    _get_gpu_info,
-    _start_wait_processes,
     _check_contiguity,
+    _dev_from_id,
+    _extract_flat,
+    _get_gpu_info,
+    _is_incore,
+    _start_wait_processes,
     create_output_mat,
 )
 from falkon.options import BaseOptions
 from falkon.sparse import SparseTensor
 from falkon.utils.device_copy import copy
-from falkon.utils.helpers import (
-    calc_gpu_block_sizes,
-    sizeof_dtype,
-    select_dim_over_nm_v2,
-    select_dim_over_n,
-)
-from falkon.utils.tensor_helpers import (
-    create_same_stride,
-    extract_fortran,
-)
+from falkon.utils.helpers import calc_gpu_block_sizes, select_dim_over_n, select_dim_over_nm_v2, sizeof_dtype
+from falkon.utils.tensor_helpers import create_same_stride, extract_fortran
 
 
 @dataclass(frozen=True)

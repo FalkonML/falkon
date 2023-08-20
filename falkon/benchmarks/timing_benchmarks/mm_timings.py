@@ -1,10 +1,10 @@
 import time
 
+import kernels
 import numpy as np
 import torch
 
 import falkon
-import kernels
 
 
 def gen_random(a, b, dtype, F=False, seed=0):

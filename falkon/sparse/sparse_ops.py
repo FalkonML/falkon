@@ -2,11 +2,11 @@ import warnings
 from typing import Optional
 
 import torch
-from falkon.c_ext import sparse_row_norm_sq, sparse_row_norm, sparse_bdot
-from falkon.utils.tensor_helpers import is_f_contig
 
+from falkon.c_ext import sparse_bdot, sparse_row_norm, sparse_row_norm_sq
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.helpers import check_same_dtype
+from falkon.utils.tensor_helpers import is_f_contig
 
 __all__ = ("sparse_matmul", "sparse_square_norm", "sparse_norm", "bdot")
 
@@ -72,7 +72,7 @@ def _sparse_matmul_cuda(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
     sparse*sparse->sparse multiplication and conversion of the output
     sparse matrix to a dense matrix.
     """
-    from falkon.c_ext import spspmm, csr2dense
+    from falkon.c_ext import csr2dense, spspmm
 
     if not A.is_csr:
         raise ValueError("A must be CSR matrix")

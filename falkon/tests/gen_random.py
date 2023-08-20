@@ -2,8 +2,8 @@ import numpy as np
 import scipy.sparse
 import torch
 
-from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.c_ext import copy_triang
+from falkon.sparse.sparse_tensor import SparseTensor
 
 
 def gen_random_multi(*sizes, dtype, F=False, seed=0):

@@ -16,11 +16,11 @@ import time
 import numpy as np
 import torch
 
-from falkon.benchmarks.common.benchmark_utils import DataType, Dataset
-from falkon.benchmarks.common.datasets import get_load_fn
-from falkon.benchmarks.common.error_metrics import get_err_fns
 import falkon
 from falkon import kernels
+from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
+from falkon.benchmarks.common.datasets import get_load_fn
+from falkon.benchmarks.common.error_metrics import get_err_fns
 
 RANDOM_SEED = 95
 

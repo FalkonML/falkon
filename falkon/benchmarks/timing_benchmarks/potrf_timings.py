@@ -1,12 +1,11 @@
 import functools
-
-import time
 import json
-from typing import List, Dict, Any
+import time
+from typing import Any, Dict, List
 
-import torch
 import numpy as np
-from scipy.linalg.lapack import spotrf, dpotrf
+import torch
+from scipy.linalg.lapack import dpotrf, spotrf
 
 import falkon
 from falkon.ooc_ops.ooc_potrf import gpu_cholesky

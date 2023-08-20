@@ -1,11 +1,11 @@
-import pytest
 import numpy as np
+import pytest
 import torch
 
 from falkon import FalkonOptions
-from falkon.utils import decide_cuda
 from falkon.tests.conftest import fix_mat, memory_checker
 from falkon.tests.gen_random import gen_random
+from falkon.utils import decide_cuda
 from falkon.utils.device_copy import copy
 
 n = 10_000

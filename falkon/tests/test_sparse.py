@@ -1,13 +1,12 @@
+import numpy as np
 import pytest
 import scipy.sparse
-
 import torch
-import numpy as np
-from falkon.utils.tensor_helpers import create_fortran
 
-from falkon.sparse import sparse_norm, sparse_square_norm, sparse_matmul, bdot
-from falkon.utils import decide_cuda
+from falkon.sparse import bdot, sparse_matmul, sparse_norm, sparse_square_norm
 from falkon.sparse.sparse_tensor import SparseTensor
+from falkon.utils import decide_cuda
+from falkon.utils.tensor_helpers import create_fortran
 
 
 @pytest.fixture(scope="module")

@@ -1,5 +1,5 @@
 import dataclasses
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 
 import torch

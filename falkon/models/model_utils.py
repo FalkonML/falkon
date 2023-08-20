@@ -1,19 +1,18 @@
 import warnings
-from abc import abstractmethod, ABC
-from typing import Union, Optional, Tuple
+from abc import ABC, abstractmethod
+from typing import Optional, Tuple, Union
 
-from sklearn import base
 import numpy as np
 import torch
+from sklearn import base
 
 import falkon
 from falkon import FalkonOptions
-from falkon.utils.tensor_helpers import is_f_contig
-from falkon.utils.helpers import check_same_dtype, sizeof_dtype
-from falkon.utils import decide_cuda, devices
 from falkon.kernels.keops_helpers import should_use_keops
 from falkon.sparse import SparseTensor
-from falkon.utils import check_random_generator
+from falkon.utils import check_random_generator, decide_cuda, devices
+from falkon.utils.helpers import check_same_dtype, sizeof_dtype
+from falkon.utils.tensor_helpers import is_f_contig
 
 _tensor_type = Union[torch.Tensor, SparseTensor]
 

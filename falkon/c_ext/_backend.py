@@ -6,12 +6,12 @@ Copyright (c) 2023 Giacomo Meanti
 """
 
 import glob
+import importlib.machinery
 import json
 import os
 import os.path as osp
 import shutil
 import warnings
-import importlib.machinery
 from subprocess import DEVNULL, call
 
 import torch.cuda

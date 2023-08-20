@@ -6,7 +6,7 @@ import torch
 import falkon.preconditioner.pc_utils
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.tests.gen_random import gen_random
-from falkon.utils.helpers import check_same_dtype, sizeof_dtype, check_sparse
+from falkon.utils.helpers import check_same_dtype, check_sparse, sizeof_dtype
 
 
 @pytest.mark.parametrize("F", [True, False], ids=["col-contig", "row-contig"])

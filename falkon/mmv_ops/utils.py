@@ -1,14 +1,14 @@
 import dataclasses
-from typing import Tuple, Optional, List, Any, Sequence
+from typing import Any, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 
 from falkon.options import BaseOptions
-from falkon.utils import devices, PropagatingThread
+from falkon.utils import PropagatingThread, devices
 from falkon.utils.devices import DeviceInfo
 from falkon.utils.fake_queue import FakeQueue
-from falkon.utils.tensor_helpers import is_contig, extract_same_stride, create_fortran, create_C, create_same_stride
+from falkon.utils.tensor_helpers import create_C, create_fortran, create_same_stride, extract_same_stride, is_contig
 
 __all__ = (
     "_setup_opt",

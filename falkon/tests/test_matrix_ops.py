@@ -6,8 +6,8 @@ import pytest
 import scipy
 import torch
 
-from falkon.la_helpers import copy_triang, potrf, mul_triang, vec_mul_triang, zero_triang, trsm, square_norm
 from falkon.c_ext import copy_transpose
+from falkon.la_helpers import copy_triang, mul_triang, potrf, square_norm, trsm, vec_mul_triang, zero_triang
 from falkon.tests.conftest import fix_mat
 from falkon.tests.gen_random import gen_random, gen_random_pd
 from falkon.utils import decide_cuda

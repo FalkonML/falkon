@@ -1,23 +1,18 @@
-from typing import Union, Optional
+from typing import Optional, Union
 
 import numpy as np
 import scipy.linalg.blas as sclb
 import torch
 
+from falkon.la_helpers import copy_triang, mul_triang, trsm, vec_mul_triang
 from falkon.options import FalkonOptions
 from falkon.sparse.sparse_tensor import SparseTensor
-from falkon.la_helpers import copy_triang, vec_mul_triang, mul_triang, trsm
-from falkon.utils.helpers import choose_fn
-from .preconditioner import Preconditioner
-from .pc_utils import (
-    inplace_add_diag_th,
-    inplace_set_diag_th,
-    potrf_wrapper,
-    lauum_wrapper,
-    check_init,
-)
 from falkon.utils import TicToc, decide_cuda
-from falkon.utils.tensor_helpers import create_same_stride, is_f_contig, create_fortran
+from falkon.utils.helpers import choose_fn
+from falkon.utils.tensor_helpers import create_fortran, create_same_stride, is_f_contig
+
+from .pc_utils import check_init, inplace_add_diag_th, inplace_set_diag_th, lauum_wrapper, potrf_wrapper
+from .preconditioner import Preconditioner
 
 
 class LogisticPreconditioner(Preconditioner):

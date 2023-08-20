@@ -1,6 +1,6 @@
 import ctypes
-from ctypes.util import find_library
 from collections.abc import Callable
+from ctypes.util import find_library
 from typing import Union
 
 import numpy as np

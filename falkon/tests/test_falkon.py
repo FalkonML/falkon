@@ -9,9 +9,9 @@ import pytest
 import torch
 from sklearn import datasets
 
-from falkon.models.incore_falkon import InCoreFalkon
-from falkon.center_selection import FixedSelector
 from falkon import Falkon, kernels
+from falkon.center_selection import FixedSelector
+from falkon.models.incore_falkon import InCoreFalkon
 from falkon.options import FalkonOptions
 from falkon.utils import decide_cuda
 

@@ -1,7 +1,7 @@
 import functools
 import time
 from contextlib import ExitStack
-from typing import Optional, Callable, List
+from typing import Callable, List, Optional
 
 import torch
 
@@ -10,7 +10,6 @@ from falkon.mmv_ops.fmmv_incore import incore_fdmmv, incore_fmmv
 from falkon.options import ConjugateGradientOptions, FalkonOptions
 from falkon.utils import TicToc
 from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
-
 
 # More readable 'pseudocode' for conjugate gradient.
 # function [x] = conjgrad(A, b, x)

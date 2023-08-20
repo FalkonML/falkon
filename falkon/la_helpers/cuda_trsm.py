@@ -2,9 +2,9 @@ from typing import Optional
 
 import torch
 
-from falkon.utils.helpers import check_same_device
 from falkon.c_ext import copy_transpose, cublas_trsm
-from falkon.utils.tensor_helpers import is_f_contig, create_fortran, create_C
+from falkon.utils.helpers import check_same_device
+from falkon.utils.tensor_helpers import create_C, create_fortran, is_f_contig
 
 
 def cuda_trsm(

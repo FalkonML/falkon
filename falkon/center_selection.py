@@ -1,12 +1,12 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import Union, Tuple, Optional
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import torch
-from falkon.utils import check_random_generator
 
 from falkon.sparse import SparseTensor
+from falkon.utils import check_random_generator
 from falkon.utils.tensor_helpers import create_same_stride
 
 __all__ = ("CenterSelector", "FixedSelector", "UniformSelector")

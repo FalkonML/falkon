@@ -4,14 +4,14 @@ import numpy as np
 import pytest
 import torch
 
-from falkon.utils.tensor_helpers import move_tensor, create_same_stride
-from falkon.utils import decide_cuda
 from falkon.center_selection import UniformSelector
 from falkon.kernels import GaussianKernel
 from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
 from falkon.options import FalkonOptions
 from falkon.preconditioner import FalkonPreconditioner
 from falkon.tests.gen_random import gen_random, gen_random_pd
+from falkon.utils import decide_cuda
+from falkon.utils.tensor_helpers import create_same_stride, move_tensor
 
 
 @pytest.mark.full

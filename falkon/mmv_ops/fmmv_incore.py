@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 
 from falkon.options import FalkonOptions
-from falkon.utils.helpers import check_same_dtype, check_same_device
+from falkon.utils.helpers import check_same_device, check_same_dtype
 from falkon.utils.tensor_helpers import create_same_stride
 
 __all__ = (

@@ -6,11 +6,11 @@ import pytest
 import torch
 import torch.cuda as tcd
 
-from falkon.utils.tensor_helpers import move_tensor
 from falkon.options import FalkonOptions
+from falkon.sparse import SparseTensor
 from falkon.utils import decide_cuda
 from falkon.utils.devices import _cpu_used_mem
-from falkon.sparse import SparseTensor
+from falkon.utils.tensor_helpers import move_tensor
 
 if decide_cuda():
 

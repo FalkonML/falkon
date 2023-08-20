@@ -1,7 +1,7 @@
-import timeit
-import json
 import argparse
-from typing import List, Dict, Any
+import json
+import timeit
+from typing import Any, Dict, List
 
 import torch
 

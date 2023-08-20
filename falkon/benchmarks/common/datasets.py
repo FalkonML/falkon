@@ -1,6 +1,6 @@
 import os
-from abc import abstractmethod, ABC
-from typing import Union, Tuple
+from abc import ABC, abstractmethod
+from typing import Tuple, Union
 
 import h5py
 import numpy as np
@@ -469,8 +469,9 @@ class YelpDataset(RandomSplitDataset):
         return Ytr, Yts, {}
 
     def to_torch(self, Xtr, Ytr, Xts, Yts, **kwargs):
-        from falkon.sparse.sparse_tensor import SparseTensor
         import torch
+
+        from falkon.sparse.sparse_tensor import SparseTensor
 
         return (
             SparseTensor.from_scipy(Xtr),

@@ -1,5 +1,5 @@
+from .sparse_ops import bdot, sparse_matmul, sparse_norm, sparse_square_norm
 from .sparse_tensor import SparseTensor, SparseType
-from .sparse_ops import sparse_norm, sparse_square_norm, sparse_matmul, bdot
 
 __all__ = (
     "SparseTensor",

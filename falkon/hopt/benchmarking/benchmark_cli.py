@@ -5,21 +5,21 @@ import os
 import pickle
 import warnings
 from functools import partial
-from typing import Any, List, Optional, Union, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import torch
+from kernels import GaussianKernel
 
-from falkon.center_selection import UniformSelector
 from falkon.benchmarks.common.benchmark_utils import Dataset
 from falkon.benchmarks.common.datasets import get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
+from falkon.center_selection import UniformSelector
 from falkon.hopt.optimization.gd_train import train_complexity_reg, train_complexity_reg_mb
-from falkon.hopt.optimization.models import init_model
 from falkon.hopt.optimization.grid_search import HPGridPoint, run_on_grid
+from falkon.hopt.optimization.models import init_model
 from falkon.hopt.optimization.reporting import get_writer
-from kernels import GaussianKernel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 AUTO_PEN_MULTIPLIER = 1

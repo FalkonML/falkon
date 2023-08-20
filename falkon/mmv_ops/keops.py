@@ -2,15 +2,15 @@ import warnings
 from dataclasses import dataclass
 from typing import List, Optional
 
-import torch
 import keopscore
+import torch
 from pykeops.torch import Genred
 
-from falkon.utils.stream_utils import sync_current_stream
-from falkon.mmv_ops.utils import _get_gpu_info, create_output_mat, _start_wait_processes
-from falkon.options import FalkonOptions, BaseOptions
+from falkon.mmv_ops.utils import _get_gpu_info, _start_wait_processes, create_output_mat
+from falkon.options import BaseOptions, FalkonOptions
 from falkon.utils import decide_cuda
-from falkon.utils.helpers import sizeof_dtype, calc_gpu_block_sizes
+from falkon.utils.helpers import calc_gpu_block_sizes, sizeof_dtype
+from falkon.utils.stream_utils import sync_current_stream
 
 
 @dataclass(frozen=True)

@@ -1,14 +1,14 @@
 import time
-from typing import Union, Optional, Callable, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 
 import falkon
 from falkon import FalkonOptions
 from falkon.models.model_utils import FalkonBase
-from falkon.utils.helpers import check_same_device
 from falkon.utils import TicToc
 from falkon.utils.devices import get_device_info
+from falkon.utils.helpers import check_same_device
 
 __all__ = ("InCoreFalkon",)
 

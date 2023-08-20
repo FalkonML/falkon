@@ -1,10 +1,10 @@
 import time
 
+import gpytorch
 import numpy as np
 import torch
-import gpytorch
 from gpytorch.models import ApproximateGP
-from gpytorch.variational import VariationalStrategy, UnwhitenedVariationalStrategy
+from gpytorch.variational import UnwhitenedVariationalStrategy, VariationalStrategy
 
 __all__ = ("get_rbf_kernel", "RegressionVGP", "TwoClassVGP", "MultiClassVGP")
 

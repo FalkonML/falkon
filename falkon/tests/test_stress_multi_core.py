@@ -4,16 +4,14 @@ import random
 import tempfile
 import threading
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
-from falkon.ooc_ops import gpu_lauum
-
-from falkon.center_selection import FixedSelector
-
-from falkon import kernels, FalkonOptions, InCoreFalkon
 from sklearn import datasets
 
+from falkon import FalkonOptions, InCoreFalkon, kernels
+from falkon.center_selection import FixedSelector
+from falkon.ooc_ops import gpu_lauum
 from falkon.utils import decide_cuda
 
 

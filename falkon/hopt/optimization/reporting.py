@@ -1,12 +1,12 @@
 import dataclasses
-from typing import Optional, Dict, Iterator, Sequence
 import os
+from typing import Dict, Iterator, Optional, Sequence
 
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from falkon import FalkonOptions, InCoreFalkon, Falkon
+from falkon import Falkon, FalkonOptions, InCoreFalkon
 from falkon.hopt.objectives.objectives import HyperoptObjective
 from falkon.hopt.utils import get_scalar
 
@@ -83,8 +83,8 @@ def pred_reporting(
 
     if resolve_model:
         flk_opt = FalkonOptions(use_cpu=not torch.cuda.is_available(), cg_tolerance=1e-4, cg_epsilon_32=1e-6)
-        from falkon.kernels import GaussianKernel
         from falkon.center_selection import FixedSelector
+        from falkon.kernels import GaussianKernel
 
         kernel = GaussianKernel(sigma.detach().flatten(), flk_opt)
         center_selector = FixedSelector(centers.detach())

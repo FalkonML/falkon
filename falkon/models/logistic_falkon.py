@@ -1,5 +1,5 @@
 import time
-from typing import Union, Optional, List, Callable, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
 import torch
 

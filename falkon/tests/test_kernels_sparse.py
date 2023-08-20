@@ -4,25 +4,20 @@ import numpy as np
 import pytest
 import torch
 
-from falkon.kernels import (
-    LaplacianKernel,
-    GaussianKernel,
-    PolynomialKernel,
-    MaternKernel,
-)
+from falkon.kernels import GaussianKernel, LaplacianKernel, MaternKernel, PolynomialKernel
+from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 from falkon.options import FalkonOptions
-from falkon.tests.conftest import memory_checker, fix_mats
+from falkon.tests.conftest import fix_mats, memory_checker
 from falkon.tests.gen_random import gen_random, gen_sparse_matrix
 from falkon.tests.naive_kernels import (
-    naive_diff_polynomial_kernel,
-    naive_diff_matern_kernel,
     naive_diff_gaussian_kernel,
     naive_diff_laplacian_kernel,
+    naive_diff_matern_kernel,
+    naive_diff_polynomial_kernel,
 )
 from falkon.utils import decide_cuda
-from falkon.utils.switches import decide_keops
 from falkon.utils.helpers import sizeof_dtype
-from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
+from falkon.utils.switches import decide_keops
 
 cuda_mark = pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 keops_mark = pytest.mark.skipif(not decide_keops(), reason="no KeOps found.")

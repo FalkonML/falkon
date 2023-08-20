@@ -8,16 +8,7 @@ import torch
 
 import falkon.kernels
 from falkon import FalkonOptions
-
-from falkon.hopt.objectives import (
-    SGPR,
-    GCV,
-    LOOCV,
-    HoldOut,
-    CompReg,
-    NystromCompReg,
-    StochasticNystromCompReg,
-)
+from falkon.hopt.objectives import GCV, LOOCV, SGPR, CompReg, HoldOut, NystromCompReg, StochasticNystromCompReg
 
 
 def init_model(

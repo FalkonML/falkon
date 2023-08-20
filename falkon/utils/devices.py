@@ -5,8 +5,9 @@ from typing import Dict
 import psutil
 import torch
 import torch.cuda as tcd
-from falkon.options import BaseOptions
+
 from falkon.c_ext import mem_get_info
+from falkon.options import BaseOptions
 
 from . import TicToc
 

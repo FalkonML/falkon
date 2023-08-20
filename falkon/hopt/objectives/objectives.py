@@ -2,10 +2,10 @@ import abc
 from typing import Optional
 
 import torch
+from torch.distributions.transforms import identity_transform
 
 import falkon.kernels
 from falkon.hopt.objectives.transforms import PositiveTransform
-from torch.distributions.transforms import identity_transform
 
 
 class HyperoptObjective(torch.nn.Module):

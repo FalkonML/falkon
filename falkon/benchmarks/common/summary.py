@@ -2,7 +2,6 @@ import os
 
 from torch.utils.tensorboard import SummaryWriter
 
-
 __all__ = ("get_writer",)
 
 LOG_DIR = "./logs/tensorboard"

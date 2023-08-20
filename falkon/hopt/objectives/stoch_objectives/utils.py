@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, Optional
+from typing import Optional, Sequence, Tuple
 
 import torch
 

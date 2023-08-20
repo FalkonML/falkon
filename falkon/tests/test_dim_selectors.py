@@ -1,6 +1,6 @@
 import pytest
 
-from falkon.utils.helpers import select_dim_over_nm_v2, select_dim_over_nm, select_dim_over_nd
+from falkon.utils.helpers import select_dim_over_nd, select_dim_over_nm, select_dim_over_nm_v2
 
 
 def do_check(created, available, d0, max_d0, d1, max_d1):

@@ -1,9 +1,9 @@
 import os
 
 # Library exports
-from . import kernels, sparse, center_selection, preconditioner, optim, gsc_losses, hopt
+from . import center_selection, gsc_losses, hopt, kernels, optim, preconditioner, sparse
+from .models import Falkon, InCoreFalkon, LogisticFalkon
 from .options import FalkonOptions
-from .models import Falkon, LogisticFalkon, InCoreFalkon
 
 # Set __version__ attribute on the package
 init_dir = os.path.dirname(os.path.abspath(__file__))

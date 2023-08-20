@@ -4,12 +4,13 @@ from collections import defaultdict
 import torch
 
 from falkon import la_helpers
-from falkon.options import FalkonOptions, CholeskyOptions
+from falkon.c_ext import cusolver_potrf, cusolver_potrf_buffer_size, parallel_potrf
+from falkon.options import CholeskyOptions, FalkonOptions
+from falkon.utils.device_copy import copy
 from falkon.utils.devices import DeviceInfo, get_device_info
 from falkon.utils.helpers import sizeof_dtype
-from falkon.utils.tensor_helpers import is_f_contig, copy_same_stride, create_fortran
-from falkon.utils.device_copy import copy
-from falkon.c_ext import parallel_potrf, cusolver_potrf_buffer_size, cusolver_potrf
+from falkon.utils.tensor_helpers import copy_same_stride, create_fortran, is_f_contig
+
 from .ooc_utils import calc_block_sizes
 
 __all__ = ("gpu_cholesky",)

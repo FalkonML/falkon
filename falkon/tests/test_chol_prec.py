@@ -4,15 +4,14 @@ import unittest
 import numpy as np
 import pytest
 import torch
-from falkon.utils.tensor_helpers import move_tensor
-
-from falkon.options import FalkonOptions
 
 from falkon.kernels import GaussianKernel
+from falkon.options import FalkonOptions
 from falkon.preconditioner import FalkonPreconditioner
 from falkon.tests.conftest import fix_mat
 from falkon.tests.gen_random import gen_random
 from falkon.utils import decide_cuda
+from falkon.utils.tensor_helpers import move_tensor
 
 
 def assert_invariant_on_TT(prec, kMM, tol=1e-8):

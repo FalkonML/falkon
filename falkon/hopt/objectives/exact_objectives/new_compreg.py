@@ -1,8 +1,8 @@
-from typing import Optional, Dict
+from typing import Dict, Optional
 
-import falkon
 import torch
 
+import falkon
 from falkon.hopt.objectives.exact_objectives.utils import jittering_cholesky
 from falkon.hopt.objectives.objectives import HyperoptObjective
 from falkon.hopt.utils import get_scalar

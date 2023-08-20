@@ -1,12 +1,11 @@
 import math
-from typing import Optional, Union, List, Type
+from typing import List, Optional, Type, Union
 
 import numpy as np
 import torch
 import torch.multiprocessing
 
 from falkon.sparse.sparse_tensor import SparseTensor
-
 
 __all__ = (
     "select_dim_over_n",

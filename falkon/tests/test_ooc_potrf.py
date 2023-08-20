@@ -5,13 +5,13 @@ import pytest
 import scipy.linalg.lapack as scll
 import torch
 
+from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
+from falkon.options import FalkonOptions
 from falkon.tests.conftest import memory_checker
 from falkon.tests.gen_random import gen_random_pd
 from falkon.utils import decide_cuda
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import move_tensor
-from falkon.options import FalkonOptions
-from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 
 if decide_cuda():
     from falkon.ooc_ops.ooc_potrf import gpu_cholesky

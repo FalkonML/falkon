@@ -1,17 +1,17 @@
 from contextlib import ExitStack
 from dataclasses import dataclass
-from typing import Union, Optional
+from typing import Optional, Union
 
 import torch
 import torch.cuda as tcd
 
 import falkon
-from falkon.mmv_ops.utils import _extract_flat, _call_direct, _get_gpu_info, _start_wait_processes, _check_contiguity
+from falkon.mmv_ops.utils import _call_direct, _check_contiguity, _extract_flat, _get_gpu_info, _start_wait_processes
 from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.device_copy import copy
-from falkon.utils.helpers import sizeof_dtype, select_dim_over_nm, calc_gpu_block_sizes
-from falkon.utils.tensor_helpers import create_same_stride, create_fortran
+from falkon.utils.helpers import calc_gpu_block_sizes, select_dim_over_nm, sizeof_dtype
+from falkon.utils.tensor_helpers import create_fortran, create_same_stride
 
 
 @dataclass(frozen=True)

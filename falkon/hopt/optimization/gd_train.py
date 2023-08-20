@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from falkon.hopt.objectives.objectives import HyperoptObjective
-from falkon.hopt.optimization.reporting import pred_reporting, EarlyStop, epoch_bookkeeping
+from falkon.hopt.optimization.reporting import EarlyStop, epoch_bookkeeping, pred_reporting
 
 __all__ = [
     "train_complexity_reg",

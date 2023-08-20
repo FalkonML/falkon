@@ -1,6 +1,6 @@
 import dataclasses
 import time
-from typing import Union, Optional, Callable, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 

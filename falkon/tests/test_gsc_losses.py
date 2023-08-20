@@ -1,12 +1,9 @@
-import pytest
 import numpy as np
+import pytest
 import torch
 
 from falkon import kernels
-from falkon.gsc_losses import (
-    LogisticLoss,
-    WeightedCrossEntropyLoss,
-)
+from falkon.gsc_losses import LogisticLoss, WeightedCrossEntropyLoss
 
 
 def naive_logistic_loss(true, pred):

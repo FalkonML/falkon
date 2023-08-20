@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Dict
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -7,7 +7,7 @@ import falkon
 from falkon import FalkonOptions
 from falkon.hopt.objectives.exact_objectives.utils import cholesky
 from falkon.hopt.objectives.objectives import HyperoptObjective
-from falkon.hopt.objectives.stoch_objectives.utils import init_random_vecs, calc_grads_tensors
+from falkon.hopt.objectives.stoch_objectives.utils import calc_grads_tensors, init_random_vecs
 from falkon.hopt.utils import get_scalar
 from falkon.la_helpers import trsm
 from falkon.optim import FalkonConjugateGradient

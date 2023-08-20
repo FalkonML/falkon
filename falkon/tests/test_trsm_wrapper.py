@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 from scipy.linalg import blas as sclb
 
 from falkon.la_helpers import trsm

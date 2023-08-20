@@ -1,13 +1,12 @@
 import time
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
 import torch
 
 from falkon.hopt.objectives.objectives import HyperoptObjective
 from falkon.hopt.optimization.reporting import pred_reporting, report_losses
 from falkon.hopt.utils import get_scalar
-
 
 # TODO: THIS IS BROKEN (due to attempting to change the parameters of a nn.Module)
 

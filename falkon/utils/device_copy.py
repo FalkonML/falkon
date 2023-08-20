@@ -1,18 +1,18 @@
 import torch.cuda
 
 from .helpers import sizeof_dtype
-from .tensor_helpers import is_f_contig, is_contig, is_contig_vec
+from .tensor_helpers import is_contig, is_contig_vec, is_f_contig
 
 if torch.cuda.is_available():
     from falkon.c_ext import (
-        cublas_2d_copy_to_dev_async,
         cublas_2d_copy_to_dev,
-        cublas_2d_copy_to_host_async,
+        cublas_2d_copy_to_dev_async,
         cublas_2d_copy_to_host,
-        cuda_2d_copy_async,
-        cuda_2d_copy,
-        cuda_1d_copy_async,
+        cublas_2d_copy_to_host_async,
         cuda_1d_copy,
+        cuda_1d_copy_async,
+        cuda_2d_copy,
+        cuda_2d_copy_async,
     )
 
 

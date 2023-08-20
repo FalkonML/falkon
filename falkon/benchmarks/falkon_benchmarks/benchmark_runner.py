@@ -2,12 +2,12 @@ import argparse
 import functools
 import sys
 import time
-from typing import Optional, List
+from typing import List, Optional
 
 import numpy as np
 
-from falkon.benchmarks.common.benchmark_utils import Dataset, Algorithm, DataType, VariationalDistribution
-from falkon.benchmarks.common.datasets import get_load_fn, get_cv_fn
+from falkon.benchmarks.common.benchmark_utils import Algorithm, Dataset, DataType, VariationalDistribution
+from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns, get_tf_err_fn
 
 RANDOM_SEED = 123
@@ -44,9 +44,9 @@ def run_epro(
     seed: int,
 ):
     sys.path.append(EPRO_DIRECTORY)
+    import kernels
     import tensorflow as tf
     from eigenpro import EigenPro
-    import kernels
 
     tf.set_random_seed(seed)
     np.random.seed(seed)
@@ -153,6 +153,7 @@ def run_gpytorch_sgpr(
     seed: int,
 ):
     import torch
+
     from falkon.benchmarks.models.gpytorch_sgpr import GpytorchSGPR
 
     torch.manual_seed(seed)
@@ -210,9 +211,10 @@ def run_gpytorch(
     seed: int,
     ind_pt_file: Optional[str] = None,
 ):
-    import torch
     import gpytorch
-    from falkon.benchmarks.models.gpytorch_variational_models import TwoClassVGP, RegressionVGP, MultiClassVGP
+    import torch
+
+    from falkon.benchmarks.models.gpytorch_variational_models import MultiClassVGP, RegressionVGP, TwoClassVGP
 
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -323,6 +325,7 @@ def run_falkon(
     seed: int,
 ):
     import torch
+
     from falkon import kernels
     from falkon.models import falkon
     from falkon.utils import TicToc
@@ -409,10 +412,11 @@ def run_logistic_falkon(
     seed: int,
 ):
     import torch
+
     import falkon
     from falkon import kernels
-    from falkon.models import logistic_falkon
     from falkon.gsc_losses import LogisticLoss
+    from falkon.models import logistic_falkon
     from falkon.utils import TicToc
 
     torch.manual_seed(seed)
@@ -473,8 +477,9 @@ def run_sgpr_gpflow(
     kernel_variance: float,
     seed: int,
 ):
-    import tensorflow as tf
     import gpflow
+    import tensorflow as tf
+
     from falkon.benchmarks.models.gpflow_model import TrainableSGPR
 
     tf.random.set_seed(seed)
@@ -538,8 +543,9 @@ def run_gpflow(
     seed: int,
     ind_pt_file: Optional[str] = None,
 ):
-    import tensorflow as tf
     import gpflow
+    import tensorflow as tf
+
     from falkon.benchmarks.models.gpflow_model import TrainableSVGP
 
     tf.random.set_seed(seed)

@@ -1,12 +1,13 @@
 import time
-import pandas as pd
 from functools import partial
-import numpy as np
+
 import gpflow
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from gpflow import set_trainable
 from gpflow.models import SVGP
 from gpflow.optimizers import NaturalGradient
-from gpflow import set_trainable
-import tensorflow as tf
 
 
 @tf.function(autograph=False)

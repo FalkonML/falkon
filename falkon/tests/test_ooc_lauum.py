@@ -5,16 +5,16 @@ import pytest
 import scipy.linalg.lapack as scll
 import torch
 
+from falkon.ooc_ops.ooc_utils import calc_block_sizes3
 from falkon.options import FalkonOptions
-from falkon.tests.conftest import memory_checker, fix_mat
+from falkon.tests.conftest import fix_mat, memory_checker
 from falkon.utils import decide_cuda
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import move_tensor
-from falkon.ooc_ops.ooc_utils import calc_block_sizes3
 
 if decide_cuda():
-    from falkon.ooc_ops.ooc_lauum import gpu_lauum
     from falkon.c_ext import lauum_cuda
+    from falkon.ooc_ops.ooc_lauum import gpu_lauum
 
 
 class TestBlockSizeCalculator:

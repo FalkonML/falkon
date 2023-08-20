@@ -1,5 +1,5 @@
 import warnings
-from typing import Union, Tuple, Any, Generator
+from typing import Any, Generator, Tuple, Union
 
 import numpy as np
 import torch
