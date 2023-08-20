@@ -1,6 +1,10 @@
 name: Building Wheels
 
-on: [workflow_dispatch]
+on:
+  - workflow_dispatch
+  - release:
+    types: [created]
+    branches: [master]
 
 jobs:
   wheel:

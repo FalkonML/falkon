@@ -16,13 +16,14 @@ from torch.utils.cpp_extension import (
     CUDAExtension,
 )
 
-if os.getenv('FORCE_ONLY_CPU', '0') == '1':
+if os.getenv("FORCE_ONLY_CPU", "0") == "1":
     WITH_CUDA = False
 elif CUDA_HOME is not None:
     WITH_CUDA = True
 else:
     WITH_CUDA = False
 WITH_SYMBOLS = os.getenv("WITH_SYMBOLS", "0") == "1"
+NO_BUILD_EXT = os.getenv("NO_BUILD_EXT", "0") == "1"  # Don't build the extension at all (for JIT compilation)
 
 
 def get_version(root_dir):
@@ -48,6 +49,12 @@ def torch_version_macros():
     return [('TORCH_VERSION_MAJOR', int_version[0]),
             ('TORCH_VERSION_MINOR', int_version[1]),
             ('TORCH_VERSION_PATCH', int_version[2])]
+
+
+def get_build_ext():
+    return BuildExtension.with_options(
+        no_python_abi_suffix=True
+    )
 
 
 def get_extensions():
@@ -178,12 +185,8 @@ setup(
         'doc': doc_requires
     },
     install_requires=install_requires,
-    ext_modules=get_extensions(),
-    cmdclass={
-        'build_ext': BuildExtension.with_options(
-            no_python_abi_suffix=True
-        )
-    },
+    ext_modules=get_extensions() if not NO_BUILD_EXT else [],
+    cmdclass={"build_ext": get_build_ext()} if not NO_BUILD_EXT else {},
     packages=find_packages(where="."),
     # Files in MANIFEST.in are included in sdist and in wheel only if include_package_data is True
     include_package_data=True,
