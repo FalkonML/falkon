@@ -1,3 +1,0 @@
-[flake8]
-exclude = __init__.py, ./doc/*
-ignore = E501, F403, F405, W503, W504

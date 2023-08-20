@@ -18,8 +18,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install flake8
+          pip install ruff
 
       - name: Run linting
         run: |
-          flake8 --count falkon
+          ruff check falkon

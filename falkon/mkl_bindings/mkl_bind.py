@@ -506,8 +506,11 @@ class Mkl:
                             size=(nrows, ncols),
                             sparse_type=output_type.lower())
 
-    def mkl_convert_csr(self, mkl_mat: sparse_matrix_t,
-            destroy_original=False) -> sparse_matrix_t:
+    def mkl_convert_csr(
+            self,
+            mkl_mat: sparse_matrix_t,
+            destroy_original=False
+    ) -> sparse_matrix_t:
         """Convert a MKL matrix from CSC format to CSR format.
 
         Parameters
