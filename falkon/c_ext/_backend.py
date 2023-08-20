@@ -20,9 +20,7 @@ from torch.utils.cpp_extension import _get_build_directory, load
 
 def _get_extension_path(lib_name):
     lib_dir = os.path.dirname(__file__)
-    loader_details = (
-        importlib.machinery.ExtensionFileLoader, importlib.machinery.EXTENSION_SUFFIXES
-    )
+    loader_details = (importlib.machinery.ExtensionFileLoader, importlib.machinery.EXTENSION_SUFFIXES)
 
     extfinder = importlib.machinery.FileFinder(lib_dir, loader_details)
     ext_specs = extfinder.find_spec(lib_name)
@@ -57,13 +55,14 @@ def cuda_toolkit_version():
 
 def torch_version():
     import torch
+
     version = torch.__version__
     split_version = version.split(".")
     # With torch 1.10.0 the version 'number' include CUDA version (e.g. '1.10.0+cu102').
     # Here we remove the CUDA version.
     for i in range(len(split_version)):
-        if '+' in split_version[i]:
-            split_version[i] = split_version[i].split('+')[0]
+        if "+" in split_version[i]:
+            split_version[i] = split_version[i].split("+")[0]
     return [int(v) for v in split_version]
 
 
@@ -85,54 +84,58 @@ try:
                 f_major, f_minor = int(str(flk_cuda_version)[0]), int(str(flk_cuda_version)[2])
             else:
                 f_major, f_minor = int(str(flk_cuda_version)[0:2]), int(str(flk_cuda_version)[3])
-            t_major, t_minor = (int(x) for x in torch.version.cuda.split('.'))
+            t_major, t_minor = (int(x) for x in torch.version.cuda.split("."))
 
             if t_major != f_major:
                 raise RuntimeError(
-                    f'PyTorch and Falkon were compiled with different CUDA versions. '
-                    f'PyTorch has CUDA version {t_major}.{t_minor} and Falkon has CUDA version '
-                    f'{f_major}.{f_minor}. Please reinstall Falkon such that its version matches '
-                    f'your PyTorch install.')
+                    f"PyTorch and Falkon were compiled with different CUDA versions. "
+                    f"PyTorch has CUDA version {t_major}.{t_minor} and Falkon has CUDA version "
+                    f"{f_major}.{f_minor}. Please reinstall Falkon such that its version matches "
+                    f"your PyTorch install."
+                )
 except ImportError:
     # if failed, try with JIT compilation
     ext_dir = os.path.dirname(os.path.abspath(__file__))
     pt_version = torch_version()
     sources = (
-        glob.glob(osp.join(ext_dir, 'ops', 'cpu', '*.cpp')) +
-        glob.glob(osp.join(ext_dir, 'ops', 'autograd', '*.cpp')) +
-        glob.glob(osp.join(ext_dir, 'ops', '*.cpp')) +
-        glob.glob(osp.join(ext_dir, '*.cpp'))
+        glob.glob(osp.join(ext_dir, "ops", "cpu", "*.cpp"))
+        + glob.glob(osp.join(ext_dir, "ops", "autograd", "*.cpp"))
+        + glob.glob(osp.join(ext_dir, "ops", "*.cpp"))
+        + glob.glob(osp.join(ext_dir, "*.cpp"))
     )
     extra_cflags = [
-        '-O3',
-        f'-DTORCH_VERSION_MAJOR={pt_version[0]}',
-        f'-DTORCH_VERSION_MINOR={pt_version[1]}',
-        f'-DTORCH_VERSION_PATCH={pt_version[2]}',
+        "-O3",
+        f"-DTORCH_VERSION_MAJOR={pt_version[0]}",
+        f"-DTORCH_VERSION_MINOR={pt_version[1]}",
+        f"-DTORCH_VERSION_PATCH={pt_version[2]}",
     ]
     extra_ldflags = []
     extra_include_paths = []
     extra_cuda_cflags = []
     if cuda_toolkit_available():
-        sources.extend(
-            glob.glob(osp.join(ext_dir, 'ops', 'cuda', '*.cu'))
-        )
-        extra_cflags += ['-DWITH_CUDA=1']
-        extra_cuda_cflags += ['--expt-relaxed-constexpr', '--extended-lambda']
+        sources.extend(glob.glob(osp.join(ext_dir, "ops", "cuda", "*.cu")))
+        extra_cflags += ["-DWITH_CUDA=1"]
+        extra_cuda_cflags += ["--expt-relaxed-constexpr", "--extended-lambda"]
         from torch.utils.cpp_extension import CUDA_HOME, TORCH_LIB_PATH
+
         extra_ldflags += [
-            '-L', os.path.join(CUDA_HOME, 'lib'),
-            '-L', TORCH_LIB_PATH,
-            '-Wl,-rpath', TORCH_LIB_PATH,
-            '-l', 'cusparse',
-            '-l', 'cublas',
-            '-l', 'cusolver',
+            "-L",
+            os.path.join(CUDA_HOME, "lib"),
+            "-L",
+            TORCH_LIB_PATH,
+            "-Wl,-rpath",
+            TORCH_LIB_PATH,
+            "-l",
+            "cusparse",
+            "-l",
+            "cublas",
+            "-l",
+            "cusolver",
         ]
         if torch.__version__ >= (1, 12):
-            extra_ldflags.extend(['-l', 'torch_cuda_linalg'])
+            extra_ldflags.extend(["-l", "torch_cuda_linalg"])
     else:
-        warnings.warn(
-            "No CUDA toolkit found. Falkon will only run on the CPU."
-        )
+        warnings.warn("No CUDA toolkit found. Falkon will only run on the CPU.")
 
     name = "falkon.c_ext._C"
     build_dir = _get_build_directory(name, verbose=False)

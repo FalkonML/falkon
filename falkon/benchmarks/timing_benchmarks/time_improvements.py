@@ -31,15 +31,18 @@ np.random.seed(RANDOM_SEED)
 def run(exp_num, dset, show_intermediate_errors: bool = False):
     opt = falkon.FalkonOptions(
         debug=True,
-        pc_epsilon_32=1e-6, pc_epsilon_64=1e-13,
+        pc_epsilon_32=1e-6,
+        pc_epsilon_64=1e-13,
         compute_arch_speed=False,
-        num_fmm_streams=2, no_single_kernel=False)
+        num_fmm_streams=2,
+        no_single_kernel=False,
+    )
     params = {
-        'seed': 12,
-        'kernel': kernels.GaussianKernel(3.8),
-        'penalty': 1e-7,
-        'M': 100_000,
-        'maxiter': 10,
+        "seed": 12,
+        "kernel": kernels.GaussianKernel(3.8),
+        "penalty": 1e-7,
+        "M": 100_000,
+        "maxiter": 10,
     }
     if exp_num == 1:
         opt = dataclasses.replace(opt, cpu_preconditioner=True, keops_active="no")
@@ -82,21 +85,14 @@ def run_single(dset, Xtr, Ytr, Xts, Yts, kwargs, intermediate_errors, opt, param
     err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
     error_every = 1 if intermediate_errors else None
 
-    flk = falkon.Falkon(
-        error_fn=err_fns[0],
-        error_every=error_every,
-        options=opt,
-        **params
-    )
+    flk = falkon.Falkon(error_fn=err_fns[0], error_every=error_every, options=opt, **params)
     flk.fit(Xtr, Ytr, Xts, Yts)
     return flk
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="FALKON Benchmark Runner")
-    p.add_argument('-i', '--exp-num', type=int, required=True,
-                   help='The experiment type, 1 to 5.')
-    p.add_argument('-d', '--dataset', type=Dataset, choices=list(Dataset), required=True,
-                   help='Dataset')
+    p.add_argument("-i", "--exp-num", type=int, required=True, help="The experiment type, 1 to 5.")
+    p.add_argument("-d", "--dataset", type=Dataset, choices=list(Dataset), required=True, help="Dataset")
     args = p.parse_args()
     run(args.exp_num, args.dataset, show_intermediate_errors=True)

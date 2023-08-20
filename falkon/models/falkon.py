@@ -113,18 +113,19 @@ class Falkon(FalkonBase):
 
     """
 
-    def __init__(self,
-                 kernel: falkon.kernels.Kernel,
-                 penalty: float,
-                 M: int,
-                 center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
-                 maxiter: int = 20,
-                 seed: Optional[int] = None,
-                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
-                 error_every: Optional[int] = 1,
-                 weight_fn: Optional[Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]] = None,
-                 options: Optional[FalkonOptions] = None,
-                 ):
+    def __init__(
+        self,
+        kernel: falkon.kernels.Kernel,
+        penalty: float,
+        M: int,
+        center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
+        maxiter: int = 20,
+        seed: Optional[int] = None,
+        error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
+        error_every: Optional[int] = 1,
+        weight_fn: Optional[Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]] = None,
+        options: Optional[FalkonOptions] = None,
+    ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
         self.maxiter = maxiter
@@ -132,12 +133,14 @@ class Falkon(FalkonBase):
         self._init_cuda()
         self.beta_ = None
 
-    def fit(self,
-            X: torch.Tensor,
-            Y: torch.Tensor,
-            Xts: Optional[torch.Tensor] = None,
-            Yts: Optional[torch.Tensor] = None,
-            warm_start: Optional[torch.Tensor] = None):
+    def fit(
+        self,
+        X: torch.Tensor,
+        Y: torch.Tensor,
+        Xts: Optional[torch.Tensor] = None,
+        Yts: Optional[torch.Tensor] = None,
+        warm_start: Optional[torch.Tensor] = None,
+    ):
         """Fits the Falkon KRR model.
 
         Parameters
@@ -202,24 +205,20 @@ class Falkon(FalkonBase):
 
             # Decide whether to use CUDA for preconditioning and iterations, based on number of centers
             _use_cuda_preconditioner = (
-                self.use_cuda_ and
-                (not self.options.cpu_preconditioner) and
-                num_centers >= get_min_cuda_preconditioner_size(dtype, self.options)
+                self.use_cuda_
+                and (not self.options.cpu_preconditioner)
+                and num_centers >= get_min_cuda_preconditioner_size(dtype, self.options)
             )
-            _use_cuda_mmv = (
-                self.use_cuda_ and
-                X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(dtype, self.options)
-            )
+            per_gpu_mmv_mem_usage = X.shape[0] * X.shape[1] * num_centers / self.num_gpus
+            _use_cuda_mmv = self.use_cuda_ and per_gpu_mmv_mem_usage >= get_min_cuda_mmv_size(dtype, self.options)
 
             if self.use_cuda_:
                 ny_points = ny_points.pin_memory()
 
             with TicToc(f"Calcuating Preconditioner of size {num_centers}", debug=self.options.debug):
-                pc_opt: FalkonOptions = dataclasses.replace(self.options,
-                                                            use_cpu=not _use_cuda_preconditioner)
+                pc_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not _use_cuda_preconditioner)
                 if pc_opt.debug:
-                    print("Preconditioner will run on %s" %
-                          ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
+                    print("Preconditioner will run on %s" % ("CPU" if pc_opt.use_cpu else ("%d GPUs" % self.num_gpus)))
                 precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
                 self.precond = precond
                 ny_weight_vec = None
@@ -249,21 +248,32 @@ class Falkon(FalkonBase):
                 validation_cback = self._get_callback_fn(X, Y, Xts, Yts, ny_points, precond)
 
             # Start with the falkon algorithm
-            with TicToc('Computing Falkon iterations', debug=self.options.debug):
+            with TicToc("Computing Falkon iterations", debug=self.options.debug):
                 o_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
                 if o_opt.debug:
-                    print("Optimizer will run on %s" %
-                          ("CPU" if o_opt.use_cpu else ("%d GPUs" % self.num_gpus)), flush=True)
-                optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt,
-                                                             weight_fn=self.weight_fn)
+                    optim_dev_str = "CPU" if o_opt.use_cpu else f"{self.num_gpus} GPUs"
+                    print(f"Optimizer will run on {optim_dev_str}", flush=True)
+                optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, o_opt, weight_fn=self.weight_fn)
                 if Knm is not None:
                     beta = optim.solve(
-                        Knm, None, Y, self.penalty, initial_solution=warm_start,
-                        max_iter=self.maxiter, callback=validation_cback)
+                        Knm,
+                        None,
+                        Y,
+                        self.penalty,
+                        initial_solution=warm_start,
+                        max_iter=self.maxiter,
+                        callback=validation_cback,
+                    )
                 else:
                     beta = optim.solve(
-                        X, ny_points, Y, self.penalty, initial_solution=warm_start,
-                        max_iter=self.maxiter, callback=validation_cback)
+                        X,
+                        ny_points,
+                        Y,
+                        self.penalty,
+                        initial_solution=warm_start,
+                        max_iter=self.maxiter,
+                        callback=validation_cback,
+                    )
 
                 self.alpha_ = precond.apply(beta)
                 self.beta_ = beta
@@ -276,12 +286,9 @@ class Falkon(FalkonBase):
                 # Then X is the kernel itself
                 return X @ alpha
             num_centers = alpha.shape[0]
-            _use_cuda_mmv = (
-                alpha.device.type == "cuda" or (
-                    self.use_cuda_ and
-                    X.shape[0] * X.shape[1] * num_centers / self.num_gpus >= get_min_cuda_mmv_size(
-                        X.dtype, self.options)
-                )
+            per_gpu_mmv_mem_usage = X.shape[0] * X.shape[1] * num_centers / self.num_gpus
+            _use_cuda_mmv = alpha.device.type == "cuda" or (
+                self.use_cuda_ and per_gpu_mmv_mem_usage >= get_min_cuda_mmv_size(X.dtype, self.options)
             )
             mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
             return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)

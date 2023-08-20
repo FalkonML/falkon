@@ -22,13 +22,9 @@ def derivative_test(diff_fn, loss, pred, true):
     exp = diff_fn(true, pred)
 
     exp_d = [
-        torch.autograd.grad(exp[i], pred, retain_graph=True, create_graph=True)[0][i]
-        for i in range(pred.shape[0])
+        torch.autograd.grad(exp[i], pred, retain_graph=True, create_graph=True)[0][i] for i in range(pred.shape[0])
     ]
-    exp_dd = [
-        torch.autograd.grad(exp_d[i], pred, retain_graph=True)[0][i]
-        for i in range(pred.shape[0])
-    ]
+    exp_dd = [torch.autograd.grad(exp_d[i], pred, retain_graph=True)[0][i] for i in range(pred.shape[0])]
 
     pred = pred.detach()
     np.testing.assert_allclose(exp.detach().numpy(), loss(true, pred).detach().numpy())

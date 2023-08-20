@@ -1,13 +1,13 @@
 import warnings
-from typing import Union, Optional, Dict
+from typing import Dict, Optional, Union
 
 import torch
 
 from falkon import sparse
+from falkon.kernels import KeopsKernelMixin
 from falkon.kernels.diff_kernel import DiffKernel
 from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
-from falkon.kernels import KeopsKernelMixin
 
 
 def validate_diff_float(num: Union[float, torch.Tensor], param_name: str) -> torch.Tensor:
@@ -25,11 +25,9 @@ def validate_diff_float(num: Union[float, torch.Tensor], param_name: str) -> tor
             raise TypeError(f"Parameter {param_name} must be a scalar or a tensor.") from None
 
 
-def _dot_kernel_extra_mem(
-        is_differentiable: bool,
-        is_sparse: bool):
+def _dot_kernel_extra_mem(is_differentiable: bool, is_sparse: bool):
     base = {
-        '0': 0,
+        "0": 0,
     }
     extra_nm = 0
     # Normalize Matern to Gaussian or Laplacian
@@ -40,12 +38,11 @@ def _dot_kernel_extra_mem(
         # count here), the output sparse (assumed to be the same size as the dense n*m),
         # the various work buffers (for safety assume them to also be n*m).
         extra_nm += 2
-    base['nm'] = extra_nm
+    base["nm"] = extra_nm
     return base
 
 
-def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor,
-                   out: Optional[torch.Tensor], diag: bool) -> torch.Tensor:
+def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.Tensor], diag: bool) -> torch.Tensor:
     if diag:
         N, D = mat1.shape
         if out is None:
@@ -61,8 +58,9 @@ def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor,
     return out
 
 
-def _sparse_dot_prod_calc(mat1: SparseTensor, mat2: SparseTensor,
-                          out: Optional[torch.Tensor], diag: bool) -> torch.Tensor:
+def _sparse_dot_prod_calc(
+    mat1: SparseTensor, mat2: SparseTensor, out: Optional[torch.Tensor], diag: bool
+) -> torch.Tensor:
     if diag:
         return sparse.bdot(mat1, mat2, out)
     else:
@@ -79,8 +77,9 @@ def linear_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamma
     return out
 
 
-def linear_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool,
-                       beta, gamma) -> torch.Tensor:
+def linear_core_sparse(
+    mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool, beta, gamma
+) -> torch.Tensor:
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
@@ -102,8 +101,9 @@ def polynomial_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, g
     return out
 
 
-def polynomial_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool,
-                           beta, gamma, degree) -> torch.Tensor:
+def polynomial_core_sparse(
+    mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool, beta, gamma, degree
+) -> torch.Tensor:
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
@@ -126,8 +126,9 @@ def sigmoid_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamm
     return out
 
 
-def sigmoid_core_sparse(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool,
-                        beta, gamma) -> torch.Tensor:
+def sigmoid_core_sparse(
+    mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor, diag: bool, beta, gamma
+) -> torch.Tensor:
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
@@ -163,22 +164,24 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
     >>> torch.testing.assert_close(kernel_matrix, X @ X.T * 2)
     """
 
-    def __init__(self,
-                 beta: Union[float, torch.Tensor] = 0.0,
-                 gamma: Union[float, torch.Tensor] = 1.0,
-                 opt: Optional[FalkonOptions] = None):
+    def __init__(
+        self,
+        beta: Union[float, torch.Tensor] = 0.0,
+        gamma: Union[float, torch.Tensor] = 1.0,
+        opt: Optional[FalkonOptions] = None,
+    ):
         beta = validate_diff_float(beta, param_name="beta")
         gamma = validate_diff_float(gamma, param_name="gamma")
         super().__init__("Linear", opt, linear_core, beta=beta, gamma=gamma)
 
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
-        formula = '(gamma * (X | Y) + beta) * v'
+        formula = "(gamma * (X | Y) + beta) * v"
         aliases = [
-            'X = Vi(%d)' % (X1.shape[1]),
-            'Y = Vj(%d)' % (X2.shape[1]),
-            'v = Vj(%d)' % (v.shape[1]),
-            'gamma = Pm(1)',
-            'beta = Pm(1)',
+            "X = Vi(%d)" % (X1.shape[1]),
+            "Y = Vj(%d)" % (X2.shape[1]),
+            "v = Vj(%d)" % (v.shape[1]),
+            "gamma = Pm(1)",
+            "beta = Pm(1)",
         ]
         other_vars = [
             self.gamma.reshape(1, 1).to(dtype=X1.dtype, device=X1.device),
@@ -189,14 +192,13 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
     def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
         return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
-    def detach(self) -> 'LinearKernel':
+    def detach(self) -> "LinearKernel":
         return LinearKernel(beta=self.beta.detach(), gamma=self.gamma.detach(), opt=self.params)
 
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
-                       **kwargs) -> torch.Tensor:
-        return linear_core_sparse(X1, X2, out, diag,
-                                  beta=self.beta,
-                                  gamma=self.gamma)
+    def compute_sparse(
+        self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool, **kwargs
+    ) -> torch.Tensor:
+        return linear_core_sparse(X1, X2, out, diag, beta=self.beta, gamma=self.gamma)
 
     def __str__(self):
         return f"LinearKernel(beta={self.beta}, gamma={self.gamma})"
@@ -228,25 +230,27 @@ class PolynomialKernel(DiffKernel, KeopsKernelMixin):
         Options which will be used in downstream kernel operations.
     """
 
-    def __init__(self,
-                 beta: Union[float, torch.Tensor],
-                 gamma: Union[float, torch.Tensor],
-                 degree: Union[float, torch.Tensor],
-                 opt: Optional[FalkonOptions] = None):
+    def __init__(
+        self,
+        beta: Union[float, torch.Tensor],
+        gamma: Union[float, torch.Tensor],
+        degree: Union[float, torch.Tensor],
+        opt: Optional[FalkonOptions] = None,
+    ):
         beta = validate_diff_float(beta, param_name="beta")
         gamma = validate_diff_float(gamma, param_name="gamma")
         degree = validate_diff_float(degree, param_name="degree")
         super().__init__("Polynomial", opt, polynomial_core, beta=beta, gamma=gamma, degree=degree)
 
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
-        formula = 'Powf((gamma * (X | Y) + beta), degree) * v'
+        formula = "Powf((gamma * (X | Y) + beta), degree) * v"
         aliases = [
-            'X = Vi(%d)' % (X1.shape[1]),
-            'Y = Vj(%d)' % (X2.shape[1]),
-            'v = Vj(%d)' % (v.shape[1]),
-            'gamma = Pm(1)',
-            'beta = Pm(1)',
-            'degree = Pm(1)',
+            "X = Vi(%d)" % (X1.shape[1]),
+            "Y = Vj(%d)" % (X2.shape[1]),
+            "v = Vj(%d)" % (v.shape[1]),
+            "gamma = Pm(1)",
+            "beta = Pm(1)",
+            "degree = Pm(1)",
         ]
         other_vars = [
             self.gamma.reshape(1, 1).to(dtype=X1.dtype, device=X1.device),
@@ -259,14 +263,23 @@ class PolynomialKernel(DiffKernel, KeopsKernelMixin):
     def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
         return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
-    def detach(self) -> 'PolynomialKernel':
-        return PolynomialKernel(beta=self.beta.detach(), gamma=self.gamma.detach(),
-                                degree=self.degree.detach(), opt=self.params)
+    def detach(self) -> "PolynomialKernel":
+        return PolynomialKernel(
+            beta=self.beta.detach(), gamma=self.gamma.detach(), degree=self.degree.detach(), opt=self.params
+        )
 
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
-                       **kwargs) -> torch.Tensor:
+    def compute_sparse(
+        self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool, **kwargs
+    ) -> torch.Tensor:
         return polynomial_core_sparse(
-            X1, X2, out, diag, beta=self.beta, gamma=self.gamma, degree=self.degree,)
+            X1,
+            X2,
+            out,
+            diag,
+            beta=self.beta,
+            gamma=self.gamma,
+            degree=self.degree,
+        )
 
     def __str__(self):
         return f"PolynomialKernel(beta={self.beta}, gamma={self.gamma}, degree={self.degree})"
@@ -296,10 +309,9 @@ class SigmoidKernel(DiffKernel, KeopsKernelMixin):
 
     """
 
-    def __init__(self,
-                 beta: Union[float, torch.Tensor],
-                 gamma: Union[float, torch.Tensor],
-                 opt: Optional[FalkonOptions] = None):
+    def __init__(
+        self, beta: Union[float, torch.Tensor], gamma: Union[float, torch.Tensor], opt: Optional[FalkonOptions] = None
+    ):
         beta = validate_diff_float(beta, param_name="beta")
         gamma = validate_diff_float(gamma, param_name="gamma")
         super().__init__("Sigmoid", opt, sigmoid_core, beta=beta, gamma=gamma)
@@ -309,26 +321,29 @@ class SigmoidKernel(DiffKernel, KeopsKernelMixin):
 
     def _decide_mmv_impl(self, X1, X2, v, opt):
         if self.keops_can_handle_mmv(X1, X2, v, opt):
-            warnings.warn("KeOps MMV implementation for %s kernel is not available. "
-                          "Falling back to matrix-multiplication based implementation."
-                          % self.name)
+            warnings.warn(
+                "KeOps MMV implementation for %s kernel is not available. "
+                "Falling back to matrix-multiplication based implementation." % self.name
+            )
         return super()._decide_mmv_impl(X1, X2, v, opt)
 
     def _decide_dmmv_impl(self, X1, X2, v, w, opt):
         if self.keops_can_handle_dmmv(X1, X2, v, w, opt):
-            warnings.warn("KeOps dMMV implementation for %s kernel is not available. "
-                          "Falling back to matrix-multiplication based implementation."
-                          % self.name)
+            warnings.warn(
+                "KeOps dMMV implementation for %s kernel is not available. "
+                "Falling back to matrix-multiplication based implementation." % self.name
+            )
         return super()._decide_dmmv_impl(X1, X2, v, w, opt)
 
     def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
         return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
-    def detach(self) -> 'SigmoidKernel':
+    def detach(self) -> "SigmoidKernel":
         return SigmoidKernel(beta=self.beta, gamma=self.gamma, opt=self.params)
 
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool,
-                       **kwargs) -> torch.Tensor:
+    def compute_sparse(
+        self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool, **kwargs
+    ) -> torch.Tensor:
         return sigmoid_core_sparse(X1, X2, out, diag, beta=self.beta, gamma=self.gamma)
 
     def __str__(self):

@@ -14,12 +14,12 @@ num_centers = 100
 
 @pytest.fixture
 def rowmaj_arr() -> torch.Tensor:
-    return torch.from_numpy(gen_random(M, D, 'float64', False))
+    return torch.from_numpy(gen_random(M, D, "float64", False))
 
 
 @pytest.fixture
 def colmaj_arr() -> torch.Tensor:
-    return torch.from_numpy(gen_random(M, D, 'float64', True))
+    return torch.from_numpy(gen_random(M, D, "float64", True))
 
 
 @pytest.fixture
@@ -27,10 +27,13 @@ def uniform_sel() -> UniformSelector:
     return UniformSelector(np.random.default_rng(0), num_centers=num_centers)
 
 
-@pytest.mark.parametrize("device", [
-    pytest.param("cpu"),
-    pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])
-])
+@pytest.mark.parametrize(
+    "device",
+    [
+        pytest.param("cpu"),
+        pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")]),
+    ],
+)
 def test_c_order(uniform_sel, rowmaj_arr, device):
     rowmaj_arr = rowmaj_arr.to(device=device)
     centers: torch.Tensor = uniform_sel.select(rowmaj_arr, None)

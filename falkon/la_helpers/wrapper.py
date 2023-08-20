@@ -98,8 +98,9 @@ def vec_mul_triang(mat: torch.Tensor, multipliers: torch.Tensor, upper: bool, si
 
 def potrf(mat: torch.Tensor, upper: bool, clean: bool, overwrite: bool, cuda: bool) -> torch.Tensor:
     if mat.is_cuda or cuda:
-        raise NotImplementedError("'potrf' is only implemented for CPU tensors. "
-                                  "See the ooc_ops module for CUDA implementations.")
+        raise NotImplementedError(
+            "'potrf' is only implemented for CPU tensors. See the ooc_ops module for CUDA implementations."
+        )
     return c_ext.potrf(mat, upper=upper, clean=clean, overwrite=overwrite)
 
 
@@ -110,6 +111,7 @@ def trsm(v: torch.Tensor, A: torch.Tensor, alpha: float, lower: int = 0, transpo
                 raise ValueError("A and v must be on the same device.")
             if A.is_cuda and v.is_cuda:
                 from falkon.la_helpers.cuda_trsm import cuda_trsm
+
                 return cuda_trsm(A, v, alpha, bool(lower), bool(transpose))
             else:
                 A = A.numpy()

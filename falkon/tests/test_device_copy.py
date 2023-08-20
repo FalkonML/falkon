@@ -14,22 +14,22 @@ d = 1000
 
 @pytest.fixture(scope="module")
 def mat():
-    return torch.from_numpy(gen_random(n, d, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(n, d, "float64", False, seed=92))
 
 
 @pytest.fixture(scope="module")
 def col_vec():
-    return torch.from_numpy(gen_random(n, 1, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(n, 1, "float64", False, seed=92))
 
 
 @pytest.fixture(scope="module")
 def row_vec():
-    return torch.from_numpy(gen_random(1, n, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(1, n, "float64", False, seed=92))
 
 
 @pytest.fixture(scope="module")
 def large_mat():
-    return torch.from_numpy(gen_random(2 * n, d, 'float64', False, seed=92))
+    return torch.from_numpy(gen_random(2 * n, d, "float64", False, seed=92))
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
@@ -83,26 +83,30 @@ def test_copy_vec_dev_to_host(row_vec, col_vec, order):
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("in_dev", ["cpu", "cuda"])
-@pytest.mark.parametrize("size,out_size", [
-    [(1, 100), (1, 100)],
-    [(1, 100), (10, 200)],
-    [(100, 1), (100, 1)],
-    [(100, 1), (100, 10)],
-    [(1, 1), (1, 1)],
-    [(500, 100), (600, 100)]])
+@pytest.mark.parametrize(
+    "size,out_size",
+    [
+        [(1, 100), (1, 100)],
+        [(1, 100), (10, 200)],
+        [(100, 1), (100, 1)],
+        [(100, 1), (100, 10)],
+        [(1, 1), (1, 1)],
+        [(500, 100), (600, 100)],
+    ],
+)
 def test_diff_sizes(mat, order, in_dev, size, out_size):
     if in_dev == "cuda":
         out_dev = "cpu"
     else:
         out_dev = "cuda"
     in_mat: torch.Tensor = fix_mat(mat, np.float64, order=order, device=in_dev, copy=True, numpy=False)
-    in_mat = in_mat[:size[0], :size[1]]
+    in_mat = in_mat[: size[0], : size[1]]
 
     if order == "F":
         output = torch.empty_strided(out_size, (1, out_size[0]), dtype=in_mat.dtype, device=out_dev)
     else:
         output = torch.empty_strided(out_size, (out_size[0], 1), dtype=in_mat.dtype, device=out_dev)
-    output = output[:size[0], :size[1]]
+    output = output[: size[0], : size[1]]
 
     opt = FalkonOptions(max_gpu_mem=0.0)
     with memory_checker(opt):

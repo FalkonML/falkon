@@ -40,9 +40,8 @@ def assert_sparse_equal(s1: SparseTensor, s2: SparseTensor):
 
 @pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.parametrize(
-    "dtype",
-    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
-    ids=["float32", "float64"])
+    "dtype", [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])], ids=["float32", "float64"]
+)
 def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
     orig, _ = sparse1
     orig = orig.to(dtype=dtype)
@@ -54,9 +53,8 @@ def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
 
 @pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.parametrize(
-    "dtype",
-    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
-    ids=["float32", "float64"])
+    "dtype", [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])], ids=["float32", "float64"]
+)
 def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
     orig, _ = sparse1
     orig = orig.to(dtype=dtype)
@@ -69,9 +67,8 @@ def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
 
 @pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.parametrize(
-    "dtype",
-    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
-    ids=["float32", "float64"])
+    "dtype", [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])], ids=["float32", "float64"]
+)
 def test_convert_csr(sparse2: Tuple[SparseTensor, torch.Tensor], dtype):
     orig, dense = sparse2
     orig = orig.to(dtype=dtype)
@@ -102,9 +99,8 @@ def test_csc_creation(sparse1: Tuple[SparseTensor, torch.Tensor]):
 
 @pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.parametrize(
-    "dtype",
-    [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])],
-    ids=["float32", "float64"])
+    "dtype", [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])], ids=["float32", "float64"]
+)
 def test_spmmd(sparse1, sparse2, dtype):
     # sparse1 @ sparse2
     smat1, dmat1 = sparse1

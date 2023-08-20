@@ -29,13 +29,15 @@ class MklSparseMatrix(ctypes.Structure):
 
 
 class MklError(Exception):
-    RETURN_CODES = {0: "SPARSE_STATUS_SUCCESS",
-                    1: "SPARSE_STATUS_NOT_INITIALIZED",
-                    2: "SPARSE_STATUS_ALLOC_FAILED",
-                    3: "SPARSE_STATUS_INVALID_VALUE",
-                    4: "SPARSE_STATUS_EXECUTION_FAILED",
-                    5: "SPARSE_STATUS_INTERNAL_ERROR",
-                    6: "SPARSE_STATUS_NOT_SUPPORTED"}
+    RETURN_CODES = {
+        0: "SPARSE_STATUS_SUCCESS",
+        1: "SPARSE_STATUS_NOT_INITIALIZED",
+        2: "SPARSE_STATUS_ALLOC_FAILED",
+        3: "SPARSE_STATUS_INVALID_VALUE",
+        4: "SPARSE_STATUS_EXECUTION_FAILED",
+        5: "SPARSE_STATUS_INTERNAL_ERROR",
+        6: "SPARSE_STATUS_NOT_SUPPORTED",
+    }
 
     def __init__(self, code, fn):
         self.code = code
@@ -48,16 +50,16 @@ class MklError(Exception):
 class Mkl:
     sparse_matrix_t = ctypes.POINTER(MklSparseMatrix)
     MKL_OPERATION_T = {
-        'n': 10,
-        'N': 10,
-        't': 11,
-        'T': 11,
+        "n": 10,
+        "N": 10,
+        "t": 11,
+        "T": 11,
     }
     MKL_ORDERING_T = {
-        'C': 101,  # SPARSE_LAYOUT_ROW_MAJOR
-        'c': 101,
-        'F': 102,  # SPARSE_LAYOUT_COLUMN_MAJOR
-        'f': 102,
+        "C": 101,  # SPARSE_LAYOUT_ROW_MAJOR
+        "c": 101,
+        "F": 102,  # SPARSE_LAYOUT_COLUMN_MAJOR
+        "f": 102,
     }
 
     @staticmethod
@@ -103,7 +105,8 @@ class Mkl:
             ctypes.POINTER(self.MKL_INT),
             ctypes.POINTER(self.MKL_INT),
             ctypes.POINTER(self.MKL_INT),
-            ctypes.POINTER(ctypes.c_double)]
+            ctypes.POINTER(ctypes.c_double),
+        ]
         self.libmkl.mkl_sparse_s_create_csr.restype = ctypes.c_int
         self.libmkl.mkl_sparse_s_create_csr.argtypes = [
             ctypes.POINTER(Mkl.sparse_matrix_t),
@@ -113,7 +116,8 @@ class Mkl:
             ctypes.POINTER(self.MKL_INT),
             ctypes.POINTER(self.MKL_INT),
             ctypes.POINTER(self.MKL_INT),
-            ctypes.POINTER(ctypes.c_float)]
+            ctypes.POINTER(ctypes.c_float),
+        ]
         self.libmkl.mkl_sparse_d_create_csc.restype = ctypes.c_int
         self.libmkl.mkl_sparse_d_create_csc.argtypes = [
             ctypes.POINTER(Mkl.sparse_matrix_t),
@@ -123,7 +127,8 @@ class Mkl:
             ctypes.POINTER(self.MKL_INT),
             ctypes.POINTER(self.MKL_INT),
             ctypes.POINTER(self.MKL_INT),
-            ctypes.POINTER(ctypes.c_double)]
+            ctypes.POINTER(ctypes.c_double),
+        ]
         self.libmkl.mkl_sparse_s_create_csc.restype = ctypes.c_int
         self.libmkl.mkl_sparse_s_create_csc.argtypes = [
             ctypes.POINTER(Mkl.sparse_matrix_t),  # Output matrix
@@ -133,7 +138,8 @@ class Mkl:
             ctypes.POINTER(self.MKL_INT),
             ctypes.POINTER(self.MKL_INT),
             ctypes.POINTER(self.MKL_INT),
-            ctypes.POINTER(ctypes.c_float), ]
+            ctypes.POINTER(ctypes.c_float),
+        ]
 
         self.libmkl.mkl_sparse_d_export_csr.restype = ctypes.c_int
         self.libmkl.mkl_sparse_d_export_csr.argtypes = [
@@ -144,7 +150,7 @@ class Mkl:
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
-            ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+            ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),
         ]
         self.libmkl.mkl_sparse_s_export_csr.restype = ctypes.c_int
         self.libmkl.mkl_sparse_s_export_csr.argtypes = [
@@ -155,7 +161,7 @@ class Mkl:
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
-            ctypes.POINTER(ctypes.POINTER(ctypes.c_float))
+            ctypes.POINTER(ctypes.POINTER(ctypes.c_float)),
         ]
         self.libmkl.mkl_sparse_d_export_csc.restype = ctypes.c_int
         self.libmkl.mkl_sparse_d_export_csc.argtypes = [
@@ -166,7 +172,7 @@ class Mkl:
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
-            ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+            ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),
         ]
         self.libmkl.mkl_sparse_s_export_csc.restype = ctypes.c_int
         self.libmkl.mkl_sparse_s_export_csc.argtypes = [
@@ -177,14 +183,14 @@ class Mkl:
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
             ctypes.POINTER(ctypes.POINTER(self.MKL_INT)),
-            ctypes.POINTER(ctypes.POINTER(ctypes.c_float))
+            ctypes.POINTER(ctypes.POINTER(ctypes.c_float)),
         ]
 
         self.libmkl.mkl_sparse_convert_csr.restype = ctypes.c_int
         self.libmkl.mkl_sparse_convert_csr.argtypes = [
             Mkl.sparse_matrix_t,
             ctypes.c_int,
-            ctypes.POINTER(Mkl.sparse_matrix_t)
+            ctypes.POINTER(Mkl.sparse_matrix_t),
         ]
 
         self.libmkl.mkl_sparse_destroy.restype = ctypes.c_int
@@ -197,7 +203,7 @@ class Mkl:
             Mkl.sparse_matrix_t,  # B
             ctypes.c_int,  # layout of the dense matrix (column major or row major)
             ctypes.POINTER(ctypes.c_double),  # pointer to the output
-            self.MKL_INT  # leading dimension of the output (ldC)
+            self.MKL_INT,  # leading dimension of the output (ldC)
         ]
         self.libmkl.mkl_sparse_s_spmmd.restype = ctypes.c_int
         self.libmkl.mkl_sparse_s_spmmd.argtypes = [
@@ -206,7 +212,7 @@ class Mkl:
             Mkl.sparse_matrix_t,  # B
             ctypes.c_int,  # layout of the dense matrix (column major or row major)
             ctypes.POINTER(ctypes.c_float),  # pointer to the output
-            self.MKL_INT  # leading dimension of the output (ldC)
+            self.MKL_INT,  # leading dimension of the output (ldC)
         ]
 
     @staticmethod
@@ -217,8 +223,7 @@ class Mkl:
         # (for sparse matrices)
         libmkl_loading_errors = []
         libmkl = None
-        potential_sos = ["libmkl_intel_ilp64.so", "libmkl_intel_ilp64.so.1",
-                         "libmkl_rt.so", "libmkl_rt.so.1"]
+        potential_sos = ["libmkl_intel_ilp64.so", "libmkl_intel_ilp64.so.1", "libmkl_rt.so", "libmkl_rt.so.1"]
         try:
             # Try auto-find first
             so_file = find_library("mkl_intel_ilp64")
@@ -238,8 +243,9 @@ class Mkl:
             libmkl_loading_errors.append(err)
 
         if libmkl is None:
-            ierr_msg = (f"Unable to load the MKL libraries through either of {potential_sos}. "
-                        "Try setting $LD_LIBRARY_PATH.")
+            ierr_msg = (
+                f"Unable to load the MKL libraries through either of {potential_sos}. Try setting $LD_LIBRARY_PATH."
+            )
             ierr_msg += "\n\t" + "\n\t".join([str(err) for err in libmkl_loading_errors])
             raise ImportError(ierr_msg)
         return libmkl
@@ -250,7 +256,8 @@ class Mkl:
         then converting it to CSR format and making sure is has not raised an exception.
         """
         test_array: scipy.sparse.csc_matrix = scipy.sparse.random(
-            5, 5, density=0.5, format="csr", dtype=np.float64, random_state=50)
+            5, 5, density=0.5, format="csr", dtype=np.float64, random_state=50
+        )
         test_comparison = test_array.A
         csc_ref = None
         try:
@@ -313,14 +320,16 @@ class Mkl:
         mat = self._check_index_typing(mat)
         # Load into a MKL data structure and check return
         ref = Mkl.sparse_matrix_t()
-        ret_val = fn(ctypes.byref(ref),  # Output (by ref)
-                     ctypes.c_int(0),  # 0-based indexing
-                     self.MKL_INT(mat.shape[0]),  # rows
-                     self.MKL_INT(mat.shape[1]),  # cols
-                     ctypes.cast(mat.indexptr.data_ptr(), ctypes.POINTER(self.MKL_INT)),
-                     ctypes.cast(mat.indexptr[1:].data_ptr(), ctypes.POINTER(self.MKL_INT)),
-                     ctypes.cast(mat.index.data_ptr(), ctypes.POINTER(self.MKL_INT)),
-                     ctypes.cast(mat.data.data_ptr(), ctypes.POINTER(ctype)))  # values
+        ret_val = fn(
+            ctypes.byref(ref),  # Output (by ref)
+            ctypes.c_int(0),  # 0-based indexing
+            self.MKL_INT(mat.shape[0]),  # rows
+            self.MKL_INT(mat.shape[1]),  # cols
+            ctypes.cast(mat.indexptr.data_ptr(), ctypes.POINTER(self.MKL_INT)),
+            ctypes.cast(mat.indexptr[1:].data_ptr(), ctypes.POINTER(self.MKL_INT)),
+            ctypes.cast(mat.index.data_ptr(), ctypes.POINTER(self.MKL_INT)),
+            ctypes.cast(mat.data.data_ptr(), ctypes.POINTER(ctype)),
+        )  # values
         Mkl.mkl_check_return_val(ret_val, fn)
         return ref
 
@@ -376,14 +385,16 @@ class Mkl:
         matrix = self._check_index_typing(matrix)
         ref = Mkl.sparse_matrix_t()
         # Load into a MKL data structure and check return
-        ret_val = fn(ctypes.byref(ref),
-                     ctypes.c_int(0),
-                     self.MKL_INT(matrix.shape[0]),
-                     self.MKL_INT(matrix.shape[1]),
-                     matrix.indptr.ctypes.data_as(ctypes.POINTER(self.MKL_INT)),
-                     matrix.indptr[1:].ctypes.data_as(ctypes.POINTER(self.MKL_INT)),
-                     matrix.indices.ctypes.data_as(ctypes.POINTER(self.MKL_INT)),
-                     matrix.data.ctypes.data_as(ctypes.POINTER(ctype)))
+        ret_val = fn(
+            ctypes.byref(ref),
+            ctypes.c_int(0),
+            self.MKL_INT(matrix.shape[0]),
+            self.MKL_INT(matrix.shape[1]),
+            matrix.indptr.ctypes.data_as(ctypes.POINTER(self.MKL_INT)),
+            matrix.indptr[1:].ctypes.data_as(ctypes.POINTER(self.MKL_INT)),
+            matrix.indices.ctypes.data_as(ctypes.POINTER(self.MKL_INT)),
+            matrix.data.ctypes.data_as(ctypes.POINTER(ctype)),
+        )
         Mkl.mkl_check_return_val(ret_val, fn)
         return ref
 
@@ -409,10 +420,7 @@ class Mkl:
                 sparse_matrix.indices = sparse_matrix.indices.astype(self.NP_INT)
             return sparse_matrix
 
-    def mkl_export_sparse(self,
-                          mkl_mat: sparse_matrix_t,
-                          dtype: torch.dtype,
-                          output_type: str = "csr") -> SparseTensor:
+    def mkl_export_sparse(self, mkl_mat: sparse_matrix_t, dtype: torch.dtype, output_type: str = "csr") -> SparseTensor:
         """Create a :class:`SparseTensor` from a MKL sparse matrix holder.
 
         Note that not all possible MKL sparse matrices are supported (for example if 1-based
@@ -472,14 +480,16 @@ class Mkl:
 
         data_ptr = ctypes.POINTER(ctype)()
 
-        ret_val = fn(mkl_mat,
-                     ctypes.byref(ordering),
-                     ctypes.byref(nrows),
-                     ctypes.byref(ncols),
-                     ctypes.byref(indptrb),
-                     ctypes.byref(indptren),
-                     ctypes.byref(indices),
-                     ctypes.byref(data_ptr))
+        ret_val = fn(
+            mkl_mat,
+            ctypes.byref(ordering),
+            ctypes.byref(nrows),
+            ctypes.byref(ncols),
+            ctypes.byref(indptrb),
+            ctypes.byref(indptren),
+            ctypes.byref(indices),
+            ctypes.byref(data_ptr),
+        )
         Mkl.mkl_check_return_val(ret_val, fn)
 
         if ordering.value != 0:
@@ -500,17 +510,15 @@ class Mkl:
         data = np.array(as_array(data_ptr, shape=(nnz,)), copy=True)
         indices = np.array(as_array(indices, shape=(nnz,)), copy=True)
 
-        return SparseTensor(indexptr=torch.from_numpy(indptren).to(torch.long),
-                            index=torch.from_numpy(indices).to(torch.long),
-                            data=torch.from_numpy(data),
-                            size=(nrows, ncols),
-                            sparse_type=output_type.lower())
+        return SparseTensor(
+            indexptr=torch.from_numpy(indptren).to(torch.long),
+            index=torch.from_numpy(indices).to(torch.long),
+            data=torch.from_numpy(data),
+            size=(nrows, ncols),
+            sparse_type=output_type.lower(),
+        )
 
-    def mkl_convert_csr(
-            self,
-            mkl_mat: sparse_matrix_t,
-            destroy_original=False
-    ) -> sparse_matrix_t:
+    def mkl_convert_csr(self, mkl_mat: sparse_matrix_t, destroy_original=False) -> sparse_matrix_t:
         """Convert a MKL matrix from CSC format to CSR format.
 
         Parameters
@@ -527,8 +535,7 @@ class Mkl:
             Converted CSR MKL matrix.
         """
         csr_ref = Mkl.sparse_matrix_t()
-        ret_val = self.libmkl.mkl_sparse_convert_csr(mkl_mat, Mkl.MKL_OPERATION_T['N'],
-                                                     ctypes.byref(csr_ref))
+        ret_val = self.libmkl.mkl_sparse_convert_csr(mkl_mat, Mkl.MKL_OPERATION_T["N"], ctypes.byref(csr_ref))
 
         try:
             Mkl.mkl_check_return_val(ret_val, self.libmkl.mkl_sparse_convert_csr)
@@ -558,11 +565,7 @@ class Mkl:
         ret_val = self.libmkl.mkl_sparse_destroy(ref_handle)
         Mkl.mkl_check_return_val(ret_val, self.libmkl.mkl_sparse_destroy)
 
-    def mkl_spmmd(self,
-                  A: sparse_matrix_t,
-                  B: sparse_matrix_t,
-                  out: torch.Tensor,
-                  transposeA: bool = False) -> None:
+    def mkl_spmmd(self, A: sparse_matrix_t, B: sparse_matrix_t, out: torch.Tensor, transposeA: bool = False) -> None:
         """Multiply two sparse matrices, storing the result in a dense matrix.
 
         This function wraps the ``mkl_sparse_?_spmmd`` functions from the MKL library (see MKL_),
@@ -610,15 +613,15 @@ class Mkl:
         # noinspection PyArgumentList
         out_stride = out.stride()
         if out_stride[0] == 1:  # Then it's column-contiguous (Fortran)
-            layout = Mkl.MKL_ORDERING_T['F']
+            layout = Mkl.MKL_ORDERING_T["F"]
             ldC = out_stride[1]
         elif out_stride[1] == 1:
-            layout = Mkl.MKL_ORDERING_T['C']
+            layout = Mkl.MKL_ORDERING_T["C"]
             ldC = out_stride[0]
         else:
             raise ValueError("Output matrix 'out' is not memory-contiguous")
 
-        op = Mkl.MKL_OPERATION_T['T'] if transposeA else Mkl.MKL_OPERATION_T['N']
+        op = Mkl.MKL_OPERATION_T["T"] if transposeA else Mkl.MKL_OPERATION_T["N"]
 
         if out.dtype == torch.float32:
             fn = self.libmkl.mkl_sparse_s_spmmd
@@ -630,11 +633,12 @@ class Mkl:
             raise TypeError("Data type %s not valid for SPMMD" % (out.dtype))
 
         out_ptr = ctypes.cast(out.data_ptr(), ctypes.POINTER(output_ctype))
-        ret_val = fn(op,  # Transpose or not
-                     A,  # Output of _create_mkl_sparse(A)
-                     B,  # Output of _create_mkl_sparse(B)
-                     layout,  # Fortran or C layout
-                     out_ptr,  # Pointer to the output
-                     self.MKL_INT(ldC)  # Output leading dimension
-                     )
+        ret_val = fn(
+            op,  # Transpose or not
+            A,  # Output of _create_mkl_sparse(A)
+            B,  # Output of _create_mkl_sparse(B)
+            layout,  # Fortran or C layout
+            out_ptr,  # Pointer to the output
+            self.MKL_INT(ldC),  # Output leading dimension
+        )
         Mkl.mkl_check_return_val(ret_val, fn)

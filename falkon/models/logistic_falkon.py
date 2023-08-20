@@ -10,7 +10,7 @@ from falkon.optim import ConjugateGradient
 from falkon.options import FalkonOptions
 from falkon.utils import TicToc
 
-__all__ = ("LogisticFalkon", )
+__all__ = ("LogisticFalkon",)
 
 
 class LogisticFalkon(FalkonBase):
@@ -103,32 +103,34 @@ class LogisticFalkon(FalkonBase):
     iterations where the regularization is decreased, and then switch to a higher number of
     inner-steps (e.g. 8) for the remaining iterations.
     """
-    def __init__(self,
-                 kernel: falkon.kernels.Kernel,
-                 penalty_list: List[float],
-                 iter_list: List[int],
-                 loss: Loss,
-                 M: int,
-                 center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
-                 seed: Optional[int] = None,
-                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
-                 error_every: Optional[int] = 1,
-                 options: Optional[FalkonOptions] = None,
-                 ):
+
+    def __init__(
+        self,
+        kernel: falkon.kernels.Kernel,
+        penalty_list: List[float],
+        iter_list: List[int],
+        loss: Loss,
+        M: int,
+        center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
+        seed: Optional[int] = None,
+        error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
+        error_every: Optional[int] = 1,
+        options: Optional[FalkonOptions] = None,
+    ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty_list = penalty_list
         self.iter_list = iter_list
         if len(self.iter_list) != len(self.penalty_list):
-            raise ValueError("Iteration list must be of same length as penalty list "
-                             "(found %d and %d)" % (len(self.iter_list), len(self.penalty_list)))
+            raise ValueError(
+                "Iteration list must be of same length as penalty list "
+                "(found %d and %d)" % (len(self.iter_list), len(self.penalty_list))
+            )
         self.loss = loss
         self._init_cuda()
 
-    def fit(self,
-            X: torch.Tensor,
-            Y: torch.Tensor,
-            Xts: Optional[torch.Tensor] = None,
-            Yts: Optional[torch.Tensor] = None):
+    def fit(
+        self, X: torch.Tensor, Y: torch.Tensor, Xts: Optional[torch.Tensor] = None, Yts: Optional[torch.Tensor] = None
+    ):
         """Fits the Falkon Kernel Logistic Regression model.
 
         Parameters
@@ -165,8 +167,10 @@ class LogisticFalkon(FalkonBase):
         """
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
         if Y.size(1) != 1:
-            raise ValueError("Logistic Falkon expects a single response variable: "
-                             "Y must be 1-D or the second dimension must be of size 1.")
+            raise ValueError(
+                "Logistic Falkon expects a single response variable: "
+                "Y must be 1-D or the second dimension must be of size 1."
+            )
 
         dtype = X.dtype
         # Add a dummy `fit_time` to make compatible with normal falkon
@@ -188,6 +192,7 @@ class LogisticFalkon(FalkonBase):
 
             # Define the validation callback TODO: this is almost identical to the generic cback in model_utils.py
             if self.error_fn is not None and self.error_every is not None:
+
                 def validation_cback(it, beta, train_time):
                     self.fit_times_.append(self.fit_times_[0] + train_time)
                     if it % self.error_every != 0:
@@ -207,9 +212,13 @@ class LogisticFalkon(FalkonBase):
                     err_name = "error"
                     if isinstance(err, tuple) and len(err) == 2:
                         err, err_name = err
-                    print(f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - "
-                          f"{err_str} loss {loss:.4f} - "
-                          f"{err_str} {err_name} {err:.4f} ", flush=True)
+                    print(
+                        f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - "
+                        f"{err_str} loss {loss:.4f} - "
+                        f"{err_str} {err_name} {err:.4f} ",
+                        flush=True,
+                    )
+
             else:
                 validation_cback = None
 
@@ -228,17 +237,17 @@ class LogisticFalkon(FalkonBase):
 
                 with TicToc("Gradient", self.options.debug):
                     # Gradient computation
-                    knmp_grad, inner_mmv = self.loss.knmp_grad(
-                        X, ny_X, Y, precond.invT(beta_it), opt=self.options)
+                    knmp_grad, inner_mmv = self.loss.knmp_grad(X, ny_X, Y, precond.invT(beta_it), opt=self.options)
                     grad_p = precond.invAt(precond.invTt(knmp_grad).add_(penalty * beta_it))
 
                 # Run CG with `grad_p` as right-hand-side.
                 with TicToc("Optim", self.options.debug):
+
                     def mmv(sol, inner_mmv_=inner_mmv, penalty_=penalty):
                         sol_a = precond.invA(sol)
-                        knmp_hess = self.loss.knmp_hess(
-                            X, ny_X, Y, inner_mmv_, precond.invT(sol_a), opt=self.options)
+                        knmp_hess = self.loss.knmp_hess(X, ny_X, Y, inner_mmv_, precond.invT(sol_a), opt=self.options)
                         return precond.invAt(precond.invTt(knmp_hess).add_(sol_a.mul_(penalty_)))
+
                     optim_out = optim.solve(X0=None, B=grad_p, mmv=mmv, max_iter=max_iter)
                     beta_it -= precond.invA(optim_out)
 

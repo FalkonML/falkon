@@ -26,6 +26,7 @@ def _sparse_matmul_cpu(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
     try:
         # noinspection PyUnresolvedReferences
         from falkon.mkl_bindings.mkl_bind import mkl_lib
+
         mkl = mkl_lib()
         try:
             A = A.transpose_csc()  # D * N (csc)
@@ -81,8 +82,7 @@ def _sparse_matmul_cuda(A: SparseTensor, B: SparseTensor, out: torch.Tensor):
         raise ValueError("out must be F-contiguous")
 
     # 1. MatMul
-    out_indexptr, out_index, out_data = spspmm(
-        A.indexptr, A.index, A.data, B.indexptr, B.index, B.data, B.shape[1])
+    out_indexptr, out_index, out_data = spspmm(A.indexptr, A.index, A.data, B.indexptr, B.index, B.data, B.shape[1])
     # 2. Convert to dense
     out = csr2dense(out_indexptr, out_index, out_data, out)
     return out

@@ -36,12 +36,8 @@ if __name__ == "__main__":
     N = 50_000
     D = 256
     for no_single_kernel in [True, False]:
-        init_opt = falkon.FalkonOptions(
-            compute_arch_speed=False, no_single_kernel=no_single_kernel
-        )
+        init_opt = falkon.FalkonOptions(compute_arch_speed=False, no_single_kernel=no_single_kernel)
         kernel = kernels.GaussianKernel(sigma=5.0, opt=init_opt)
         exp_name = f"exp-{no_single_kernel=}"
-        run_mm_exp(
-            exp_name=exp_name, kernel=kernel, N=N, D=D, pin_memory=True, num_reps=5
-        )
+        run_mm_exp(exp_name=exp_name, kernel=kernel, N=N, D=D, pin_memory=True, num_reps=5)
         print()

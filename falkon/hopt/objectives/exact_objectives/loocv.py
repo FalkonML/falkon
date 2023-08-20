@@ -35,17 +35,16 @@ class LOOCV(HyperoptObjective):
     """
 
     def __init__(
-            self,
-            kernel: falkon.kernels.DiffKernel,
-            centers_init: torch.Tensor,
-            penalty_init: torch.Tensor,
-            opt_centers: bool,
-            opt_penalty: bool,
-            centers_transform: Optional[torch.distributions.Transform] = None,
-            pen_transform: Optional[torch.distributions.Transform] = None, ):
-        super().__init__(kernel, centers_init, penalty_init,
-                         opt_centers, opt_penalty,
-                         centers_transform, pen_transform)
+        self,
+        kernel: falkon.kernels.DiffKernel,
+        centers_init: torch.Tensor,
+        penalty_init: torch.Tensor,
+        opt_centers: bool,
+        opt_penalty: bool,
+        centers_transform: Optional[torch.distributions.Transform] = None,
+        pen_transform: Optional[torch.distributions.Transform] = None,
+    ):
+        super().__init__(kernel, centers_init, penalty_init, opt_centers, opt_penalty, centers_transform, pen_transform)
         self.x_train, self.y_train = None, None
         self.losses: Optional[Dict[str, torch.Tensor]] = None
 
@@ -101,7 +100,9 @@ class LOOCV(HyperoptObjective):
         }
 
     def __repr__(self):
-        return f"NystromLOOCV(" \
-               f"kernel={self.kernel}, " \
-               f"penalty={get_scalar(self.penalty)}, " \
-               f"num_centers={self.centers.shape[0]})"
+        return (
+            f"NystromLOOCV("
+            f"kernel={self.kernel}, "
+            f"penalty={get_scalar(self.penalty)}, "
+            f"num_centers={self.centers.shape[0]})"
+        )

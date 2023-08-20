@@ -23,7 +23,7 @@ class DeviceInfo:
     used_memory: float = 0
     free_memory: float = 0
     usable_memory: float = 0
-    gpu_name: str = ''
+    gpu_name: str = ""
 
     def update_memory(self, total_memory=0, used_memory=0, free_memory=0):
         self.total_memory = total_memory
@@ -41,9 +41,9 @@ class DeviceInfo:
 
     def __str__(self):
         if self.isCPU:
-            return 'cpu'
+            return "cpu"
         else:
-            return 'cuda:%s' % self.Id
+            return "cuda:%s" % self.Id
 
     def __repr__(self):
         return (
@@ -57,25 +57,17 @@ def _get_cpu_device_info(opt: BaseOptions, data_dict: Dict[int, DeviceInfo]) -> 
     cpu_free_mem = _cpu_available_mem()
     cpu_used_mem = _cpu_used_mem()
     if -1 in data_dict:
-        data_dict[-1].update_memory(
-            free_memory=cpu_free_mem, used_memory=cpu_used_mem)
+        data_dict[-1].update_memory(free_memory=cpu_free_mem, used_memory=cpu_used_mem)
     else:
         if opt.compute_arch_speed:
             cpu_speed = _measure_performance(-1, cpu_free_mem)
         else:
             cpu_speed = psutil.cpu_count()
-        data_dict[-1] = DeviceInfo(
-            Id=-1,
-            used_memory=cpu_used_mem,
-            free_memory=cpu_free_mem,
-            speed=cpu_speed
-        )
+        data_dict[-1] = DeviceInfo(Id=-1, used_memory=cpu_used_mem, free_memory=cpu_free_mem, speed=cpu_speed)
     return data_dict
 
 
-def _get_gpu_device_info(opt: BaseOptions,
-                         g: int,
-                         data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
+def _get_gpu_device_info(opt: BaseOptions, g: int, data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
     # This is often the first CUDA-related call. Call init() here to avoid segfaults due to
     # uninitialized CUDA environment.
     tcd.init()
@@ -95,9 +87,8 @@ def _get_gpu_device_info(opt: BaseOptions,
 
         if g in data_dict:
             data_dict[g].update_memory(
-                total_memory=mem_total,
-                used_memory=mem_used - cached_free_mem,
-                free_memory=mem_free + cached_free_mem)
+                total_memory=mem_total, used_memory=mem_used - cached_free_mem, free_memory=mem_free + cached_free_mem
+            )
         else:
             properties = tcd.get_device_properties(g)
             if opt.compute_arch_speed:
@@ -111,7 +102,8 @@ def _get_gpu_device_info(opt: BaseOptions,
                 total_memory=mem_total,
                 used_memory=mem_used - cached_free_mem,
                 free_memory=mem_free + cached_free_mem,
-                gpu_name=properties.name)
+                gpu_name=properties.name,
+            )
 
         return data_dict
 
@@ -121,9 +113,9 @@ def _measure_performance(g, mem):
     tt = 0
     f = 1
     if g == -1:
-        dev = torch.device('cpu')
+        dev = torch.device("cpu")
     else:
-        dev = torch.device('cuda:%s' % g)
+        dev = torch.device("cuda:%s" % g)
     dtt = torch.double
 
     a = torch.eye(1024, 1024, dtype=dtt, device=dev)
@@ -199,8 +191,7 @@ def get_device_info(opt: BaseOptions) -> Dict[int, DeviceInfo]:
         __COMP_DATA = _get_gpu_device_info(opt, g, __COMP_DATA)
 
     if len(__COMP_DATA) == 0:
-        raise RuntimeError("No suitable device found. Enable option 'use_cpu' "
-                           "if no GPU is available.")
+        raise RuntimeError("No suitable device found. Enable option 'use_cpu' if no GPU is available.")
 
     return __COMP_DATA
 

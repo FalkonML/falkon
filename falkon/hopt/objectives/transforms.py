@@ -27,7 +27,7 @@ class PositiveTransform(torch.distributions.transforms.Transform):
         # https://github.com/tensorflow/probability/blob/v0.12.2/tensorflow_probability/python/math/generic.py#L456-L507
         x = y - self.lower_bound
 
-        threshold = torch.log(torch.tensor(torch.finfo(y.dtype).eps, dtype=y.dtype)) + torch.tensor(2., dtype=y.dtype)
+        threshold = torch.log(torch.tensor(torch.finfo(y.dtype).eps, dtype=y.dtype)) + torch.tensor(2.0, dtype=y.dtype)
         is_too_small = x < torch.exp(threshold)
         is_too_large = x > -threshold
         too_small_val = torch.log(x)
@@ -35,6 +35,4 @@ class PositiveTransform(torch.distributions.transforms.Transform):
 
         x = torch.where(is_too_small | is_too_large, torch.tensor(1.0, dtype=y.dtype, device=y.device), x)
         x = x + torch.log(-torch.expm1(-x))
-        return torch.where(is_too_small,
-                           too_small_val,
-                           torch.where(is_too_large, too_large_val, x))
+        return torch.where(is_too_small, too_small_val, torch.where(is_too_large, too_large_val, x))

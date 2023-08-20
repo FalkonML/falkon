@@ -1,6 +1,6 @@
 import abc
 import dataclasses
-from typing import Dict, Any, Union, Optional
+from typing import Any, Dict, Optional, Union
 
 import torch
 from torch import nn
@@ -49,6 +49,7 @@ class DiffKernel(Kernel, abc.ABC):
         The values given are used to initialize the actual parameters - which will be copied in
         the constructor.
     """
+
     def __init__(self, name, options, core_fn, **kernel_params):
         super().__init__(name=name, opt=options)
         self.core_fn = core_fn
@@ -112,7 +113,7 @@ class DiffKernel(Kernel, abc.ABC):
         return self.core_fn(X1, X2, out=None, diag=diag, **self.diff_params, **self._other_params)
 
     @abc.abstractmethod
-    def detach(self) -> 'Kernel':
+    def detach(self) -> "Kernel":
         """Detaches all differentiable parameters of the kernel from the computation graph.
 
         Returns
@@ -123,23 +124,22 @@ class DiffKernel(Kernel, abc.ABC):
         """
         pass
 
-    def dmmv(self,
-             X1: Union[torch.Tensor, SparseTensor],
-             X2: Union[torch.Tensor, SparseTensor],
-             v: Optional[torch.Tensor],
-             w: Optional[torch.Tensor], out: Optional[torch.Tensor] = None,
-             opt: Optional['falkon.FalkonOptions'] = None):
+    def dmmv(
+        self,
+        X1: Union[torch.Tensor, SparseTensor],
+        X2: Union[torch.Tensor, SparseTensor],
+        v: Optional[torch.Tensor],
+        w: Optional[torch.Tensor],
+        out: Optional[torch.Tensor] = None,
+        opt: Optional["falkon.FalkonOptions"] = None,
+    ):
         X1, X2, v, w, out = self._check_dmmv_dimensions(X1, X2, v, w, out)
         params = self.params
         if opt is not None:
             params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
         dmmv_impl = self._decide_dmmv_impl(X1, X2, v, w, params)
         sparsity = check_sparse(X1, X2)
-        diff = (
-            (not any(sparsity)) and
-            any(
-                t.requires_grad for t in [X1, X2, v, w] + list(self.diff_params.values())
-                if t is not None
-            )
+        diff = (not any(sparsity)) and any(
+            t.requires_grad for t in [X1, X2, v, w] + list(self.diff_params.values()) if t is not None
         )
         return dmmv_impl(X1, X2, v, w, self, out, diff, params)

@@ -20,7 +20,7 @@ if decide_cuda():
 @pytest.fixture(scope="class", params=[4, 1000])
 def pd_data(request):
     size = request.param
-    return gen_random_pd(size, 'float64', F=False, seed=12)
+    return gen_random_pd(size, "float64", F=False, seed=12)
 
 
 def choose_on_dtype(dtype):
@@ -61,8 +61,16 @@ class TestInCorePyTest:
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("input_device", ["cpu", "cuda:0"])
     def test_in_core(self, pd_data, dtype, order, upper, clean, overwrite, input_device):
-        run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
-                       overwrite=overwrite, input_device=input_device, opt=self.basic_options)
+        run_potrf_test(
+            pd_data,
+            dtype=dtype,
+            order=order,
+            upper=upper,
+            clean=clean,
+            overwrite=overwrite,
+            input_device=input_device,
+            opt=self.basic_options,
+        )
 
     @pytest.mark.full
     @pytest.mark.parametrize("clean,order,input_device", [pytest.param(False, "F", "cpu")])
@@ -74,8 +82,16 @@ class TestInCorePyTest:
             max_mem = max(1600, pd_data.shape[0] * pd_data.shape[1] * sizeof_dtype(dtype) * 1.5)
         opt = dataclasses.replace(self.basic_options, max_gpu_mem=max_mem)
 
-        run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
-                       overwrite=overwrite, input_device=input_device, opt=opt)
+        run_potrf_test(
+            pd_data,
+            dtype=dtype,
+            order=order,
+            upper=upper,
+            clean=clean,
+            overwrite=overwrite,
+            input_device=input_device,
+            opt=opt,
+        )
 
     @pytest.mark.full
     @pytest.mark.parametrize("clean,order,input_device", [pytest.param(False, "F", "cpu")])
@@ -87,8 +103,16 @@ class TestInCorePyTest:
         opt = dataclasses.replace(self.basic_options, max_gpu_mem=max_mem)
         # Will raise due to insufficient memory
         with pytest.raises(RuntimeError, match="Cannot run in-core POTRF but `chol_force_in_core` was specified."):
-            run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
-                           overwrite=overwrite, input_device=input_device, opt=opt)
+            run_potrf_test(
+                pd_data,
+                dtype=dtype,
+                order=order,
+                upper=upper,
+                clean=clean,
+                overwrite=overwrite,
+                input_device=input_device,
+                opt=opt,
+            )
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
@@ -100,30 +124,72 @@ class TestOutOfCorePyTest:
     def test_start_cuda_fail(self, pd_data, dtype, overwrite):
         # Cannot run OOC-POTRF on CUDA matrices (only IC-POTRF allowed)
         with pytest.raises(ValueError, match="Cannot run out-of-core POTRF on CUDA"):
-            run_potrf_test(pd_data, dtype=dtype, order="F", upper=False, clean=False,
-                           overwrite=overwrite, input_device="cuda:0", opt=self.basic_options)
+            run_potrf_test(
+                pd_data,
+                dtype=dtype,
+                order="F",
+                upper=False,
+                clean=False,
+                overwrite=overwrite,
+                input_device="cuda:0",
+                opt=self.basic_options,
+            )
 
     @pytest.mark.parametrize("clean", [True, False])
-    @pytest.mark.parametrize("order,upper", [
-        pytest.param("F", True, marks=[pytest.mark.xfail(strict=True), ]),  # Upper-F not possible
-        pytest.param("C", True),
-        pytest.param("F", False),
-        pytest.param("C", False, marks=[pytest.mark.xfail(strict=True), ]),  # Lower-C not possible
-    ])
+    @pytest.mark.parametrize(
+        "order,upper",
+        [
+            pytest.param(
+                "F",
+                True,
+                marks=[
+                    pytest.mark.xfail(strict=True),
+                ],
+            ),  # Upper-F not possible
+            pytest.param("C", True),
+            pytest.param("F", False),
+            pytest.param(
+                "C",
+                False,
+                marks=[
+                    pytest.mark.xfail(strict=True),
+                ],
+            ),  # Lower-C not possible
+        ],
+    )
     def test_ooc(self, pd_data, dtype, order, upper, clean, overwrite):
-        run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
-                       overwrite=overwrite, input_device="cpu", opt=self.basic_options)
+        run_potrf_test(
+            pd_data,
+            dtype=dtype,
+            order=order,
+            upper=upper,
+            clean=clean,
+            overwrite=overwrite,
+            input_device="cpu",
+            opt=self.basic_options,
+        )
 
-    @pytest.mark.parametrize("clean,order,upper", [
-        pytest.param(False, "C", True),
-        pytest.param(True, "F", False),
-    ])
+    @pytest.mark.parametrize(
+        "clean,order,upper",
+        [
+            pytest.param(False, "C", True),
+            pytest.param(True, "F", False),
+        ],
+    )
     def test_ooc_mem(self, pd_data, dtype, order, upper, clean, overwrite):
         # 1600 is the minimum memory the fn seems to use (even for the 4x4 data)
         max_mem = max(pd_data.shape[0] * sizeof_dtype(dtype) * 1000, 1600)
         opt = dataclasses.replace(self.basic_options, max_gpu_mem=max_mem)
-        run_potrf_test(pd_data, dtype=dtype, order=order, upper=upper, clean=clean,
-                       overwrite=overwrite, input_device="cpu", opt=opt)
+        run_potrf_test(
+            pd_data,
+            dtype=dtype,
+            order=order,
+            upper=upper,
+            clean=clean,
+            overwrite=overwrite,
+            input_device="cpu",
+            opt=opt,
+        )
 
 
 if __name__ == "__main__":

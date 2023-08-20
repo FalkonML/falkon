@@ -3,10 +3,20 @@ import numpy as np
 import torch
 from scipy.spatial.distance import cdist
 
-__all__ = ("naive_gaussian_kernel", "naive_sigmoid_kernel", "naive_laplacian_kernel",
-           "naive_linear_kernel", "naive_polynomial_kernel", "naive_matern_kernel",
-           "naive_diff_gaussian_kernel", "naive_diff_sigmoid_kernel", "naive_diff_laplacian_kernel",
-           "naive_diff_linear_kernel", "naive_diff_polynomial_kernel", "naive_diff_matern_kernel",)
+__all__ = (
+    "naive_gaussian_kernel",
+    "naive_sigmoid_kernel",
+    "naive_laplacian_kernel",
+    "naive_linear_kernel",
+    "naive_polynomial_kernel",
+    "naive_matern_kernel",
+    "naive_diff_gaussian_kernel",
+    "naive_diff_sigmoid_kernel",
+    "naive_diff_laplacian_kernel",
+    "naive_diff_linear_kernel",
+    "naive_diff_polynomial_kernel",
+    "naive_diff_matern_kernel",
+)
 
 
 def naive_diff_gaussian_kernel(X1, X2, sigma):
@@ -41,22 +51,22 @@ def naive_diff_matern_kernel(X1, X2, sigma, nu):
         K = torch.exp(-pairwise_dists)
     elif nu == 1.5:
         K = pairwise_dists * math.sqrt(3)
-        K = (1. + K) * torch.exp(-K)
+        K = (1.0 + K) * torch.exp(-K)
     elif nu == 2.5:
         K = pairwise_dists * math.sqrt(5)
-        K = (1. + K + K ** 2 / 3.0) * torch.exp(-K)
+        K = (1.0 + K + K**2 / 3.0) * torch.exp(-K)
     elif nu == np.inf:
-        K = torch.exp(-pairwise_dists ** 2 / 2.0)
+        K = torch.exp(-(pairwise_dists**2) / 2.0)
     return K
 
 
 def naive_gaussian_kernel(X1, X2, sigma):
-    pairwise_dists = cdist(X1, X2, 'sqeuclidean')
-    return np.exp(-pairwise_dists / (2 * sigma ** 2))
+    pairwise_dists = cdist(X1, X2, "sqeuclidean")
+    return np.exp(-pairwise_dists / (2 * sigma**2))
 
 
 def naive_laplacian_kernel(X1, X2, sigma):
-    pairwise_dists = cdist(X1, X2, 'euclidean')
+    pairwise_dists = cdist(X1, X2, "euclidean")
     return np.exp(-pairwise_dists / sigma)
 
 
@@ -75,16 +85,16 @@ def naive_polynomial_kernel(X1, X2, alpha, beta, degree):
 
 
 def naive_matern_kernel(X1, X2, sigma, nu):
-    pairwise_dists = cdist(X1 / sigma, X2 / sigma, 'euclidean')
+    pairwise_dists = cdist(X1 / sigma, X2 / sigma, "euclidean")
 
     if nu == 0.5:
         K = np.exp(-pairwise_dists)
     elif nu == 1.5:
         K = pairwise_dists * math.sqrt(3)
-        K = (1. + K) * np.exp(-K)
+        K = (1.0 + K) * np.exp(-K)
     elif nu == 2.5:
         K = pairwise_dists * math.sqrt(5)
-        K = (1. + K + K ** 2 / 3.0) * np.exp(-K)
+        K = (1.0 + K + K**2 / 3.0) * np.exp(-K)
     elif nu == np.inf:
-        K = np.exp(-pairwise_dists ** 2 / 2.0)
+        K = np.exp(-(pairwise_dists**2) / 2.0)
     return K

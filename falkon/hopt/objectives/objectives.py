@@ -9,15 +9,16 @@ from torch.distributions.transforms import identity_transform
 
 
 class HyperoptObjective(torch.nn.Module):
-    def __init__(self,
-                 kernel: falkon.kernels.DiffKernel,
-                 centers_init: torch.Tensor,
-                 penalty_init: torch.Tensor,
-                 opt_centers: bool,
-                 opt_penalty: bool,
-                 centers_transform: Optional[torch.distributions.Transform],
-                 pen_transform: Optional[torch.distributions.Transform],
-                 ):
+    def __init__(
+        self,
+        kernel: falkon.kernels.DiffKernel,
+        centers_init: torch.Tensor,
+        penalty_init: torch.Tensor,
+        opt_centers: bool,
+        opt_penalty: bool,
+        centers_transform: Optional[torch.distributions.Transform],
+        pen_transform: Optional[torch.distributions.Transform],
+    ):
         """
 
         Parameters

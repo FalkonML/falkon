@@ -7,9 +7,7 @@ from falkon import la_helpers
 from falkon.options import FalkonOptions, CholeskyOptions
 from falkon.utils.devices import DeviceInfo, get_device_info
 from falkon.utils.helpers import sizeof_dtype
-from falkon.utils.tensor_helpers import (
-    is_f_contig, copy_same_stride, create_fortran
-)
+from falkon.utils.tensor_helpers import is_f_contig, copy_same_stride, create_fortran
 from falkon.utils.device_copy import copy
 from falkon.c_ext import parallel_potrf, cusolver_potrf_buffer_size, cusolver_potrf
 from .ooc_utils import calc_block_sizes
@@ -59,12 +57,13 @@ def _ic_cholesky(A, upper, device):
         potrf_bsize = cusolver_potrf_buffer_size(A=Agpu, upper=upper, n=n, lda=n)
 
         # Allocate workspace and info buffers
-        potrf_wspace = torch.empty(size=(potrf_bsize, ), dtype=A.dtype, device=tc_device)
+        potrf_wspace = torch.empty(size=(potrf_bsize,), dtype=A.dtype, device=tc_device)
         dev_info = torch.tensor(4, dtype=torch.int32, device=tc_device)
 
         # Run cholesky
-        cusolver_potrf(A=Agpu, workspace=potrf_wspace, workspace_size=potrf_bsize, info=dev_info,
-                       upper=upper, n=n, lda=n)
+        cusolver_potrf(
+            A=Agpu, workspace=potrf_wspace, workspace_size=potrf_bsize, info=dev_info, upper=upper, n=n, lda=n
+        )
 
         # Copy back to CPU
         if not A.is_cuda:
@@ -86,15 +85,14 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
     # block_size < (sqrt((2*N)^2 + 4R) - 2*N) / 2
     dts = sizeof_dtype(dt)
     avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
-    max_block_size = (math.sqrt(4 * N ** 2 + 4 * avail_ram) - 2 * N) / 2
+    max_block_size = (math.sqrt(4 * N**2 + 4 * avail_ram) - 2 * N) / 2
     max_block_size = int(math.floor(max_block_size))
     if max_block_size < 1:
         raise RuntimeError(
-            "Cannot run parallel POTRF with minimum "
-            "available memory of %.2fMB" % (avail_ram * dts / 2 ** 20))
+            "Cannot run parallel POTRF with minimum available memory of %.2fMB" % (avail_ram * dts / 2**20)
+        )
 
-    block_sizes = calc_block_sizes(
-        max_block_size, num_gpus, N, opt.chol_par_blk_multiplier)
+    block_sizes = calc_block_sizes(max_block_size, num_gpus, N, opt.chol_par_blk_multiplier)
     block_allocations = defaultdict(list)
     cur_n = 0
     for i, bs in enumerate(block_sizes):
@@ -107,13 +105,15 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
 
     for g in range(num_gpus):
         torch.cuda.current_stream(g).synchronize()
-    parallel_potrf(devices=list(range(num_gpus)),
-                   block_starts=block_allocations["start"],
-                   block_ends=block_allocations["end"],
-                   block_sizes=block_allocations["size"],
-                   block_devices=block_allocations["device_id"],
-                   block_ids=block_allocations["id"],
-                   A=A)
+    parallel_potrf(
+        devices=list(range(num_gpus)),
+        block_starts=block_allocations["start"],
+        block_ends=block_allocations["end"],
+        block_sizes=block_allocations["size"],
+        block_devices=block_allocations["device_id"],
+        block_ids=block_allocations["id"],
+        A=A,
+    )
     return A
 
 
@@ -182,8 +182,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     # Determine GPU free RAM
     gpu_info = [v for k, v in get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
-        g.actual_free_mem = min((g.free_memory - 300 * 2 ** 20) * 0.95,
-                                opt.max_gpu_mem * 0.95)
+        g.actual_free_mem = min((g.free_memory - 300 * 2**20) * 0.95, opt.max_gpu_mem * 0.95)
 
     if A.is_cuda:
         try:
@@ -207,9 +206,11 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     if upper:
         # Can do only in-core!
         if not ic:
-            raise ValueError("GPU POTRF is only implemented on the "
-                             "lower triangle for Fortran-ordered matrices (or on the upper "
-                             "triangle for C-ordered matrices)")
+            raise ValueError(
+                "GPU POTRF is only implemented on the "
+                "lower triangle for Fortran-ordered matrices (or on the upper "
+                "triangle for C-ordered matrices)"
+            )
     if not ic and A.is_cuda:
         _msg = "Cannot run out-of-core POTRF on CUDA matrix 'A'."
         if opt.chol_force_ooc:

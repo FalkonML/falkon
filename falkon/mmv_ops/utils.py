@@ -11,10 +11,19 @@ from falkon.utils.fake_queue import FakeQueue
 from falkon.utils.tensor_helpers import is_contig, extract_same_stride, create_fortran, create_C, create_same_stride
 
 __all__ = (
-    "_setup_opt", "_check_contiguity", "_get_gpu_info", "_get_cpu_ram",
-    "_start_wait_processes", "_gpu_tns_same_memory", "_call_direct",
-    "ensure_batch_dim", "_extract_flat", "_is_incore", "_dev_from_id",
-    "create_output_mat", "CUDA_EXTRA_MM_RAM",
+    "_setup_opt",
+    "_check_contiguity",
+    "_get_gpu_info",
+    "_get_cpu_ram",
+    "_start_wait_processes",
+    "_gpu_tns_same_memory",
+    "_call_direct",
+    "ensure_batch_dim",
+    "_extract_flat",
+    "_is_incore",
+    "_dev_from_id",
+    "create_output_mat",
+    "CUDA_EXTRA_MM_RAM",
 )
 
 
@@ -44,7 +53,8 @@ def _get_gpu_info(opt: BaseOptions, slack: float = 0.9) -> List[DeviceInfo]:
         if g.usable_memory < 0:
             raise MemoryError(
                 f"Usable memory on device {g.Id} is less than 0. Either there is no "
-                f"free memory available, or the `max_gpu_mem` setting is too low.")
+                f"free memory available, or the `max_gpu_mem` setting is too low."
+            )
     return gpu_info
 
 
@@ -61,7 +71,7 @@ def _start_wait_processes(target, args) -> List[Any]:
         args_queue.put(a[0])
         new_args_tuple = (i, args_queue, a[1])
         # PropagatingThread throws any exception which happened in the thread on join
-        process = PropagatingThread(target=target, name=f'GPU-{a[1]}', args=new_args_tuple)
+        process = PropagatingThread(target=target, name=f"GPU-{a[1]}", args=new_args_tuple)
         processes.append(process)
     for p in processes:
         p.start()
@@ -78,10 +88,9 @@ def _call_direct(target, arg):
 
 def _gpu_tns_same_memory(A: torch.Tensor, B: torch.Tensor) -> bool:
     # noinspection PyArgumentList
-    return (A.dtype == B.dtype) and \
-           (A.shape == B.shape) and \
-           (A.data_ptr() == B.data_ptr()) and \
-           (A.stride() == B.stride())
+    return (
+        (A.dtype == B.dtype) and (A.shape == B.shape) and (A.data_ptr() == B.data_ptr()) and (A.stride() == B.stride())
+    )
 
 
 def ensure_batch_dim(*args: Optional[torch.Tensor]):
@@ -108,39 +117,39 @@ def _is_incore(computation_device: torch.device, data_device: torch.device) -> b
 
 def _dev_from_id(device_id: int) -> torch.device:
     if device_id < 0:
-        return torch.device('cpu')
-    return torch.device('cuda:%d' % device_id)
+        return torch.device("cpu")
+    return torch.device("cuda:%d" % device_id)
 
 
-def create_output_mat(out: Optional[torch.Tensor],
-                      data_devs: Sequence[torch.device],
-                      is_sparse: bool,
-                      shape: Tuple[int, int],
-                      dtype: torch.dtype,
-                      comp_dev_type: str,
-                      other_mat: torch.Tensor,
-                      output_stride: Optional[str] = None,
-                      ) -> torch.Tensor:
+def create_output_mat(
+    out: Optional[torch.Tensor],
+    data_devs: Sequence[torch.device],
+    is_sparse: bool,
+    shape: Tuple[int, int],
+    dtype: torch.dtype,
+    comp_dev_type: str,
+    other_mat: torch.Tensor,
+    output_stride: Optional[str] = None,
+) -> torch.Tensor:
     if out is not None:
         return out
     # Decide output device
     out_dev = torch.device("cpu")
     for ddev in data_devs:
-        if ddev.type == 'cuda':
+        if ddev.type == "cuda":
             out_dev = ddev
             break
     if is_sparse:
         output_stride = "F"
     if output_stride is None:
-        out = create_same_stride(shape, other_mat, dtype, device=out_dev,
-                                 pin_memory=out_dev.type != 'cuda' and comp_dev_type == 'cuda')
+        out = create_same_stride(
+            shape, other_mat, dtype, device=out_dev, pin_memory=out_dev.type != "cuda" and comp_dev_type == "cuda"
+        )
     else:
         if output_stride == "F":
             out = create_fortran(
-                shape, dtype, device=out_dev,
-                pin_memory=out_dev.type != 'cuda' and comp_dev_type == 'cuda')
+                shape, dtype, device=out_dev, pin_memory=out_dev.type != "cuda" and comp_dev_type == "cuda"
+            )
         else:
-            out = create_C(
-                shape, dtype, device=out_dev,
-                pin_memory=out_dev.type != 'cuda' and comp_dev_type == 'cuda')
+            out = create_C(shape, dtype, device=out_dev, pin_memory=out_dev.type != "cuda" and comp_dev_type == "cuda")
     return out

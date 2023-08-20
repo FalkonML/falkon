@@ -14,21 +14,25 @@ T = 30
 
 @pytest.fixture(scope="module")
 def mat():
-    return gen_random(M, M, 'float64', F=True, seed=10)
+    return gen_random(M, M, "float64", F=True, seed=10)
 
 
 @pytest.fixture(scope="module")
 def arr():
-    return gen_random(M, T, 'float64', F=True, seed=12)
+    return gen_random(M, T, "float64", F=True, seed=12)
 
 
 @pytest.mark.parametrize("order", ["C", "F"])
 @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 @pytest.mark.parametrize("lower", [True, False], ids=["lower", "upper"])
 @pytest.mark.parametrize("transpose", [True, False], ids=["transpose", "no_transpose"])
-@pytest.mark.parametrize("device", [
-    pytest.param("cpu"),
-    pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
+@pytest.mark.parametrize(
+    "device",
+    [
+        pytest.param("cpu"),
+        pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")]),
+    ],
+)
 def test_trsm_wrapper(mat, arr, dtype, order, device, lower, transpose):
     rtol = 1e-2 if dtype == np.float32 else 1e-11
 

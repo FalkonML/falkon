@@ -7,7 +7,7 @@ import torch
 from falkon.options import FalkonOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.la_helpers import copy_triang, vec_mul_triang, mul_triang, trsm
-from falkon.utils.helpers import (choose_fn)
+from falkon.utils.helpers import choose_fn
 from .preconditioner import Preconditioner
 from .pc_utils import (
     inplace_add_diag_th,
@@ -92,16 +92,12 @@ class LogisticPreconditioner(Preconditioner):
             alpha_np = np.copy(alpha_np, order="F")
 
         trmm = choose_fn(C.dtype, sclb.dtrmm, sclb.strmm, "TRMM")
-        out = trmm(alpha=1.0, a=C.numpy(), b=alpha_np, side=0, lower=0, trans_a=1, diag=0,
-                   overwrite_b=1)
+        out = trmm(alpha=1.0, a=C.numpy(), b=alpha_np, side=0, lower=0, trans_a=1, diag=0, overwrite_b=1)
         return torch.from_numpy(out)
 
-    def init(self,
-             X: Union[torch.Tensor, SparseTensor],
-             Y: torch.Tensor,
-             alpha: torch.Tensor,
-             penalty: float,
-             N: int) -> None:
+    def init(
+        self, X: Union[torch.Tensor, SparseTensor], Y: torch.Tensor, alpha: torch.Tensor, penalty: float, N: int
+    ) -> None:
         """Initialize the preconditioner matrix.
 
         This method must be called before the preconditioner becomes usable.
@@ -139,10 +135,9 @@ class LogisticPreconditioner(Preconditioner):
             # It sets the `T` variable from the paper (chol(kMM)) to the upper part of `self.fC`
             with TicToc("Kernel", debug=self.params.debug):
                 if isinstance(X, torch.Tensor):
-                    C = create_same_stride((M, M), X, dtype=dtype, device='cpu',
-                                           pin_memory=self._use_cuda)
+                    C = create_same_stride((M, M), X, dtype=dtype, device="cpu", pin_memory=self._use_cuda)
                 else:  # If sparse tensor we need fortran for kernel calculation
-                    C = create_fortran((M, M), dtype=dtype, device='cpu', pin_memory=self._use_cuda)
+                    C = create_fortran((M, M), dtype=dtype, device="cpu", pin_memory=self._use_cuda)
                 self.kernel(X, X, out=C, opt=self.params)
             if not is_f_contig(C):
                 C = C.T
@@ -151,8 +146,7 @@ class LogisticPreconditioner(Preconditioner):
                 # Compute T: lower(fC) = T.T
                 inplace_add_diag_th(C, eps * M)
             with TicToc("Cholesky 1", debug=self.params.debug):
-                C = potrf_wrapper(C, clean=True, upper=False,
-                                  use_cuda=self._use_cuda, opt=self.params)
+                C = potrf_wrapper(C, clean=True, upper=False, use_cuda=self._use_cuda, opt=self.params)
                 # Save the diagonal which will be overwritten when computing A
                 self.dT = C.diag()
             with TicToc("Copy triangular", debug=self.params.debug):
@@ -199,8 +193,7 @@ class LogisticPreconditioner(Preconditioner):
 
         with TicToc("Cholesky 2", debug=self.params.debug):
             # Cholesky on lower(fC) : lower(fC) = A.T
-            C = potrf_wrapper(C, clean=False, upper=False,
-                              use_cuda=self._use_cuda, opt=self.params)
+            C = potrf_wrapper(C, clean=False, upper=False, use_cuda=self._use_cuda, opt=self.params)
             self.dA = C.diag()
 
         self.fC = C

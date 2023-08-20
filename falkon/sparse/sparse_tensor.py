@@ -6,8 +6,8 @@ import torch
 
 
 class SparseType(Enum):
-    """Whether a `SparseTensor` is in CSC or CSR format.
-    """
+    """Whether a `SparseTensor` is in CSC or CSR format."""
+
     CSR = "csr"
     CSC = "csc"
 
@@ -44,12 +44,14 @@ class SparseTensor:
         Whether the matrix should be interpreted as CSR or CSC format.
     """
 
-    def __init__(self,
-                 indexptr: torch.Tensor,
-                 index: torch.Tensor,
-                 data: torch.Tensor,
-                 size: Tuple[int, int],
-                 sparse_type: Union[str, SparseType] = SparseType.CSR):
+    def __init__(
+        self,
+        indexptr: torch.Tensor,
+        index: torch.Tensor,
+        data: torch.Tensor,
+        size: Tuple[int, int],
+        sparse_type: Union[str, SparseType] = SparseType.CSR,
+    ):
         if isinstance(sparse_type, str):
             sparse_type = SparseType(sparse_type)
         if sparse_type == SparseType.CSR:
@@ -112,7 +114,7 @@ class SparseTensor:
     def dim(self):
         return len(self._size)
 
-    def narrow_rows(self, start: Optional[int], length: Optional[int]) -> 'SparseTensor':
+    def narrow_rows(self, start: Optional[int], length: Optional[int]) -> "SparseTensor":
         """Select a subset of contiguous rows from the sparse matrix.
         If this is a CSC sparse matrix, instead of taking contiguous rows we take contiguous
         columns.
@@ -146,17 +148,16 @@ class SparseTensor:
         startptr = self.indexptr[start]
         endptr = self.indexptr[end]
 
-        new_indexptr = self.indexptr[start:end + 1]
+        new_indexptr = self.indexptr[start : end + 1]
         new_index = self.index[startptr:endptr]
         new_data = self.data[startptr:endptr]
         if start > 0:
             new_indexptr = new_indexptr.clone().detach()
             new_indexptr.sub_(startptr)  # subtract in place
 
-        return SparseTensor(
-            indexptr=new_indexptr, index=new_index, data=new_data, size=(length, self.size(1)))
+        return SparseTensor(indexptr=new_indexptr, index=new_index, data=new_data, size=(length, self.size(1)))
 
-    def to(self, dtype=None, device=None, non_blocking=False) -> 'SparseTensor':
+    def to(self, dtype=None, device=None, non_blocking=False) -> "SparseTensor":
         new_data = self.data
         new_indexptr = self.indexptr
         new_index = self.index
@@ -174,15 +175,16 @@ class SparseTensor:
             new_indexptr = self.indexptr.to(device=device, non_blocking=non_blocking)
             new_index = self.index.to(device=device, non_blocking=non_blocking)
         return SparseTensor(
-            indexptr=new_indexptr, index=new_index, data=new_data,
-            size=self.shape, sparse_type=self.sparse_type)
+            indexptr=new_indexptr, index=new_index, data=new_data, size=self.shape, sparse_type=self.sparse_type
+        )
 
-    def cuda(self) -> 'SparseTensor':
+    def cuda(self) -> "SparseTensor":
         return SparseTensor(
             indexptr=self.indexptr.cuda(),
             index=self.index.cuda(),
             data=self.data.cuda(),
-            size=self.shape, sparse_type=self.sparse_type
+            size=self.shape,
+            sparse_type=self.sparse_type,
         )
 
     def index_to_int_(self):
@@ -193,8 +195,8 @@ class SparseTensor:
         new_index = self.index.to(dtype=torch.int32)
         new_indexptr = self.indexptr.to(dtype=torch.int32)
         return SparseTensor(
-            indexptr=new_indexptr, index=new_index, data=self.data,
-            size=self.shape, sparse_type=self.sparse_type)
+            indexptr=new_indexptr, index=new_index, data=self.data, size=self.shape, sparse_type=self.sparse_type
+        )
 
     def index_to_long_(self):
         self.indexptr = self.indexptr.to(dtype=torch.int64)
@@ -204,8 +206,8 @@ class SparseTensor:
         new_index = self.index.to(dtype=dtype, copy=False)
         new_indexptr = self.indexptr.to(dtype=dtype, copy=False)
         return SparseTensor(
-            indexptr=new_indexptr, index=new_index, data=self.data,
-            size=self.shape, sparse_type=self.sparse_type)
+            indexptr=new_indexptr, index=new_index, data=self.data, size=self.shape, sparse_type=self.sparse_type
+        )
 
     def pin_memory(self):
         self.data = self.data.pin_memory()
@@ -218,47 +220,47 @@ class SparseTensor:
             raise RuntimeError("Cannot transpose_csc since data is already in csc format")
         new_size = (self.shape[1], self.shape[0])
         return SparseTensor(
-            indexptr=self.indexptr, index=self.index, data=self.data, size=new_size,
-            sparse_type=SparseType.CSC)
+            indexptr=self.indexptr, index=self.index, data=self.data, size=new_size, sparse_type=SparseType.CSC
+        )
 
     def transpose_csr(self):
         if self.is_csr:
             raise RuntimeError("Cannot transpose_csr since data is already in csr format")
         new_size = (self.shape[1], self.shape[0])
         return SparseTensor(
-            indexptr=self.indexptr, index=self.index, data=self.data, size=new_size,
-            sparse_type=SparseType.CSR)
+            indexptr=self.indexptr, index=self.index, data=self.data, size=new_size, sparse_type=SparseType.CSR
+        )
 
     @staticmethod
-    def from_scipy(mat: Union[scipy.sparse.csr_matrix, scipy.sparse.csc_matrix]) -> 'SparseTensor':
+    def from_scipy(mat: Union[scipy.sparse.csr_matrix, scipy.sparse.csc_matrix]) -> "SparseTensor":
         if isinstance(mat, scipy.sparse.csr_matrix):
             return SparseTensor(
                 indexptr=torch.from_numpy(mat.indptr).to(torch.long),
                 index=torch.from_numpy(mat.indices).to(torch.long),
                 data=torch.from_numpy(mat.data),
                 size=mat.shape[:2],
-                sparse_type=SparseType.CSR)
+                sparse_type=SparseType.CSR,
+            )
         elif isinstance(mat, scipy.sparse.csc_matrix):
             return SparseTensor(
                 indexptr=torch.from_numpy(mat.indptr).to(torch.long),
                 index=torch.from_numpy(mat.indices).to(torch.long),
                 data=torch.from_numpy(mat.data),
                 size=mat.shape[:2],
-                sparse_type=SparseType.CSC)
+                sparse_type=SparseType.CSC,
+            )
         else:
-            raise NotImplementedError("Cannot convert type %s to SparseTensor. "
-                                      "Please use the CSR or CSC formats" % (type(mat)))
+            raise NotImplementedError(
+                "Cannot convert type %s to SparseTensor. Please use the CSR or CSC formats" % (type(mat))
+            )
 
-    def to_scipy(self, copy: bool = False) -> Union[
-            scipy.sparse.csr_matrix, scipy.sparse.csc_matrix]:
+    def to_scipy(self, copy: bool = False) -> Union[scipy.sparse.csr_matrix, scipy.sparse.csc_matrix]:
         if self.is_cuda:
             return self.to(device="cpu").to_scipy(copy=copy)
 
         if self.is_csr:
-            return scipy.sparse.csr_matrix((self.data, self.index, self.indexptr),
-                                           shape=self.shape, copy=copy)
+            return scipy.sparse.csr_matrix((self.data, self.index, self.indexptr), shape=self.shape, copy=copy)
         elif self.is_csc:
-            return scipy.sparse.csc_matrix((self.data, self.index, self.indexptr),
-                                           shape=self.shape, copy=copy)
+            return scipy.sparse.csc_matrix((self.data, self.index, self.indexptr), shape=self.shape, copy=copy)
         else:
             raise NotImplementedError("Cannot convert %s matrix to scipy" % (self.sparse_type))

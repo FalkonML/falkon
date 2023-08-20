@@ -42,7 +42,7 @@ with open('{fname_out}', 'wb') as fh:
     """
     # Save string to temporary file
     py_fname = f"./temp_lauum_runner_gpu{gpu_num}_{random.randint(0, 10000)}.py"
-    with open(py_fname, 'w') as fh:
+    with open(py_fname, "w") as fh:
         fh.write(run_str)
 
     os.system(f"CUDA_VISIBLE_DEVICES='{gpu_num}' python {py_fname}")
@@ -58,26 +58,26 @@ class TestStressOocLauum:
         num_pts = 1536
         num_gpus = torch.cuda.device_count()
         torch.manual_seed(19)
-        A = torch.randn(num_pts, num_pts, dtype=torch.float32, device='cpu')
+        A = torch.randn(num_pts, num_pts, dtype=torch.float32, device="cpu")
         with tempfile.TemporaryDirectory() as folder:
             A_file = os.path.join(folder, "data_A.pkl")
-            out_files = [
-                os.path.join(folder, f"output_{i}.pkl") for i in range(num_processes)
-            ]
+            out_files = [os.path.join(folder, f"output_{i}.pkl") for i in range(num_processes)]
             # Write data to file
-            with open(A_file, 'wb') as fh:
+            with open(A_file, "wb") as fh:
                 pickle.dump(A, fh)
 
             threads = []
             for i in range(num_processes):
-                t = threading.Thread(target=_ooc_lauum_runner_str,
-                                     kwargs={
-                                         'fname_A': A_file,
-                                         'fname_out': out_files[i],
-                                         'num_rep': num_rep,
-                                         'gpu_num': i % num_gpus,
-                                     },
-                                     daemon=False)
+                t = threading.Thread(
+                    target=_ooc_lauum_runner_str,
+                    kwargs={
+                        "fname_A": A_file,
+                        "fname_out": out_files[i],
+                        "num_rep": num_rep,
+                        "gpu_num": i % num_gpus,
+                    },
+                    daemon=False,
+                )
                 threads.append(t)
             for t in threads:
                 t.start()
@@ -87,7 +87,7 @@ class TestStressOocLauum:
             # Load outputs
             actual = []
             for of in out_files:
-                with open(of, 'rb') as fh:
+                with open(of, "rb") as fh:
                     actual.append(pickle.load(fh))
 
         # Expected result
@@ -138,7 +138,7 @@ with open('{fname_out}', 'wb') as fh:
     """
     # Save string to temporary file
     py_fname = f"./temp_runner_gpu{gpu_num}_{random.randint(0, 1000)}.py"
-    with open(py_fname, 'w') as fh:
+    with open(py_fname, "w") as fh:
         fh.write(run_str)
 
     os.system(f"CUDA_VISIBLE_DEVICES='{gpu_num}' python {py_fname}")
@@ -161,28 +161,28 @@ class TestStressInCore:
         with tempfile.TemporaryDirectory() as folder:
             X_file = os.path.join(folder, "data_x.pkl")
             Y_file = os.path.join(folder, "data_y.pkl")
-            out_files = [
-                os.path.join(folder, f"output_{i}.pkl") for i in range(num_processes)
-            ]
+            out_files = [os.path.join(folder, f"output_{i}.pkl") for i in range(num_processes)]
             # Write data to file
-            with open(X_file, 'wb') as fh:
+            with open(X_file, "wb") as fh:
                 pickle.dump(X, fh)
-            with open(Y_file, 'wb') as fh:
+            with open(Y_file, "wb") as fh:
                 pickle.dump(Y, fh)
 
             threads = []
             for i in range(num_processes):
-                t = threading.Thread(target=_runner_str,
-                                     kwargs={
-                                         'fname_X': X_file,
-                                         'fname_Y': Y_file,
-                                         'fname_out': out_files[i],
-                                         'num_rep': num_rep,
-                                         'max_iter': max_iter,
-                                         'num_centers': num_centers,
-                                         'gpu_num': i % num_gpus,
-                                     },
-                                     daemon=False)
+                t = threading.Thread(
+                    target=_runner_str,
+                    kwargs={
+                        "fname_X": X_file,
+                        "fname_Y": Y_file,
+                        "fname_out": out_files[i],
+                        "num_rep": num_rep,
+                        "max_iter": max_iter,
+                        "num_centers": num_centers,
+                        "gpu_num": i % num_gpus,
+                    },
+                    daemon=False,
+                )
                 threads.append(t)
             for t in threads:
                 t.start()
@@ -192,18 +192,30 @@ class TestStressInCore:
             # Load outputs
             actual = []
             for of in out_files:
-                with open(of, 'rb') as fh:
+                with open(of, "rb") as fh:
                     actual.append(pickle.load(fh))
 
         # Expected result
         kernel = kernels.GaussianKernel(20.0)
         X, Y = X.cuda(), Y.cuda()
-        opt = FalkonOptions(use_cpu=False, keops_active="no", debug=False, never_store_kernel=True,
-                            max_gpu_mem=1 * 2**30, cg_full_gradient_every=2)
+        opt = FalkonOptions(
+            use_cpu=False,
+            keops_active="no",
+            debug=False,
+            never_store_kernel=True,
+            max_gpu_mem=1 * 2**30,
+            cg_full_gradient_every=2,
+        )
         center_sel = FixedSelector(X[:num_centers])
         flk = InCoreFalkon(
-            kernel=kernel, penalty=1e-6, M=num_centers, seed=10, options=opt,
-            maxiter=max_iter, center_selection=center_sel)
+            kernel=kernel,
+            penalty=1e-6,
+            M=num_centers,
+            seed=10,
+            options=opt,
+            maxiter=max_iter,
+            center_selection=center_sel,
+        )
         flk.fit(X, Y)
         expected = flk.predict(X).cpu()
         # Compare actual vs expected

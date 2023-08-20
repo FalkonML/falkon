@@ -11,7 +11,7 @@ from falkon.utils.helpers import check_same_dtype, sizeof_dtype, check_sparse
 
 @pytest.mark.parametrize("F", [True, False], ids=["col-contig", "row-contig"])
 def test_add_diag(F):
-    A = torch.from_numpy(gen_random(1000, 1000, 'float64', F=F, seed=10))
+    A = torch.from_numpy(gen_random(1000, 1000, "float64", F=F, seed=10))
     diag = 10**6
     falkon.preconditioner.pc_utils.inplace_add_diag_th(A, diag)
     assert torch.all((A.diagonal() > 10**5) & (A.diagonal() < 20**6))
@@ -19,9 +19,7 @@ def test_add_diag(F):
 
 def test_check_same_dtype_equal():
     smat = scipy.sparse.csr_matrix(np.array([[0, 1], [0, 1]]).astype(np.float32))
-    ts = [torch.tensor(0, dtype=torch.float32),
-          SparseTensor.from_scipy(smat),
-          None]
+    ts = [torch.tensor(0, dtype=torch.float32), SparseTensor.from_scipy(smat), None]
     assert check_same_dtype(*ts) is True
 
 
@@ -32,14 +30,18 @@ def test_check_same_dtype_empty():
 def test_check_same_dtype_notequal():
     smat32 = scipy.sparse.csr_matrix(np.array([[0, 1], [0, 1]]).astype(np.float32))
     smat64 = scipy.sparse.csr_matrix(np.array([[0, 1], [0, 1]]).astype(np.float64))
-    ts = [torch.tensor(0, dtype=torch.float32),
-          torch.tensor(0, dtype=torch.float64),
-          SparseTensor.from_scipy(smat32), ]
+    ts = [
+        torch.tensor(0, dtype=torch.float32),
+        torch.tensor(0, dtype=torch.float64),
+        SparseTensor.from_scipy(smat32),
+    ]
     assert check_same_dtype(*ts) is False
 
-    ts = [torch.tensor(0, dtype=torch.float32),
-          SparseTensor.from_scipy(smat32),
-          SparseTensor.from_scipy(smat64), ]
+    ts = [
+        torch.tensor(0, dtype=torch.float32),
+        SparseTensor.from_scipy(smat32),
+        SparseTensor.from_scipy(smat64),
+    ]
     assert check_same_dtype(*ts) is False
 
 

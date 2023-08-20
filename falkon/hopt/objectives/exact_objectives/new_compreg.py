@@ -10,17 +10,16 @@ from falkon.hopt.utils import get_scalar
 
 class NystromCompReg(HyperoptObjective):
     def __init__(
-            self,
-            kernel: falkon.kernels.DiffKernel,
-            centers_init: torch.Tensor,
-            penalty_init: torch.Tensor,
-            opt_centers: bool,
-            opt_penalty: bool,
-            centers_transform: Optional[torch.distributions.Transform] = None,
-            pen_transform: Optional[torch.distributions.Transform] = None, ):
-        super().__init__(kernel, centers_init, penalty_init,
-                         opt_centers, opt_penalty,
-                         centers_transform, pen_transform)
+        self,
+        kernel: falkon.kernels.DiffKernel,
+        centers_init: torch.Tensor,
+        penalty_init: torch.Tensor,
+        opt_centers: bool,
+        opt_penalty: bool,
+        centers_transform: Optional[torch.distributions.Transform] = None,
+        pen_transform: Optional[torch.distributions.Transform] = None,
+    ):
+        super().__init__(kernel, centers_init, penalty_init, opt_centers, opt_penalty, centers_transform, pen_transform)
         self.x_train, self.y_train = None, None
         self.losses: Optional[Dict[str, torch.Tensor]] = None
 
@@ -33,9 +32,9 @@ class NystromCompReg(HyperoptObjective):
         L, A, AAT, LB, c = self._calc_intermediate(X, Y)
         C = torch.linalg.solve_triangular(LB, A, upper=False)  # m * n
 
-        datafit = (torch.square(Y).sum() - torch.square(c / sqrt_var).sum())
+        datafit = torch.square(Y).sum() - torch.square(c / sqrt_var).sum()
         ndeff = (C / sqrt_var).square().sum()
-        trace = (Kdiag - torch.trace(AAT))
+        trace = Kdiag - torch.trace(AAT)
         trace = trace * datafit / (variance * X.shape[0])
         self._save_losses(ndeff, datafit, trace)
 
@@ -77,7 +76,9 @@ class NystromCompReg(HyperoptObjective):
         }
 
     def __repr__(self):
-        return f"NystromCompReg(" \
-               f"kernel={self.kernel}, " \
-               f"penalty={get_scalar(self.penalty)}, " \
-               f"num_centers={self.centers.shape[0]})"
+        return (
+            f"NystromCompReg("
+            f"kernel={self.kernel}, "
+            f"penalty={get_scalar(self.penalty)}, "
+            f"num_centers={self.centers.shape[0]})"
+        )

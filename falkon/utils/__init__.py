@@ -26,5 +26,4 @@ def check_random_generator(seed):
         return np.random.default_rng(seed)
     if isinstance(seed, np.random.Generator):
         return seed
-    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
-                     ' instance' % seed)
+    raise ValueError("%r cannot be used to seed a numpy.random.RandomState instance" % seed)

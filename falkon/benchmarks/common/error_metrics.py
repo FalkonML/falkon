@@ -15,10 +15,12 @@ def _ensure_numpy(*arrays) -> Generator[np.ndarray, None, None]:
 
 def _ensure_numpy_or_float(*vals) -> Generator[Union[float, np.ndarray], None, None]:
     for val in vals:
-        if (not isinstance(val, np.ndarray) and
-                not isinstance(val, np.float64) and
-                not isinstance(val, np.float32) and
-                not isinstance(val, float)):
+        if (
+            not isinstance(val, np.ndarray)
+            and not isinstance(val, np.float64)
+            and not isinstance(val, np.float32)
+            and not isinstance(val, float)
+        ):
             yield val.cpu().numpy()
         else:
             yield val
@@ -41,10 +43,10 @@ def rmse(y_true, y_pred, **kwargs):
 
 
 def rmse_with_std(y_true, y_pred, **kwargs):
-    Y_std = kwargs['Y_std']
+    Y_std = kwargs["Y_std"]
 
     y_true, y_pred = _ensure_numpy(y_true, y_pred)
-    Y_std, = _ensure_numpy_or_float(Y_std)
+    (Y_std,) = _ensure_numpy_or_float(Y_std)
 
     y_true = y_true.reshape((-1,))
     y_pred = y_pred.reshape((-1,))
@@ -54,10 +56,10 @@ def rmse_with_std(y_true, y_pred, **kwargs):
 
 
 def nrmse(y_true, y_pred, **kwargs):
-    Y_mean = kwargs['Y_mean']
-    Y_mean, = _ensure_numpy_or_float(Y_mean)
-    Y_std = kwargs.get('Y_std', 1.0)
-    Y_std, = _ensure_numpy_or_float(Y_std)
+    Y_mean = kwargs["Y_mean"]
+    (Y_mean,) = _ensure_numpy_or_float(Y_mean)
+    Y_std = kwargs.get("Y_std", 1.0)
+    (Y_std,) = _ensure_numpy_or_float(Y_std)
 
     y_true = y_true * Y_std + Y_mean
     y_pred = y_pred * Y_std + Y_mean
@@ -68,10 +70,10 @@ def nrmse(y_true, y_pred, **kwargs):
 
 
 def ms_calc_mse(y_true, y_pred, **kwargs):
-    Y_std = kwargs['Y_std']
+    Y_std = kwargs["Y_std"]
 
     y_true, y_pred = _ensure_numpy(y_true, y_pred)
-    Y_std, = _ensure_numpy_or_float(Y_std)
+    (Y_std,) = _ensure_numpy_or_float(Y_std)
 
     y_true = y_true.reshape((-1,))
     y_pred = y_pred.reshape((-1,))
@@ -81,8 +83,8 @@ def ms_calc_mse(y_true, y_pred, **kwargs):
 
 
 def ms_calc_relerr(y_true, y_pred, **kwargs):
-    Y_std = kwargs.get('Y_std', 1.0)
-    Y_mean = kwargs['Y_mean']
+    Y_std = kwargs.get("Y_std", 1.0)
+    Y_mean = kwargs["Y_mean"]
 
     y_true, y_pred = _ensure_numpy(y_true, y_pred)
     Y_std, Y_mean = _ensure_numpy_or_float(Y_std, Y_mean)
@@ -97,47 +99,53 @@ def ms_calc_relerr(y_true, y_pred, **kwargs):
 
 
 def ms_calc_mse_tf(y_true, y_pred, **kwargs):
-    Y_std = kwargs['Y_std']
+    Y_std = kwargs["Y_std"]
 
     import tensorflow as tf
+
     return tf.math.reduce_mean(
         tf.math.square(
-            tf.math.subtract(tf.math.multiply(tf.reshape(y_true, (-1,)), Y_std),
-                             tf.math.multiply(tf.reshape(y_pred, (-1,)), Y_std))
-        ))
+            tf.math.subtract(
+                tf.math.multiply(tf.reshape(y_true, (-1,)), Y_std), tf.math.multiply(tf.reshape(y_pred, (-1,)), Y_std)
+            )
+        )
+    )
 
 
 def rmse_with_std_tf(y_true, y_pred, **kwargs):
-    Y_std = kwargs['Y_std']
+    Y_std = kwargs["Y_std"]
 
     import tensorflow as tf
-    return tf.math.sqrt(tf.math.reduce_mean(
-        tf.math.square(
-            tf.math.subtract(tf.math.multiply(tf.reshape(y_true, (-1,)), Y_std),
-                             tf.math.multiply(tf.reshape(y_pred, (-1,)), Y_std))
-        )))
+
+    return tf.math.sqrt(
+        tf.math.reduce_mean(
+            tf.math.square(
+                tf.math.subtract(
+                    tf.math.multiply(tf.reshape(y_true, (-1,)), Y_std),
+                    tf.math.multiply(tf.reshape(y_pred, (-1,)), Y_std),
+                )
+            )
+        )
+    )
 
 
 def rmse_tf(y_true, y_pred, **kwargs):
     import tensorflow as tf
-    return tf.math.sqrt(tf.math.reduce_mean(
-        tf.math.square(
-            tf.math.subtract(tf.reshape(y_true, (-1,)),
-                             tf.reshape(y_pred, (-1,)))
-        )))
+
+    return tf.math.sqrt(
+        tf.math.reduce_mean(tf.math.square(tf.math.subtract(tf.reshape(y_true, (-1,)), tf.reshape(y_pred, (-1,)))))
+    )
 
 
 def mse_tf(y_true, y_pred, **kwargs):
     import tensorflow as tf
-    return tf.math.reduce_mean(
-        tf.math.square(
-            tf.math.subtract(tf.reshape(y_true, (-1,)),
-                             tf.reshape(y_pred, (-1,)))
-        ))
+
+    return tf.math.reduce_mean(tf.math.square(tf.math.subtract(tf.reshape(y_true, (-1,)), tf.reshape(y_pred, (-1,)))))
 
 
 def higgs_calc_auc(y_true, y_pred, **kwargs):
     from sklearn import metrics
+
     y_true, y_pred = _ensure_numpy(y_true, y_pred)
     y_true = y_true.reshape((-1, 1))
     y_pred = y_pred.reshape((-1, 1))
@@ -146,8 +154,7 @@ def higgs_calc_auc(y_true, y_pred, **kwargs):
         y_true = y_true * 2 - 1
         y_pred = y_pred * 2 - 1
 
-    fpr, tpr, thresholds = metrics.roc_curve(
-        y_true, y_pred, pos_label=1)
+    fpr, tpr, thresholds = metrics.roc_curve(y_true, y_pred, pos_label=1)
     auc = metrics.auc(fpr, tpr)
     return (1.0 - auc), "1-AUC"
 
@@ -181,6 +188,7 @@ def mnist_calc_cerr(y_true, y_pred, **kwargs):
 
 def mnist_calc_cerr_tf(y_true, y_pred, **kwargs):
     import tensorflow as tf
+
     y_true = tf.math.argmax(y_true, axis=1, output_type=tf.dtypes.int32)
     y_pred = tf.math.argmax(y_pred, axis=1, output_type=tf.dtypes.int32)
 
@@ -189,9 +197,13 @@ def mnist_calc_cerr_tf(y_true, y_pred, **kwargs):
 
 def binary_cerr_tf(y_true, y_pred, **kwargs):
     import tensorflow as tf
-    return tf.reduce_mean(tf.cast(tf.math.not_equal(
-        tf.math.sign(tf.reshape(y_true, [-1])),
-        tf.math.sign(tf.reshape(y_pred, [-1]))), tf.dtypes.float64))
+
+    return tf.reduce_mean(
+        tf.cast(
+            tf.math.not_equal(tf.math.sign(tf.reshape(y_true, [-1])), tf.math.sign(tf.reshape(y_pred, [-1]))),
+            tf.dtypes.float64,
+        )
+    )
 
 
 def timit_calc_error(y_true, y_pred, **kwargs):
@@ -207,15 +219,14 @@ def timit_calc_error(y_true, y_pred, **kwargs):
 
 def timit_calc_error_tf(y_true, y_pred, **kwargs):
     import tensorflow as tf
+
     y_true = tf.math.argmax(
-        tf.math.reduce_sum(
-            tf.reshape(y_true, (-1, 48, 3)), axis=2),
-        axis=1, output_type=tf.dtypes.int32)
+        tf.math.reduce_sum(tf.reshape(y_true, (-1, 48, 3)), axis=2), axis=1, output_type=tf.dtypes.int32
+    )
 
     y_pred = tf.math.argmax(
-        tf.math.reduce_sum(
-            tf.reshape(y_pred, (-1, 48, 3)), axis=2),
-        axis=1, output_type=tf.dtypes.int32)
+        tf.math.reduce_sum(tf.reshape(y_pred, (-1, 48, 3)), axis=2), axis=1, output_type=tf.dtypes.int32
+    )
 
     return tf.reduce_mean(tf.cast(tf.math.not_equal(y_true, y_pred), tf.dtypes.float64))
 

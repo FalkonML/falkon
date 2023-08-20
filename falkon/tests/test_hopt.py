@@ -3,8 +3,7 @@ import torch
 
 import falkon.kernels
 from falkon import FalkonOptions
-from falkon.hopt.objectives import (SGPR, CompReg, GCV, HoldOut, LOOCV, NystromCompReg,
-                                    StochasticNystromCompReg)
+from falkon.hopt.objectives import SGPR, CompReg, GCV, HoldOut, LOOCV, NystromCompReg, StochasticNystromCompReg
 from falkon.kernels import GaussianKernel, PolynomialKernel
 
 n, d = 1000, 10
@@ -15,16 +14,17 @@ def kernel(request) -> falkon.kernels.Kernel:
     if request.param == "gauss":
         return GaussianKernel(sigma=torch.tensor([5.0] * d, dtype=torch.float32, requires_grad=True))
     if request.param == "poly":
-        return PolynomialKernel(beta=torch.tensor(3.0, requires_grad=True),
-                                gamma=torch.tensor(1.0, requires_grad=False),
-                                degree=torch.tensor(2, requires_grad=False))
+        return PolynomialKernel(
+            beta=torch.tensor(3.0, requires_grad=True),
+            gamma=torch.tensor(1.0, requires_grad=False),
+            degree=torch.tensor(2, requires_grad=False),
+        )
     raise ValueError("Unmatched request parameter.")
 
 
 def init_model(model_cls, kernel, centers_init, penalty_init, opt_centers, opt_penalty):
     if model_cls == HoldOut:
-        return HoldOut(kernel, centers_init, penalty_init, opt_centers, opt_penalty,
-                       val_pct=0.8, per_iter_split=False)
+        return HoldOut(kernel, centers_init, penalty_init, opt_centers, opt_penalty, val_pct=0.8, per_iter_split=False)
     return model_cls(kernel, centers_init, penalty_init, opt_centers, opt_penalty)
 
 
@@ -58,6 +58,7 @@ def test_exact_objectives(model_cls, kernel):
     opt_hp = torch.optim.Adam(model.parameters(), lr=0.1)
 
     from torch import autograd
+
     autograd.set_detect_anomaly(True)
     for _ in range(50):
         # print(model.kernel.beta, model.kernel.gamma, model.kernel.degree)
@@ -66,7 +67,7 @@ def test_exact_objectives(model_cls, kernel):
         print("Loss", loss)
         loss.backward()
         opt_hp.step()
-    ts_err = torch.mean((model.predict(X_test) - Y_test)**2)
+    ts_err = torch.mean((model.predict(X_test) - Y_test) ** 2)
     print(f"Model {model_cls} obtains {ts_err:.4f} error")
     # assert ts_err < 300
 
@@ -93,11 +94,13 @@ def test_stoch_objectives(kernel):
 
     penalty_init = torch.tensor(1e-1, dtype=dtype)
     centers_init = X_train[:num_centers].clone()
-    flk_opt = FalkonOptions(use_cpu=True, keops_active="no", pc_epsilon_32=1e-4, cg_tolerance=1e-4,
-                            cg_differential_convergence=True)
+    flk_opt = FalkonOptions(
+        use_cpu=True, keops_active="no", pc_epsilon_32=1e-4, cg_tolerance=1e-4, cg_differential_convergence=True
+    )
 
-    model = StochasticNystromCompReg(kernel, centers_init, penalty_init, True, True,
-                                     flk_opt=flk_opt, flk_maxiter=100, num_trace_est=10)
+    model = StochasticNystromCompReg(
+        kernel, centers_init, penalty_init, True, True, flk_opt=flk_opt, flk_maxiter=100, num_trace_est=10
+    )
     opt_hp = torch.optim.Adam(model.parameters(), lr=0.1)
 
     for _ in range(100):
@@ -106,6 +109,6 @@ def test_stoch_objectives(kernel):
         loss.backward()
         print("Loss", loss.item())
         opt_hp.step()
-    ts_err = torch.mean((model.predict(X_test) - Y_test)**2)
+    ts_err = torch.mean((model.predict(X_test) - Y_test) ** 2)
     print(f"Model {model.__class__} obtains {ts_err:.4f} error")
     # assert ts_err < 300

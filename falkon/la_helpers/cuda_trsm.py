@@ -7,8 +7,14 @@ from falkon.c_ext import copy_transpose, cublas_trsm
 from falkon.utils.tensor_helpers import is_f_contig, create_fortran, create_C
 
 
-def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: bool, transpose: bool,
-              stream: Optional[torch.cuda.Stream] = None) -> torch.Tensor:
+def cuda_trsm(
+    A: torch.Tensor,
+    v: torch.Tensor,
+    alpha: float,
+    lower: bool,
+    transpose: bool,
+    stream: Optional[torch.cuda.Stream] = None,
+) -> torch.Tensor:
     if not is_f_contig(A, strict=False):
         raise ValueError("A must be f-contiguous for CUDA TRSM to work.")
     if not check_same_device(A, v):
@@ -32,9 +38,19 @@ def cuda_trsm(A: torch.Tensor, v: torch.Tensor, alpha: float, lower: bool, trans
         else:
             vF = copy_transpose(v, out=vF.T).T
 
-        cublas_trsm(A=A, lda=A.stride(1), B=vF, ldb=vF.stride(1), alpha=alpha,
-                    left=True, upper=not lower, transpose=transpose, unitriangular=False,
-                    m=vF.shape[0], n=vF.shape[1])
+        cublas_trsm(
+            A=A,
+            lda=A.stride(1),
+            B=vF,
+            ldb=vF.stride(1),
+            alpha=alpha,
+            left=True,
+            upper=not lower,
+            transpose=transpose,
+            unitriangular=False,
+            m=vF.shape[0],
+            n=vF.shape[1],
+        )
         if is_f_contig(v, strict=False):
             vout = vF
         else:

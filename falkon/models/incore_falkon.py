@@ -10,7 +10,7 @@ from falkon.utils.helpers import check_same_device
 from falkon.utils import TicToc
 from falkon.utils.devices import get_device_info
 
-__all__ = ("InCoreFalkon", )
+__all__ = ("InCoreFalkon",)
 
 
 class InCoreFalkon(FalkonBase):
@@ -104,35 +104,37 @@ class InCoreFalkon(FalkonBase):
        Advancs in Neural Information Processing Systems, 2020.
     """
 
-    def __init__(self,
-                 kernel: falkon.kernels.Kernel,
-                 penalty: float,
-                 M: int,
-                 center_selection: Union[str, falkon.center_selection.CenterSelector] = 'uniform',
-                 maxiter: int = 20,
-                 seed: Optional[int] = None,
-                 error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
-                 error_every: Optional[int] = 1,
-                 weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
-                 options: Optional[FalkonOptions] = None,
-                 N: int = None,
-                 ):
+    def __init__(
+        self,
+        kernel: falkon.kernels.Kernel,
+        penalty: float,
+        M: int,
+        center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
+        maxiter: int = 20,
+        seed: Optional[int] = None,
+        error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
+        error_every: Optional[int] = 1,
+        weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+        options: Optional[FalkonOptions] = None,
+        N: int = None,
+    ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
         self.maxiter = maxiter
         self.weight_fn = weight_fn
         if not self.use_cuda_:
-            raise RuntimeError("Cannot instantiate InCoreFalkon when CUDA is not available. "
-                               "If CUDA is present on your system, make sure to set "
-                               "'use_cpu=False' in the `FalkonOptions` object.")
+            raise RuntimeError(
+                "Cannot instantiate InCoreFalkon when CUDA is not available. "
+                "If CUDA is present on your system, make sure to set "
+                "'use_cpu=False' in the `FalkonOptions` object."
+            )
         self._init_cuda()
         self.beta_ = None
         self.N = N
 
     def _check_fit_inputs(self, X, Y, Xts, Yts):
         if not check_same_device(X, Y, Xts, Yts) or (not X.is_cuda):
-            raise ValueError("All tensors for fitting InCoreFalkon must be CUDA tensors, "
-                             "located on the same GPU.")
+            raise ValueError("All tensors for fitting InCoreFalkon must be CUDA tensors, located on the same GPU.")
         return super()._check_fit_inputs(X, Y, Xts, Yts)
 
     def _check_predict_inputs(self, X):
@@ -140,12 +142,14 @@ class InCoreFalkon(FalkonBase):
             raise ValueError("X must be on device %s" % (self.alpha_.device))
         return super()._check_predict_inputs(X)
 
-    def fit(self,
-            X: torch.Tensor,
-            Y: torch.Tensor,
-            Xts: Optional[torch.Tensor] = None,
-            Yts: Optional[torch.Tensor] = None,
-            warm_start: Optional[torch.Tensor] = None):
+    def fit(
+        self,
+        X: torch.Tensor,
+        Y: torch.Tensor,
+        Xts: Optional[torch.Tensor] = None,
+        Yts: Optional[torch.Tensor] = None,
+        warm_start: Optional[torch.Tensor] = None,
+    ):
         """Fits the Falkon KRR model.
 
         Parameters
@@ -211,12 +215,10 @@ class InCoreFalkon(FalkonBase):
             num_centers = ny_points.shape[0]
 
             pc_stream = torch.cuda.Stream(X.device)
-            with (
-                    TicToc(f"Calcuating Preconditioner of size {num_centers}", debug=self.options.debug),
-                    torch.cuda.stream(pc_stream)
-            ):
-                precond = falkon.preconditioner.FalkonPreconditioner(
-                    self.penalty, self.kernel, self.options)
+            with TicToc(
+                f"Calcuating Preconditioner of size {num_centers}", debug=self.options.debug
+            ), torch.cuda.stream(pc_stream):
+                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options)
                 self.precond = precond
                 ny_weight_vec = None
                 if self.weight_fn is not None:
@@ -243,17 +245,30 @@ class InCoreFalkon(FalkonBase):
                 validation_cback = self._get_callback_fn(X, Y, Xts, Yts, ny_points, precond)
 
             # Start with the falkon algorithm
-            with TicToc('Computing Falkon iterations', debug=self.options.debug):
-                optim = falkon.optim.FalkonConjugateGradient(self.kernel, precond, self.options,
-                                                             weight_fn=self.weight_fn)
+            with TicToc("Computing Falkon iterations", debug=self.options.debug):
+                optim = falkon.optim.FalkonConjugateGradient(
+                    self.kernel, precond, self.options, weight_fn=self.weight_fn
+                )
                 if Knm is not None:
                     beta = optim.solve(
-                        Knm, None, Y, self.penalty, initial_solution=warm_start,
-                        max_iter=self.maxiter, callback=validation_cback)
+                        Knm,
+                        None,
+                        Y,
+                        self.penalty,
+                        initial_solution=warm_start,
+                        max_iter=self.maxiter,
+                        callback=validation_cback,
+                    )
                 else:
                     beta = optim.solve(
-                        X, ny_points, Y, self.penalty, initial_solution=warm_start,
-                        max_iter=self.maxiter, callback=validation_cback)
+                        X,
+                        ny_points,
+                        Y,
+                        self.penalty,
+                        initial_solution=warm_start,
+                        max_iter=self.maxiter,
+                        callback=validation_cback,
+                    )
 
                 self.alpha_ = precond.apply(beta)
                 self.beta_ = beta

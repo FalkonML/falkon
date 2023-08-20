@@ -5,15 +5,15 @@ import torch
 
 
 class SGPRBaseModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood,
-                 inducing_points):
+    def __init__(self, train_x, train_y, likelihood, inducing_points):
         super().__init__(train_x, train_y, likelihood)
         self.likelihood = likelihood
         self.mean_module = gpytorch.means.ConstantMean()
 
         base_kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(ard_num_dims=None))
         self.covar_module = gpytorch.kernels.InducingPointKernel(
-            base_kernel, inducing_points=inducing_points, likelihood=likelihood)
+            base_kernel, inducing_points=inducing_points, likelihood=likelihood
+        )
 
     def forward(self, x):
         mean = self.mean_module(x)
@@ -44,13 +44,9 @@ class SGPRBaseModel(gpytorch.models.ExactGP):
 
 
 class GpytorchSGPR:
-    def __init__(self,
-                 inducing_points,
-                 err_fn,
-                 num_epochs: int,
-                 use_cuda: bool,
-                 lr: float = 0.001,
-                 learn_ind_pts: bool = False):
+    def __init__(
+        self, inducing_points, err_fn, num_epochs: int, use_cuda: bool, lr: float = 0.001, learn_ind_pts: bool = False
+    ):
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
         self.use_cuda = use_cuda
         self.inducing_points = inducing_points
@@ -103,8 +99,11 @@ class GpytorchSGPR:
             # Evaluate
             torch.cuda.empty_cache()
             err, err_name = self.err_fn(Yts, self.predict(Xts))
-            print('Epoch %d - Elapsed %.1fs - Train loss: %.3f - Test %s: %.3f' %
-                  (epoch + 1, t_elapsed, loss.item(), err_name, err), flush=True)
+            print(
+                "Epoch %d - Elapsed %.1fs - Train loss: %.3f - Test %s: %.3f"
+                % (epoch + 1, t_elapsed, loss.item(), err_name, err),
+                flush=True,
+            )
             torch.cuda.empty_cache()
         print("Training took %.2fs" % (t_elapsed))
 
@@ -118,9 +117,11 @@ class GpytorchSGPR:
     def __str__(self):
         num_ind_pt = self.model.inducing_points.shape[0]
         ker = self.model.covar_module
-        lengthscale = [p for name, p in dict(ker.named_parameters(recurse=True)).items() if 'raw_lengthscale' in name]
+        lengthscale = [p for name, p in dict(ker.named_parameters(recurse=True)).items() if "raw_lengthscale" in name]
         num_ker_params = lengthscale[0].shape
-        return (f"RegressionVGP<num_inducing_points={num_ind_pt}, "
-                f"learned_ind_pts={self.learn_ind_pts}, kernel={ker}, "
-                f"kernel_params={num_ker_params}, likelihood={self.model.likelihood}, "
-                f"lr={self.lr}>")
+        return (
+            f"RegressionVGP<num_inducing_points={num_ind_pt}, "
+            f"learned_ind_pts={self.learn_ind_pts}, kernel={ker}, "
+            f"kernel_params={num_ker_params}, likelihood={self.model.likelihood}, "
+            f"lr={self.lr}>"
+        )

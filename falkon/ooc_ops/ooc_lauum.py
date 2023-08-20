@@ -41,8 +41,8 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
             max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
-                "Cannot run parallel LAUUM with minimum "
-                "available memory of %.2fMB" % (avail_ram * dts / 2**20))
+                "Cannot run parallel LAUUM with minimum available memory of %.2fMB" % (avail_ram * dts / 2**20)
+            )
         # All computations on the same device (where data is stored). No multi-GPU support!
         block_sizes = calc_block_sizes3(max_block_size, 1, N)
     else:  # Out-of-core
@@ -57,8 +57,8 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
             max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
-                "Cannot run parallel LAUUM with minimum "
-                "available memory of %.2fMB" % (avail_ram * dts / 2**20))
+                "Cannot run parallel LAUUM with minimum available memory of %.2fMB" % (avail_ram * dts / 2**20)
+            )
 
         block_sizes = calc_block_sizes3(max_block_size, len(gpu_info), N)
 
@@ -78,8 +78,11 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
         # Assign rows to GPUs round-robin. Use _gpu_idx instead of g.Id since the latter
         # may not contain all integers from 0.
         gid_allocs = [i for i in range(len(block_allocations)) if i % num_gpus == _gpu_idx]
-        t = PropagatingThread(target=target, name="GPU-%d" % (g.Id), args=(
-            A, block_allocations, gid_allocs, barrier, g.Id, write_opposite))
+        t = PropagatingThread(
+            target=target,
+            name="GPU-%d" % (g.Id),
+            args=(A, block_allocations, gid_allocs, barrier, g.Id, write_opposite),
+        )
         threads.append(t)
 
     for t in threads:
@@ -90,11 +93,11 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
 
 
 def gpu_lauum(
-        A: torch.Tensor,
-        upper: bool,
-        overwrite: bool = True,
-        write_opposite: bool = False,
-        opt: Optional[FalkonOptions] = None
+    A: torch.Tensor,
+    upper: bool,
+    overwrite: bool = True,
+    write_opposite: bool = False,
+    opt: Optional[FalkonOptions] = None,
 ):
     """
     Parameters
@@ -128,8 +131,7 @@ def gpu_lauum(
     # TODO: There is a helper function in mmv_ops for this.
     gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
-        g.actual_free_mem = min((g.free_memory - 300 * 2 ** 20) * 0.95,
-                                opt.max_gpu_mem * 0.95)
+        g.actual_free_mem = min((g.free_memory - 300 * 2**20) * 0.95, opt.max_gpu_mem * 0.95)
 
     # Parallel can only do lower C or F-contiguous arrays
     # By transposing as necessary, it is able to run with every combination of inputs.

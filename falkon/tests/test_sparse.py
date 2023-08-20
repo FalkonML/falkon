@@ -13,9 +13,9 @@ from falkon.sparse.sparse_tensor import SparseTensor
 @pytest.fixture(scope="module")
 def csr_mat() -> SparseTensor:
     """
-     -  2
-     1  3
-     4  -
+    -  2
+    1  3
+    4  -
     """
     indexptr = torch.tensor([0, 1, 3, 4], dtype=torch.long)
     index = torch.tensor([1, 0, 1, 0], dtype=torch.long)
@@ -26,9 +26,9 @@ def csr_mat() -> SparseTensor:
 @pytest.fixture(scope="module")
 def csr_mat2() -> SparseTensor:
     """
-     -  2
-     1  -
-     3  4
+    -  2
+    1  -
+    3  4
     """
     indexptr = torch.tensor([0, 1, 2, 4], dtype=torch.long)
     index = torch.tensor([1, 0, 0, 1], dtype=torch.long)
@@ -49,27 +49,24 @@ class TestSparseNorm:
     def test_non_csr(self, csc_mat, function):
         with pytest.raises(RuntimeError) as exc_info:
             function(csc_mat, out=None)
-        assert str(exc_info.value).endswith(
-            "norm can only be applied on CSR tensors.")
+        assert str(exc_info.value).endswith("norm can only be applied on CSR tensors.")
 
     def test_different_dt(self, csr_mat, function):
         out = torch.empty(csr_mat.shape[0], dtype=torch.float64)
         with pytest.raises(ValueError) as exc_info:
             function(csr_mat, out=out)
-        assert str(exc_info.value).startswith(
-            "All data-types must match.")
+        assert str(exc_info.value).startswith("All data-types must match.")
 
     def test_wrong_out_shape(self, csr_mat, function):
         out = torch.empty(csr_mat.shape[0] + 1, dtype=torch.float32)
         with pytest.raises(ValueError) as exc_info:
             function(csr_mat, out=out)
-        assert str(exc_info.value).startswith(
-            "Dimension 0 of A must match the length of tensor 'out'.")
+        assert str(exc_info.value).startswith("Dimension 0 of A must match the length of tensor 'out'.")
 
     def test_norm(self, csr_mat, function):
         exp_norm = np.linalg.norm(csr_mat.to_scipy(copy=True).todense(), axis=1).reshape(-1, 1)
-        exp_square_norm = exp_norm ** 2
-        if 'square' in function.__name__:
+        exp_square_norm = exp_norm**2
+        if "square" in function.__name__:
             exp = exp_square_norm
         else:
             exp = exp_norm
@@ -79,8 +76,8 @@ class TestSparseNorm:
 
     def test_norm_with_out(self, csr_mat, function):
         exp_norm = np.linalg.norm(csr_mat.to_scipy(copy=True).todense(), axis=1).reshape(-1, 1)
-        exp_square_norm = exp_norm ** 2
-        if 'square' in function.__name__:
+        exp_square_norm = exp_norm**2
+        if "square" in function.__name__:
             exp = exp_square_norm
         else:
             exp = exp_norm
@@ -100,22 +97,19 @@ class TestSparseBdot:
     def test_non_csr(self, csr_mat, csc_mat):
         with pytest.raises(RuntimeError) as exc_info:
             bdot(csc_mat, csr_mat, out=None)
-        assert str(exc_info.value).startswith(
-            "Batch dot can only be applied on CSR tensors")
+        assert str(exc_info.value).startswith("Batch dot can only be applied on CSR tensors")
 
     def test_different_dt(self, csr_mat):
         out = torch.empty(csr_mat.shape[0], dtype=torch.float64)
         with pytest.raises(ValueError) as exc_info:
             bdot(csr_mat, csr_mat, out=out)
-        assert str(exc_info.value).startswith(
-            "All data-types must match.")
+        assert str(exc_info.value).startswith("All data-types must match.")
 
     def test_wrong_out_shape(self, csr_mat):
         out = torch.empty(csr_mat.shape[0] + 1, dtype=torch.float32)
         with pytest.raises(ValueError) as exc_info:
             bdot(csr_mat, csr_mat, out=out)
-        assert str(exc_info.value).startswith(
-            "Output shape must match the number of rows in the input matrices")
+        assert str(exc_info.value).startswith("Output shape must match the number of rows in the input matrices")
 
     def test_bdot(self, csr_mat):
         dense = np.asarray(csr_mat.to_scipy(copy=True).todense())
@@ -135,29 +129,23 @@ class TestSparseBdot:
         torch.testing.assert_close(act, torch.from_numpy(exp_bdot).to(dtype=act.dtype))
 
 
-@pytest.mark.parametrize("device", [
-    "cpu",
-    pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))
-])
+@pytest.mark.parametrize(
+    "device", ["cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))]
+)
 class TestMyTranspose:
     def test_simple_transpose(self, device, csr_mat):
         arr = csr_mat.to(device=device)
         tr_arr = arr.transpose_csc()
-        assert tr_arr.shape == (2, 3), \
-            f"expected transpose shape to be {(2, 3)}, but found {tr_arr.shape}"
+        assert tr_arr.shape == (2, 3), f"expected transpose shape to be {(2, 3)}, but found {tr_arr.shape}"
         tr_mat = tr_arr.to_scipy().tocoo()
-        assert tr_mat.row.tolist() == [1, 0, 1, 0], \
-            f"expected rows {[1, 0, 1, 0]}, but found {tr_mat.row.tolist()}"
-        assert tr_mat.col.tolist() == [0, 1, 1, 2], \
-            f"expected cols {[0, 1, 1, 2]}, but found {tr_mat.col.tolist()}"
-        assert tr_mat.data.tolist() == [2, 1, 3, 4], \
-            f"expected data {[2, 1, 3, 4]}, but found {tr_mat.data.tolist()}"
+        assert tr_mat.row.tolist() == [1, 0, 1, 0], f"expected rows {[1, 0, 1, 0]}, but found {tr_mat.row.tolist()}"
+        assert tr_mat.col.tolist() == [0, 1, 1, 2], f"expected cols {[0, 1, 1, 2]}, but found {tr_mat.col.tolist()}"
+        assert tr_mat.data.tolist() == [2, 1, 3, 4], f"expected data {[2, 1, 3, 4]}, but found {tr_mat.data.tolist()}"
 
 
-@pytest.mark.parametrize("device", [
-    "cpu",
-    pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))
-])
+@pytest.mark.parametrize(
+    "device", ["cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))]
+)
 class TestNarrow:
     def test_start_zero(self, device, csr_mat):
         arr = csr_mat.to(device=device)
@@ -217,23 +205,22 @@ class TestMatMul:
     def expected(self, mat1, mat2):
         return mat1 @ mat2
 
-    @pytest.mark.parametrize("device", [
-        "cpu",
-        pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))
-    ])
+    @pytest.mark.parametrize(
+        "device", ["cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))]
+    )
     def test_matmul_zeros(self, mat1, mat2, expected, device):
-        mat1_zero_csr = SparseTensor.from_scipy(
-            scipy.sparse.csr_matrix(torch.zeros_like(mat1).numpy())
-        ).to(device=device)
+        mat1_zero_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(torch.zeros_like(mat1).numpy())).to(
+            device=device
+        )
         mat2_csc = SparseTensor.from_scipy(scipy.sparse.csc_matrix(mat2.numpy())).to(device=device)
         out = torch.empty_like(expected).to(device)
         sparse_matmul(mat1_zero_csr, mat2_csc, out)
         assert torch.all(out == 0.0)
 
         mat1_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(mat1.numpy())).to(device=device)
-        mat2_zero_csc = SparseTensor.from_scipy(
-            scipy.sparse.csc_matrix(torch.zeros_like(mat2).numpy())
-        ).to(device=device)
+        mat2_zero_csc = SparseTensor.from_scipy(scipy.sparse.csc_matrix(torch.zeros_like(mat2).numpy())).to(
+            device=device
+        )
         out = torch.empty_like(expected).to(device=device)
         sparse_matmul(mat1_csr, mat2_zero_csc, out)
         assert torch.all(out == 0.0)
@@ -244,13 +231,11 @@ class TestMatMul:
         mat2_csr = SparseTensor.from_scipy(scipy.sparse.csr_matrix(mat2))
         with pytest.raises(ValueError) as exc_info:
             sparse_matmul(mat1_csr, mat2_csr, out)
-        assert str(exc_info.value).startswith(
-            "B must be CSC matrix")
+        assert str(exc_info.value).startswith("B must be CSC matrix")
         mat1_csc = SparseTensor.from_scipy(scipy.sparse.csc_matrix(mat1))
         with pytest.raises(ValueError) as exc_info:
             sparse_matmul(mat1_csc, mat2_csr, out)
-        assert str(exc_info.value).startswith(
-            "A must be CSR matrix")
+        assert str(exc_info.value).startswith("A must be CSR matrix")
 
     def test_cpu_matmul(self, mat1, mat2, expected):
         out = torch.empty_like(expected)
@@ -268,13 +253,11 @@ class TestMatMul:
         mat2_csc = SparseTensor.from_scipy(scipy.sparse.csc_matrix(mat2)).to(device=dev)
         with pytest.raises(ValueError) as exc_info:
             sparse_matmul(mat1_csr, mat2_csc, out)
-        assert str(exc_info.value).startswith(
-            "B must be CSR matrix")
+        assert str(exc_info.value).startswith("B must be CSR matrix")
         mat1_csc = SparseTensor.from_scipy(scipy.sparse.csc_matrix(mat1))
         with pytest.raises(ValueError) as exc_info:
             sparse_matmul(mat1_csc, mat2_csc, out)
-        assert str(exc_info.value).startswith(
-            "A must be CSR matrix")
+        assert str(exc_info.value).startswith("A must be CSR matrix")
 
     @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
     def test_cuda_matmul(self, mat1, mat2, expected):

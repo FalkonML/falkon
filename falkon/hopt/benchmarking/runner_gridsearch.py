@@ -17,13 +17,14 @@ def write_gridspec_file(out_file, sigmas, penalties):
 
 
 def run_gs(
-        val_pct: float,
-        num_centers: int,
-        dataset: str,
-        model: str,
-        gs_file: str,
-        exp_name: str,
-        seed: int = DEFAULT_SEED,):
+    val_pct: float,
+    num_centers: int,
+    dataset: str,
+    model: str,
+    gs_file: str,
+    exp_name: str,
+    seed: int = DEFAULT_SEED,
+):
     proc_args = [
         f"python {SIMPLE_HOPT_PATH}",
         f"--seed {seed}",
@@ -37,14 +38,13 @@ def run_gs(
         f"--model {model}",
         f"--grid-spec {gs_file}",
         "--cuda",
-        f"--name {dataset}_gs_{model}_{exp_name}"
+        f"--name {dataset}_gs_{model}_{exp_name}",
     ]
     if model == "svgp":
         proc_args.append("--mb 16000")
-    proc = subprocess.Popen([" ".join(proc_args)], shell=True, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-    for line in io.TextIOWrapper(proc.stdout, encoding='utf-8'):
-        print(line, end='')
+    proc = subprocess.Popen([" ".join(proc_args)], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+        print(line, end="")
     ret_code = proc.wait()
     if ret_code != 0:
         raise RuntimeError("Process returned error", ret_code)
@@ -96,27 +96,27 @@ def run():
         "loocv": {},
         "gcv": {},
         "sgpr": {},
-        "hgrad-closed": {'val_pct': 0.6},
+        "hgrad-closed": {"val_pct": 0.6},
         "creg-penfit": {},
     }
     for dset, dset_params in datasets.items():
         for model, model_params in models.items():
-            penalties = dset_params['penalties']
-            if model == 'svgp':
-                min_penalty = 1e-4 / dset_params['train_size']
+            penalties = dset_params["penalties"]
+            if model == "svgp":
+                min_penalty = 1e-4 / dset_params["train_size"]
                 penalties = np.logspace(
-                    np.log10(min_penalty),
-                    np.log10(dset_params['penalties'].max()),
-                    len(dset_params['penalties'])
+                    np.log10(min_penalty), np.log10(dset_params["penalties"].max()), len(dset_params["penalties"])
                 )
-            write_gridspec_file(gs_file, dset_params['sigmas'], penalties)
-            run_gs(val_pct=model_params.get('val_pct', 0.2),
-                   num_centers=dset_params['num_centers'],
-                   dataset=dset,
-                   model=model,
-                   gs_file=gs_file,
-                   exp_name=exp_name,
-                   seed=DEFAULT_SEED)
+            write_gridspec_file(gs_file, dset_params["sigmas"], penalties)
+            run_gs(
+                val_pct=model_params.get("val_pct", 0.2),
+                num_centers=dset_params["num_centers"],
+                dataset=dset,
+                model=model,
+                gs_file=gs_file,
+                exp_name=exp_name,
+                seed=DEFAULT_SEED,
+            )
 
 
 if __name__ == "__main__":

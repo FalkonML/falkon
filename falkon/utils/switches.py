@@ -14,9 +14,11 @@ def decide_cuda(opt: Optional[BaseOptions] = None):
         return False
 
     def get_error_str(name, err):
-        e_str = ("Failed to initialize %s library; "
-                 "falling back to CPU. Set 'use_cpu' to "
-                 "True to avoid this warning." % (name))
+        e_str = (
+            "Failed to initialize %s library; "
+            "falling back to CPU. Set 'use_cpu' to "
+            "True to avoid this warning." % (name)
+        )
         if err is not None:
             e_str += "\nError encountered was %s" % (err)
         return e_str
@@ -35,15 +37,18 @@ def decide_keops(opt: Optional[KeopsOptions] = None):
     if opt.keops_active.lower() == "force":
         return True
     # If not 'no' or 'force' we can choose depending on whether keops works.
-    if not hasattr(decide_keops, 'keops_works'):
+    if not hasattr(decide_keops, "keops_works"):
         try:
             import pykeops  # noqa: F401
+
             # pykeops.clean_pykeops()          # just in case old build files are still present
             # pykeops.test_torch_bindings()
             decide_keops.keops_works = True
         except (ImportError, ModuleNotFoundError):
-            warnings.warn("Failed to import PyKeops library; this might lead to "
-                          "slower matrix-vector products within FALKON. Please "
-                          "install PyKeops and check it works to suppress this warning.")
+            warnings.warn(
+                "Failed to import PyKeops library; this might lead to "
+                "slower matrix-vector products within FALKON. Please "
+                "install PyKeops and check it works to suppress this warning."
+            )
             decide_keops.keops_works = False
     return decide_keops.keops_works

@@ -30,10 +30,15 @@ class TestLogisticFalkon:
         opt = FalkonOptions(use_cpu=True, keops_active="no", debug=True)
 
         logflk = LogisticFalkon(
-            kernel=kernel, loss=loss, penalty_list=[1e-1, 1e-3, 1e-5, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8],
-            iter_list=[3, 3, 3, 3, 8, 8, 8, 8], M=500, seed=10,
+            kernel=kernel,
+            loss=loss,
+            penalty_list=[1e-1, 1e-3, 1e-5, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8],
+            iter_list=[3, 3, 3, 3, 8, 8, 8, 8],
+            M=500,
+            seed=10,
             options=opt,
-            error_fn=error_fn)
+            error_fn=error_fn,
+        )
         logflk.fit(X, Y)
         preds = logflk.predict(X)
         err = error_fn(preds, Y)[0]

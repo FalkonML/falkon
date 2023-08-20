@@ -12,17 +12,46 @@ from sklearn.datasets import load_svmlight_file
 from .benchmark_utils import Dataset
 
 __all__ = (
-    "get_load_fn", "get_cv_fn",
-    "BaseDataset", "HiggsDataset", "SusyDataset", "MillionSongsDataset",
-    "TimitDataset", "NycTaxiDataset", "YelpDataset", "FlightsDataset",
-    "FlightsClsDataset", "CIFAR10Dataset", "CIFAR10RGBDataset",
-    "SVHNDataset", "FashionMnistDataset", "MnistSmallDataset", "MnistDataset",
-    "SmallHiggsDataset", "IctusDataset", "SyntheticDataset", "ChietDataset",
-    "EnergyDataset", "BostonDataset", "ProteinDataset", "Kin40kDataset",
-    "CodRnaDataset", "SvmGuide1Dataset", "PhishingDataset", "SpaceGaDataset",
-    "CadataDataset", "MgDataset", "CpuSmallDataset", "AbaloneDataset",
-    "CaspDataset", "BlogFeedbackDataset", "CovTypeDataset", "Ijcnn1Dataset",
-    "BuzzDataset", "Road3DDataset", "HouseEelectricDataset",
+    "get_load_fn",
+    "get_cv_fn",
+    "BaseDataset",
+    "HiggsDataset",
+    "SusyDataset",
+    "MillionSongsDataset",
+    "TimitDataset",
+    "NycTaxiDataset",
+    "YelpDataset",
+    "FlightsDataset",
+    "FlightsClsDataset",
+    "CIFAR10Dataset",
+    "CIFAR10RGBDataset",
+    "SVHNDataset",
+    "FashionMnistDataset",
+    "MnistSmallDataset",
+    "MnistDataset",
+    "SmallHiggsDataset",
+    "IctusDataset",
+    "SyntheticDataset",
+    "ChietDataset",
+    "EnergyDataset",
+    "BostonDataset",
+    "ProteinDataset",
+    "Kin40kDataset",
+    "CodRnaDataset",
+    "SvmGuide1Dataset",
+    "PhishingDataset",
+    "SpaceGaDataset",
+    "CadataDataset",
+    "MgDataset",
+    "CpuSmallDataset",
+    "AbaloneDataset",
+    "CaspDataset",
+    "BlogFeedbackDataset",
+    "CovTypeDataset",
+    "Ijcnn1Dataset",
+    "BuzzDataset",
+    "Road3DDataset",
+    "HouseEelectricDataset",
 )
 
 
@@ -44,8 +73,10 @@ def load_from_t(dset_name, folder, verbose=False):
     x_data_ts, y_data_ts = load_svmlight_file(file_ts)
     x_data_ts = np.asarray(x_data_ts.todense())
     if verbose:
-        print(f"Loaded {dset_name}. train X: {x_data_tr.shape} - Y: {y_data_tr.shape} - "
-              f"test X: {x_data_ts.shape} - Y: {y_data_ts.shape}")
+        print(
+            f"Loaded {dset_name}. train X: {x_data_tr.shape} - Y: {y_data_tr.shape} - "
+            f"test X: {x_data_ts.shape} - Y: {y_data_ts.shape}"
+        )
     x_data = np.concatenate((x_data_tr, x_data_ts))
     y_data = np.concatenate((y_data_tr, y_data_ts))
     return x_data, y_data
@@ -74,7 +105,7 @@ def mean_remove_y(Ytr, Yts):
     Yts -= mtr
     Ytr = Ytr.reshape((-1, 1))
     Yts = Yts.reshape((-1, 1))
-    return Ytr, Yts, {'Y_mean': mtr}
+    return Ytr, Yts, {"Y_mean": mtr}
 
 
 def standardize_y(Ytr, Yts):
@@ -86,7 +117,7 @@ def standardize_y(Ytr, Yts):
     Yts /= stdtr
     Ytr = Ytr.reshape((-1, 1))
     Yts = Yts.reshape((-1, 1))
-    return Ytr, Yts, {'Y_mean': mtr, 'Y_std': stdtr}
+    return Ytr, Yts, {"Y_mean": mtr, "Y_std": stdtr}
 
 
 def as_np_dtype(dtype):
@@ -101,6 +132,7 @@ def as_np_dtype(dtype):
 
 def as_torch_dtype(dtype):
     import torch
+
     if "float32" in str(dtype):
         return torch.float32
     if "float64" in str(dtype):
@@ -134,10 +166,7 @@ def convert_to_binary_y(Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, n
 
 
 def convert_to_onehot(
-        Ytr: np.ndarray,
-        Yts: np.ndarray,
-        num_classes: int,
-        damping: bool = False
+    Ytr: np.ndarray, Yts: np.ndarray, num_classes: int, damping: bool = False
 ) -> Tuple[np.ndarray, np.ndarray, dict]:
     eye = np.eye(num_classes, dtype=as_np_dtype(Ytr.dtype))
     if damping:
@@ -151,8 +180,8 @@ def convert_to_onehot(
 def rgb_to_bw(X, dim=32):
     img_len = dim**2
     R = X[:, :img_len]
-    G = X[:, img_len:2 * img_len]
-    B = X[:, 2 * img_len:3 * img_len]
+    G = X[:, img_len : 2 * img_len]
+    B = X[:, 2 * img_len : 3 * img_len]
     return 0.2126 * R + 0.7152 * G + 0.0722 * B
 
 
@@ -171,7 +200,7 @@ class MyKFold:
 
         n_splits = self.n_splits
         fold_sizes = np.full(n_splits, N // n_splits, dtype=np.int)
-        fold_sizes[:N % n_splits] += 1
+        fold_sizes[: N % n_splits] += 1
         current = 0
 
         for fold_size in fold_sizes:
@@ -190,8 +219,11 @@ class BaseDataset:
         assert Xtr.shape[0] == Ytr.shape[0]
         assert Xts.shape[0] == Yts.shape[0]
         assert Xtr.shape[1] == Xts.shape[1]
-        print(f"Split the data into {Xtr.shape[0]} training, "
-              f"{Xts.shape[0]} validation points of dimension {Xtr.shape[1]}.", flush=True)
+        print(
+            f"Split the data into {Xtr.shape[0]} training, "
+            f"{Xts.shape[0]} validation points of dimension {Xtr.shape[1]}.",
+            flush=True,
+        )
         Xtr, Xts, other_X = self.preprocess_x(Xtr, Xts)
         Ytr, Yts, other_Y = self.preprocess_y(Ytr, Yts)
         print("Data-preprocessing completed.", flush=True)
@@ -217,8 +249,10 @@ class BaseDataset:
             Yts = Y[test_idx]
             Xtr, Xts, other_X = self.preprocess_x(Xtr, Xts)
             Ytr, Yts, other_Y = self.preprocess_y(Ytr, Yts)
-            print("Preprocessing complete (iter %d) - Divided into %d train, %d test points" %
-                  (iteration, Xtr.shape[0], Xts.shape[0]))
+            print(
+                "Preprocessing complete (iter %d) - Divided into %d train, %d test points"
+                % (iteration, Xtr.shape[0], Xts.shape[0])
+            )
             kwargs = dict(*other_X)
             kwargs.update(other_Y)
             if as_torch:
@@ -245,6 +279,7 @@ class BaseDataset:
 
     def to_torch(self, Xtr, Ytr, Xts, Yts, **kwargs):
         import torch
+
         # torch_kwargs = {k: torch.from_numpy(v) for k, v in kwargs.items()}
         torch_kwargs = kwargs
         return (
@@ -252,7 +287,7 @@ class BaseDataset:
             torch.from_numpy(Ytr),
             torch.from_numpy(Xts),
             torch.from_numpy(Yts),
-            torch_kwargs
+            torch_kwargs,
         )
 
     def to_tensorflow(self, Xtr, Ytr, Xts, Yts, **kwargs):
@@ -267,7 +302,7 @@ class BaseDataset:
 
 class KnownSplitDataset(BaseDataset, ABC):
     def split_data(self, X, Y, train_frac: Union[float, None, str] = None):
-        if train_frac == 'auto' or train_frac is None:
+        if train_frac == "auto" or train_frac is None:
             idx_tr = np.arange(self.num_train_samples)
             if self.num_test_samples > 0:
                 idx_ts = np.arange(self.num_train_samples, self.num_train_samples + self.num_test_samples)
@@ -303,18 +338,17 @@ class RandomSplitDataset(BaseDataset, ABC):
 
 class Hdf5Dataset(BaseDataset, ABC):
     def read_data(self, dtype):
-        with h5py.File(self.file_name, 'r') as h5py_file:
-            if 'X_train' in h5py_file and 'X_test' in h5py_file and \
-                    'Y_train' in h5py_file and 'Y_test' in h5py_file:
-                X_train = np.array(h5py_file['X_train'], dtype=as_np_dtype(dtype))
-                Y_train = np.array(h5py_file['Y_train'], dtype=as_np_dtype(dtype))
-                X_test = np.array(h5py_file['X_test'], dtype=as_np_dtype(dtype))
-                Y_test = np.array(h5py_file['Y_test'], dtype=as_np_dtype(dtype))
+        with h5py.File(self.file_name, "r") as h5py_file:
+            if "X_train" in h5py_file and "X_test" in h5py_file and "Y_train" in h5py_file and "Y_test" in h5py_file:
+                X_train = np.array(h5py_file["X_train"], dtype=as_np_dtype(dtype))
+                Y_train = np.array(h5py_file["Y_train"], dtype=as_np_dtype(dtype))
+                X_test = np.array(h5py_file["X_test"], dtype=as_np_dtype(dtype))
+                Y_test = np.array(h5py_file["Y_test"], dtype=as_np_dtype(dtype))
                 X = np.concatenate([X_train, X_test], axis=0)
                 Y = np.concatenate([Y_train, Y_test], axis=0)
-            elif 'X' in h5py_file and 'Y' in h5py_file:
-                X = np.array(h5py_file['X'], dtype=as_np_dtype(dtype))
-                Y = np.array(h5py_file['Y'], dtype=as_np_dtype(dtype))
+            elif "X" in h5py_file and "Y" in h5py_file:
+                X = np.array(h5py_file["X"], dtype=as_np_dtype(dtype))
+                Y = np.array(h5py_file["Y"], dtype=as_np_dtype(dtype))
             else:
                 raise RuntimeError(f"Cannot parse h5py file with keys {list(h5py_file.keys())}")
         return X, Y
@@ -326,15 +360,15 @@ class Hdf5Dataset(BaseDataset, ABC):
 
 
 class MillionSongsDataset(KnownSplitDataset):
-    file_name = '/data/DATASETS/MillionSongs/YearPredictionMSD.mat'
-    dset_name = 'MillionSongs'
+    file_name = "/data/DATASETS/MillionSongs/YearPredictionMSD.mat"
+    dset_name = "MillionSongs"
     num_train_samples = 463715
     num_test_samples = 51630
 
     def read_data(self, dtype) -> Tuple[np.ndarray, np.ndarray]:
         f = scio.loadmat(MillionSongsDataset.file_name)
-        X = f['X'][:, 1:].astype(as_np_dtype(dtype))
-        Y = f['X'][:, 0].astype(as_np_dtype(dtype))
+        X = f["X"][:, 1:].astype(as_np_dtype(dtype))
+        Y = f["X"][:, 0].astype(as_np_dtype(dtype))
         return X, Y
 
     def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -345,8 +379,8 @@ class MillionSongsDataset(KnownSplitDataset):
 
 
 class NycTaxiDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/NYCTAXI/NYCTAXI.h5'
-    dset_name = 'TAXI'
+    file_name = "/data/DATASETS/NYCTAXI/NYCTAXI.h5"
+    dset_name = "TAXI"
     default_train_frac = 0.8
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -357,13 +391,13 @@ class NycTaxiDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class HiggsDataset(RandomSplitDataset):
-    file_name = '/data/DATASETS/HIGGS_UCI/Higgs.mat'
-    dset_name = 'HIGGS'
+    file_name = "/data/DATASETS/HIGGS_UCI/Higgs.mat"
+    dset_name = "HIGGS"
     default_train_frac = 0.8
 
     def read_data(self, dtype):
-        with h5py.File(HiggsDataset.file_name, 'r') as h5py_file:
-            arr = np.array(h5py_file['X'], dtype=as_np_dtype(dtype)).T
+        with h5py.File(HiggsDataset.file_name, "r") as h5py_file:
+            arr = np.array(h5py_file["X"], dtype=as_np_dtype(dtype)).T
         X = arr[:, 1:]
         Y = arr[:, 0]
         return X, Y
@@ -384,17 +418,17 @@ class HiggsDataset(RandomSplitDataset):
 
 
 class TimitDataset(KnownSplitDataset):
-    file_name = '/data/DATASETS/TIMIT/TIMIT.mat'
-    dset_name = 'TIMIT'
+    file_name = "/data/DATASETS/TIMIT/TIMIT.mat"
+    dset_name = "TIMIT"
     num_train_samples = 1124823
 
     def read_data(self, dtype):
         f = scio.loadmat(TimitDataset.file_name)
         dtype = as_np_dtype(dtype)
-        Xtr = np.array(f['Xtr'], dtype=dtype)
-        Xts = np.array(f['Xts'], dtype=dtype)
-        Ytr = np.array(f['Ytr'], dtype=dtype).reshape((-1,))
-        Yts = np.array(f['Yts'], dtype=dtype).reshape((-1,))
+        Xtr = np.array(f["Xtr"], dtype=dtype)
+        Xts = np.array(f["Xts"], dtype=dtype)
+        Ytr = np.array(f["Ytr"], dtype=dtype).reshape((-1,))
+        Yts = np.array(f["Yts"], dtype=dtype).reshape((-1,))
         X = np.concatenate((Xtr, Xts), axis=0)
         Y = np.concatenate((Ytr, Yts), axis=0)
 
@@ -409,16 +443,20 @@ class TimitDataset(KnownSplitDataset):
 
 
 class YelpDataset(RandomSplitDataset):
-    file_name = '/data/DATASETS/YELP_Ben/YELP_Ben_OnlyONES.mat'
-    dset_name = 'YELP'
+    file_name = "/data/DATASETS/YELP_Ben/YELP_Ben_OnlyONES.mat"
+    dset_name = "YELP"
     default_train_frac = 0.8
 
     def read_data(self, dtype):
-        with h5py.File(YelpDataset.file_name, 'r') as h5py_file:
-            X = scipy.sparse.csc_matrix((
-                np.array(h5py_file['X']['data'], as_np_dtype(dtype)),
-                h5py_file['X']['ir'][...], h5py_file['X']['jc'][...])).tocsr(copy=False)
-            Y = np.array(h5py_file['Y'], dtype=as_np_dtype(dtype)).reshape((-1, 1))
+        with h5py.File(YelpDataset.file_name, "r") as h5py_file:
+            X = scipy.sparse.csc_matrix(
+                (
+                    np.array(h5py_file["X"]["data"], as_np_dtype(dtype)),
+                    h5py_file["X"]["ir"][...],
+                    h5py_file["X"]["jc"][...],
+                )
+            ).tocsr(copy=False)
+            Y = np.array(h5py_file["Y"], dtype=as_np_dtype(dtype)).reshape((-1, 1))
         return X, Y
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -433,10 +471,14 @@ class YelpDataset(RandomSplitDataset):
     def to_torch(self, Xtr, Ytr, Xts, Yts, **kwargs):
         from falkon.sparse.sparse_tensor import SparseTensor
         import torch
-        return (SparseTensor.from_scipy(Xtr),
-                torch.from_numpy(Ytr),
-                SparseTensor.from_scipy(Xts),
-                torch.from_numpy(Yts), {})
+
+        return (
+            SparseTensor.from_scipy(Xtr),
+            torch.from_numpy(Ytr),
+            SparseTensor.from_scipy(Xts),
+            torch.from_numpy(Yts),
+            {},
+        )
 
     def to_tensorflow(self, Xtr, Ytr, Xts, Yts, **kwargs):
         import tensorflow as tf
@@ -448,16 +490,12 @@ class YelpDataset(RandomSplitDataset):
             indices = np.array([coo.row, coo.col]).transpose()
             return tf.SparseTensor(indices, coo.data, coo.shape)
 
-        return (scipy2tf(Xtr),
-                Ytr,
-                scipy2tf(Xts),
-                Yts,
-                {})
+        return (scipy2tf(Xtr), Ytr, scipy2tf(Xts), Yts, {})
 
 
 class FlightsDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/FLIGHTS/flights.hdf5'
-    dset_name = 'FLIGHTS'
+    file_name = "/data/DATASETS/FLIGHTS/flights.hdf5"
+    dset_name = "FLIGHTS"
     default_train_frac = 0.666
 
     def read_data(self, dtype):
@@ -488,8 +526,8 @@ class FlightsDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class FlightsClsDataset(Hdf5Dataset):
-    file_name = '/data/DATASETS/FLIGHTS/flights.hdf5'
-    dset_name = 'FLIGHTS-CLS'
+    file_name = "/data/DATASETS/FLIGHTS/flights.hdf5"
+    dset_name = "FLIGHTS-CLS"
     _default_train_num = 100_000
 
     def read_data(self, dtype):
@@ -519,13 +557,13 @@ class FlightsClsDataset(Hdf5Dataset):
 
 
 class SusyDataset(RandomSplitDataset):
-    file_name = '/data/DATASETS/SUSY/Susy.mat'
-    dset_name = 'SUSY'
+    file_name = "/data/DATASETS/SUSY/Susy.mat"
+    dset_name = "SUSY"
     default_train_frac = 0.8
 
     def read_data(self, dtype):
         with h5py.File(SusyDataset.file_name, "r") as f:
-            arr = np.asarray(f['X'], dtype=as_np_dtype(dtype)).T
+            arr = np.asarray(f["X"], dtype=as_np_dtype(dtype)).T
             X = arr[:, 1:]
             Y = arr[:, 0].reshape(-1, 1)
         return X, Y
@@ -546,8 +584,8 @@ class CIFAR10Dataset(KnownSplitDataset):
     def read_data(self, dtype):
         tr_data = scio.loadmat(CIFAR10Dataset.file_name)
         ts_data = scio.loadmat(CIFAR10Dataset.ts_file_name)
-        X = np.concatenate((tr_data['Z'], ts_data['Z']), axis=0).astype(as_np_dtype(dtype))
-        Y = np.concatenate((tr_data['y'], ts_data['y']), axis=0).astype(as_np_dtype(dtype))
+        X = np.concatenate((tr_data["Z"], ts_data["Z"]), axis=0).astype(as_np_dtype(dtype))
+        Y = np.concatenate((tr_data["y"], ts_data["y"]), axis=0).astype(as_np_dtype(dtype))
         X = rgb_to_bw(X, dim=32)
         return X, Y
 
@@ -564,11 +602,11 @@ class CIFAR10RGBDataset(KnownSplitDataset):
     num_train_samples = 50000
 
     def read_data(self, dtype):
-        with h5py.File(self.file_name, 'r') as h5py_file:
-            x_tr = np.array(h5py_file['Xtr'], dtype=as_np_dtype(dtype))
-            x_ts = np.array(h5py_file['Xts'], dtype=as_np_dtype(dtype))
-            y_tr = np.array(h5py_file['Ytr'], dtype=as_np_dtype(dtype))
-            y_ts = np.array(h5py_file['Yts'], dtype=as_np_dtype(dtype))
+        with h5py.File(self.file_name, "r") as h5py_file:
+            x_tr = np.array(h5py_file["Xtr"], dtype=as_np_dtype(dtype))
+            x_ts = np.array(h5py_file["Xts"], dtype=as_np_dtype(dtype))
+            y_tr = np.array(h5py_file["Ytr"], dtype=as_np_dtype(dtype))
+            y_ts = np.array(h5py_file["Yts"], dtype=as_np_dtype(dtype))
             return np.concatenate((x_tr, x_ts), axis=0), np.concatenate((y_tr, y_ts), axis=0)
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -587,8 +625,8 @@ class SVHNDataset(KnownSplitDataset):
     def read_data(self, dtype):
         tr_data = scio.loadmat(SVHNDataset.file_name)
         ts_data = scio.loadmat(SVHNDataset.ts_file_name)
-        X = np.concatenate((tr_data['Z'], ts_data['Z']), axis=0).astype(as_np_dtype(dtype))
-        Y = np.concatenate((tr_data['y'], ts_data['y']), axis=0).astype(as_np_dtype(dtype))
+        X = np.concatenate((tr_data["Z"], ts_data["Z"]), axis=0).astype(as_np_dtype(dtype))
+        Y = np.concatenate((tr_data["y"], ts_data["y"]), axis=0).astype(as_np_dtype(dtype))
         X = rgb_to_bw(X, dim=32)
         Y = Y - 1  # Y is 1-indexed, convert to 0 index.
         return X, Y
@@ -629,8 +667,8 @@ class MnistSmallDataset(KnownSplitDataset, Hdf5Dataset):
 
 
 class MnistDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/MNIST/mnist8m_normalized.hdf5'
-    dset_name = 'MNIST8M'
+    file_name = "/data/DATASETS/MNIST/mnist8m_normalized.hdf5"
+    dset_name = "MNIST8M"
     num_train_samples = 6750000
     num_test_samples = 10_000
 
@@ -642,14 +680,14 @@ class MnistDataset(KnownSplitDataset, Hdf5Dataset):
 
 
 class SmallHiggsDataset(Hdf5Dataset, KnownSplitDataset):
-    file_name = '/data/DATASETS/HIGGS_UCI/higgs_for_ho.hdf5'
-    dset_name = 'HIGGSHO'
+    file_name = "/data/DATASETS/HIGGS_UCI/higgs_for_ho.hdf5"
+    dset_name = "HIGGSHO"
     num_train_samples = 10_000
     num_test_samples = 20_000
 
     def read_centers(self, dtype):
-        with h5py.File(self.file_name, 'r') as h5py_file:
-            centers = np.array(h5py_file['centers'], dtype=as_np_dtype(dtype))
+        with h5py.File(self.file_name, "r") as h5py_file:
+            centers = np.array(h5py_file["centers"], dtype=as_np_dtype(dtype))
         return centers
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -664,21 +702,21 @@ class SmallHiggsDataset(Hdf5Dataset, KnownSplitDataset):
         centers -= mtr
         centers /= vtr
 
-        return Xtr, Xts, {'centers': centers}
+        return Xtr, Xts, {"centers": centers}
 
     def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
 
 
 class IctusDataset(RandomSplitDataset):
-    file_name = '/data/DATASETS/ICTUS/run_all.mat'
-    dset_name = 'ICTUS'
+    file_name = "/data/DATASETS/ICTUS/run_all.mat"
+    dset_name = "ICTUS"
     default_train_frac = 0.8
 
     def read_data(self, dtype):
         data_dict = scio.loadmat(IctusDataset.file_name)
-        X = np.asarray(data_dict['X'], dtype=as_np_dtype(dtype))
-        Y = np.asarray(data_dict['Y'], dtype=as_np_dtype(dtype))
+        X = np.asarray(data_dict["X"], dtype=as_np_dtype(dtype))
+        Y = np.asarray(data_dict["Y"], dtype=as_np_dtype(dtype))
         return X, Y
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -697,14 +735,14 @@ class IctusDataset(RandomSplitDataset):
 
 
 class SyntheticDataset(RandomSplitDataset):
-    file_name = '/data/DATASETS/Synthetic0.1Noise.mat'
-    dset_name = 'SYNTH01NOISE'
+    file_name = "/data/DATASETS/Synthetic0.1Noise.mat"
+    dset_name = "SYNTH01NOISE"
     default_train_frac = 0.5
 
     def read_data(self, dtype):
         data_dict = scio.loadmat(SyntheticDataset.file_name)
-        X = np.asarray(data_dict['X'], dtype=as_np_dtype(dtype))
-        Y = np.asarray(data_dict['Y'], dtype=as_np_dtype(dtype))
+        X = np.asarray(data_dict["X"], dtype=as_np_dtype(dtype))
+        Y = np.asarray(data_dict["Y"], dtype=as_np_dtype(dtype))
         return X, Y
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -715,8 +753,8 @@ class SyntheticDataset(RandomSplitDataset):
 
 
 class ChietDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/weather/CHIET.hdf5'
-    dset_name = 'CHIET'
+    file_name = "/data/DATASETS/weather/CHIET.hdf5"
+    dset_name = "CHIET"
     num_train_samples = 26227
     num_test_samples = 7832
 
@@ -728,8 +766,8 @@ class ChietDataset(KnownSplitDataset, Hdf5Dataset):
 
 
 class EnergyDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/energy.hdf5'
-    dset_name = 'ENERGY'
+    file_name = "/data/DATASETS/energy.hdf5"
+    dset_name = "ENERGY"
     default_train_frac = 0.8
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -740,8 +778,8 @@ class EnergyDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class BostonDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/boston.hdf5'
-    dset_name = 'BOSTON'
+    file_name = "/data/DATASETS/boston.hdf5"
+    dset_name = "BOSTON"
     default_train_frac = 0.8
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -752,8 +790,8 @@ class BostonDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class ProteinDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/protein.hdf5'
-    dset_name = 'PROTEIN'
+    file_name = "/data/DATASETS/protein.hdf5"
+    dset_name = "PROTEIN"
     default_train_frac = 0.8
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -764,8 +802,8 @@ class ProteinDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class Kin40kDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/kin40k.hdf5'
-    dset_name = 'KIN40K'
+    file_name = "/data/DATASETS/kin40k.hdf5"
+    dset_name = "KIN40K"
     num_train_samples = 10_000
     num_test_samples = 30_000
 
@@ -777,8 +815,8 @@ class Kin40kDataset(KnownSplitDataset, Hdf5Dataset):
 
 
 class CodRnaDataset(KnownSplitDataset):
-    folder = '/data/DATASETS/libsvm/binary'
-    dset_name = 'cod-rna'
+    folder = "/data/DATASETS/libsvm/binary"
+    dset_name = "cod-rna"
     num_train_samples = 59_535
     num_test_samples = 271_617
 
@@ -796,8 +834,8 @@ class CodRnaDataset(KnownSplitDataset):
 
 
 class SvmGuide1Dataset(KnownSplitDataset):
-    folder = '/data/DATASETS/libsvm/binary'
-    dset_name = 'svmguide1'
+    folder = "/data/DATASETS/libsvm/binary"
+    dset_name = "svmguide1"
     num_train_samples = 3089
     num_test_samples = 4000
 
@@ -815,8 +853,8 @@ class SvmGuide1Dataset(KnownSplitDataset):
 
 
 class PhishingDataset(RandomSplitDataset):
-    folder = '/data/DATASETS/libsvm/binary'
-    dset_name = 'phishing'
+    folder = "/data/DATASETS/libsvm/binary"
+    dset_name = "phishing"
     default_train_frac = 0.7
 
     def read_data(self, dtype):
@@ -831,8 +869,8 @@ class PhishingDataset(RandomSplitDataset):
 
 
 class SpaceGaDataset(RandomSplitDataset):
-    folder = '/data/DATASETS/libsvm/regression'
-    dset_name = 'space_ga'
+    folder = "/data/DATASETS/libsvm/regression"
+    dset_name = "space_ga"
     default_train_frac = 0.7
 
     def read_data(self, dtype):
@@ -847,8 +885,8 @@ class SpaceGaDataset(RandomSplitDataset):
 
 
 class CadataDataset(RandomSplitDataset):
-    folder = '/data/DATASETS/libsvm/regression'
-    dset_name = 'cadata'
+    folder = "/data/DATASETS/libsvm/regression"
+    dset_name = "cadata"
     default_train_frac = 0.7
 
     def read_data(self, dtype):
@@ -863,8 +901,8 @@ class CadataDataset(RandomSplitDataset):
 
 
 class MgDataset(RandomSplitDataset):
-    folder = '/data/DATASETS/libsvm/regression'
-    dset_name = 'mg'
+    folder = "/data/DATASETS/libsvm/regression"
+    dset_name = "mg"
     default_train_frac = 0.7
 
     def read_data(self, dtype):
@@ -879,8 +917,8 @@ class MgDataset(RandomSplitDataset):
 
 
 class CpuSmallDataset(RandomSplitDataset):
-    folder = '/data/DATASETS/libsvm/regression'
-    dset_name = 'cpusmall'
+    folder = "/data/DATASETS/libsvm/regression"
+    dset_name = "cpusmall"
     default_train_frac = 0.7
 
     def read_data(self, dtype):
@@ -895,8 +933,8 @@ class CpuSmallDataset(RandomSplitDataset):
 
 
 class AbaloneDataset(RandomSplitDataset):
-    folder = '/data/DATASETS/libsvm/regression'
-    dset_name = 'abalone'
+    folder = "/data/DATASETS/libsvm/regression"
+    dset_name = "abalone"
     default_train_frac = 0.7
 
     def read_data(self, dtype):
@@ -911,8 +949,8 @@ class AbaloneDataset(RandomSplitDataset):
 
 
 class CaspDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/misc/casp.hdf5'
-    dset_name = 'casp'
+    file_name = "/data/DATASETS/misc/casp.hdf5"
+    dset_name = "casp"
     default_train_frac = 0.7
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -923,8 +961,8 @@ class CaspDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class BlogFeedbackDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/misc/BlogFeedback.hdf5'
-    dset_name = 'blog-feedback'
+    file_name = "/data/DATASETS/misc/BlogFeedback.hdf5"
+    dset_name = "blog-feedback"
     num_train_samples = 52397
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -935,8 +973,8 @@ class BlogFeedbackDataset(KnownSplitDataset, Hdf5Dataset):
 
 
 class CovTypeDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/misc/covtype_binary.hdf5'
-    dset_name = 'covtype'
+    file_name = "/data/DATASETS/misc/covtype_binary.hdf5"
+    dset_name = "covtype"
     default_train_frac = 0.7
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -947,8 +985,8 @@ class CovTypeDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class Ijcnn1Dataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/misc/ijcnn1.hdf5'
-    dset_name = 'ijcnn1'
+    file_name = "/data/DATASETS/misc/ijcnn1.hdf5"
+    dset_name = "ijcnn1"
     num_train_samples = 49990
 
     def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
@@ -959,8 +997,8 @@ class Ijcnn1Dataset(KnownSplitDataset, Hdf5Dataset):
 
 
 class BuzzDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/misc/buzz.hdf5'
-    dset_name = 'buzz'
+    file_name = "/data/DATASETS/misc/buzz.hdf5"
+    dset_name = "buzz"
     default_train_frac = 0.7
     dset_shape = (583250, 77)
 
@@ -975,8 +1013,8 @@ class BuzzDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class Road3DDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/misc/3droad.hdf5'
-    dset_name = '3DRoad'
+    file_name = "/data/DATASETS/misc/3droad.hdf5"
+    dset_name = "3DRoad"
     default_train_frac = 0.7
     dset_shape = (434874, 3)
 
@@ -988,8 +1026,8 @@ class Road3DDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class HouseEelectricDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = '/data/DATASETS/misc/houseelectric.hdf5'
-    dset_name = 'HouseElectric'
+    file_name = "/data/DATASETS/misc/houseelectric.hdf5"
+    dset_name = "HouseElectric"
     default_train_frac = 0.7
     dset_shape = (2049280, 11)
 

@@ -7,8 +7,7 @@ from falkon.la_helpers import potrf
 from falkon.options import FalkonOptions
 from falkon.utils.helpers import choose_fn
 
-__all__ = ("check_init", "inplace_set_diag_th", "inplace_add_diag_th",
-           "lauum_wrapper", "potrf_wrapper")
+__all__ = ("check_init", "inplace_set_diag_th", "inplace_add_diag_th", "lauum_wrapper", "potrf_wrapper")
 
 
 def check_init(*none_check):
@@ -24,9 +23,12 @@ def check_init(*none_check):
                 raise RuntimeError(
                     "FALKON preconditioner is not initialized. Please run "
                     "`init` before any other method on the "
-                    "preconditioner.")
+                    "preconditioner."
+                )
             return fun(self, *args, **kwargs)
+
         return wrapper
+
     return _checker
 
 
@@ -45,6 +47,7 @@ def inplace_add_diag_th(A: torch.Tensor, k: float) -> torch.Tensor:
 def lauum_wrapper(A: torch.Tensor, upper: bool, use_cuda: bool, opt: FalkonOptions) -> torch.Tensor:
     if use_cuda:
         from falkon.ooc_ops.ooc_lauum import gpu_lauum
+
         return gpu_lauum(A, upper=upper, write_opposite=True, overwrite=True, opt=opt)
     else:
         Anp = A.numpy()
@@ -58,6 +61,7 @@ def lauum_wrapper(A: torch.Tensor, upper: bool, use_cuda: bool, opt: FalkonOptio
 def potrf_wrapper(A: torch.Tensor, clean: bool, upper: bool, use_cuda: bool, opt: FalkonOptions) -> torch.Tensor:
     if use_cuda:
         from falkon.ooc_ops.ooc_potrf import gpu_cholesky
+
         return gpu_cholesky(A, upper=upper, clean=clean, overwrite=True, opt=opt)
     else:
         return potrf(A, upper=upper, clean=clean, overwrite=True, cuda=False)

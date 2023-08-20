@@ -13,6 +13,7 @@ import torch
 def _make_lazy_cuda_func(name: str) -> Callable:
     def call_cuda(*args, **kwargs):
         from ._backend import _assert_has_ext
+
         _assert_has_ext()
         return getattr(torch.ops.falkon, name)(*args, **kwargs)
 

@@ -40,8 +40,8 @@ class StopOptimizationException(Exception):
 
 
 class Optimizer:
-    """Base class for optimizers. This is an empty shell at the moment.
-    """
+    """Base class for optimizers. This is an empty shell at the moment."""
+
     def __init__(self):
         pass
 
@@ -52,12 +52,14 @@ class ConjugateGradient(Optimizer):
         self.params = opt or ConjugateGradientOptions()
         self.num_iter = None
 
-    def solve(self,
-              X0: Optional[torch.Tensor],
-              B: torch.Tensor,
-              mmv: Callable[[torch.Tensor], torch.Tensor],
-              max_iter: int,
-              callback: Optional[Callable[[int, torch.Tensor, float], None]] = None) -> torch.Tensor:
+    def solve(
+        self,
+        X0: Optional[torch.Tensor],
+        B: torch.Tensor,
+        mmv: Callable[[torch.Tensor], torch.Tensor],
+        max_iter: int,
+        callback: Optional[Callable[[int, torch.Tensor, float], None]] = None,
+    ) -> torch.Tensor:
         """Conjugate-gradient solver with optional support for preconditioning via generic MMV.
 
         This solver can be used for iterative solution of linear systems of the form $AX = B$ with
@@ -104,7 +106,7 @@ class ConjugateGradient(Optimizer):
 
         m_eps = self.params.cg_epsilon(X.dtype)
         full_grad_every = self.params.cg_full_gradient_every or max_iter * 2
-        tol = self.params.cg_tolerance ** 2
+        tol = self.params.cg_tolerance**2
         diff_conv = self.params.cg_differential_convergence and X.shape[1] > 1
 
         P = R.clone()
@@ -223,11 +225,14 @@ class FalkonConjugateGradient(Optimizer):
     :class:`falkon.preconditioner.FalkonPreconditioner`
         for the preconditioner class which is responsible for computing matrices `T` and `A`.
     """
-    def __init__(self,
-                 kernel: falkon.kernels.Kernel,
-                 preconditioner: falkon.preconditioner.Preconditioner,
-                 opt: FalkonOptions,
-                 weight_fn=None):
+
+    def __init__(
+        self,
+        kernel: falkon.kernels.Kernel,
+        preconditioner: falkon.preconditioner.Preconditioner,
+        opt: FalkonOptions,
+        weight_fn=None,
+    ):
         super().__init__()
         self.kernel = kernel
         self.preconditioner = preconditioner
@@ -311,8 +316,9 @@ class FalkonConjugateGradient(Optimizer):
             B = self.preconditioner.apply_t(B)
 
             if self.is_weighted:
-                mmv = functools.partial(self.weighted_falkon_mmv, penalty=_lambda, X=X,
-                                        M=M, Knm=Knm, y_weights=y_weights)
+                mmv = functools.partial(
+                    self.weighted_falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm, y_weights=y_weights
+                )
             else:
                 mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm)
             # Run the conjugate gradient solver

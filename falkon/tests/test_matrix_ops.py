@@ -59,8 +59,9 @@ class TestCopyTranspose:
 
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-@pytest.mark.parametrize("device", [
-    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+@pytest.mark.parametrize(
+    "device", ["cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))]
+)
 class TestNormSquare:
     t = 3
 
@@ -119,8 +120,9 @@ class TestNormSquare:
 
 @pytest.mark.parametrize("order", ["F", "C"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-@pytest.mark.parametrize("device", [
-    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+@pytest.mark.parametrize(
+    "device", ["cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))]
+)
 class TestCopyTriang:
     t = 5
 
@@ -190,10 +192,7 @@ class TestCopyTriang:
 @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
 class TestPotrf:
     t = 50
-    rtol = {
-        np.float64: 1e-13,
-        np.float32: 1e-6
-    }
+    rtol = {np.float64: 1e-13, np.float32: 1e-6}
 
     @pytest.fixture(scope="class")
     def mat(self):
@@ -221,10 +220,7 @@ class TestPotrf:
             assert torch.tril(our_chol, -1).sum() == 0
         else:
             torch.testing.assert_close(
-                exp_upper.to(our_chol.dtype),
-                torch.triu(our_chol),
-                rtol=self.rtol[dtype],
-                atol=0
+                exp_upper.to(our_chol.dtype), torch.triu(our_chol), rtol=self.rtol[dtype], atol=0
             )
             torch.testing.assert_close(torch.tril(mat, -1), torch.tril(our_chol, -1))
 
@@ -242,10 +238,7 @@ class TestPotrf:
             assert torch.triu(our_chol, 1).sum() == 0
         else:
             np.testing.assert_allclose(
-                exp_lower.to(our_chol.dtype),
-                torch.tril(our_chol),
-                rtol=self.rtol[dtype],
-                atol=0
+                exp_lower.to(our_chol.dtype), torch.tril(our_chol), rtol=self.rtol[dtype], atol=0
             )
             np.testing.assert_allclose(torch.triu(mat, 1), torch.triu(our_chol, 1))
 
@@ -269,8 +262,9 @@ def test_potrf_speed():
 @pytest.mark.parametrize("preserve_diag", [True, False], ids=["preserve", "no-preserve"])
 @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
 @pytest.mark.parametrize("order", ["F", "C"])
-@pytest.mark.parametrize("device", [
-    "cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))])
+@pytest.mark.parametrize(
+    "device", ["cpu", pytest.param("cuda:0", marks=pytest.mark.skipif(not decide_cuda(), reason="No GPU found."))]
+)
 class TestMulTriang:
     t = 50
 
@@ -326,11 +320,22 @@ class TestMulTriang:
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("order_v", ["C", "F"])
-@pytest.mark.parametrize("order_A,device", [
-    ("C", "cpu"), ("F", "cpu"),
-    pytest.param("C", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found."),
-                                       pytest.mark.xfail(reason="cuda TRSM expects F-contiguous A")]),
-    pytest.param("F", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
+@pytest.mark.parametrize(
+    "order_A,device",
+    [
+        ("C", "cpu"),
+        ("F", "cpu"),
+        pytest.param(
+            "C",
+            "cuda:0",
+            marks=[
+                pytest.mark.skipif(not decide_cuda(), reason="No GPU found."),
+                pytest.mark.xfail(reason="cuda TRSM expects F-contiguous A"),
+            ],
+        ),
+        pytest.param("F", "cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")]),
+    ],
+)
 class TestTrsm:
     t = 50
     r = 10
@@ -351,15 +356,20 @@ class TestTrsm:
     def vec(self):
         return gen_random(self.t, self.r, np.float64, F=True, seed=124)
 
-    @pytest.fixture(scope="class", params=[
-        (True, True), (True, False), (False, True), (False, False)], ids=[
-        "lower-trans", "lower-no", "upper-trans", "upper-no"
-    ])
+    @pytest.fixture(
+        scope="class",
+        params=[(True, True), (True, False), (False, True), (False, False)],
+        ids=["lower-trans", "lower-no", "upper-trans", "upper-no"],
+    )
     def solution(self, mat, vec, request):
         lower, trans = request.param
-        return (scipy.linalg.solve_triangular(
-            mat, vec, trans=int(trans), lower=lower, unit_diagonal=False,
-            overwrite_b=False, check_finite=True), lower, trans)
+        return (
+            scipy.linalg.solve_triangular(
+                mat, vec, trans=int(trans), lower=lower, unit_diagonal=False, overwrite_b=False, check_finite=True
+            ),
+            lower,
+            trans,
+        )
 
     def test_trsm(self, mat, vec, solution, alpha, dtype, order_v, order_A, device):
         mat = move_tensor(fix_mat(mat, dtype, order_A, copy=True, numpy=False), device=device)
@@ -380,11 +390,11 @@ class TestVecMulTriang:
 
     @pytest.fixture(scope="class")
     def mat(self):
-        return torch.from_numpy(gen_random(self.t, self.t, 'float64', False, seed=91))
+        return torch.from_numpy(gen_random(self.t, self.t, "float64", False, seed=91))
 
     @pytest.fixture(scope="class")
     def vec(self):
-        return torch.from_numpy(gen_random(self.t, 1, 'float64', False, seed=91))
+        return torch.from_numpy(gen_random(self.t, 1, "float64", False, seed=91))
 
     @staticmethod
     def exp_vec_mul_triang(mat, vec, upper, side):
@@ -406,8 +416,9 @@ class TestVecMulTriang:
     @pytest.mark.parametrize("order", ["F", "C"])
     @pytest.mark.parametrize("upper", [True, False], ids=["upper", "lower"])
     @pytest.mark.parametrize("side", [0, 1], ids=["side0", "side1"])
-    @pytest.mark.parametrize("device", [
-        "cpu", pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])])
+    @pytest.mark.parametrize(
+        "device", ["cpu", pytest.param("cuda:0", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")])]
+    )
     def test_all_combos(self, mat, vec, order, device, upper, side):
         exp_output = self.exp_vec_mul_triang(mat, vec, upper, side)
 

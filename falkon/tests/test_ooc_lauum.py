@@ -19,43 +19,49 @@ if decide_cuda():
 
 class TestBlockSizeCalculator:
     def test_small_edge(self):
-        assert calc_block_sizes3(
-            max_block_size=1, num_devices=4, num_rows=3) == [1, 1, 1]
-        assert calc_block_sizes3(
-            max_block_size=1, num_devices=5, num_rows=1) == [1]
+        assert calc_block_sizes3(max_block_size=1, num_devices=4, num_rows=3) == [1, 1, 1]
+        assert calc_block_sizes3(max_block_size=1, num_devices=5, num_rows=1) == [1]
 
     def test_small(self):
-        assert calc_block_sizes3(
-            max_block_size=10000, num_devices=2, num_rows=100) == [100]
-        assert calc_block_sizes3(
-            max_block_size=5, num_devices=2, num_rows=10) == [5, 5]
-        assert calc_block_sizes3(
-            max_block_size=6, num_devices=3, num_rows=10) == [4, 3, 3]
+        assert calc_block_sizes3(max_block_size=10000, num_devices=2, num_rows=100) == [100]
+        assert calc_block_sizes3(max_block_size=5, num_devices=2, num_rows=10) == [5, 5]
+        assert calc_block_sizes3(max_block_size=6, num_devices=3, num_rows=10) == [4, 3, 3]
 
     def test_edge_preferred(self):
-        assert calc_block_sizes3(
-            max_block_size=10000, num_devices=2, num_rows=3068) == [1534, 1534]
-        assert calc_block_sizes3(
-            max_block_size=10000, num_devices=1, num_rows=7000) == [7000]
-        assert calc_block_sizes3(
-            max_block_size=10000, num_devices=1, num_rows=7001) == [3501, 3500]
+        assert calc_block_sizes3(max_block_size=10000, num_devices=2, num_rows=3068) == [1534, 1534]
+        assert calc_block_sizes3(max_block_size=10000, num_devices=1, num_rows=7000) == [7000]
+        assert calc_block_sizes3(max_block_size=10000, num_devices=1, num_rows=7001) == [3501, 3500]
 
     def test_max_block_size(self):
-        assert calc_block_sizes3(
-            max_block_size=50, num_devices=1, num_rows=101) == [34, 34, 33]
-        assert calc_block_sizes3(
-            max_block_size=50, num_devices=2, num_rows=101) == [26, 25, 25, 25]
-        assert calc_block_sizes3(
-            max_block_size=10000, num_devices=1, num_rows=10000) == [5000, 5000]
+        assert calc_block_sizes3(max_block_size=50, num_devices=1, num_rows=101) == [34, 34, 33]
+        assert calc_block_sizes3(max_block_size=50, num_devices=2, num_rows=101) == [26, 25, 25, 25]
+        assert calc_block_sizes3(max_block_size=10000, num_devices=1, num_rows=10000) == [5000, 5000]
 
     def test_large(self):
-        assert calc_block_sizes3(
-            max_block_size=50000, num_devices=1, num_rows=50000) == [6250, 6250, 6250, 6250, 6250,
-                                                                     6250, 6250, 6250]
-        assert calc_block_sizes3(
-            max_block_size=50000, num_devices=6, num_rows=50000) == [4167, 4167, 4167, 4167, 4167,
-                                                                     4167, 4167, 4167, 4166, 4166,
-                                                                     4166, 4166]
+        assert calc_block_sizes3(max_block_size=50000, num_devices=1, num_rows=50000) == [
+            6250,
+            6250,
+            6250,
+            6250,
+            6250,
+            6250,
+            6250,
+            6250,
+        ]
+        assert calc_block_sizes3(max_block_size=50000, num_devices=6, num_rows=50000) == [
+            4167,
+            4167,
+            4167,
+            4167,
+            4167,
+            4167,
+            4167,
+            4167,
+            4166,
+            4166,
+            4166,
+            4166,
+        ]
 
 
 # Size of test matrix
@@ -89,10 +95,7 @@ def expected_lower(matrix):
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 class TestOOCLauum:
-    rtol = {
-        np.float64: 1e-12,
-        np.float32: 1e-5
-    }
+    rtol = {np.float64: 1e-12, np.float32: 1e-5}
     max_mem = 2 * 2**20
     basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=max_mem)
 
@@ -107,7 +110,7 @@ class TestOOCLauum:
         # input matrix, since overwrite=False and a full copy must be performed.
         mgpu_slack = 0
         if device.startswith("cuda"):
-            mgpu_slack = mat.shape[0]**2 * sizeof_dtype(mat.dtype)
+            mgpu_slack = mat.shape[0] ** 2 * sizeof_dtype(mat.dtype)
 
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=False, opt=new_opt)
@@ -129,13 +132,13 @@ class TestOOCLauum:
         # input matrix, since overwrite=False and a full copy must be performed.
         mgpu_slack = 0
         if device.startswith("cuda"):
-            mgpu_slack = mat.shape[0]**2 * sizeof_dtype(mat.dtype)
+            mgpu_slack = mat.shape[0] ** 2 * sizeof_dtype(mat.dtype)
 
-        opt_v1 = dataclasses.replace(self.basic_opt, max_gpu_mem=2 * 2 ** 20 + mgpu_slack)
+        opt_v1 = dataclasses.replace(self.basic_opt, max_gpu_mem=2 * 2**20 + mgpu_slack)
         act_up_v1 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v1)
-        opt_v2 = dataclasses.replace(self.basic_opt, max_gpu_mem=4 * 2 ** 20 + mgpu_slack)
+        opt_v2 = dataclasses.replace(self.basic_opt, max_gpu_mem=4 * 2**20 + mgpu_slack)
         act_up_v2 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v2)
-        opt_v3 = dataclasses.replace(self.basic_opt, max_gpu_mem=6 * 2 ** 20 + mgpu_slack)
+        opt_v3 = dataclasses.replace(self.basic_opt, max_gpu_mem=6 * 2**20 + mgpu_slack)
         act_up_v3 = gpu_lauum(mat, upper=True, overwrite=False, opt=opt_v3)
 
         np.testing.assert_allclose(act_up_v3.cpu().numpy(), act_up_v1.cpu().numpy(), rtol=self.rtol[dtype])
@@ -162,24 +165,20 @@ class TestOOCLauum:
         omat = get_mat(order=order, dtype=dtype)
         mat = get_mat(order=order, dtype=dtype, device=device)
 
-        mgpu_slack = mat.shape[0]**2 * sizeof_dtype(mat.dtype)
+        mgpu_slack = mat.shape[0] ** 2 * sizeof_dtype(mat.dtype)
         with memory_checker(self.basic_opt, extra_mem=mgpu_slack) as new_opt:
             act_up = gpu_lauum(mat, upper=True, overwrite=False, write_opposite=True, opt=new_opt)
         act_up = act_up.cpu()
-        np.testing.assert_allclose(np.triu(omat, k=1), np.triu(act_up.numpy(), k=1),
-                                   rtol=self.rtol[dtype])
-        np.testing.assert_allclose(np.tril(act_up.numpy()), np.triu(expected_upper).T,
-                                   rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.triu(omat, k=1), np.triu(act_up.numpy(), k=1), rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.tril(act_up.numpy()), np.triu(expected_upper).T, rtol=self.rtol[dtype])
 
         mat = get_mat(order=order, dtype=dtype, device=device)
         with memory_checker(self.basic_opt) as new_opt:
             act_lo = gpu_lauum(mat, upper=False, overwrite=True, write_opposite=True, opt=new_opt)
             torch.cuda.synchronize()
         act_lo = act_lo.cpu()
-        np.testing.assert_allclose(np.tril(omat, k=-1), np.tril(act_lo.numpy(), k=-1),
-                                   rtol=self.rtol[dtype])
-        np.testing.assert_allclose(np.triu(act_lo.numpy()), np.tril(expected_lower).T,
-                                   rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.tril(omat, k=-1), np.tril(act_lo.numpy(), k=-1), rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.triu(act_lo.numpy()), np.tril(expected_lower).T, rtol=self.rtol[dtype])
 
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
@@ -212,23 +211,25 @@ class TestLauumKernel:
 
         mat = get_mat(order="F", dtype=dtype)
         gpu_in = move_tensor(mat, device)
-        gpu_in_strided = torch.cat([
-            gpu_in,
-            torch.zeros(gpu_in.shape[0], 10, device=device, dtype=gpu_in.dtype)
-        ], 1).T
-        gpu_in_strided = gpu_in_strided[:gpu_in.shape[0], :gpu_in.shape[0]]
+        gpu_in_strided = torch.cat([gpu_in, torch.zeros(gpu_in.shape[0], 10, device=device, dtype=gpu_in.dtype)], 1).T
+        gpu_in_strided = gpu_in_strided[: gpu_in.shape[0], : gpu_in.shape[0]]
         gpu_in_strided.copy_(gpu_in)
         gpu_out = move_tensor(mat, device)
-        gpu_out_strided = torch.cat([
-            gpu_out,
-            torch.zeros(gpu_out.shape[0], 10, device=device, dtype=gpu_in.dtype)
-        ], 1).T
-        gpu_out_strided = gpu_out_strided[:gpu_out.shape[0], :gpu_out.shape[0]]
+        gpu_out_strided = torch.cat(
+            [gpu_out, torch.zeros(gpu_out.shape[0], 10, device=device, dtype=gpu_in.dtype)], 1
+        ).T
+        gpu_out_strided = gpu_out_strided[: gpu_out.shape[0], : gpu_out.shape[0]]
         gpu_out_strided.fill_(0.0)
 
         # Run on the GPU
-        lauum_cuda(n=gpu_in.shape[0], A=gpu_in_strided, lda=gpu_in_strided.stride(1), B=gpu_out_strided,
-                   ldb=gpu_out_strided.stride(1), lower=lower)
+        lauum_cuda(
+            n=gpu_in.shape[0],
+            A=gpu_in_strided,
+            lda=gpu_in_strided.stride(1),
+            B=gpu_out_strided,
+            ldb=gpu_out_strided.stride(1),
+            lower=lower,
+        )
         torch.cuda.synchronize(device)
 
         # Compare outputs and print timing info

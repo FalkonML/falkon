@@ -1,14 +1,14 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Union
+from typing import Dict, Optional, Union
 
 import torch
-from falkon.sparse import SparseTensor
 
 from falkon.mmv_ops.fmm import fmm
 from falkon.mmv_ops.fmmv import fdmmv, fmmv
-from falkon.utils.helpers import check_same_dtype, check_sparse, check_same_device
 from falkon.options import FalkonOptions
+from falkon.sparse import SparseTensor
+from falkon.utils.helpers import check_same_device, check_same_dtype, check_sparse
 
 
 class Kernel(torch.nn.Module, ABC):
@@ -32,6 +32,7 @@ class Kernel(torch.nn.Module, ABC):
     opt
         Base set of options to be used for operations involving this kernel.
     """
+
     def __init__(self, name: str, opt: Optional[FalkonOptions]):
         super().__init__()
         self.name = name
@@ -40,8 +41,13 @@ class Kernel(torch.nn.Module, ABC):
         self.params: FalkonOptions = opt
 
     @staticmethod
-    def _check_dmmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: Optional[torch.Tensor],
-                               w: Optional[torch.Tensor], out: Optional[torch.Tensor]):
+    def _check_dmmv_dimensions(
+        X1: torch.Tensor,
+        X2: torch.Tensor,
+        v: Optional[torch.Tensor],
+        w: Optional[torch.Tensor],
+        out: Optional[torch.Tensor],
+    ):
         # Parameter validation
         if v is None and w is None:
             raise ValueError("One of v and w must be specified to run fdMMV.")
@@ -53,29 +59,21 @@ class Kernel(torch.nn.Module, ABC):
         if v is not None and v.dim() == 1:
             v = v.reshape((-1, 1))
         if v is not None and v.dim() != 2:
-            raise ValueError(
-                f"v must be a vector or a 2D matrix. Found {len(v.shape)}D.")
+            raise ValueError(f"v must be a vector or a 2D matrix. Found {len(v.shape)}D.")
         if w is not None and w.dim() == 1:
             w = w.reshape((-1, 1))
         if w is not None and w.dim() != 2:
-            raise ValueError(
-                f"w must be a vector or a 2D matrix. Found {len(w.shape)}D.")
+            raise ValueError(f"w must be a vector or a 2D matrix. Found {len(w.shape)}D.")
 
         # noinspection PyUnresolvedReferences
         T = v.size(1) if v is not None else w.size(1)
         M = X2.size(0)
         if out is not None and out.shape != (M, T):
-            raise ValueError(
-                f"Output dimension is incorrect. "
-                f"Expected ({M}, {T}) found {out.shape}")
+            raise ValueError(f"Output dimension is incorrect. Expected ({M}, {T}) found {out.shape}")
         if v is not None and v.shape != (X2.size(0), T):
-            raise ValueError(
-                f"Dimensions of matrix v are incorrect: "
-                f"Expected ({M}, {T}) found {v.shape}")
+            raise ValueError(f"Dimensions of matrix v are incorrect: Expected ({M}, {T}) found {v.shape}")
         if w is not None and w.shape != (X1.size(0), T):
-            raise ValueError(
-                f"Dimensions of matrix w are incorrect: "
-                f"Expected ({X1.size(0)}, {T}) found {w.shape}")
+            raise ValueError(f"Dimensions of matrix w are incorrect: Expected ({X1.size(0)}, {T}) found {w.shape}")
 
         if not check_same_dtype(X1, X2, v, w, out):
             raise TypeError("Data types of input matrices must be equal.")
@@ -83,8 +81,7 @@ class Kernel(torch.nn.Module, ABC):
         return X1, X2, v, w, out
 
     @staticmethod
-    def _check_mmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor,
-                              out: Optional[torch.Tensor]):
+    def _check_mmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor, out: Optional[torch.Tensor]):
         # Parameter validation
         if X1.dim() != 2:
             raise ValueError("Matrix X1 must be 2D.")
@@ -93,17 +90,14 @@ class Kernel(torch.nn.Module, ABC):
         if v.dim() == 1:
             v = v.reshape((-1, 1))
         if v.dim() != 2:
-            raise ValueError(
-                f"v must be a vector or a 2D matrix. Found {len(v.shape)}D.")
+            raise ValueError(f"v must be a vector or a 2D matrix. Found {len(v.shape)}D.")
 
         if out is not None and out.shape != (X1.size(0), v.size(1)):
-            raise ValueError(
-                f"Output dimension is incorrect. "
-                f"Expected ({X1.size(0)}, {v.size(1)}) found {out.shape}")
+            raise ValueError(f"Output dimension is incorrect. Expected ({X1.size(0)}, {v.size(1)}) found {out.shape}")
         if v.shape != (X2.size(0), v.size(1)):
             raise ValueError(
-                f"Dimensions of matrix v are incorrect: "
-                f"Expected ({X2.size(0)}, {v.size(1)}) found {v.shape}")
+                f"Dimensions of matrix v are incorrect: Expected ({X2.size(0)}, {v.size(1)}) found {v.shape}"
+            )
 
         if not check_same_dtype(X1, X2, v, out):
             raise TypeError("Data types of input matrices must be equal.")
@@ -121,18 +115,12 @@ class Kernel(torch.nn.Module, ABC):
         M = X2.size(0)
         if not diag:
             if out is not None and out.shape != (N, M):
-                raise ValueError(
-                    f"Output dimension is incorrect. "
-                    f"Expected ({N}, {M}) found {out.shape}.")
+                raise ValueError(f"Output dimension is incorrect. Expected ({N}, {M}) found {out.shape}.")
         else:
             if N != M:
-                raise ValueError(
-                    f"Cannot compute the kernel diagonal "
-                    f"between matrices with {N} and {M} samples.")
+                raise ValueError(f"Cannot compute the kernel diagonal between matrices with {N} and {M} samples.")
             if out is not None and out.reshape(-1).shape[0] != N:
-                raise ValueError(
-                    f"Output dimension is incorrect. "
-                    f"Expected ({N}) found {out.shape}.")
+                raise ValueError(f"Output dimension is incorrect. Expected ({N}) found {out.shape}.")
 
         if not check_same_dtype(X1, X2, out):
             raise TypeError("Data types of input matrices must be equal.")
@@ -142,14 +130,16 @@ class Kernel(torch.nn.Module, ABC):
     @staticmethod
     def _check_device_properties(*args, fn_name: str, opt: FalkonOptions):
         if not check_same_device(*args):
-            raise RuntimeError("All input arguments to %s must be on the same device" % (fn_name))
+            raise RuntimeError(f"All input arguments to {fn_name} must be on the same device")
 
-    def __call__(self,
-                 X1: torch.Tensor,
-                 X2: torch.Tensor,
-                 diag: bool = False,
-                 out: Optional[torch.Tensor] = None,
-                 opt: Optional[FalkonOptions] = None):
+    def __call__(
+        self,
+        X1: torch.Tensor,
+        X2: torch.Tensor,
+        diag: bool = False,
+        out: Optional[torch.Tensor] = None,
+        opt: Optional[FalkonOptions] = None,
+    ):
         """Compute the kernel matrix between ``X1`` and ``X2``
 
         Parameters
@@ -214,12 +204,14 @@ class Kernel(torch.nn.Module, ABC):
             raise ValueError("Either all or none of 'X1', 'X2' must be sparse.")
         return fmm
 
-    def mmv(self,
-            X1: Union[torch.Tensor, SparseTensor],
-            X2: Union[torch.Tensor, SparseTensor],
-            v: torch.Tensor,
-            out: Optional[torch.Tensor] = None,
-            opt: Optional[FalkonOptions] = None):
+    def mmv(
+        self,
+        X1: Union[torch.Tensor, SparseTensor],
+        X2: Union[torch.Tensor, SparseTensor],
+        v: torch.Tensor,
+        out: Optional[torch.Tensor] = None,
+        opt: Optional[FalkonOptions] = None,
+    ):
         # noinspection PyShadowingNames
         """Compute matrix-vector multiplications where the matrix is the current kernel.
 
@@ -265,10 +257,13 @@ class Kernel(torch.nn.Module, ABC):
         mmv_impl = self._decide_mmv_impl(X1, X2, v, params)
         return mmv_impl(X1, X2, v, self, out, params)
 
-    def _decide_mmv_impl(self,
-                         X1: Union[torch.Tensor, SparseTensor],
-                         X2: Union[torch.Tensor, SparseTensor],
-                         v: torch.Tensor, opt: FalkonOptions):
+    def _decide_mmv_impl(
+        self,
+        X1: Union[torch.Tensor, SparseTensor],
+        X2: Union[torch.Tensor, SparseTensor],
+        v: torch.Tensor,
+        opt: FalkonOptions,
+    ):
         """Choose which `mmv` function to use for this data.
 
         Note that `mmv` functions compute the kernel-vector product
@@ -300,12 +295,15 @@ class Kernel(torch.nn.Module, ABC):
             raise ValueError("Either all or none of 'X1', 'X2' must be sparse.")
         return fmmv
 
-    def dmmv(self,
-             X1: Union[torch.Tensor, SparseTensor],
-             X2: Union[torch.Tensor, SparseTensor],
-             v: Optional[torch.Tensor],
-             w: Optional[torch.Tensor], out: Optional[torch.Tensor] = None,
-             opt: Optional[FalkonOptions] = None):
+    def dmmv(
+        self,
+        X1: Union[torch.Tensor, SparseTensor],
+        X2: Union[torch.Tensor, SparseTensor],
+        v: Optional[torch.Tensor],
+        w: Optional[torch.Tensor],
+        out: Optional[torch.Tensor] = None,
+        opt: Optional[FalkonOptions] = None,
+    ):
         # noinspection PyShadowingNames
         """Compute double matrix-vector multiplications where the matrix is the current kernel.
 
@@ -359,11 +357,14 @@ class Kernel(torch.nn.Module, ABC):
         dmmv_impl = self._decide_dmmv_impl(X1, X2, v, w, params)
         return dmmv_impl(X1, X2, v, w, self, out, False, params)
 
-    def _decide_dmmv_impl(self,
-                          X1: Union[torch.Tensor, SparseTensor],
-                          X2: Union[torch.Tensor, SparseTensor],
-                          v: Optional[torch.Tensor],
-                          w: Optional[torch.Tensor], opt: FalkonOptions):
+    def _decide_dmmv_impl(
+        self,
+        X1: Union[torch.Tensor, SparseTensor],
+        X2: Union[torch.Tensor, SparseTensor],
+        v: Optional[torch.Tensor],
+        w: Optional[torch.Tensor],
+        opt: FalkonOptions,
+    ):
         """Choose which `dmmv` function to use for this data.
 
         Note that `dmmv` functions compute double kernel-vector products (see :meth:`dmmv` for
@@ -426,8 +427,9 @@ class Kernel(torch.nn.Module, ABC):
         pass
 
     @abstractmethod
-    def compute_sparse(self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor,
-                       diag: bool, **kwargs) -> torch.Tensor:
+    def compute_sparse(
+        self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool, **kwargs
+    ) -> torch.Tensor:
         """
         Compute the kernel matrix of ``X1`` and ``X2`` which are two sparse matrices, storing the output
         in the dense matrix ``out``.

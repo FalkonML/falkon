@@ -20,21 +20,19 @@ EPS = 5e-5
 
 class StochasticNystromCompReg(HyperoptObjective):
     def __init__(
-            self,
-            kernel: falkon.kernels.DiffKernel,
-            centers_init: torch.Tensor,
-            penalty_init: torch.Tensor,
-            opt_centers: bool,
-            opt_penalty: bool,
-            flk_opt: FalkonOptions,
-            flk_maxiter: int = 10,
-            num_trace_est: int = 20,
-            centers_transform: Optional[torch.distributions.Transform] = None,
-            pen_transform: Optional[torch.distributions.Transform] = None,
+        self,
+        kernel: falkon.kernels.DiffKernel,
+        centers_init: torch.Tensor,
+        penalty_init: torch.Tensor,
+        opt_centers: bool,
+        opt_penalty: bool,
+        flk_opt: FalkonOptions,
+        flk_maxiter: int = 10,
+        num_trace_est: int = 20,
+        centers_transform: Optional[torch.distributions.Transform] = None,
+        pen_transform: Optional[torch.distributions.Transform] = None,
     ):
-        super().__init__(kernel, centers_init, penalty_init,
-                         opt_centers, opt_penalty,
-                         centers_transform, pen_transform)
+        super().__init__(kernel, centers_init, penalty_init, opt_centers, opt_penalty, centers_transform, pen_transform)
         self.flk_opt = flk_opt
         self.num_trace_est = num_trace_est
         self.flk_maxiter = flk_maxiter
@@ -45,12 +43,20 @@ class StochasticNystromCompReg(HyperoptObjective):
         self.losses: Optional[Dict[str, torch.Tensor]] = None
 
     def forward(self, X, Y):
-        loss = stochastic_nystrom_compreg(kernel=self.kernel, penalty=self.penalty, centers=self.centers,
-                                          X=X, Y=Y, num_estimators=self.num_trace_est,
-                                          deterministic=self.deterministic_ste,
-                                          solve_options=self.flk_opt, solve_maxiter=self.flk_maxiter,
-                                          gaussian_random=self.gaussian_ste, warm_start=self.warm_start,
-                                          trace_type=self.trace_type)
+        loss = stochastic_nystrom_compreg(
+            kernel=self.kernel,
+            penalty=self.penalty,
+            centers=self.centers,
+            X=X,
+            Y=Y,
+            num_estimators=self.num_trace_est,
+            deterministic=self.deterministic_ste,
+            solve_options=self.flk_opt,
+            solve_maxiter=self.flk_maxiter,
+            gaussian_random=self.gaussian_ste,
+            warm_start=self.warm_start,
+            trace_type=self.trace_type,
+        )
         self._save_losses(loss)
         return loss
 
@@ -74,23 +80,27 @@ class StochasticNystromCompReg(HyperoptObjective):
         }
 
     def __repr__(self):
-        return f"StochasticNystromCompReg(" \
-               f"kernel={self.kernel}, " \
-               f"penalty={get_scalar(self.penalty)}, num_centers={self.centers.shape[0]}, " \
-               f"t={self.num_trace_est}, " \
-               f"flk_iter={self.flk_maxiter}, det_ste={self.deterministic_ste}, " \
-               f"gauss_ste={self.gaussian_ste}, warm={self.warm_start}, " \
-               f"cg_tolerance={self.flk_opt.cg_tolerance}, trace_type={self.trace_type})"
+        return (
+            f"StochasticNystromCompReg("
+            f"kernel={self.kernel}, "
+            f"penalty={get_scalar(self.penalty)}, num_centers={self.centers.shape[0]}, "
+            f"t={self.num_trace_est}, "
+            f"flk_iter={self.flk_maxiter}, det_ste={self.deterministic_ste}, "
+            f"gauss_ste={self.gaussian_ste}, warm={self.warm_start}, "
+            f"cg_tolerance={self.flk_opt.cg_tolerance}, trace_type={self.trace_type})"
+        )
 
 
-def calc_trace_fwd(init_val: torch.Tensor,
-                   k_mn: Optional[torch.Tensor],
-                   k_mn_zy: Optional[torch.Tensor],
-                   kmm_chol: torch.Tensor,
-                   X: Optional[torch.Tensor],
-                   t: Optional[int],
-                   trace_type: str):
-    """ Nystrom kernel trace forward """
+def calc_trace_fwd(
+    init_val: torch.Tensor,
+    k_mn: Optional[torch.Tensor],
+    k_mn_zy: Optional[torch.Tensor],
+    kmm_chol: torch.Tensor,
+    X: Optional[torch.Tensor],
+    t: Optional[int],
+    trace_type: str,
+):
+    """Nystrom kernel trace forward"""
     if trace_type == "ste":
         assert k_mn_zy is not None and t is not None, "Incorrect arguments to trace_fwd"
         solve1 = torch.linalg.solve_triangular(kmm_chol, k_mn_zy[:, :t], upper=False)  # m * t
@@ -114,55 +124,40 @@ def calc_trace_fwd(init_val: torch.Tensor,
     return init_val, solve2
 
 
-def calc_trace_bwd(k_mn: Optional[torch.Tensor],
-                   k_mn_zy: Optional[torch.Tensor],
-                   solve2: torch.Tensor,
-                   kmm: torch.Tensor,
-                   X: Optional[torch.Tensor],
-                   t: Optional[int],
-                   trace_type: str):
+def calc_trace_bwd(
+    k_mn: Optional[torch.Tensor],
+    k_mn_zy: Optional[torch.Tensor],
+    solve2: torch.Tensor,
+    kmm: torch.Tensor,
+    X: Optional[torch.Tensor],
+    t: Optional[int],
+    trace_type: str,
+):
     """Nystrom kernel trace backward pass"""
     if trace_type == "ste":
         assert k_mn_zy is not None and t is not None, "Incorrect arguments to trace_bwd"
-        return -(
-            2 * (k_mn_zy[:, :t].mul(solve2)).sum(0).mean() -
-            (solve2 * (kmm @ solve2)).sum(0).mean()
-        )
+        return -(2 * (k_mn_zy[:, :t].mul(solve2)).sum(0).mean() - (solve2 * (kmm @ solve2)).sum(0).mean())
     elif trace_type == "direct":
         assert k_mn is not None, "Incorrect arguments to trace_bwd"
-        return -(
-            2 * (k_mn.mul(solve2)).sum() -
-            (solve2 * (kmm @ solve2)).sum()
-        )
+        return -(2 * (k_mn.mul(solve2)).sum() - (solve2 * (kmm @ solve2)).sum())
     elif trace_type == "fast":
         assert k_mn_zy is not None and t is not None and X is not None, "Incorrect arguments to trace_bwd"
         k_subs = k_mn_zy
         norm = X.shape[0] / t
-        return -norm * (
-            2 * k_subs.mul(solve2).sum() -
-            (solve2 * (kmm @ solve2)).sum()
-        )
+        return -norm * (2 * k_subs.mul(solve2).sum() - (solve2 * (kmm @ solve2)).sum())
 
 
-def calc_deff_bwd(zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve_zy, pen_n, t,
-                  include_kmm_term):
+def calc_deff_bwd(zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve_zy, pen_n, t, include_kmm_term):
     """Nystrom effective dimension backward"""
-    out_deff_bwd = (
-        2 * zy_knm_solve_zy[:t].mean() -
-        zy_solve_knm_knm_solve_zy[:t].mean()
-    )
+    out_deff_bwd = 2 * zy_knm_solve_zy[:t].mean() - zy_solve_knm_knm_solve_zy[:t].mean()
     if include_kmm_term:
         out_deff_bwd -= pen_n * zy_solve_kmm_solve_zy[:t].mean()
     return out_deff_bwd
 
 
-def calc_dfit_bwd(zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve_zy, pen_n, t,
-                  include_kmm_term):
+def calc_dfit_bwd(zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve_zy, pen_n, t, include_kmm_term):
     """Nystrom regularized data-fit backward"""
-    dfit_bwd = -(
-        2 * zy_knm_solve_zy[t:].sum() -
-        zy_solve_knm_knm_solve_zy[t:].sum()
-    )
+    dfit_bwd = -(2 * zy_knm_solve_zy[t:].sum() - zy_solve_knm_knm_solve_zy[t:].sum())
     if include_kmm_term:
         dfit_bwd += pen_n * zy_solve_kmm_solve_zy[t:].sum()
     return dfit_bwd
@@ -193,19 +188,33 @@ class NystromCompRegFn(torch.autograd.Function):
             f"Grad {np.sum(NystromCompRegFn.grad_times) / num_times:.2f} "
             f"\n\tTotal {np.sum(NystromCompRegFn.iter_times) / num_times:.2f}"
         )
-        (NystromCompRegFn.iter_prep_times, NystromCompRegFn.fwd_times, NystromCompRegFn.bwd_times,
-         NystromCompRegFn.solve_times, NystromCompRegFn.kmm_times, NystromCompRegFn.grad_times,
-         NystromCompRegFn.iter_times,
-         NystromCompRegFn.num_flk_iters) = [], [], [], [], [], [], [], []
+        (
+            NystromCompRegFn.iter_prep_times,
+            NystromCompRegFn.fwd_times,
+            NystromCompRegFn.bwd_times,
+            NystromCompRegFn.solve_times,
+            NystromCompRegFn.kmm_times,
+            NystromCompRegFn.grad_times,
+            NystromCompRegFn.iter_times,
+            NystromCompRegFn.num_flk_iters,
+        ) = ([], [], [], [], [], [], [], [])
 
     @staticmethod
-    def direct_nosplit(X: torch.Tensor,
-                       M: torch.Tensor,
-                       Y: torch.Tensor,
-                       penalty: torch.Tensor, kmm, kmm_chol, zy, solve_zy, zy_solve_kmm_solve_zy,
-                       kernel: falkon.kernels.DiffKernel,
-                       t, trace_type: str,
-                       solve_options: falkon.FalkonOptions):
+    def direct_nosplit(
+        X: torch.Tensor,
+        M: torch.Tensor,
+        Y: torch.Tensor,
+        penalty: torch.Tensor,
+        kmm,
+        kmm_chol,
+        zy,
+        solve_zy,
+        zy_solve_kmm_solve_zy,
+        kernel: falkon.kernels.DiffKernel,
+        t,
+        trace_type: str,
+        solve_options: falkon.FalkonOptions,
+    ):
         k_subs = None
         with Timer(NystromCompRegFn.iter_prep_times), torch.autograd.enable_grad():
             k_mn_zy = kernel.mmv(M, X, zy, opt=solve_options)  # M x (T+P)
@@ -223,12 +232,24 @@ class NystromCompRegFn(torch.autograd.Function):
             pen_n = penalty * X.shape[0]
             if trace_type == "fast":
                 _trace_fwd, solve2 = calc_trace_fwd(
-                    init_val=trace_fwd, k_mn=None, k_mn_zy=k_subs, kmm_chol=kmm_chol,
-                    t=M.shape[0], trace_type=trace_type, X=X)
+                    init_val=trace_fwd,
+                    k_mn=None,
+                    k_mn_zy=k_subs,
+                    kmm_chol=kmm_chol,
+                    t=M.shape[0],
+                    trace_type=trace_type,
+                    X=X,
+                )
             elif trace_type == "ste":
                 _trace_fwd, solve2 = calc_trace_fwd(
-                    init_val=trace_fwd, k_mn=None, k_mn_zy=k_mn_zy, kmm_chol=kmm_chol,
-                    t=t, trace_type=trace_type, X=None)
+                    init_val=trace_fwd,
+                    k_mn=None,
+                    k_mn_zy=k_mn_zy,
+                    kmm_chol=kmm_chol,
+                    t=t,
+                    trace_type=trace_type,
+                    X=None,
+                )
             else:
                 raise NotImplementedError("trace-type %s not implemented." % (trace_type))
             # Nystrom effective dimension forward
@@ -242,43 +263,45 @@ class NystromCompRegFn(torch.autograd.Function):
             pen_n = penalty * X.shape[0]
             # Nystrom effective dimension backward
             deff_bwd = calc_deff_bwd(
-                zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve_zy, pen_n, t,
-                include_kmm_term=True)
+                zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve_zy, pen_n, t, include_kmm_term=True
+            )
             # Data-fit backward
             dfit_bwd = calc_dfit_bwd(
-                zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve_zy, pen_n, t,
-                include_kmm_term=True)
+                zy_knm_solve_zy, zy_solve_knm_knm_solve_zy, zy_solve_kmm_solve_zy, pen_n, t, include_kmm_term=True
+            )
             # Nystrom kernel trace backward
             if trace_type == "fast":
-                trace_bwd = calc_trace_bwd(k_mn=None, k_mn_zy=k_subs, kmm=kmm, X=X, solve2=solve2,
-                                           t=M.shape[0], trace_type=trace_type)
+                trace_bwd = calc_trace_bwd(
+                    k_mn=None, k_mn_zy=k_subs, kmm=kmm, X=X, solve2=solve2, t=M.shape[0], trace_type=trace_type
+                )
             elif trace_type == "ste":
-                trace_bwd = calc_trace_bwd(k_mn=None, k_mn_zy=k_mn_zy, kmm=kmm, X=X, solve2=solve2,
-                                           t=t, trace_type=trace_type)
+                trace_bwd = calc_trace_bwd(
+                    k_mn=None, k_mn_zy=k_mn_zy, kmm=kmm, X=X, solve2=solve2, t=t, trace_type=trace_type
+                )
             else:
                 raise NotImplementedError("trace-type %s not implemented." % (trace_type))
             trace_fwd_num = (_trace_fwd * dfit_fwd).detach()
             trace_bwd_num = trace_bwd * dfit_fwd.detach() + _trace_fwd.detach() * dfit_bwd
             trace_den = pen_n * X.shape[0]
-            trace_bwd = (
-                (trace_bwd_num * trace_den.detach() - trace_fwd_num * trace_den) /
-                (trace_den.detach() ** 2)
-            )
-            bwd = (deff_bwd + dfit_bwd + trace_bwd)
+            trace_bwd = (trace_bwd_num * trace_den.detach() - trace_fwd_num * trace_den) / (trace_den.detach() ** 2)
+            bwd = deff_bwd + dfit_bwd + trace_bwd
             # bwd = dfit_bwd
         return (deff_fwd, dfit_fwd, trace_fwd), bwd
 
     @staticmethod
-    def choose_device_mem(data_dev: torch.device, dtype: torch.dtype,
-                          solve_options: FalkonOptions) -> Tuple[torch.device, float]:
-        if data_dev.type == 'cuda':  # CUDA in-core
+    def choose_device_mem(
+        data_dev: torch.device, dtype: torch.dtype, solve_options: FalkonOptions
+    ) -> Tuple[torch.device, float]:
+        if data_dev.type == "cuda":  # CUDA in-core
             from falkon.mmv_ops.utils import _get_gpu_info
+
             gpu_info = _get_gpu_info(solve_options, slack=solve_options.memory_slack)
             single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
             avail_mem = single_gpu_info.usable_memory / sizeof_dtype(dtype)
             device = torch.device("cuda:%d" % single_gpu_info.Id)
         elif not solve_options.use_cpu and torch.cuda.is_available():  # CUDA out-of-core
             from falkon.mmv_ops.utils import _get_gpu_info
+
             gpu_info = _get_gpu_info(solve_options, slack=solve_options.memory_slack)[0]  # TODO: Splitting across gpus
             avail_mem = gpu_info.usable_memory / sizeof_dtype(dtype)
             device = torch.device("cuda:%d" % gpu_info.Id)
@@ -301,7 +324,10 @@ class NystromCompRegFn(torch.autograd.Function):
 
         optim = FalkonConjugateGradient(kernel, precond, solve_options)
         solve_zy_prec = optim.solve(
-            X, M_, ZY, penalty_,
+            X,
+            M_,
+            ZY,
+            penalty_,
             initial_solution=NystromCompRegFn._last_solve_zy,
             max_iter=solve_maxiter,
         )
@@ -314,10 +340,22 @@ class NystromCompRegFn(torch.autograd.Function):
         return solve_zy, num_iters
 
     @staticmethod
-    def forward(ctx, kernel: falkon.kernels.DiffKernel, deterministic: bool,
-                solve_options: FalkonOptions, solve_maxiter: int, gaussian_random: bool,
-                warm_start: bool, trace_type: str, t: int, X: torch.Tensor, Y: torch.Tensor,
-                penalty: torch.Tensor, M: torch.Tensor, *kernel_params):
+    def forward(
+        ctx,
+        kernel: falkon.kernels.DiffKernel,
+        deterministic: bool,
+        solve_options: FalkonOptions,
+        solve_maxiter: int,
+        gaussian_random: bool,
+        warm_start: bool,
+        trace_type: str,
+        t: int,
+        X: torch.Tensor,
+        Y: torch.Tensor,
+        penalty: torch.Tensor,
+        M: torch.Tensor,
+        *kernel_params,
+    ):
         if NystromCompRegFn._last_t is not None and NystromCompRegFn._last_t != t:
             NystromCompRegFn._last_solve_y = None
             NystromCompRegFn._last_solve_z = None
@@ -334,8 +372,7 @@ class NystromCompRegFn(torch.autograd.Function):
 
         with Timer(NystromCompRegFn.iter_times):
             # Initialize hutch trace estimation vectors (t of them)
-            Z = init_random_vecs(X.shape[0], t, dtype=X.dtype, device=X.device,
-                                 gaussian_random=gaussian_random)
+            Z = init_random_vecs(X.shape[0], t, dtype=X.dtype, device=X.device, gaussian_random=gaussian_random)
             ZY = torch.cat((Z, Y), dim=1)
             M_dev = M.to(device, copy=False).requires_grad_(M.requires_grad)
             with torch.autograd.enable_grad():
@@ -344,8 +381,16 @@ class NystromCompRegFn(torch.autograd.Function):
 
             with Timer(NystromCompRegFn.solve_times):
                 solve_zy, num_flk_iters = NystromCompRegFn.solve_flk(
-                    X=X, M=M_dev, Z=Z, ZY=ZY, penalty=penalty_dev, kernel=kernel_dev,
-                    solve_options=solve_options, solve_maxiter=solve_maxiter, warm_start=warm_start)
+                    X=X,
+                    M=M_dev,
+                    Z=Z,
+                    ZY=ZY,
+                    penalty=penalty_dev,
+                    kernel=kernel_dev,
+                    solve_options=solve_options,
+                    solve_maxiter=solve_maxiter,
+                    warm_start=warm_start,
+                )
                 NystromCompRegFn.num_flk_iters.append(num_flk_iters)
 
             with Timer(NystromCompRegFn.kmm_times):
@@ -361,15 +406,29 @@ class NystromCompRegFn(torch.autograd.Function):
                     kmm_chol = cholesky(kmm + mm_eye, upper=False, check_errors=False)
 
             fwd, bwd = NystromCompRegFn.direct_nosplit(
-                X=X, M=M_dev, Y=Y, penalty=penalty_dev, kmm=kmm, kmm_chol=kmm_chol,
-                zy=ZY, solve_zy=solve_zy_dev, zy_solve_kmm_solve_zy=zy_solve_kmm_solve_zy,
-                kernel=kernel_dev, t=t, trace_type=trace_type, solve_options=solve_options)
+                X=X,
+                M=M_dev,
+                Y=Y,
+                penalty=penalty_dev,
+                kmm=kmm,
+                kmm_chol=kmm_chol,
+                zy=ZY,
+                solve_zy=solve_zy_dev,
+                zy_solve_kmm_solve_zy=zy_solve_kmm_solve_zy,
+                kernel=kernel_dev,
+                t=t,
+                trace_type=trace_type,
+                solve_options=solve_options,
+            )
             with Timer(NystromCompRegFn.grad_times):
                 grads_ = calc_grads_tensors(
                     inputs=[penalty_dev, M_dev] + list(kernel_dev.diff_params.values()),
-                    inputs_need_grad=ctx.needs_input_grad, output=bwd,
+                    inputs_need_grad=ctx.needs_input_grad,
+                    output=bwd,
                     num_nondiff_inputs=NystromCompRegFn.num_nondiff_inputs,
-                    retain_graph=False, allow_unused=False)
+                    retain_graph=False,
+                    allow_unused=False,
+                )
                 grads = [g if g is None else g.to(X.device) for g in grads_]
 
         deff_fwd, dfit_fwd, trace_fwd = fwd
@@ -396,8 +455,7 @@ class NystromCompRegFn(torch.autograd.Function):
         s = torch.tensor([10.0], dtype=X.dtype).requires_grad_()
         p = torch.tensor(1e-2, dtype=X.dtype).requires_grad_()
         torch.autograd.gradcheck(
-            lambda sigma, pen, centers:
-            NystromCompRegFn.apply(
+            lambda sigma, pen, centers: NystromCompRegFn.apply(
                 sigma,  # kernel_args
                 pen,  # penalty
                 centers,  # M
@@ -409,16 +467,38 @@ class NystromCompRegFn(torch.autograd.Function):
                 30,  # solve_maxiter
                 False,  # gaussian_random
                 True,  # use_stoch_trace
-                False),  # warm_start
-            (s, p, M))
+                False,
+            ),  # warm_start
+            (s, p, M),
+        )
 
 
 def stochastic_nystrom_compreg(
-        kernel, penalty, centers, X, Y,
-        num_estimators, deterministic, solve_options,
-        solve_maxiter, gaussian_random, warm_start=True,
-        trace_type="ste", ):
+    kernel,
+    penalty,
+    centers,
+    X,
+    Y,
+    num_estimators,
+    deterministic,
+    solve_options,
+    solve_maxiter,
+    gaussian_random,
+    warm_start=True,
+    trace_type="ste",
+):
     return NystromCompRegFn.apply(
-        kernel, deterministic, solve_options, solve_maxiter, gaussian_random,
-        warm_start, trace_type, num_estimators, X, Y, penalty, centers,
-        *kernel.diff_params.values())
+        kernel,
+        deterministic,
+        solve_options,
+        solve_maxiter,
+        gaussian_random,
+        warm_start,
+        trace_type,
+        num_estimators,
+        X,
+        Y,
+        penalty,
+        centers,
+        *kernel.diff_params.values(),
+    )

@@ -29,9 +29,9 @@ def run_lauum_exp(exp_name, fn, exp_sizes, num_reps, is_torch, dtype):
         rep_times = []
         for j in range(num_reps):
             if is_torch:
-                Ac = torch.from_numpy(A.copy(order='C'))
+                Ac = torch.from_numpy(A.copy(order="C"))
             else:
-                Ac = A.copy(order='F')
+                Ac = A.copy(order="F")
             t_s = time.time()
             fn(Ac)
             t_e = time.time()
@@ -51,42 +51,52 @@ if __name__ == "__main__":
 
     experiments: List[Dict[str, Any]] = [
         {
-            'exp_name': 'OOC 32',
-            'exp_sizes': [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000, 120_000, 140_000],
-            'dtype': np.float32,
-            'num_reps': 5,
-            'is_torch': True,
-            'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-                                    opt=falkon.FalkonOptions(compute_arch_speed=False)),
+            "exp_name": "OOC 32",
+            "exp_sizes": [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000, 120_000, 140_000],
+            "dtype": np.float32,
+            "num_reps": 5,
+            "is_torch": True,
+            "fn": functools.partial(
+                gpu_lauum,
+                upper=False,
+                overwrite=True,
+                write_opposite=True,
+                opt=falkon.FalkonOptions(compute_arch_speed=False),
+            ),
         },
         {
-            'exp_name': 'OOC 64',
-            'exp_sizes': [10_000, 20_000, 30_000, 40_000, 50_000],
-            'dtype': np.float64,
-            'num_reps': 5,
-            'is_torch': True,
-            'fn': functools.partial(gpu_lauum, upper=False, overwrite=True, write_opposite=True,
-                                    opt=falkon.FalkonOptions(compute_arch_speed=False)),
+            "exp_name": "OOC 64",
+            "exp_sizes": [10_000, 20_000, 30_000, 40_000, 50_000],
+            "dtype": np.float64,
+            "num_reps": 5,
+            "is_torch": True,
+            "fn": functools.partial(
+                gpu_lauum,
+                upper=False,
+                overwrite=True,
+                write_opposite=True,
+                opt=falkon.FalkonOptions(compute_arch_speed=False),
+            ),
         },
         {
-            'exp_name': 'CPU 32',
-            'exp_sizes': [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000],
-            'dtype': np.float32,
-            'num_reps': 3,
-            'is_torch': False,
-            'fn': functools.partial(slauum, lower=1, overwrite_c=True),
+            "exp_name": "CPU 32",
+            "exp_sizes": [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000],
+            "dtype": np.float32,
+            "num_reps": 3,
+            "is_torch": False,
+            "fn": functools.partial(slauum, lower=1, overwrite_c=True),
         },
         {
-            'exp_name': 'CPU 64',
-            'exp_sizes': [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000],
-            'dtype': np.float64,
-            'num_reps': 3,
-            'is_torch': False,
-            'fn': functools.partial(dlauum, lower=1, overwrite_c=True),
+            "exp_name": "CPU 64",
+            "exp_sizes": [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000],
+            "dtype": np.float64,
+            "num_reps": 3,
+            "is_torch": False,
+            "fn": functools.partial(dlauum, lower=1, overwrite_c=True),
         },
     ]
     for exp in experiments:
         exp_times = run_lauum_exp(**exp)
-        exp['timings'] = exp_times
+        exp["timings"] = exp_times
     with open("logs/lauum_timings_%dGPU.json" % (num_gpu), "w") as fh:
         json.dump(experiments, fh)
