@@ -387,7 +387,6 @@ spspmm_cuda(
     valA.dtype(), ", ", valB.dtype());
 
   std::tuple<at::Tensor, at::Tensor, at::Tensor> out;
-  auto scalar_type = valA.scalar_type();
   at::DeviceGuard g(rowptrA.device());
 
   AT_DISPATCH_FLOATING_TYPES(valA.scalar_type(), "dispatch_spspmm", [&] {

@@ -1,0 +1,57 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "ninja",
+    "torch",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+addopts = "-m 'not benchmark and not full'"
+testpaths = [
+    "falkon/tests",
+]
+markers = [
+    # marks tests which are only used for timing purposes (deselect with '-m "not benchmark"')
+    "benchmark",
+    # tests which should only be run for very exhaustive testing. Not generally useful.
+    "full",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["falkon"]
+omit = [
+    "falkon/tests/*", "falkon/hopt/*", "falkon/benchmarks/*", "falkon/csrc/*",
+]
+
+[tool.ruff]
+target-version = "py38"
+ignore = [
+    "B028", # No explicit `stacklevel` keyword argument found
+    "SIM108",
+    "SIM116", # Disable Use a dictionary instead of consecutive `if` statements
+    "SIM102", "SIM103", "SIM112", # flake8-simplify code styles
+    "SIM105", # these ignores are from flake8-simplify. please fix or ignore with commented reason
+    "SIM114", # Combine `if` branches using logical `or` operator
+    "C408",   # C408 ignored because we like the dict keyword argument syntax
+]
+line-length = 120
+select = [
+    "B",
+    "C4",
+    "G",
+    "E",
+    "F",
+    "SIM1",
+    "W",
+    # Not included in flake8
+    "UP",
+    "PERF",
+    "PGH004",
+    "PIE807",
+    "PIE810",
+    "PLE",
+    "TRY302",
+]

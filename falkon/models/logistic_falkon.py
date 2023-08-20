@@ -7,7 +7,7 @@ import falkon
 from falkon.gsc_losses import Loss
 from falkon.models.model_utils import FalkonBase
 from falkon.optim import ConjugateGradient
-from falkon.options import *
+from falkon.options import FalkonOptions
 from falkon.utils import TicToc
 
 __all__ = ("LogisticFalkon", )
@@ -187,7 +187,6 @@ class LogisticFalkon(FalkonBase):
             precond = falkon.preconditioner.LogisticPreconditioner(self.kernel, self.loss, self.options)
 
             # Define the validation callback TODO: this is almost identical to the generic cback in model_utils.py
-            validation_cback = None
             if self.error_fn is not None and self.error_every is not None:
                 def validation_cback(it, beta, train_time):
                     self.fit_times_.append(self.fit_times_[0] + train_time)
@@ -211,6 +210,8 @@ class LogisticFalkon(FalkonBase):
                     print(f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - "
                           f"{err_str} loss {loss:.4f} - "
                           f"{err_str} {err_name} {err:.4f} ", flush=True)
+            else:
+                validation_cback = None
 
             # Start iterative training procedure:
             # each iteration computes preconditioner and falkon iterations.
@@ -233,11 +234,11 @@ class LogisticFalkon(FalkonBase):
 
                 # Run CG with `grad_p` as right-hand-side.
                 with TicToc("Optim", self.options.debug):
-                    def mmv(sol):
+                    def mmv(sol, inner_mmv_=inner_mmv, penalty_=penalty):
                         sol_a = precond.invA(sol)
                         knmp_hess = self.loss.knmp_hess(
-                            X, ny_X, Y, inner_mmv, precond.invT(sol_a), opt=self.options)
-                        return precond.invAt(precond.invTt(knmp_hess).add_(sol_a.mul_(penalty)))
+                            X, ny_X, Y, inner_mmv_, precond.invT(sol_a), opt=self.options)
+                        return precond.invAt(precond.invTt(knmp_hess).add_(sol_a.mul_(penalty_)))
                     optim_out = optim.solve(X0=None, B=grad_p, mmv=mmv, max_iter=max_iter)
                     beta_it -= precond.invA(optim_out)
 
