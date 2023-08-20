@@ -118,12 +118,17 @@ except ImportError:
         )
         extra_cflags += ['-DWITH_CUDA=1']
         extra_cuda_cflags += ['--expt-relaxed-constexpr', '--extended-lambda']
+        from torch.utils.cpp_extension import CUDA_HOME, TORCH_LIB_PATH
         extra_ldflags += [
-            '-lcusparse',
-            '-lcublas',
-            '-lcusolver',
-            '-ltorch_cuda_linalg',
+            '-L', os.path.join(CUDA_HOME, 'lib'),
+            '-L', TORCH_LIB_PATH,
+            '-Wl,-rpath', TORCH_LIB_PATH,
+            '-l', 'cusparse',
+            '-l', 'cublas',
+            '-l', 'cusolver',
         ]
+        if torch.__version__ >= (1, 12):
+            extra_ldflags.extend(['-l', 'torch_cuda_linalg'])
     else:
         warnings.warn(
             "No CUDA toolkit found. Falkon will only run on the CPU."
