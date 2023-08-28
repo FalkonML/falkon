@@ -90,6 +90,7 @@ try:
             # TODO: This will only work on linux.
             if (missing_lib := lib_from_oserror(e)).startswith("torch_cuda_linalg"):
                 import ctypes
+
                 from torch.utils.cpp_extension import TORCH_LIB_PATH
 
                 ctypes.CDLL(os.path.join(TORCH_LIB_PATH, missing_lib))
