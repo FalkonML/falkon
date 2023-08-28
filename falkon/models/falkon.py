@@ -209,8 +209,10 @@ class Falkon(FalkonBase):
                 and (not self.options.cpu_preconditioner)
                 and num_centers >= get_min_cuda_preconditioner_size(dtype, self.options)
             )
-            per_gpu_mmv_mem_usage = X.shape[0] * X.shape[1] * num_centers / self.num_gpus
-            _use_cuda_mmv = self.use_cuda_ and per_gpu_mmv_mem_usage >= get_min_cuda_mmv_size(dtype, self.options)
+            tot_mmv_mem_usage = X.shape[0] * X.shape[1] * num_centers
+            _use_cuda_mmv = self.use_cuda_ and tot_mmv_mem_usage / self.num_gpus >= get_min_cuda_mmv_size(
+                dtype, self.options
+            )
 
             if self.use_cuda_:
                 ny_points = ny_points.pin_memory()
@@ -286,9 +288,9 @@ class Falkon(FalkonBase):
                 # Then X is the kernel itself
                 return X @ alpha
             num_centers = alpha.shape[0]
-            per_gpu_mmv_mem_usage = X.shape[0] * X.shape[1] * num_centers / self.num_gpus
+            tot_mmv_mem_usage = X.shape[0] * X.shape[1] * num_centers
             _use_cuda_mmv = alpha.device.type == "cuda" or (
-                self.use_cuda_ and per_gpu_mmv_mem_usage >= get_min_cuda_mmv_size(X.dtype, self.options)
+                self.use_cuda_ and tot_mmv_mem_usage / self.num_gpus >= get_min_cuda_mmv_size(X.dtype, self.options)
             )
             mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
             return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
