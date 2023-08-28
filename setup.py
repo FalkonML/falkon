@@ -116,7 +116,7 @@ def get_extensions():
         extra_link_args += [
             '-L', os.path.join(CUDA_HOME, 'lib'),
             '-L', TORCH_LIB_PATH,
-            '-Wl,-rpath', TORCH_LIB_PATH,
+            '-Wl,-rpath', f"'$ORIGIN'/../../torch/lib",
         ]
         libraries += ['cusolver', 'cublas', 'cusparse']
         if torch.__version__ >= (1, 12):
@@ -196,6 +196,7 @@ setup(
             "ops/autograd/*.cpp", "ops/autograd/*.cu", "ops/autograd/*.h",
             "ops/cpu/*.cpp", "ops/cpu/*.cu", "ops/cpu/*.h",
             "ops/cuda/*.cpp", "ops/cuda/*.cu", "ops/cuda/*.h",
+            "ops/cuda/*.cuh",
         ]
     }
 )
