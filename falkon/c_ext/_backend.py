@@ -13,6 +13,7 @@ import os.path as osp
 import shutil
 import warnings
 from subprocess import DEVNULL, call
+from typing import Optional
 
 import torch.cuda
 from torch.utils.cpp_extension import _get_build_directory, load
@@ -66,13 +67,36 @@ def torch_version():
     return [int(v) for v in split_version]
 
 
+def lib_from_oserror(exc: OSError) -> Optional[str]:
+    e_str = str(exc)
+    so_idx = e_str.index(".so")  # TODO: Platform specific code
+    if so_idx <= 0:
+        return None
+    lib_wext = e_str[: so_idx + 3]
+    return lib_wext
+
+
 _HAS_EXT = False
 
 try:
     if not _HAS_EXT:
         # try to import the compiled module (via setup.py)
         lib_path = _get_extension_path("_C")
-        torch.ops.load_library(lib_path)
+        try:
+            torch.ops.load_library(lib_path)
+        except OSError as e:
+            # Hack: usually ld can't find torch_cuda_linalg.so which is in TORCH_LIB_PATH
+            # if we load it first, then load_library will work.
+            # TODO: This will only work on linux.
+            if (missing_lib := lib_from_oserror(e)).startswith("torch_cuda_linalg"):
+                import ctypes
+                from torch.utils.cpp_extension import TORCH_LIB_PATH
+
+                ctypes.CDLL(os.path.join(TORCH_LIB_PATH, missing_lib))
+                torch.ops.load_library(lib_path)
+            else:
+                raise
+
         _HAS_EXT = True
 
         # Check torch version vs. compilation version
