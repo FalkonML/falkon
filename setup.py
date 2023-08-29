@@ -116,7 +116,7 @@ def get_extensions():
         extra_link_args += [
             '-L', os.path.join(CUDA_HOME, 'lib'),
             '-L', TORCH_LIB_PATH,
-            "-Wl,-rpath,'$ORIGIN'/../../torch/lib",
+            "-Wl,-rpath,$ORIGIN/../../torch/lib",
         ]
         libraries += ['cusolver', 'cublas', 'cusparse']
         if torch.__version__ >= (1, 12):

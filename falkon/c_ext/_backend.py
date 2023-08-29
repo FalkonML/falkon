@@ -88,7 +88,7 @@ try:
             # Hack: usually ld can't find torch_cuda_linalg.so which is in TORCH_LIB_PATH
             # if we load it first, then load_library will work.
             # TODO: This will only work on linux.
-            if (missing_lib := lib_from_oserror(e)).startswith("torch_cuda_linalg"):
+            if (missing_lib := lib_from_oserror(e)).startswith("libtorch_cuda_linalg"):
                 import ctypes
 
                 from torch.utils.cpp_extension import TORCH_LIB_PATH
