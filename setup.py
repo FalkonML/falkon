@@ -27,34 +27,35 @@ NO_BUILD_EXT = os.getenv("NO_BUILD_EXT", "0") == "1"  # Don't build the extensio
 
 
 def get_version(root_dir):
-    with open(os.path.join(root_dir, 'VERSION')) as version_file:
+    with open(os.path.join(root_dir, "VERSION")) as version_file:
         version = version_file.read().strip()
     return version
 
 
 def torch_version():
     import torch
+
     version = torch.__version__
     split_version = version.split(".")
     # With torch 1.10.0 the version 'number' include CUDA version (e.g. '1.10.0+cu102').
     # Here we remove the CUDA version.
     for i in range(len(split_version)):
-        if '+' in split_version[i]:
-            split_version[i] = split_version[i].split('+')[0]
+        if "+" in split_version[i]:
+            split_version[i] = split_version[i].split("+")[0]
     return [int(v) for v in split_version]
 
 
 def torch_version_macros():
     int_version = torch_version()
-    return [('TORCH_VERSION_MAJOR', int_version[0]),
-            ('TORCH_VERSION_MINOR', int_version[1]),
-            ('TORCH_VERSION_PATCH', int_version[2])]
+    return [
+        ("TORCH_VERSION_MAJOR", int_version[0]),
+        ("TORCH_VERSION_MINOR", int_version[1]),
+        ("TORCH_VERSION_PATCH", int_version[2])
+    ]
 
 
 def get_build_ext():
-    return BuildExtension.with_options(
-        no_python_abi_suffix=True
-    )
+    return BuildExtension.with_options(no_python_abi_suffix=True)
 
 
 def get_extensions():
@@ -62,34 +63,33 @@ def get_extensions():
 
     # All C/CUDA routines are compiled into a single extension
     ext_cls = CppExtension
-    ext_dir = osp.join('.', 'falkon', 'c_ext')
+    ext_dir = osp.join(".", "falkon", "c_ext")
     ext_files = (
-        glob.glob(osp.join(ext_dir, 'ops', 'cpu', '*.cpp')) +
-        glob.glob(osp.join(ext_dir, 'ops', 'autograd', '*.cpp')) +
-        glob.glob(osp.join(ext_dir, 'ops', '*.cpp')) +
-        glob.glob(osp.join(ext_dir, '*.cpp'))
+        glob.glob(osp.join(ext_dir, "ops", "cpu", "*.cpp")) +
+        glob.glob(osp.join(ext_dir, "ops", "autograd", "*.cpp")) +
+        glob.glob(osp.join(ext_dir, "ops", "*.cpp")) +
+        glob.glob(osp.join(ext_dir, "*.cpp"))
     )
 
     libraries = []
     macros: List[Tuple[str, Any]] = torch_version_macros()
     undef_macros = []
-    extra_compile_args = {'cxx': ['-O3']}
-    if not os.name == 'nt':  # Not on Windows:
-        extra_compile_args['cxx'] += ['-Wno-sign-compare']
-    if sys.platform == 'darwin':  # On macOS:
-        extra_compile_args['cxx'] += ['-D_LIBCPP_DISABLE_AVAILABILITY']
-    extra_link_args = [] if WITH_SYMBOLS else ['-s']
+    extra_compile_args = {"cxx": ["-O3"]}
+    if not os.name == "nt":  # Not on Windows:
+        extra_compile_args["cxx"] += ["-Wno-sign-compare"]
+    if sys.platform == "darwin":  # On macOS:
+        extra_compile_args["cxx"] += ["-D_LIBCPP_DISABLE_AVAILABILITY"]
+    extra_link_args = [] if WITH_SYMBOLS else ["-s"]
 
     info = parallel_info()
-    if ('backend: OpenMP' in info and 'OpenMP not found' not in info
-            and sys.platform != 'darwin'):
-        extra_compile_args['cxx'] += ['-DAT_PARALLEL_OPENMP']
-        if sys.platform == 'win32':
-            extra_compile_args['cxx'] += ['/openmp']
+    if "backend: OpenMP" in info and "OpenMP not found" not in info and sys.platform != "darwin":
+        extra_compile_args["cxx"] += ["-DAT_PARALLEL_OPENMP"]
+        if sys.platform == "win32":
+            extra_compile_args["cxx"] += ["/openmp"]
         else:
-            extra_compile_args['cxx'] += ['-fopenmp']
+            extra_compile_args["cxx"] += ["-fopenmp"]
     else:
-        print('Compiling without OpenMP...')
+        print("Compiling without OpenMP...")
 
     # Compile for mac arm64
     if sys.platform == "darwin" and platform.machine() == "arm64":
@@ -98,34 +98,36 @@ def get_extensions():
 
     if WITH_CUDA:
         ext_cls = CUDAExtension
-        ext_files.extend(
-            glob.glob(osp.join(ext_dir, 'ops', 'cuda', '*.cu'))
-        )
-        macros.append(('WITH_CUDA', None))
-        nvcc_flags = os.getenv('NVCC_FLAGS', '')
-        nvcc_flags = [] if nvcc_flags == '' else nvcc_flags.split(' ')
-        nvcc_flags.append('-O3')
+        ext_files.extend(glob.glob(osp.join(ext_dir, "ops", "cuda", "*.cu")))
+        macros.append(("WITH_CUDA", None))
+        nvcc_flags = os.getenv("NVCC_FLAGS", "")
+        nvcc_flags = [] if nvcc_flags == "" else nvcc_flags.split(" ")
+        nvcc_flags.append("-O3")
         if torch.version.hip:
             # USE_ROCM was added to later versions of PyTorch
             # Define here to support older PyTorch versions as well:
-            macros += [('USE_ROCM', None)]
-            undef_macros += ['__HIP_NO_HALF_CONVERSIONS__']
+            macros += [("USE_ROCM", None)]
+            undef_macros += ["__HIP_NO_HALF_CONVERSIONS__"]
         else:
-            nvcc_flags += ['--expt-relaxed-constexpr', '--extended-lambda']
-        extra_compile_args['nvcc'] = nvcc_flags
+            nvcc_flags += ["--expt-relaxed-constexpr", "--extended-lambda"]
+        extra_compile_args["nvcc"] = nvcc_flags
         extra_link_args += [
-            '-L', os.path.join(CUDA_HOME, 'lib'),
-            '-L', TORCH_LIB_PATH,
+            "-L",
+            os.path.join(CUDA_HOME, "lib"),
+            "-L",
+            TORCH_LIB_PATH,
             "-Wl,-rpath,$ORIGIN/../../torch/lib",
         ]
-        libraries += ['cusolver', 'cublas', 'cusparse']
+        libraries += ["cusolver", "cublas", "cusparse"]
         if torch.__version__ >= (1, 12):
-            libraries.append('torch_cuda_linalg')
+            libraries.append("torch_cuda_linalg")
 
-    print(f"Defining C-extension on platform {sys.platform}. compile args: {extra_compile_args}  "
-          f"macros: {macros}  link args: {extra_link_args}  libraries {libraries}")
+    print(
+        f"Defining C-extension on platform {sys.platform}. compile args: {extra_compile_args}  "
+        f"macros: {macros}  link args: {extra_link_args}  libraries {libraries}"
+    )
     # remove generated 'hip' files, in case of rebuilds
-    ext_files = [path for path in ext_files if 'hip' not in path]
+    ext_files = [path for path in ext_files if "hip" not in path]
 
     extensions.append(
         ext_cls(
@@ -143,31 +145,31 @@ def get_extensions():
 
 # Requirements
 install_requires = [
-    'torch>=1.11',
-    'scipy',
-    'numpy',
-    'scikit-learn',
-    'psutil',
-    'keopscore @ git+https://github.com/getkeops/keops.git@main#subdirectory=keopscore',
-    'pykeops @ git+https://github.com/getkeops/keops.git@main#subdirectory=pykeops',
+    "torch>=1.11",
+    "scipy",
+    "numpy",
+    "scikit-learn",
+    "psutil",
+    "keopscore @ git+https://github.com/getkeops/keops.git@main#subdirectory=keopscore",
+    "pykeops @ git+https://github.com/getkeops/keops.git@main#subdirectory=pykeops",
 ]
 test_requires = [
-    'pandas',
-    'pytest',
-    'pytest-cov',
-    'coverage[toml]',
-    'codecov',
-    'flake8',
+    "pandas",
+    "pytest",
+    "pytest-cov",
+    "coverage[toml]",
+    "codecov",
+    "flake8",
 ]
 doc_requires = [
-    'pandas',
-    'numpydoc',
-    'sphinx',
-    'nbsphinx',
-    'sphinx-rtd-theme',
-    'matplotlib',
-    'jupyter',
-    'ghp-import',
+    "pandas",
+    "numpydoc",
+    "sphinx",
+    "nbsphinx",
+    "sphinx-rtd-theme",
+    "matplotlib",
+    "jupyter",
+    "ghp-import",
     # Also pandoc, must be installed system-wide with apt
 ]
 
@@ -178,12 +180,9 @@ setup(
     author_email="giacomo.meanti@iit.it",
     url="https://falkonml.github.io/falkon/",
     description="Fast, GPU enabled, approximate kernel ridge regression solver.",
-    python_requires='>=3.8',
+    python_requires=">=3.8",
     tests_require=test_requires,
-    extras_require={
-        'test': test_requires,
-        'doc': doc_requires
-    },
+    extras_require={"test": test_requires, "doc": doc_requires},
     install_requires=install_requires,
     ext_modules=get_extensions() if not NO_BUILD_EXT else [],
     cmdclass={"build_ext": get_build_ext()} if not NO_BUILD_EXT else {},
