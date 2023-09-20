@@ -1,18 +1,12 @@
 from contextlib import ExitStack
 from dataclasses import dataclass, field
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 import torch
 import torch.cuda as tcd
 
 import falkon
-from falkon.mmv_ops.utils import (
-    _call_direct,
-    _check_contiguity,
-    _extract_flat,
-    _get_gpu_info,
-    _start_wait_processes,
-)
+from falkon.mmv_ops.utils import _call_direct, _check_contiguity, _extract_flat, _get_gpu_info, _start_wait_processes
 from falkon.options import BaseOptions
 from falkon.sparse.sparse_tensor import SparseTensor
 from falkon.utils.device_copy import copy

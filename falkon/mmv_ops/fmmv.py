@@ -1,7 +1,7 @@
 from collections import defaultdict
 from contextlib import ExitStack
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Union, Dict
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -22,12 +22,7 @@ from falkon.mmv_ops.utils import (
 from falkon.options import BaseOptions
 from falkon.sparse import SparseTensor
 from falkon.utils.device_copy import copy
-from falkon.utils.helpers import (
-    calc_gpu_block_sizes,
-    select_dim_over_n,
-    select_dim_over_nm_v2,
-    sizeof_dtype,
-)
+from falkon.utils.helpers import calc_gpu_block_sizes, select_dim_over_n, select_dim_over_nm_v2, sizeof_dtype
 from falkon.utils.tensor_helpers import create_same_stride, extract_fortran
 
 
