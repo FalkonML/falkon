@@ -306,3 +306,7 @@ class TestPolynomialKernel:
             if hasattr(e, "__cause__") and e.__cause__ is not None:
                 raise e.__cause__ from None
             raise e
+
+
+if __name__ == "__main__":
+    pytest.main()
