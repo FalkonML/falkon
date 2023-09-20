@@ -1,7 +1,7 @@
 from collections import defaultdict
 from contextlib import ExitStack
-from dataclasses import dataclass
-from typing import Optional, Tuple, Union
+from dataclasses import dataclass, field
+from typing import Optional, Tuple, Union, Dict
 
 import numpy as np
 import torch
@@ -22,7 +22,12 @@ from falkon.mmv_ops.utils import (
 from falkon.options import BaseOptions
 from falkon.sparse import SparseTensor
 from falkon.utils.device_copy import copy
-from falkon.utils.helpers import calc_gpu_block_sizes, select_dim_over_n, select_dim_over_nm_v2, sizeof_dtype
+from falkon.utils.helpers import (
+    calc_gpu_block_sizes,
+    select_dim_over_n,
+    select_dim_over_nm_v2,
+    sizeof_dtype,
+)
 from falkon.utils.tensor_helpers import create_same_stride, extract_fortran
 
 
@@ -36,6 +41,8 @@ class ArgsFmmv:
     max_mem: float
     w: torch.Tensor = None
     differentiable: bool = False
+    kwargs_m1: Dict[str, torch.Tensor] = field(default_factory=dict)
+    kwargs_m2: Dict[str, torch.Tensor] = field(default_factory=dict)
 
 
 def _init_two_streams(
@@ -148,11 +155,39 @@ def mmv_run_starter(proc_idx, queue, device_id):
     )
     if differentiable:
         assert not is_sparse, "Sparse + differentiable mmvs are not supported"
-        return mmv_diff_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, dev, tid=proc_idx)
+        return mmv_diff_run_thread(
+            X1, X2, v, out, kernel, blk_n, blk_m, dev, tid=proc_idx, kwargs_m1=a.kwargs_m1, kwargs_m2=a.kwargs_m2
+        )
     if is_sparse:
-        return sparse_mmv_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, mem_needed, dev, tid=proc_idx)
+        return sparse_mmv_run_thread(
+            X1,
+            X2,
+            v,
+            out,
+            kernel,
+            blk_n,
+            blk_m,
+            mem_needed,
+            dev,
+            tid=proc_idx,
+            kwargs_m1=a.kwargs_m1,
+            kwargs_m2=a.kwargs_m2,
+        )
     else:
-        return mmv_run_thread(X1, X2, v, out, kernel, blk_n, blk_m, mem_needed, dev, tid=proc_idx)
+        return mmv_run_thread(
+            X1,
+            X2,
+            v,
+            out,
+            kernel,
+            blk_n,
+            blk_m,
+            mem_needed,
+            dev,
+            tid=proc_idx,
+            kwargs_m1=a.kwargs_m1,
+            kwargs_m2=a.kwargs_m2,
+        )
 
 
 def sparse_mmv_run_thread(
@@ -166,6 +201,8 @@ def sparse_mmv_run_thread(
     mem_needed: int,
     dev: torch.device,
     tid: int,
+    kwargs_m1: Dict[str, torch.Tensor],
+    kwargs_m2: Dict[str, torch.Tensor],
 ):
     """Inner loop to compute (part of) a kernel-vector product for sparse input matrices.
 
@@ -193,6 +230,14 @@ def sparse_mmv_run_thread(
         Device on which to run the calculations
     tid
         Thread ID or -1 if on main thread
+    kwargs_m1
+        Keyword arguments containing tensors which should be split along with ``m1``.
+        For example this could be a set of indices corresponding to ``m1``, which are then
+        correctly split and available in the kernel computation.
+    kwargs_m2
+        Keyword arguments containing tensors which should be split along with ``m2``.
+        For example this could be a set of indices corresponding to ``m2``, which are then
+        correctly split and available in the kernel computation.
 
     Returns
     -------
@@ -218,6 +263,7 @@ def sparse_mmv_run_thread(
         s1, s2 = _init_two_streams(stack, dev, tid)  # enters stream 1
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
 
             c_m1 = m1.narrow_rows(i, leni)
             if incore:  # Note that CUDA-incore is not allowed to happen (so this is CPU->CPU)
@@ -230,6 +276,7 @@ def sparse_mmv_run_thread(
 
             for j in range(0, M, blk_m):
                 lenj = min(blk_m, M - j)
+                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
 
                 c_m2 = m2.narrow_rows(j, lenj)
                 if incore:  # CPU -> CPU
@@ -247,7 +294,9 @@ def sparse_mmv_run_thread(
                         c_dev_v = copy(v[j : j + lenj], dev_v[:lenj], non_blocking=True)
                 c_dev_ker = ker_gpu[:leni, :lenj].fill_(0.0)
 
-                c_dev_ker = kernel.compute_sparse(c_dev_m1, c_dev_m2, c_dev_ker, diag=False, X1_csr=c_m1, X2_csr=c_m2)
+                c_dev_ker = kernel.compute_sparse(
+                    c_dev_m1, c_dev_m2, c_dev_ker, diag=False, X1_csr=c_m1, X2_csr=c_m2, **c_kwargs_m1, **c_kwargs_m2
+                )
                 if not incore:
                     s2.synchronize()
                 c_dev_out.addmm_(c_dev_ker, c_dev_v)
@@ -273,6 +322,8 @@ def mmv_run_thread(
     mem_needed: int,
     dev: torch.device,
     tid: int,
+    kwargs_m1: Dict[str, torch.Tensor],
+    kwargs_m2: Dict[str, torch.Tensor],
 ):
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
     m1_ic, m2_ic, v_ic, out_ic = (
@@ -311,8 +362,7 @@ def mmv_run_thread(
         s1, s2 = _init_two_streams(stack, dev, tid)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
-            # c_dev_m1 = m1[i: i + leni, :].to(dev, copy=False, non_blocking=True)
-            # c_dev_out = out[i: i + leni, :].to(dev, copy=False, non_blocking=True)
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
             if m1_ic:
                 c_dev_m1 = m1[i : i + leni, :]
             else:
@@ -325,6 +375,7 @@ def mmv_run_thread(
 
             for j in range(0, M, blk_m):
                 lenj = min(blk_m, M - j)
+                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
                 if m2_ic:
                     c_dev_m2 = m2[j : j + lenj, :]
                 else:
@@ -337,13 +388,9 @@ def mmv_run_thread(
                         if dev.type == "cuda":
                             stack2.enter_context(tcd.stream(s2))
                         c_dev_v = copy(v[j : j + lenj, :], dev_v[:lenj, :], non_blocking=True)
-                # with ExitStack() as stack2:
-                #     if dev.type == 'cuda':
-                #         stack2.enter_context(tcd.stream(s2))
-                #     c_dev_v = v[j: j + lenj, :].to(dev, copy=False, non_blocking=True)
                 c_dev_ker = dev_ker[:leni, :lenj].fill_(0.0)
 
-                c_dev_ker = kernel.compute(c_dev_m1, c_dev_m2, c_dev_ker, diag=False)
+                c_dev_ker = kernel.compute(c_dev_m1, c_dev_m2, c_dev_ker, diag=False, **c_kwargs_m1, **c_kwargs_m2)
                 if not incore:
                     s2.synchronize()
                 c_dev_out.addmm_(c_dev_ker, c_dev_v)
@@ -370,6 +417,8 @@ def mmv_diff_run_thread(
     blk_m: int,
     dev: torch.device,
     tid: int,
+    kwargs_m1: Dict[str, torch.Tensor],
+    kwargs_m2: Dict[str, torch.Tensor],
 ):
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
     incore = _is_incore(dev, m1.device)
@@ -389,12 +438,14 @@ def mmv_diff_run_thread(
         s1, s2 = _init_two_streams(stack, dev, tid)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
             c_dev_m1 = m1[i : i + leni, :].to(dev, non_blocking=True, copy=False)
             c_dev_m1_g = None if grads[0] is None else grads[0][i : i + leni, :].to(dev, non_blocking=True, copy=False)
             c_dev_out = out[i : i + leni, :].to(dev, non_blocking=True, copy=False)
 
             for j in range(0, M, blk_m):
                 lenj = min(blk_m, M - j)
+                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
                 c_dev_m2 = m2[j : j + lenj, :].to(dev, non_blocking=True, copy=False)
                 c_dev_m2_g = (
                     None if grads[1] is None else grads[1][j : j + lenj, :].to(dev, non_blocking=True, copy=False)
@@ -406,7 +457,7 @@ def mmv_diff_run_thread(
                     c_dev_v_g = (
                         None if grads[2] is None else grads[2][j : j + lenj, :].to(dev, non_blocking=True, copy=False)
                     )
-                c_dev_ker = kernel.compute_diff(c_dev_m1, c_dev_m2, diag=False)
+                c_dev_ker = kernel.compute_diff(c_dev_m1, c_dev_m2, diag=False, **c_kwargs_m1, **c_kwargs_m2)
                 if not incore:
                     s2.synchronize()
                 # main MMV operation on current block
@@ -414,7 +465,9 @@ def mmv_diff_run_thread(
                 # Build inputs for torch.autograd.grad
                 c_inputs = [c_dev_m1, c_dev_m2, c_dev_v] + list(kernel.diff_params.values())
                 c_dev_grads = torch.autograd.grad(
-                    c_dev_mmv, [c_inputs[idx] for idx in input_idxs], grad_outputs=c_dev_out
+                    c_dev_mmv,
+                    [c_inputs[idx] for idx in input_idxs],
+                    grad_outputs=c_dev_out,
                 )
                 c_dev_grads_old = [c_dev_m1_g, c_dev_m2_g, c_dev_v_g] + grads[3:]
                 for c_grad, c_idx in zip(c_dev_grads, input_idxs):
@@ -527,9 +580,35 @@ def dmmv_run_starter(proc_idx, queue, device_id):
     )
 
     if is_sparse:
-        sparse_dmmv_run_thread(X1, X2, v, w, out, kernel, blk_n, mem_needed, dev, tid=proc_idx)
+        sparse_dmmv_run_thread(
+            X1,
+            X2,
+            v,
+            w,
+            out,
+            kernel,
+            blk_n,
+            mem_needed,
+            dev,
+            tid=proc_idx,
+            kwargs_m1=a.kwargs_m1,
+            kwargs_m2=a.kwargs_m2,
+        )
     else:
-        dmmv_run_thread(X1, X2, v, w, out, kernel, blk_n, mem_needed, dev, tid=proc_idx)
+        dmmv_run_thread(
+            X1,
+            X2,
+            v,
+            w,
+            out,
+            kernel,
+            blk_n,
+            mem_needed,
+            dev,
+            tid=proc_idx,
+            kwargs_m1=a.kwargs_m1,
+            kwargs_m2=a.kwargs_m2,
+        )
 
 
 def sparse_dmmv_run_thread(
@@ -543,6 +622,8 @@ def sparse_dmmv_run_thread(
     mem_needed: int,
     dev: torch.device,
     tid: int,
+    kwargs_m1: Dict[str, torch.Tensor],
+    kwargs_m2: Dict[str, torch.Tensor],
 ):
     incore = _is_incore(dev, m1.device)
     dev_out_exists = out.device == dev  # out has already been allocated on the computation device
@@ -579,6 +660,7 @@ def sparse_dmmv_run_thread(
 
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
 
             c_m1 = m1.narrow_rows(i, leni)
             if incore:  # Note that CUDA-incore is not allowed to happen (so this is CPU->CPU)
@@ -591,7 +673,9 @@ def sparse_dmmv_run_thread(
                 c_dev_w = copy(w[i : i + leni, :], dev_w[:leni, :], non_blocking=True)
 
             c_dev_ker = ker_gpu[:leni].fill_(0.0)
-            c_dev_ker = kernel.compute_sparse(c_dev_m1, dev_m2, c_dev_ker, diag=False, X1_csr=c_m1, X2_csr=m2)
+            c_dev_ker = kernel.compute_sparse(
+                c_dev_m1, dev_m2, c_dev_ker, diag=False, X1_csr=c_m1, X2_csr=m2, **c_kwargs_m1, **kwargs_m2
+            )
 
             c_dev_w.addmm_(c_dev_ker, dev_v)
             dev_out.addmm_(c_dev_ker.T, c_dev_w)
@@ -612,6 +696,8 @@ def dmmv_run_thread(
     mem_needed: int,
     dev: torch.device,
     tid: int,
+    kwargs_m1: Dict[str, torch.Tensor],
+    kwargs_m2: Dict[str, torch.Tensor],
 ):
     # k(x2, x1) @ (k(x1, x2) @ v + w)
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
@@ -658,6 +744,7 @@ def dmmv_run_thread(
                 copy(v, dev_v, non_blocking=True)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
             if m1_ic:
                 c_dev_m1 = m1[i : i + leni, :]
             else:
@@ -671,7 +758,7 @@ def dmmv_run_thread(
                 c_dev_w = dev_w[:leni, :].fill_(0.0)
 
             c_dev_ker = dev_ker[:leni, :].fill_(0.0)
-            c_dev_ker = kernel.compute(c_dev_m1, dev_m2, c_dev_ker, diag=False)
+            c_dev_ker = kernel.compute(c_dev_m1, dev_m2, c_dev_ker, diag=False, **c_kwargs_m1, **kwargs_m2)
             if s2 is not None:
                 s2.synchronize()
             c_dev_w.addmm_(c_dev_ker, dev_v)
@@ -696,8 +783,20 @@ class KernelMmvFnFull(torch.autograd.Function):
         kernel,
         options,
         diff,
+        kwargs_m1: Optional[Dict[str, torch.Tensor]],
+        kwargs_m2: Optional[Dict[str, torch.Tensor]],
     ):
-        args = ArgsFmmv(X1=X1, X2=X2, v=v, out=out, kernel=kernel, max_mem=options.max_cpu_mem, differentiable=diff)
+        args = ArgsFmmv(
+            X1=X1,
+            X2=X2,
+            v=v,
+            out=out,
+            kernel=kernel,
+            max_mem=options.max_cpu_mem,
+            differentiable=diff,
+            kwargs_m1=kwargs_m1 or {},
+            kwargs_m2=kwargs_m2 or {},
+        )
         return _call_direct(mmv_run_starter, (args, -1))
 
     @staticmethod
@@ -709,6 +808,8 @@ class KernelMmvFnFull(torch.autograd.Function):
         kernel,
         options,
         diff,
+        kwargs_m1: Optional[Dict[str, torch.Tensor]],
+        kwargs_m2: Optional[Dict[str, torch.Tensor]],
     ):
         is_sparse = isinstance(X1, SparseTensor)
         gpu_info = _get_gpu_info(options, slack=options.memory_slack)
@@ -722,6 +823,9 @@ class KernelMmvFnFull(torch.autograd.Function):
                 X1_block = X1.narrow_rows(block_sizes[i], bwidth)
             else:
                 X1_block = X1.narrow(0, block_sizes[i], bwidth)
+            c_kwargs_m1 = {}
+            if kwargs_m1 is not None:
+                c_kwargs_m1 = {k: v[block_sizes[i] : block_sizes[i] + bwidth] for k, v in kwargs_m1}
             args.append(
                 (
                     ArgsFmmv(
@@ -732,6 +836,8 @@ class KernelMmvFnFull(torch.autograd.Function):
                         kernel=kernel,
                         max_mem=g.usable_memory,
                         differentiable=diff,
+                        kwargs_m1=c_kwargs_m1,
+                        kwargs_m2=kwargs_m2 or {},
                     ),
                     g.Id,
                 )
@@ -761,6 +867,8 @@ class KernelMmvFnFull(torch.autograd.Function):
         kernel,
         options,
         diff,
+        kwargs_m1: Optional[Dict[str, torch.Tensor]],
+        kwargs_m2: Optional[Dict[str, torch.Tensor]],
     ):
         if isinstance(X1, SparseTensor):
             raise NotImplementedError("In-core, sparse fmmv not implemented. Use the out-of-core version instead.")
@@ -768,7 +876,15 @@ class KernelMmvFnFull(torch.autograd.Function):
         gpu_info = _get_gpu_info(options, slack=options.memory_slack)
         single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
         args = ArgsFmmv(
-            X1=X1, X2=X2, v=v, out=out, kernel=kernel, max_mem=single_gpu_info.usable_memory, differentiable=diff
+            X1=X1,
+            X2=X2,
+            v=v,
+            out=out,
+            kernel=kernel,
+            max_mem=single_gpu_info.usable_memory,
+            differentiable=diff,
+            kwargs_m1=kwargs_m1 or {},
+            kwargs_m2=kwargs_m2 or {},
         )
         return _call_direct(mmv_run_starter, (args, data_dev.index))
 
@@ -777,6 +893,8 @@ class KernelMmvFnFull(torch.autograd.Function):
         ctx,
         kernel: "falkon.kernels.Kernel",
         opt: Optional[BaseOptions],
+        kwargs_m1: Optional[Dict[str, torch.Tensor]],
+        kwargs_m2: Optional[Dict[str, torch.Tensor]],
         out: Optional[torch.Tensor],
         X1: Union[torch.Tensor, SparseTensor],
         X2: Union[torch.Tensor, SparseTensor],
@@ -800,11 +918,11 @@ class KernelMmvFnFull(torch.autograd.Function):
 
         with torch.inference_mode():
             if comp_dev_type == "cpu" and all(ddev.type == "cpu" for ddev in data_devs):
-                KernelMmvFnFull.run_cpu_cpu(X1, X2, v, out, kernel, opt, False)
+                KernelMmvFnFull.run_cpu_cpu(X1, X2, v, out, kernel, opt, False, kwargs_m1, kwargs_m2)
             elif comp_dev_type == "cuda" and all(ddev.type == "cuda" for ddev in data_devs):
-                KernelMmvFnFull.run_gpu_gpu(X1, X2, v, out, kernel, opt, False)
+                KernelMmvFnFull.run_gpu_gpu(X1, X2, v, out, kernel, opt, False, kwargs_m1, kwargs_m2)
             elif comp_dev_type == "cuda":
-                KernelMmvFnFull.run_cpu_gpu(X1, X2, v, out, kernel, opt, False)
+                KernelMmvFnFull.run_cpu_gpu(X1, X2, v, out, kernel, opt, False, kwargs_m1, kwargs_m2)
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
 
@@ -814,6 +932,8 @@ class KernelMmvFnFull(torch.autograd.Function):
             ctx.save_for_backward(X1, X2, v, *kernel_params)
             ctx.kernel = kernel
             ctx.opt = opt
+            ctx.kwargs_m1 = kwargs_m1
+            ctx.kwargs_m2 = kwargs_m2
         return out
 
     @staticmethod
@@ -826,14 +946,20 @@ class KernelMmvFnFull(torch.autograd.Function):
         # We must rerun MM in differentiable mode this time.
         with torch.autograd.enable_grad():
             if comp_dev_type == "cpu" and data_dev.type == "cpu":
-                grads = KernelMmvFnFull.run_cpu_cpu(X1, X2, v, outputs, ctx.kernel, ctx.opt, True)
+                grads = KernelMmvFnFull.run_cpu_cpu(
+                    X1, X2, v, outputs, ctx.kernel, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
+                )
             elif comp_dev_type == "cuda" and data_dev.type == "cuda":
-                grads = KernelMmvFnFull.run_gpu_gpu(X1, X2, v, outputs, ctx.kernel, ctx.opt, True)
+                grads = KernelMmvFnFull.run_gpu_gpu(
+                    X1, X2, v, outputs, ctx.kernel, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
+                )
             elif comp_dev_type == "cuda" and data_dev.type == "cpu":
-                grads = KernelMmvFnFull.run_cpu_gpu(X1, X2, v, outputs, ctx.kernel, ctx.opt, True)
+                grads = KernelMmvFnFull.run_cpu_gpu(
+                    X1, X2, v, outputs, ctx.kernel, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
+                )
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
-            return tuple([None, None, None] + grads)
+            return tuple([None, None, None, None, None] + grads)
 
 
 def fmmv(
@@ -843,11 +969,13 @@ def fmmv(
     kernel: "falkon.kernels.Kernel",
     out: Optional[torch.Tensor] = None,
     opt: Optional[BaseOptions] = None,
+    kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
+    kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
 ):
     if isinstance(kernel, falkon.kernels.DiffKernel):
-        return KernelMmvFnFull.apply(kernel, opt, out, X1, X2, v, *kernel.diff_params.values())
+        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v, *kernel.diff_params.values())
     else:
-        return KernelMmvFnFull.apply(kernel, opt, out, X1, X2, v)
+        return KernelMmvFnFull.apply(kernel, opt, out, X1, X2, v, kwargs_m1, kwargs_m2)
 
 
 def fdmmv(
@@ -859,6 +987,8 @@ def fdmmv(
     out: Optional[torch.Tensor] = None,
     differentiable: bool = False,
     opt: Optional[BaseOptions] = None,
+    kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
+    kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
 ) -> torch.Tensor:
     r"""Double kernel-vector product
 
@@ -885,6 +1015,14 @@ def fdmmv(
         to ``True`` results in a :code:`NotImplementedError`.
     opt
         Options to be used for this operation
+    kwargs_m1
+        Keyword arguments containing tensors which should be split along with ``m1``.
+        For example this could be a set of indices corresponding to ``m1``, which are then
+        correctly split and available in the kernel computation.
+    kwargs_m2
+        Keyword arguments containing tensors which should be split along with ``m2``.
+        For example this could be a set of indices corresponding to ``m2``, which are then
+        correctly split and available in the kernel computation.
 
     Returns
     -------
@@ -914,7 +1052,17 @@ def fdmmv(
         )
 
         if comp_dev_type == "cpu" and all(ddev.type == "cpu" for ddev in data_devs):
-            args = ArgsFmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel, max_mem=opt.max_cpu_mem)
+            args = ArgsFmmv(
+                X1=X1,
+                X2=X2,
+                v=v,
+                w=w,
+                out=out,
+                kernel=kernel,
+                max_mem=opt.max_cpu_mem,
+                kwargs_m1=kwargs_m1 or {},
+                kwargs_m2=kwargs_m2 or {},
+            )
             _call_direct(dmmv_run_starter, (args, -1))
         elif comp_dev_type == "cuda" and all(ddev.type == "cuda" for ddev in data_devs):
             if is_sparse:
@@ -922,7 +1070,17 @@ def fdmmv(
             gpu_info = _get_gpu_info(opt, slack=opt.memory_slack)
             data_dev = data_devs[0]
             single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
-            args = ArgsFmmv(X1=X1, X2=X2, v=v, w=w, out=out, kernel=kernel, max_mem=single_gpu_info.usable_memory)
+            args = ArgsFmmv(
+                X1=X1,
+                X2=X2,
+                v=v,
+                w=w,
+                out=out,
+                kernel=kernel,
+                max_mem=single_gpu_info.usable_memory,
+                kwargs_m1=kwargs_m1 or {},
+                kwargs_m2=kwargs_m2 or {},
+            )
             _call_direct(dmmv_run_starter, (args, data_dev.index))
         elif comp_dev_type == "cuda":
             gpu_info = _get_gpu_info(opt, slack=opt.memory_slack)
@@ -943,6 +1101,9 @@ def fdmmv(
                     X1_block = X1.narrow_rows(block_sizes[i], bwidth)
                 else:
                     X1_block = X1.narrow(0, block_sizes[i], bwidth)
+                c_kwargs_m1 = {}
+                if kwargs_m1 is not None:
+                    c_kwargs_m1 = {k: v[block_sizes[i] : block_sizes[i] + bwidth] for k, v in kwargs_m1}
                 args.append(
                     (
                         ArgsFmmv(
@@ -953,6 +1114,8 @@ def fdmmv(
                             out=cur_out_gpu,
                             kernel=kernel,
                             max_mem=g.usable_memory,
+                            kwargs_m1=c_kwargs_m1,
+                            kwargs_m2=kwargs_m2 or {},
                         ),
                         g.Id,
                     )
@@ -961,7 +1124,10 @@ def fdmmv(
             if len(wrlk) > 1:  # Sum up all subprocess outputs and copy to `out` on host.
                 # noinspection PyTypeChecker
                 fastest_device: int = np.argmax([d.speed for d in gpu_info])
-                copy(torch.cuda.comm.reduce_add(wrlk, destination=gpu_info[fastest_device].Id), out)
+                copy(
+                    torch.cuda.comm.reduce_add(wrlk, destination=gpu_info[fastest_device].Id),
+                    out,
+                )
             else:
                 if wrlk[0].data_ptr() != out.data_ptr():
                     copy(wrlk[0], out)

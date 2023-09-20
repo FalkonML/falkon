@@ -87,10 +87,10 @@ class DiffKernel(Kernel, abc.ABC):
         """
         return self._other_params
 
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool):
-        return self.core_fn(X1, X2, out, **self.diff_params, diag=diag, **self._other_params)
+    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool, **kwargs):
+        return self.core_fn(X1, X2, out=out, diag=diag, **kwargs, **self.diff_params, **self._other_params)
 
-    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool):
+    def compute_diff(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool, **kwargs):
         """
         Compute the kernel matrix of ``X1`` and ``X2``. The output should be differentiable with
         respect to `X1`, `X2`, and all kernel parameters returned by the :meth:`diff_params` method.
@@ -110,7 +110,7 @@ class DiffKernel(Kernel, abc.ABC):
         out : torch.Tensor
             The constructed kernel matrix.
         """
-        return self.core_fn(X1, X2, out=None, diag=diag, **self.diff_params, **self._other_params)
+        return self.core_fn(X1, X2, out=None, diag=diag, **kwargs, **self.diff_params, **self._other_params)
 
     @abc.abstractmethod
     def detach(self) -> "Kernel":

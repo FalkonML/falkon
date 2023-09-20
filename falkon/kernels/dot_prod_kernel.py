@@ -174,7 +174,7 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
         gamma = validate_diff_float(gamma, param_name="gamma")
         super().__init__("Linear", opt, linear_core, beta=beta, gamma=gamma)
 
-    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         formula = "(gamma * (X | Y) + beta) * v"
         aliases = [
             "X = Vi(%d)" % (X1.shape[1]),
@@ -242,7 +242,7 @@ class PolynomialKernel(DiffKernel, KeopsKernelMixin):
         degree = validate_diff_float(degree, param_name="degree")
         super().__init__("Polynomial", opt, polynomial_core, beta=beta, gamma=gamma, degree=degree)
 
-    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         formula = "Powf((gamma * (X | Y) + beta), degree) * v"
         aliases = [
             "X = Vi(%d)" % (X1.shape[1]),
@@ -271,15 +271,7 @@ class PolynomialKernel(DiffKernel, KeopsKernelMixin):
     def compute_sparse(
         self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool, **kwargs
     ) -> torch.Tensor:
-        return polynomial_core_sparse(
-            X1,
-            X2,
-            out,
-            diag,
-            beta=self.beta,
-            gamma=self.gamma,
-            degree=self.degree,
-        )
+        return polynomial_core_sparse(X1, X2, out, diag, beta=self.beta, gamma=self.gamma, degree=self.degree)
 
     def __str__(self):
         return f"PolynomialKernel(beta={self.beta}, gamma={self.gamma}, degree={self.degree})"
@@ -310,13 +302,16 @@ class SigmoidKernel(DiffKernel, KeopsKernelMixin):
     """
 
     def __init__(
-        self, beta: Union[float, torch.Tensor], gamma: Union[float, torch.Tensor], opt: Optional[FalkonOptions] = None
+        self,
+        beta: Union[float, torch.Tensor],
+        gamma: Union[float, torch.Tensor],
+        opt: Optional[FalkonOptions] = None,
     ):
         beta = validate_diff_float(beta, param_name="beta")
         gamma = validate_diff_float(gamma, param_name="gamma")
         super().__init__("Sigmoid", opt, sigmoid_core, beta=beta, gamma=gamma)
 
-    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         return RuntimeError("SigmoidKernel is not implemented in KeOps")
 
     def _decide_mmv_impl(self, X1, X2, v, opt):

@@ -139,6 +139,8 @@ class Kernel(torch.nn.Module, ABC):
         diag: bool = False,
         out: Optional[torch.Tensor] = None,
         opt: Optional[FalkonOptions] = None,
+        kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
+        kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
     ):
         """Compute the kernel matrix between ``X1`` and ``X2``
 
@@ -158,6 +160,14 @@ class Kernel(torch.nn.Module, ABC):
         opt : Optional[FalkonOptions]
             Options to be used for computing the operation. Useful are the memory size options
             and CUDA options.
+        kwargs_m1
+            Keyword arguments containing tensors which should be split along with ``m1``.
+            For example this could be a set of indices corresponding to ``m1``, which are then
+            correctly split and available in the kernel computation.
+        kwargs_m2
+            Keyword arguments containing tensors which should be split along with ``m2``.
+            For example this could be a set of indices corresponding to ``m2``, which are then
+            correctly split and available in the kernel computation.
 
         Returns
         -------
@@ -170,7 +180,16 @@ class Kernel(torch.nn.Module, ABC):
         if opt is not None:
             params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
         mm_impl = self._decide_mm_impl(X1, X2, diag, params)
-        return mm_impl(self, params, out, diag, X1, X2)
+        return mm_impl(
+            kernel=self,
+            opt=params,
+            out=out,
+            diag=diag,
+            X1=X1,
+            X2=X2,
+            kwargs_m1=kwargs_m1,
+            kwargs_m2=kwargs_m2,
+        )
 
     def _decide_mm_impl(self, X1: torch.Tensor, X2: torch.Tensor, diag: bool, opt: FalkonOptions):
         """Choose which `mm` function to use for this data.
@@ -211,6 +230,8 @@ class Kernel(torch.nn.Module, ABC):
         v: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         opt: Optional[FalkonOptions] = None,
+        kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
+        kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
     ):
         # noinspection PyShadowingNames
         """Compute matrix-vector multiplications where the matrix is the current kernel.
@@ -232,6 +253,14 @@ class Kernel(torch.nn.Module, ABC):
         opt : Optional[FalkonOptions]
             Options to be used for computing the operation. Useful are the memory size options
             and CUDA options.
+        kwargs_m1
+            Keyword arguments containing tensors which should be split along with ``m1``.
+            For example this could be a set of indices corresponding to ``m1``, which are then
+            correctly split and available in the kernel computation.
+        kwargs_m2
+            Keyword arguments containing tensors which should be split along with ``m2``.
+            For example this could be a set of indices corresponding to ``m2``, which are then
+            correctly split and available in the kernel computation.
 
         Returns
         -------
@@ -255,7 +284,16 @@ class Kernel(torch.nn.Module, ABC):
         if opt is not None:
             params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
         mmv_impl = self._decide_mmv_impl(X1, X2, v, params)
-        return mmv_impl(X1, X2, v, self, out, params)
+        return mmv_impl(
+            X1=X1,
+            X2=X2,
+            v=v,
+            kernel=self,
+            out=out,
+            opt=params,
+            kwargs_m1=kwargs_m1,
+            kwargs_m2=kwargs_m2,
+        )
 
     def _decide_mmv_impl(
         self,
@@ -303,6 +341,8 @@ class Kernel(torch.nn.Module, ABC):
         w: Optional[torch.Tensor],
         out: Optional[torch.Tensor] = None,
         opt: Optional[FalkonOptions] = None,
+        kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
+        kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
     ):
         # noinspection PyShadowingNames
         """Compute double matrix-vector multiplications where the matrix is the current kernel.
@@ -332,6 +372,14 @@ class Kernel(torch.nn.Module, ABC):
         opt : Optional[FalkonOptions]
             Options to be used for computing the operation. Useful are the memory size options
             and CUDA options.
+        kwargs_m1
+            Keyword arguments containing tensors which should be split along with ``X1``.
+            For example this could be a set of indices corresponding to ``X1``, which are then
+            correctly split and available in the kernel computation.
+        kwargs_m2
+            Keyword arguments containing tensors which should be split along with ``X2``.
+            For example this could be a set of indices corresponding to ``X2``, which are then
+            correctly split and available in the kernel computation.
 
         Returns
         -------
@@ -355,7 +403,18 @@ class Kernel(torch.nn.Module, ABC):
         if opt is not None:
             params = dataclasses.replace(self.params, **dataclasses.asdict(opt))
         dmmv_impl = self._decide_dmmv_impl(X1, X2, v, w, params)
-        return dmmv_impl(X1, X2, v, w, self, out, False, params)
+        return dmmv_impl(
+            X1=X1,
+            X2=X2,
+            v=v,
+            w=w,
+            kernel=self,
+            out=out,
+            differentiable=False,
+            opt=params,
+            kwargs_m1=kwargs_m1,
+            kwargs_m2=kwargs_m2,
+        )
 
     def _decide_dmmv_impl(
         self,
@@ -400,7 +459,14 @@ class Kernel(torch.nn.Module, ABC):
         return fdmmv
 
     @abstractmethod
-    def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool) -> torch.Tensor:
+    def compute(
+        self,
+        X1: torch.Tensor,
+        X2: torch.Tensor,
+        out: torch.Tensor,
+        diag: bool,
+        **kwargs,
+    ) -> torch.Tensor:
         """
         Compute the kernel matrix of ``X1`` and ``X2`` - without regards for differentiability.
 
@@ -418,6 +484,8 @@ class Kernel(torch.nn.Module, ABC):
         diag : bool
             If true, ``X1`` and ``X2`` have the same shape, and only the diagonal of ``k(X1, X2)``
             is to be computed and stored in ``out``. Otherwise compute the full kernel matrix.
+        kwargs
+            Additional keyword arguments which may be used in computing the kernel values
 
         Returns
         -------
@@ -428,7 +496,12 @@ class Kernel(torch.nn.Module, ABC):
 
     @abstractmethod
     def compute_sparse(
-        self, X1: SparseTensor, X2: SparseTensor, out: torch.Tensor, diag: bool, **kwargs
+        self,
+        X1: SparseTensor,
+        X2: SparseTensor,
+        out: torch.Tensor,
+        diag: bool,
+        **kwargs,
     ) -> torch.Tensor:
         """
         Compute the kernel matrix of ``X1`` and ``X2`` which are two sparse matrices, storing the output
@@ -450,13 +523,13 @@ class Kernel(torch.nn.Module, ABC):
             the keyword arguments passed by the :func:`falkon.mmv_ops.fmmv.sparse_mmv_run_thread`
             and :func:`falkon.mmv_ops.fmm.sparse_mm_run_thread` functions are:
 
-            - X1_csr : the X1 matrix in CSR format
-            - X2_csr : the X2 matrix in CSR format
+            - ``X1_csr`` : the ``X1`` matrix in CSR format
+            - ``X2_csr`` : the ``X2`` matrix in CSR format
 
         Returns
         -------
         out : torch.Tensor
-            The kernel matrix. Should use the same underlying storage as the parameter `out`.
+            The kernel matrix. Should use the same underlying storage as the parameter ``out``.
         """
         pass
 

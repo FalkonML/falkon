@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Type, Union
+from typing import Dict, Optional, Type, Union, Tuple
 
 import numpy as np
 import torch
@@ -137,22 +137,12 @@ def _rbf_diag_core(mat1, mat2, out: Optional[torch.Tensor], sigma: torch.Tensor)
     return out
 
 
-def rbf_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma: torch.Tensor) -> torch.Tensor:
+def rbf_core(
+    mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.Tensor], diag: bool, sigma: torch.Tensor
+) -> torch.Tensor:
     """
     Note 1: if out is None, then this function will be differentiable wrt all three remaining inputs.
     Note 2: this function can deal with batched inputs
-
-    Parameters
-    ----------
-    mat1
-    mat2
-    out
-    diag
-    sigma
-
-    Returns
-    -------
-
     """
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
@@ -172,11 +162,11 @@ def rbf_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma: torch.T
 def rbf_core_sparse(
     mat1: SparseTensor,
     mat2: SparseTensor,
+    out: torch.Tensor,
     mat1_csr: SparseTensor,
     mat2_csr: SparseTensor,
-    out: torch.Tensor,
     diag: bool,
-    sigma,
+    sigma: torch.Tensor,
 ) -> torch.Tensor:
     if diag:
         return _distancek_diag(mat1, out)
@@ -189,7 +179,9 @@ def rbf_core_sparse(
     return out
 
 
-def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
+def laplacian_core(
+    mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.Tensor], diag: bool, sigma: torch.Tensor
+):
     if diag:
         return _distancek_diag(mat1, out)
     # Move hparams
@@ -215,11 +207,11 @@ def laplacian_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma):
 def laplacian_core_sparse(
     mat1: SparseTensor,
     mat2: SparseTensor,
+    out: torch.Tensor,
     mat1_csr: SparseTensor,
     mat2_csr: SparseTensor,
-    out: torch.Tensor,
     diag: bool,
-    sigma,
+    sigma: torch.Tensor,
 ) -> torch.Tensor:
     if diag:
         return _distancek_diag(mat1, out)
@@ -233,7 +225,9 @@ def laplacian_core_sparse(
     return out
 
 
-def matern_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma, nu):
+def matern_core(
+    mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.Tensor], diag: bool, sigma: torch.Tensor, nu: float
+):
     if diag:
         return _distancek_diag(mat1, out)
     # Move hparams
@@ -280,21 +274,21 @@ def matern_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, sigma, nu):
 def matern_core_sparse(
     mat1: SparseTensor,
     mat2: SparseTensor,
+    out: torch.Tensor,
     mat1_csr: SparseTensor,
     mat2_csr: SparseTensor,
-    out: torch.Tensor,
     diag: bool,
-    sigma,
-    nu,
+    sigma: torch.Tensor,
+    nu: float,
 ) -> torch.Tensor:
     if diag:
         return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
     if nu == 0.5:
-        return laplacian_core_sparse(mat1, mat2, mat1_csr, mat2_csr, out, diag, sigma)
+        return laplacian_core_sparse(mat1, mat2, out, mat1_csr, mat2_csr, diag, sigma)
     elif nu == float("inf"):
-        return rbf_core_sparse(mat1, mat2, mat1_csr, mat2_csr, out, diag, sigma)
+        return rbf_core_sparse(mat1, mat2, out, mat1_csr, mat2_csr, diag, sigma)
     gamma = 1 / (sigma**2)
     out = _sparse_sq_dist(X1_csr=mat1_csr, X2_csr=mat2_csr, X1=mat1, X2=mat2, out=out)
     out.mul_(gamma)
@@ -390,7 +384,7 @@ class GaussianKernel(DiffKernel, KeopsKernelMixin):
         sigma = validate_sigma(sigma)
         super().__init__(self.kernel_name, opt, core_fn=GaussianKernel.core_fn, sigma=sigma)
 
-    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         formula = "Exp(SqDist(x1 / g, x2 / g) * IntInv(-2)) * v"
         aliases = [
             "x1 = Vi(%d)" % (X1.shape[1]),
@@ -422,12 +416,15 @@ class GaussianKernel(DiffKernel, KeopsKernelMixin):
         X2: SparseTensor,
         out: torch.Tensor,
         diag: bool,
+        n_ids: Tuple[int, int],
+        m_ids: Tuple[int, int],
         X1_csr: SparseTensor,
         X2_csr: SparseTensor,
+        **kwargs,
     ) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        return rbf_core_sparse(X1, X2, X1_csr, X2_csr, out, diag, self.sigma)
+        return rbf_core_sparse(X1, X2, out, X1_csr, X2_csr, diag, self.sigma)
 
     def __repr__(self):
         return f"GaussianKernel(sigma={self.sigma})"
@@ -463,7 +460,7 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
 
         super().__init__(self.kernel_name, opt, core_fn=laplacian_core, sigma=sigma)
 
-    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         formula = "Exp(-Sqrt(SqDist(x1 / g, x2 / g))) * v"
         aliases = [
             "x1 = Vi(%d)" % (X1.shape[1]),
@@ -495,12 +492,15 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
         X2: SparseTensor,
         out: torch.Tensor,
         diag: bool,
+        n_ids: Tuple[int, int],
+        m_ids: Tuple[int, int],
         X1_csr: SparseTensor,
         X2_csr: SparseTensor,
+        **kwargs,
     ) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        return laplacian_core_sparse(X1, X2, X1_csr, X2_csr, out, diag, self.sigma)
+        return laplacian_core_sparse(X1, X2, out, X1_csr, X2_csr, diag, self.sigma)
 
     def __repr__(self):
         return f"LaplacianKernel(sigma={self.sigma})"
@@ -546,7 +546,7 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
         self.kernel_name = f"{nu:.1f}-matern"
         super().__init__(self.kernel_name, opt, core_fn=matern_core, sigma=sigma, nu=nu)
 
-    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt: FalkonOptions):
+    def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         if self.nu == 0.5:
             formula = "Exp(-Norm2(x1 / s - x2 / s)) * v"
         elif self.nu == 1.5:
@@ -616,12 +616,15 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
         X2: SparseTensor,
         out: torch.Tensor,
         diag: bool,
+        n_ids: Tuple[int, int],
+        m_ids: Tuple[int, int],
         X1_csr: SparseTensor,
         X2_csr: SparseTensor,
+        **kwargs,
     ) -> torch.Tensor:
         if len(self.sigma) > 1:
             raise NotImplementedError("Sparse kernel is only implemented for scalar sigmas.")
-        return matern_core_sparse(X1, X2, X1_csr, X2_csr, out, diag, self.sigma, self.nondiff_params["nu"])
+        return matern_core_sparse(X1, X2, out, X1_csr, X2_csr, diag, self.sigma, self.nondiff_params["nu"])
 
     def __repr__(self):
         return f"MaternKernel(sigma={self.sigma}, nu={self.nondiff_params['nu']:.1f})"
