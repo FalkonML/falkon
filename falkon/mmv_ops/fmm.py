@@ -241,7 +241,7 @@ def sparse_mm_run_thread(
 
         for j in range(0, M, m):
             lenj = min(m, M - j)
-            c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
+            c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2.items()}
 
             c_m2 = m2.narrow_rows(j, lenj).to(dtype=comp_dt)
             # On CUDA the second argument to apply (a Sparse*Sparse multiplication) must be
@@ -258,7 +258,7 @@ def sparse_mm_run_thread(
 
             for i in range(0, N, n):
                 leni = min(n, N - i)
-                c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
+                c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1.items()}
 
                 c_m1 = m1.narrow_rows(i, leni).to(dtype=comp_dt)
                 if dev.type == "cuda":
@@ -336,7 +336,7 @@ def mm_run_thread(
 
         for i in range(0, N, n):
             leni = min(n, N - i)
-            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1.items()}
 
             if has_gpu_bufs:
                 c_dev_m1 = copy(
@@ -350,7 +350,7 @@ def mm_run_thread(
 
             for j in range(0, M, m):
                 lenj = min(m, M - j)
-                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
+                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2.items()}
 
                 if has_gpu_bufs:
                     c_dev_m2 = copy(
@@ -415,12 +415,12 @@ def mm_diff_run_thread(
 
         for i in range(0, N, n):
             leni = min(n, N - i)
-            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1.items()}
 
             c_dev_m1 = m1[i : i + leni, :].to(device=dev, dtype=comp_dt, non_blocking=True, copy=False)
             for j in range(0, M, m):
                 lenj = min(m, M - j)
-                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
+                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2.items()}
 
                 c_dev_m2 = m2[j : j + lenj, :].to(device=dev, dtype=comp_dt, non_blocking=True, copy=False)
                 c_dev_out = kernel.compute_diff(
@@ -493,7 +493,7 @@ class KernelMmFnFull(torch.autograd.Function):
                 X1_block = X1.narrow(0, block_sizes[i], bwidth)
             c_kwargs_m1 = {}
             if kwargs_m1 is not None:
-                c_kwargs_m1 = {k: v[block_sizes[i] : block_sizes[i] + bwidth] for k, v in kwargs_m1}
+                c_kwargs_m1 = {k: v[block_sizes[i] : block_sizes[i] + bwidth] for k, v in kwargs_m1.items()}
             args.append(
                 (
                     ArgsFmm(

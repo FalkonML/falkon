@@ -258,7 +258,7 @@ def sparse_mmv_run_thread(
         s1, s2 = _init_two_streams(stack, dev, tid)  # enters stream 1
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
-            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1.items()}
 
             c_m1 = m1.narrow_rows(i, leni)
             if incore:  # Note that CUDA-incore is not allowed to happen (so this is CPU->CPU)
@@ -271,7 +271,7 @@ def sparse_mmv_run_thread(
 
             for j in range(0, M, blk_m):
                 lenj = min(blk_m, M - j)
-                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
+                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2.items()}
 
                 c_m2 = m2.narrow_rows(j, lenj)
                 if incore:  # CPU -> CPU
@@ -357,7 +357,7 @@ def mmv_run_thread(
         s1, s2 = _init_two_streams(stack, dev, tid)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
-            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1.items()}
             if m1_ic:
                 c_dev_m1 = m1[i : i + leni, :]
             else:
@@ -370,7 +370,7 @@ def mmv_run_thread(
 
             for j in range(0, M, blk_m):
                 lenj = min(blk_m, M - j)
-                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
+                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2.items()}
                 if m2_ic:
                     c_dev_m2 = m2[j : j + lenj, :]
                 else:
@@ -433,14 +433,14 @@ def mmv_diff_run_thread(
         s1, s2 = _init_two_streams(stack, dev, tid)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
-            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1.items()}
             c_dev_m1 = m1[i : i + leni, :].to(dev, non_blocking=True, copy=False)
             c_dev_m1_g = None if grads[0] is None else grads[0][i : i + leni, :].to(dev, non_blocking=True, copy=False)
             c_dev_out = out[i : i + leni, :].to(dev, non_blocking=True, copy=False)
 
             for j in range(0, M, blk_m):
                 lenj = min(blk_m, M - j)
-                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2}
+                c_kwargs_m2 = {k: v[j:lenj] for k, v in kwargs_m2.items()}
                 c_dev_m2 = m2[j : j + lenj, :].to(dev, non_blocking=True, copy=False)
                 c_dev_m2_g = (
                     None if grads[1] is None else grads[1][j : j + lenj, :].to(dev, non_blocking=True, copy=False)
@@ -655,7 +655,7 @@ def sparse_dmmv_run_thread(
 
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
-            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1.items()}
 
             c_m1 = m1.narrow_rows(i, leni)
             if incore:  # Note that CUDA-incore is not allowed to happen (so this is CPU->CPU)
@@ -739,7 +739,7 @@ def dmmv_run_thread(
                 copy(v, dev_v, non_blocking=True)
         for i in range(0, N, blk_n):
             leni = min(blk_n, N - i)
-            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1}
+            c_kwargs_m1 = {k: v[i:leni] for k, v in kwargs_m1.items()}
             if m1_ic:
                 c_dev_m1 = m1[i : i + leni, :]
             else:
@@ -820,7 +820,7 @@ class KernelMmvFnFull(torch.autograd.Function):
                 X1_block = X1.narrow(0, block_sizes[i], bwidth)
             c_kwargs_m1 = {}
             if kwargs_m1 is not None:
-                c_kwargs_m1 = {k: v[block_sizes[i] : block_sizes[i] + bwidth] for k, v in kwargs_m1}
+                c_kwargs_m1 = {k: v[block_sizes[i] : block_sizes[i] + bwidth] for k, v in kwargs_m1.items()}
             args.append(
                 (
                     ArgsFmmv(
@@ -1098,7 +1098,7 @@ def fdmmv(
                     X1_block = X1.narrow(0, block_sizes[i], bwidth)
                 c_kwargs_m1 = {}
                 if kwargs_m1 is not None:
-                    c_kwargs_m1 = {k: v[block_sizes[i] : block_sizes[i] + bwidth] for k, v in kwargs_m1}
+                    c_kwargs_m1 = {k: v[block_sizes[i] : block_sizes[i] + bwidth] for k, v in kwargs_m1.items()}
                 args.append(
                     (
                         ArgsFmmv(
