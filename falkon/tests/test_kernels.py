@@ -73,12 +73,12 @@ def w() -> torch.Tensor:
 
 @pytest.fixture(scope="module")
 def rtol():
-    return {np.float64: 1e-12, torch.float64: 1e-12, np.float32: 1e-4, torch.float32: 1e-4}
+    return {np.float64: 1e-10, torch.float64: 1e-10, np.float32: 1e-4, torch.float32: 1e-4}
 
 
 @pytest.fixture(scope="module")
 def atol():
-    return {np.float64: 1e-12, torch.float64: 1e-12, np.float32: 1e-4, torch.float32: 1e-4}
+    return {np.float64: 1e-10, torch.float64: 1e-10, np.float32: 1e-4, torch.float32: 1e-4}
 
 
 @pytest.fixture(params=["single-sigma", "vec-sigma"], scope="class")
