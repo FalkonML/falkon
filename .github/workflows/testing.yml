@@ -10,7 +10,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         python-version: ['3.8']
-        torch-version: [1.13.1, 2.0.1]
+        torch-version: [2.0.0, 2.0.1]
 
     steps:
       - name: Checkout with submodules
