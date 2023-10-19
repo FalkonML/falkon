@@ -37,7 +37,7 @@ If you find a bug, please open a new issue on GitHub!
 To install from source, you can run
 
 ```bash
-pip install git+https://github.com/FalkonML/falkon.git
+pip install --no-build-isolation git+https://github.com/FalkonML/falkon.git
 ```
 
 We alternatively provide pre-built pip wheels for the following combinations of PyTorch and CUDA:

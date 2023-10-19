@@ -50,7 +50,7 @@ def torch_version_macros():
     return [
         ("TORCH_VERSION_MAJOR", int_version[0]),
         ("TORCH_VERSION_MINOR", int_version[1]),
-        ("TORCH_VERSION_PATCH", int_version[2])
+        ("TORCH_VERSION_PATCH", int_version[2]),
     ]
 
 
@@ -65,10 +65,10 @@ def get_extensions():
     ext_cls = CppExtension
     ext_dir = osp.join(".", "falkon", "c_ext")
     ext_files = (
-        glob.glob(osp.join(ext_dir, "ops", "cpu", "*.cpp")) +
-        glob.glob(osp.join(ext_dir, "ops", "autograd", "*.cpp")) +
-        glob.glob(osp.join(ext_dir, "ops", "*.cpp")) +
-        glob.glob(osp.join(ext_dir, "*.cpp"))
+        glob.glob(osp.join(ext_dir, "ops", "cpu", "*.cpp"))
+        + glob.glob(osp.join(ext_dir, "ops", "autograd", "*.cpp"))
+        + glob.glob(osp.join(ext_dir, "ops", "*.cpp"))
+        + glob.glob(osp.join(ext_dir, "*.cpp"))
     )
 
     libraries = []
@@ -145,10 +145,11 @@ def get_extensions():
 
 # Requirements
 install_requires = [
-    "torch>=1.11",
+    "torch>=1.13",
     "scipy",
     "numpy",
     "scikit-learn",
+    "wheel",
     "psutil",
     "keopscore @ git+https://github.com/getkeops/keops.git@main#subdirectory=keopscore",
     "pykeops @ git+https://github.com/getkeops/keops.git@main#subdirectory=pykeops",
@@ -191,11 +192,22 @@ setup(
     include_package_data=True,
     exclude_package_data={
         "falkon.c_ext": [
-            "*.cpp", "*.h", "*.cu", "ops/*.cpp", "ops/*.h", "ops/*.cu",
-            "ops/autograd/*.cpp", "ops/autograd/*.cu", "ops/autograd/*.h",
-            "ops/cpu/*.cpp", "ops/cpu/*.cu", "ops/cpu/*.h",
-            "ops/cuda/*.cpp", "ops/cuda/*.cu", "ops/cuda/*.h",
+            "*.cpp",
+            "*.h",
+            "*.cu",
+            "ops/*.cpp",
+            "ops/*.h",
+            "ops/*.cu",
+            "ops/autograd/*.cpp",
+            "ops/autograd/*.cu",
+            "ops/autograd/*.h",
+            "ops/cpu/*.cpp",
+            "ops/cpu/*.cu",
+            "ops/cpu/*.h",
+            "ops/cuda/*.cpp",
+            "ops/cuda/*.cu",
+            "ops/cuda/*.h",
             "ops/cuda/*.cuh",
         ]
-    }
+    },
 )

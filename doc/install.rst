@@ -45,9 +45,9 @@ There are three ways of installing Falkon:
 
     .. code-block:: bash
 
-      $ pip install git+https://github.com/falkonml/falkon.git
+      $ pip install --no-build-isolation git+https://github.com/falkonml/falkon.git
 
-2. **From pypi with JIT compilation** (the C++ extension will be compiled when the library is first used):
+2. **From pypi with JIT compilation** (the C++ extension will be compiled when the library is first used) **BROKEN!!**:
 
     .. code-block:: bash
 
