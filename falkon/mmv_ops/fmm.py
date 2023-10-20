@@ -585,6 +585,7 @@ class KernelMmFnFull(torch.autograd.Function):
         X2: Union[torch.Tensor, SparseTensor],
         *kernel_params,
     ):
+        opt = opt if opt else BaseOptions()
         is_sparse = isinstance(X1, SparseTensor)
         if is_sparse:
             differentiable = False

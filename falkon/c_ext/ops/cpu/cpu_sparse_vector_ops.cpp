@@ -1,7 +1,5 @@
 #include "../helpers.h"
 
-#include <optional>
-
 #include <ATen/ATen.h>
 #include <torch/library.h>
 #include <ATen/native/ReduceOpsUtils.h>
