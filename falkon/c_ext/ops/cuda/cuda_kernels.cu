@@ -9,9 +9,12 @@
 #include <ATen/Dispatch.h>
 #include <c10/macros/Macros.h>
 
+#include <cooperative_groups.h>
+
 #include "../helpers.h"
 #include "../square_norm.h"
 
+namespace cg = cooperative_groups;
 using namespace at::cuda::detail;
 using at::TensorBase;
 
@@ -19,7 +22,7 @@ namespace falkon {
 namespace ops {
 namespace {
 
-#define THREAD_BLOCK_DIM = 256
+#define THREAD_BLOCK_DIM 256
 
 template <typename scalar_t, typename index_t>
 C10_LAUNCH_BOUNDS_1(THREAD_BLOCK_DIM)
@@ -54,18 +57,19 @@ __global__ void rbfk_backward_kernel(
     __shared__ scalar_t shared_kernel[WARPS_IN_THREAD_BLOCK][32];
     __shared__ scalar_t shared_outg[WARPS_IN_THREAD_BLOCK][32];
 
-    thread_block tblock = this_thread_block();
-    thread_block_tile<32> warp = tiled_partition<32>(tblock);
+    cg::thread_block tblock = cg::this_thread_block();
+    cg::thread_block_tile<32> warp = cg::tiled_partition<32>(tblock);
 
     CUDA_KERNEL_LOOP_TYPE(index, nthreads, index_t) {
         const index_t k = index % ((D + 31) & -32);  // round D to higher multiple of 32
         const index_t i = index / D;
 
         if (k <= D) {
-            coalesced_group active_warp = coalesced_threads();
+            cg::coalesced_group active_warp = cg::coalesced_threads();
             unsigned active_size = active_warp.size();
             scalar_t *m2_ptr = m2.data + k;
             scalar_t *ker_ptr = ker.data + i * ker_sN;
+            scalar_t *outg_ptr = out_grad.data + i * outg_sN;
 
             scalar_t m1_val = m1.data[i * m1_sN + k];  // coalesced global load
             scalar_t m1_g_acc = 0;
@@ -73,7 +77,7 @@ __global__ void rbfk_backward_kernel(
                                        ker_ptr += active_size * ker_sM,
                                        outg_ptr += active_size * outg_sM,
                                        m2_ptr += active_size * m2_sM) {
-                index_t jj_end = (j + active_size) > m ? m - j : active_size;
+                index_t jj_end = (j + active_size) > M ? M - j : active_size;
 
                 // Load kernel values into shared memory (coalesce global memory access)
                 shared_kernel[warp.meta_group_rank()][warp.thread_rank()] = ker_ptr[warp.thread_rank() * ker_sM];
@@ -118,7 +122,7 @@ at::Tensor launch_rbfk_out_forward_kernel(const at::Tensor     & m1,
                                                 at::Tensor     & out)
 {
     AT_DISPATCH_FLOATING_TYPES(m1.scalar_type(), "rbf_kernel", [&] {
-        rbfk_k<scalar_t>(m1, m2, s, out);
+        rbfk_forward_kernel<scalar_t>(m1, m2, s, out);
     });
     return out;
 }
@@ -128,7 +132,7 @@ at::Tensor launch_rbfk_forward_kernel(const at::Tensor         & m1,
 {
     at::Tensor out = at::empty({m1.size(0), m2.size(0)}, m1.options());
     AT_DISPATCH_FLOATING_TYPES(m1.scalar_type(), "rbf_kernel", [&] {
-        rbfk_k<scalar_t>(m1, m2, s, out);
+        rbfk_forward_kernel<scalar_t>(m1, m2, s, out);
     });
     return out;
 }
@@ -150,7 +154,7 @@ void launch_rbfk_backward_kernel(const TensorBase &m1,
     int64_t count_m1_grad = N * ((D + 31) & -32);  // round up to multiple of 32
     if (count_m1_grad > 0) {
         AT_DISPATCH_FLOATING_TYPES_AND_HALF(m1.scalar_type(), "rbf_kernel_m1_backward_cuda", [&] {
-            if (canUse32BitIndexMath(input) && canUse32BitIndexMath(grid) && canUse32BitIndexMath(output)) {
+            if (canUse32BitIndexMath(m1) && canUse32BitIndexMath(m2) && canUse32BitIndexMath(ker)) {
                 rbfk_backward_kernel<scalar_t>
                   <<<GET_BLOCKS(count_m1_grad, THREAD_BLOCK_DIM), THREAD_BLOCK_DIM, 0, at::cuda::getCurrentCUDAStream()>>>(
                     static_cast<int>(count_m1_grad),
