@@ -2,6 +2,9 @@ from typing import Dict, Optional, Type, Union
 
 import numpy as np
 import torch
+from torch._C._profiler import ProfilerActivity
+from torch.autograd.profiler import record_function
+from torch.profiler import profile
 
 import falkon
 from falkon import sparse
@@ -12,6 +15,7 @@ from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
 from falkon.utils.helpers import sizeof_dtype
+from falkon.utils.tensor_helpers import create_same_stride
 
 SQRT3 = 1.7320508075688772
 SQRT5 = 2.23606797749979
@@ -69,6 +73,8 @@ def _distance_kernel_extra_mem(
         out_dict = {**base, **div_sigma, **sq_norms}
         if is_differentiable:
             extra_nm += 1  # To allocate out buffer
+            div_sigma["nd"] += 1  # TODO: Unsure. Probably necessary in backward pass
+            div_sigma["md"] += 1  # TODO: Unsure. Probably necessary in backward pass
         if kernel_cls == LaplacianKernel and is_differentiable:
             extra_nm += 1  # To save intermediate outputs
         if kernel_cls == MaternKernel and (kernel_params["nu"] == 1.5 or kernel_params["nu"] == 2.5):
@@ -95,9 +101,10 @@ def _sq_dist(mat1, mat2, norm_mat1, norm_mat2, out: Optional[torch.Tensor]) -> t
         if out is None:
             out = torch.addmm(norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1)  # n*m
         else:
+            # mat1 : n*d, mat2: d*m, norm_mat1: n*1
             out = torch.addmm(norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1, out=out)  # n*m
     out.add_(norm_mat2.transpose(-2, -1))
-    out.clamp_min_(1e-20)
+    out.clamp_min_(1e-20)  # This allocates a copy if gradient enabled
     return out
 
 
@@ -157,6 +164,161 @@ def rbf_core(
     out.mul_(-0.5)
     out.exp_()
     return out
+
+
+class DiffRBFCore(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, mat1, mat2, sigma):
+        out_size = mat1.shape[0], mat2.shape[0]
+        out = create_same_stride(out_size, mat1, mat1.dtype, device=mat1.device)
+        rbf_core(mat1, mat2, out, False, sigma)
+        ctx.save_for_backward(mat1, mat2, sigma)
+        ctx.k = out
+        return out
+
+    @staticmethod
+    @torch.compile()  # (mode="reduce-overhead")
+    def rbf_bwd_core(mat1, mat2, K, out):
+        for i in range(mat2.size(0)):
+            out.add_((mat1 - mat2[i].view(1, -1)) * K[:, i].view(-1, 1))
+        return out
+
+    @staticmethod
+    @torch.compile()
+    def rbf_bwd_sigma(mat1, mat2, k, sigma, out):
+        for i in range(sigma.size(0)):
+            out[i] = (
+                # TODO: Is there a smarter way to do _sq_dist of vectors?
+                _sq_dist(
+                    mat1[:, i : i + 1],  # vector
+                    mat2[:, i : i + 1],
+                    mat1[:, i : i + 1].square(),
+                    mat2[:, i : i + 1].square(),
+                    out=None,
+                )
+                * k
+            ).sum()
+        return out / sigma**3
+
+    @staticmethod
+    @torch.autograd.function.once_differentiable
+    def backward(ctx, outputs):
+        mat1, mat2, sigma = ctx.saved_tensors
+        k = ctx.k * outputs
+        mat1_g = None
+        if ctx.needs_input_grad[0]:
+            print("m1")
+            mat1_g = torch.zeros_like(mat1)
+            mat1_g = DiffRBFCore.rbf_bwd_core(mat1, mat2, k, mat1_g)
+            mat1_g.mul_(2 * (-1 / (2 * sigma**2)))
+        mat2_g = None
+        if ctx.needs_input_grad[1]:
+            print("m2")
+            mat2_g = torch.zeros_like(mat2)
+            mat2_g = DiffRBFCore.rbf_bwd_core(mat2, mat1, k.T, mat2_g)
+            mat2_g.mul_(2 * (-1 / (2 * sigma**2)))
+        sigma_g = None
+        if ctx.needs_input_grad[2]:
+            print("m3")
+            sigma_g = torch.zeros_like(sigma)
+            sigma_g = DiffRBFCore.rbf_bwd_sigma(mat1, mat2, k, sigma, sigma_g)
+            # sigma_g = (k * distm)
+        return mat1_g, mat2_g, sigma_g
+
+
+if __name__ == "__main__":
+    import time
+    from falkon.c_ext import rbf_kernel
+
+    n, m, d = 4, 4, 4
+    X1 = torch.randn(n, d, dtype=torch.double, requires_grad=True)
+    X2 = torch.randn(m, d, dtype=torch.double, requires_grad=False)
+    sigma = torch.tensor([1.0] * d, dtype=torch.double, requires_grad=True)
+    torch.autograd.gradcheck(lambda m1, m2, s: rbf_kernel(m1, m2, s), inputs=(X1, X2, sigma))
+
+    # with profile(
+    #     activities=[ProfilerActivity.CPU],
+    #     record_shapes=False,
+    #     profile_memory=True,
+    #     on_trace_ready=torch.profiler.tensorboard_trace_handler(
+    #         "/home/giacomo/unige/falkon/falkon/log/custom_rbfkernel_bwd_X1_noshapetrace_5"
+    #     ),
+    # ) as prof:
+    #     #     n, m, d = 5000, 5000, 50
+    #     #     X1 = torch.randn(n, d, dtype=torch.double, requires_grad=False)  # .double().requires_grad_()
+    #     #     X2 = torch.randn(m, d, dtype=torch.double)  # .double()  # .requires_grad_()
+    #     #     # X1 = torch.tensor([[1], [2]]).double()
+    #     #     # X2 = X1.clone()
+    #     #     sigma = torch.tensor([1.0] * d, dtype=torch.double, requires_grad=False)  # .double()  # .requires_grad_()
+    #     #     core_timings = []
+    #     #     custom_timings = []
+    #     #     for i in range(20):
+    #     #         out1 = torch.empty(n, m, dtype=torch.double)
+    #     #         t_s = time.time()
+    #     #         with record_function(f"core-{i}"):
+    #     #             rbf_core(X1, X2, out1, False, sigma)
+    #     #         core_timings.append(time.time() - t_s)
+    #     #         out2 = torch.empty(n, m, dtype=torch.double)
+    #     #         t_s = time.time()
+    #     #         with record_function(f"custom-{i}"):
+    #     #             rbf_kernel(X1, X2, sigma, out=out2)
+    #     #         custom_timings.append(time.time() - t_s)
+    #     #         # torch.testing.assert_close(out1, out2)
+    #     # print(f"Core: {np.min(core_timings) * 1000:.2f}ms  Custom: {np.min(custom_timings) * 1000:.2f}ms")
+    #     n, m, d = 500, 500, 5
+    #     with record_function("init"):
+    #         X1 = torch.randn(n, d, dtype=torch.double, requires_grad=True)  # .double().requires_grad_()
+    #         X2 = torch.randn(m, d, dtype=torch.double)  # .double()  # .requires_grad_()
+    #         sigma = torch.tensor([4.4] * d, dtype=torch.double, requires_grad=False)  # .double()  # .requires_grad_()
+    #         # out = torch.empty(n, m, dtype=torch.double)
+    #     for _ in range(4):
+    #         with record_function("fwd-custom"):
+    #             kernel2 = rbf_kernel(X1, X2, sigma)
+    #         # torch.testing.assert_allclose(kernel, kernel2)
+    #         with record_function("bwd-custom"):
+    #             grad = torch.autograd.grad(kernel2.sum(), [X1])
+    #
+    #     for _ in range(4):
+    #         with record_function("fwd"):
+    #             kernel = rbf_core(X1, X2, None, False, sigma)
+    #         with record_function("bwd"):
+    #             grad = torch.autograd.grad(kernel.sum(), [X1])
+
+    man_timings = []
+    auto_timings = []
+    num_reps = 10
+    n, m, d = 2480, 10_000, 20
+    X1 = torch.randn(n, d, dtype=torch.double, requires_grad=True)  # .double().requires_grad_()
+    X2 = torch.randn(m, d, dtype=torch.double, requires_grad=True)  # .double()  # .requires_grad_()
+    sigma = torch.tensor([1.0] * d, dtype=torch.double, requires_grad=True)  # .double()  # .requires_grad_()
+    for i in range(num_reps):
+        kernel = rbf_kernel(X1, X2, sigma)
+        t_s = time.time()
+        grad = torch.autograd.grad(
+            kernel.sum(),
+            [X1, sigma],
+        )
+        t_e = time.time()
+        man_timings.append(t_e - t_s)
+
+        kernel = rbf_core(X1, X2, None, False, sigma)
+        t_s = time.time()
+        grad = torch.autograd.grad(
+            kernel.sum(),
+            [X1, sigma],
+        )
+        t_e = time.time()
+        auto_timings.append(t_e - t_s)
+
+        print(f"Custom: {man_timings[-1]}  Auto: {auto_timings[-1]}")
+
+    print(f"Custom: {np.min(man_timings) * 1000:.2f}ms  Automatic: {np.min(auto_timings) * 1000:.2f}ms")
+
+    #
+    # torch.autograd.gradcheck(
+    #     lambda m1, m2, s: DiffRBFCore.apply(m1, m2, s),
+    #     inputs=(X1, X2, sigma),
+    # )
 
 
 def rbf_core_sparse(
