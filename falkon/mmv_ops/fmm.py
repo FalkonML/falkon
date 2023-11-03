@@ -657,7 +657,7 @@ class KernelMmFnFull(torch.autograd.Function):
         comp_dev_type = "cpu" if ctx.opt.use_cpu or not torch.cuda.is_available() else "cuda"
         # If float32 we need to upcast to float64 to avoid numerical precision errors in the kernel
         comp_dtype = X1.dtype
-        if sizeof_dtype(comp_dtype) < 8 and opt.no_single_kernel:
+        if sizeof_dtype(comp_dtype) < 8 and ctx.opt.no_single_kernel:
             comp_dtype = torch.float64
 
         # We must rerun MM in differentiable mode this time.
