@@ -460,9 +460,7 @@ def mmv_diff_run_thread(
                 # Build inputs for torch.autograd.grad
                 c_inputs = [c_dev_m1, c_dev_m2, c_dev_v] + list(kernel.diff_params.values())
                 c_dev_grads = torch.autograd.grad(
-                    c_dev_mmv,
-                    [c_inputs[idx] for idx in input_idxs],
-                    grad_outputs=c_dev_out,
+                    c_dev_mmv, [c_inputs[idx] for idx in input_idxs], grad_outputs=c_dev_out, create_graph=True
                 )
                 c_dev_grads_old = [c_dev_m1_g, c_dev_m2_g, c_dev_v_g] + grads[3:]
                 for c_grad, c_idx in zip(c_dev_grads, input_idxs):
@@ -885,7 +883,6 @@ class KernelMmvFnFull(torch.autograd.Function):
 
     @staticmethod
     def forward(
-        ctx,
         kernel: "falkon.kernels.Kernel",
         opt: Optional[BaseOptions],
         kwargs_m1: Optional[Dict[str, torch.Tensor]],
@@ -894,14 +891,9 @@ class KernelMmvFnFull(torch.autograd.Function):
         X1: Union[torch.Tensor, SparseTensor],
         X2: Union[torch.Tensor, SparseTensor],
         v: torch.Tensor,
-        *kernel_params,
+        *kernel_params,  # noqa  needed for backward
     ):
         is_sparse = isinstance(X1, SparseTensor)
-        if is_sparse:
-            differentiable = False
-        else:
-            _check_contiguity((X1, "X1"), (X2, "X2"), (v, "v"), (out, "out"))
-            differentiable = any(t.requires_grad for t in [X1, X2, v] + [*kernel_params])
         data_devs = (X1.device, X2.device, v.device)
         comp_dev_type = "cpu" if opt.use_cpu or not torch.cuda.is_available() else "cuda"
         N, D = X1.shape
@@ -921,15 +913,26 @@ class KernelMmvFnFull(torch.autograd.Function):
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
 
+        return out
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v, *kernel_params = inputs
+        is_sparse = isinstance(X1, SparseTensor)
+        if is_sparse:
+            differentiable = False
+        else:
+            _check_contiguity((X1, "X1"), (X2, "X2"), (v, "v"), (out, "out"))
+            differentiable = any(t.requires_grad for t in [X1, X2, v] + [*kernel_params])
+
         if not differentiable:
-            ctx.mark_non_differentiable(out)
+            ctx.mark_non_differentiable(output)
         else:
             ctx.save_for_backward(X1, X2, v, *kernel_params)
             ctx.kernel = kernel
             ctx.opt = opt
             ctx.kwargs_m1 = kwargs_m1
             ctx.kwargs_m2 = kwargs_m2
-        return out
 
     @staticmethod
     def backward(ctx, outputs):

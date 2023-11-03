@@ -114,6 +114,7 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt, grad_check: b
             actual_noout = kernel(m1, m2, opt=new_opt)
         with memory_checker(opt) as new_opt:
             actual_wgrad = kernel_wgrad(m1_wgrad, m2_wgrad, out=mm_out_wgrad, opt=new_opt)
+            # TODO: Re-enable this once we have decent mem control for backward pass
             # torch.autograd.grad(
             #    actual_wgrad.sum(), [m1_wgrad, m2_wgrad] + list(kernel_params_wgrad.values()))
 
@@ -133,6 +134,11 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt, grad_check: b
             def autogradcheck_mm(_m1, _m2, *_kernel_params):
                 return kernel_wgrad(_m1, _m2, opt=opt)
 
+            torch.autograd.gradgradcheck(
+                autogradcheck_mm,
+                inputs=(m1_wgrad, m2_wgrad, *kernel_wgrad.diff_params.values()),
+                check_undefined_grad=False,  # TODO: Set to true this causes random segfaults with linear kernel.
+            )
             torch.autograd.gradcheck(
                 autogradcheck_mm,
                 inputs=(m1_wgrad, m2_wgrad, *kernel_wgrad.diff_params.values()),
@@ -167,6 +173,9 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt, grad_check: b
             return kernel_wgrad.mmv(_m1, _m2, _v, opt=opt)
 
         torch.autograd.gradcheck(
+            autogradcheck_mmv, inputs=(m1_wgrad, m2_wgrad, v_wgrad, *kernel_wgrad.diff_params.values())
+        )
+        torch.autograd.gradgradcheck(
             autogradcheck_mmv, inputs=(m1_wgrad, m2_wgrad, v_wgrad, *kernel_wgrad.diff_params.values())
         )
 

@@ -573,19 +573,8 @@ class KernelMmFnFull(torch.autograd.Function):
                 return kernel.compute(X1, X2, out, diag=True, **kwargs_m1, **kwargs_m2)
 
     @staticmethod
-    def forward(
-        ctx,
-        kernel: "falkon.kernels.Kernel",
-        opt: Optional[BaseOptions],
-        kwargs_m1: Optional[Dict[str, torch.Tensor]],
-        kwargs_m2: Optional[Dict[str, torch.Tensor]],
-        out: Optional[torch.Tensor],
-        diag: bool,
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
-        *kernel_params,
-    ):
-        opt = opt if opt else BaseOptions()
+    def setup_context(ctx, inputs, output):
+        kernel, opt, kwargs_m1, kwargs_m2, out, diag, X1, X2, *kernel_params = inputs
         is_sparse = isinstance(X1, SparseTensor)
         if is_sparse:
             differentiable = False
@@ -594,6 +583,31 @@ class KernelMmFnFull(torch.autograd.Function):
             differentiable = isinstance(kernel, falkon.kernels.DiffKernel) and any(
                 t.requires_grad for t in [X1, X2] + [*kernel_params]
             )
+        if not differentiable:
+            ctx.mark_non_differentiable(output)
+        else:
+            ctx.kernel = kernel
+            ctx.opt = opt
+            ctx.kwargs_m1 = kwargs_m1
+            ctx.kwargs_m2 = kwargs_m2
+            ctx.diag = diag
+
+            ctx.save_for_backward(X1, X2, *kernel_params)
+
+    @staticmethod
+    def forward(
+        kernel: "falkon.kernels.Kernel",
+        opt: Optional[BaseOptions],
+        kwargs_m1: Optional[Dict[str, torch.Tensor]],
+        kwargs_m2: Optional[Dict[str, torch.Tensor]],
+        out: Optional[torch.Tensor],
+        diag: bool,
+        X1: Union[torch.Tensor, SparseTensor],
+        X2: Union[torch.Tensor, SparseTensor],
+        *kernel_params,  # noqa  needed for backward
+    ):
+        opt = opt if opt else BaseOptions()
+        is_sparse = isinstance(X1, SparseTensor)
 
         N = X1.shape[0]
         M = X2.shape[0]
@@ -620,7 +634,6 @@ class KernelMmFnFull(torch.autograd.Function):
         comp_dtype = X1.dtype
         if sizeof_dtype(comp_dtype) < 8 and opt.no_single_kernel:
             comp_dtype = torch.float64
-
         with torch.inference_mode():
             if diag:
                 out = KernelMmFnFull.run_diag(X1, X2, out, kernel, False, is_sparse, kwargs_m1, kwargs_m2)
@@ -633,25 +646,19 @@ class KernelMmFnFull(torch.autograd.Function):
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
 
-        if not differentiable:
-            ctx.mark_non_differentiable(out)
-        else:
-            ctx.save_for_backward(X1, X2, *kernel_params)
-            ctx.kernel = kernel
-            ctx.opt = opt
-            ctx.comp_dtype = comp_dtype
-            ctx.diag = diag
-            ctx.kwargs_m1 = kwargs_m1
-            ctx.kwargs_m2 = kwargs_m2
         return out
 
     @staticmethod
-    @torch.autograd.function.once_differentiable
+    # @torch.autograd.function.once_differentiable
     def backward(ctx, outputs):
         X1, X2, *kernel_params = ctx.saved_tensors
 
         data_dev = X1.device
         comp_dev_type = "cpu" if ctx.opt.use_cpu or not torch.cuda.is_available() else "cuda"
+        # If float32 we need to upcast to float64 to avoid numerical precision errors in the kernel
+        comp_dtype = X1.dtype
+        if sizeof_dtype(comp_dtype) < 8 and opt.no_single_kernel:
+            comp_dtype = torch.float64
 
         # We must rerun MM in differentiable mode this time.
         with torch.autograd.enable_grad():
@@ -660,15 +667,15 @@ class KernelMmFnFull(torch.autograd.Function):
                 out = KernelMmFnFull.run_diag(X1, X2, outputs, ctx.kernel, True, False, ctx.kwargs_m1, ctx.kwargs_m2)
             elif comp_dev_type == "cpu" and data_dev.type == "cpu":
                 out = KernelMmFnFull.run_cpu_cpu(
-                    X1, X2, outputs, ctx.kernel, ctx.comp_dtype, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
+                    X1, X2, outputs, ctx.kernel, comp_dtype, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
                 )
             elif comp_dev_type == "cuda" and data_dev.type == "cuda":
                 out = KernelMmFnFull.run_gpu_gpu(
-                    X1, X2, outputs, ctx.kernel, ctx.comp_dtype, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
+                    X1, X2, outputs, ctx.kernel, comp_dtype, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
                 )
             elif comp_dev_type == "cuda" and data_dev.type == "cpu":
                 out = KernelMmFnFull.run_cpu_gpu(
-                    X1, X2, outputs, ctx.kernel, ctx.comp_dtype, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
+                    X1, X2, outputs, ctx.kernel, comp_dtype, ctx.opt, True, ctx.kwargs_m1, ctx.kwargs_m2
                 )
             else:
                 raise RuntimeError("Requested CPU computations with CUDA data. This should not happen.")
@@ -684,7 +691,7 @@ class KernelMmFnFull(torch.autograd.Function):
                 needs_grad.append(ctx.saved_tensors[saved_idx])
             if i >= KernelMmFnFull.NUM_NON_DIFF_INPUTS:
                 saved_idx += 1
-        grads = torch.autograd.grad(bwd, needs_grad, retain_graph=False, allow_unused=True)
+        grads = torch.autograd.grad(bwd, needs_grad, create_graph=True, allow_unused=True)
         grads_idx = 0
         results = []
         for _, i_grad in enumerate(ctx.needs_input_grad):
