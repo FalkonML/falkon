@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 
 from falkon import c_ext
