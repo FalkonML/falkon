@@ -123,7 +123,3 @@ def trsm(v: torch.Tensor, A: torch.Tensor, alpha: float, lower: int = 0, transpo
 
     vout = cpu_trsm(A, v, alpha, lower, transpose)
     return torch.from_numpy(vout)
-
-
-def square_norm(mat: torch.Tensor, dim: int, keepdim: Optional[bool] = None) -> torch.Tensor:
-    return c_ext.square_norm(mat, dim, keepdim)
