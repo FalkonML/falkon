@@ -10,14 +10,14 @@ namespace {
 template <typename scalar_t>
 void mul_upper_diag(
         scalar_t *data,
-        const size_t size,
+        const int64_t size,
         const scalar_t mul,
-        const int row_stride,
-        const int col_stride,
+        const int64_t row_stride,
+        const int64_t col_stride,
         const bool preserve_diag) {
     const int diagonal_offset = preserve_diag ? 1 : 0;
-    for (int i = 0; i < size; i++) {
-        for (int j = i + diagonal_offset; j < size; j++) {
+    for (int64_t i = 0; i < size; i++) {
+        for (int64_t j = i + diagonal_offset; j < size; j++) {
             data[i * row_stride + j * col_stride] *= mul;
         }
     }
@@ -26,14 +26,14 @@ void mul_upper_diag(
 template <typename scalar_t>
 void mul_lower_diag(
         scalar_t *data,
-        const size_t size,
+        const int64_t size,
         const scalar_t mul,
-        const int row_stride,
-        const int col_stride,
+        const int64_t row_stride,
+        const int64_t col_stride,
         const bool preserve_diag) {
     const int diagonal_offset = preserve_diag ? -1 : 0;
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j <= (i + diagonal_offset); j++) {
+    for (int64_t i = 0; i < size; i++) {
+        for (int64_t j = 0; j <= (i + diagonal_offset); j++) {
             data[i * row_stride + j * col_stride] *= mul;
         }
     }
@@ -68,7 +68,7 @@ at::Tensor mul_triang_kernel(
     bool bupper = upper;
     if (row_stride == 1) {
         bupper = !upper;
-        int tmp_stride = row_stride;
+        int64_t tmp_stride = row_stride;
         row_stride = col_stride;
         col_stride = tmp_stride;
     }
