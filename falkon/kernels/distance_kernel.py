@@ -552,9 +552,9 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
             )
         elif self.nu == 2.5:
             formula = (
-                "(IntCst(1) + Sqrt(IntCst(5)) * Norm2(x1 / s - x2 / s) + "
+                "((IntCst(1) + Sqrt(IntCst(5)) * Norm2(x1 / s - x2 / s) + "
                 "(IntInv(3) * IntCst(5)) * SqNorm2(x1 / s - x2 / s)) * "
-                "(Exp(-Sqrt(IntCst(5)) * Norm2(x1 / s - x2 / s)) * v)"
+                "Exp(-Sqrt(IntCst(5)) * Norm2(x1 / s - x2 / s))) * v"
             )
         elif self.nu == float("inf"):
             formula = "Exp(IntInv(-2) * SqDist(x1 / s, x2 / s)) * v"
