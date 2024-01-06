@@ -1,5 +1,6 @@
 notebooks/data/
 notebooks/logs/
+.ruff_cache/
 
 *.xml
 
