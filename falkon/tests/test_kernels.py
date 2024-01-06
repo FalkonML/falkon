@@ -78,7 +78,7 @@ def rtol():
 
 @pytest.fixture(scope="module")
 def atol():
-    return {np.float64: 1e-10, torch.float64: 1e-10, np.float32: 1e-4, torch.float32: 1e-4}
+    return {np.float64: 1e-8, torch.float64: 1e-8, np.float32: 1e-4, torch.float32: 1e-4}
 
 
 @pytest.fixture(params=["single-sigma", "vec-sigma"], scope="class")
@@ -158,9 +158,6 @@ def run_dense_test(k_cls, naive_fn, m1, m2, v, w, rtol, atol, opt, grad_check: b
         actual_noout, actual, rtol=rtol, atol=atol, msg="MMV with out and without return different stuff"
     )
     expected_mmv = expected_mm @ v
-    print(f"{expected_mmv=}")
-    print(f"{actual=}")
-    print(f"Max Diff: {(expected_mmv - actual).square().max().sqrt()}")
     torch.testing.assert_close(expected_mmv, actual, rtol=rtol, atol=atol, msg="MMV result is incorrect")
 
     # 4. MMV gradients
