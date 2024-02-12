@@ -151,8 +151,8 @@ install_requires = [
     "scikit-learn",
     "wheel",
     "psutil",
-    "keopscore @ git+https://github.com/getkeops/keops.git@main#subdirectory=keopscore",
-    "pykeops @ git+https://github.com/getkeops/keops.git@main#subdirectory=pykeops",
+    "keopscore>=2.2",
+    "pykeops>=2.2",
 ]
 test_requires = [
     "pandas",

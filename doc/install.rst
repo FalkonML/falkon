@@ -55,13 +55,13 @@ There are three ways of installing Falkon:
 
 3. **From pre-built wheels** which are available for the following versions of PyTorch and CUDA:
 
-     ============== ========= ========= ========= ========= =========
-      Linux          `cu113`   `cu115`   `cu116`   `cu117`   `cu118`
-     ============== ========= ========= ========= ========= =========
-      torch 1.11.0   ✅         ✅
-      torch 1.13.0                       ✅         ✅
-      torch 2.0.0                                  ✅         ✅
-     ============== ========= ========= ========= ========= =========
+     ============== ========= ========= ========= =========
+      Linux          `cu116`   `cu117`   `cu118`   `cu121`
+     ============== ========= ========= ========= =========
+      torch 1.13.0    ✅        ✅
+      torch 2.0.0               ✅        ✅
+      torch 2.1.0                         ✅        ✅
+     ============== ========= ========= ========= =========
 
     As an example, if you **already have installed** PyTorch 1.13 and CUDA 11.7 on your system, you should run
 
@@ -69,7 +69,7 @@ There are three ways of installing Falkon:
 
       $ pip install falkon -f https://falkon.dibris.unige.it/torch-1.13.0_cu117.html
 
-    Similarly for CPU packages
+    Similarly for **CPU-only packages**
 
     .. code-block:: bash
 

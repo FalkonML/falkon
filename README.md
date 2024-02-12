@@ -42,25 +42,25 @@ pip install --no-build-isolation git+https://github.com/FalkonML/falkon.git
 
 We alternatively provide pre-built pip wheels for the following combinations of PyTorch and CUDA:
 
-| Linux        | `cu113` | `cu115` | `cu116` | `cu117` | `cu118` |
-|--------------|-------|---------|--------|---------|---------|
-| torch 1.11.0 | ✅    | ✅      |        |         |         |
-| torch 1.13.0 |       |         | ✅     | ✅      |         |
-| torch 2.0.0  |       |         |        | ✅      | ✅      |
+| Linux        | `cu116` | `cu117` | `cu118` | `cu121` |
+|--------------|---------|---------|---------|---------|
+| torch 1.13.0 | ✅      | ✅      |         |         |
+| torch 2.0.0  |         | ✅      | ✅      |         |
+| torch 2.1.0  |         |         | ✅      | ✅      |
 
 For other combinations, and previous versions of Falkon, please check [here](https://falkon.dibris.unige.it/index.html)
 for a list of supported wheels.
 
 To install a wheel for a specific PyTorch + CUDA combination, you can run
 ```bash
-# e.g., torch 1.13.0 + cu117
-pip install falkon -f https://falkon.dibris.unige.it/torch-1.13.0_cu117.html
+# e.g., torch 2.1.0 + CUDA 12.1
+pip install falkon -f https://falkon.dibris.unige.it/torch-2.1.0_cu121.html
 ```
 
-Similarly for CPU packages
+Similarly for CPU-only packages
 ```bash
-# e.g., torch 2.0.0 + cpu
-pip install falkon -f https://falkon.dibris.unige.it/torch-2.0.0_cpu.html
+# e.g., torch 2.1.0 + cpu
+pip install falkon -f https://falkon.dibris.unige.it/torch-2.1.0_cpu.html
 ```
 
 **More detailed installation instructions are available in [the documentation](https://falkonml.github.io/falkon/install.html).**
