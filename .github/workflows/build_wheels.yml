@@ -15,15 +15,19 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         # support version based on: https://download.pytorch.org/whl/torch/
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         torch-version: [2.0.0, 2.1.0, 2.2.0]
         cuda-version: ['cpu', 'cu117', 'cu118', 'cu121']
         exclude:
           - torch-version: 2.0.0
             cuda-version: 'cu121'
+          - torch-version: 2.0.0
+            python-version: '3.12'
 
           - torch-version: 2.1.0
             cuda-version: 'cu117'
+          - torch-version: 2.1.0
+            python-version: '3.12'
 
           - torch-version: 2.2.0
             cuda-version: 'cu117'
