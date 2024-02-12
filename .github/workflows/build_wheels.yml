@@ -33,10 +33,10 @@ jobs:
             cuda-version: 'cu117'
             
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -94,7 +94,7 @@ jobs:
           bash
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: torch-${{ matrix.torch-version }}_${{ matrix.cuda-version }}
           path: dist/*.whl
