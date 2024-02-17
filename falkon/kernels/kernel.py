@@ -491,6 +491,12 @@ class Kernel(torch.nn.Module, ABC):
         -------
         out : torch.Tensor
             The kernel matrix. Should use the same underlying storage as the parameter ``out``.
+
+        Notes
+        -----
+        Supporting the `diag` argument is **optional**. It's only used with in the hyper-parameter
+        optimization module, so if you're not using that you don't need to implement
+        this function for `diag=True` (it will always be False).
         """
         pass
 

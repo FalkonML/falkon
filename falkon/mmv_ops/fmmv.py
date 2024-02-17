@@ -970,7 +970,7 @@ def fmmv(
     if isinstance(kernel, falkon.kernels.DiffKernel):
         return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v, *kernel.diff_params.values())
     else:
-        return KernelMmvFnFull.apply(kernel, opt, out, X1, X2, v, kwargs_m1, kwargs_m2)
+        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v)
 
 
 def fdmmv(
