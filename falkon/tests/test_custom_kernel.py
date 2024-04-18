@@ -112,8 +112,8 @@ class BasicLinearKernelWithKwargs(Kernel):
 
     def compute(self, X1: torch.Tensor, X2: torch.Tensor, out: torch.Tensor, diag: bool, **kwargs) -> torch.Tensor:
         lengthscale = self.lengthscale.to(device=X1.device, dtype=X1.dtype)
-        indices_x1 = kwargs["indices_m1"]
-        indices_x2 = kwargs["indices_m2"]
+        indices_x1 = kwargs["indices_m1"].to(device=X1.device)
+        indices_x2 = kwargs["indices_m2"].to(device=X1.device)
 
         X1_ = X1 * indices_x1
         X2_ = X2 * indices_x2

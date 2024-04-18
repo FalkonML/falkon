@@ -154,6 +154,7 @@ class TestFalkonConjugateGradient:
     def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)
         options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")
+        knm = move_tensor(knm, device)
         calc_kernel = PrecomputedKernel(knm, options)
         opt = FalkonConjugateGradient(calc_kernel, preconditioner, opt=options)
 
@@ -162,7 +163,6 @@ class TestFalkonConjugateGradient:
         lhs = knm.T @ knm + self.penalty * self.N * kmm
         expected = np.linalg.solve(lhs.numpy(), rhs.numpy())
 
-        knm = move_tensor(knm, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
         # We still need to pass X and M in for shape checks to pass in MMV
