@@ -90,6 +90,26 @@ class LogisticPreconditioner(Preconditioner):
         out = trmm(alpha=1.0, a=C.numpy(), b=alpha_np, side=0, lower=0, trans_a=1, diag=0, overwrite_b=1)
         return torch.from_numpy(out)
 
+    def check_inputs(self, X, Y):
+        if X.is_cuda and not self._use_cuda:
+            raise RuntimeError("use_cuda is set to False, but data is CUDA tensor. Check your options.")
+        if Y.shape[1] != 1:
+            raise ValueError("Logistic preconditioner can only deal with 1D outputs.")
+
+    def init_kernel_mat(self, X) -> torch.Tensor:
+        dtype = X.dtype
+        dev = X.device
+        M = X.size(0)
+        with TicToc("Kernel", debug=self.params.debug):
+            if isinstance(X, torch.Tensor):
+                C = create_same_stride((M, M), X, dtype=dtype, device=dev, pin_memory=self._use_cuda)
+            else:  # If sparse tensor we need fortran for kernel calculation
+                C = create_fortran((M, M), dtype=dtype, device=dev, pin_memory=self._use_cuda)
+            self.kernel(X, X, out=C, opt=self.params)
+        if not is_f_contig(C):
+            C = C.T
+        return C
+
     def init(
         self, X: Union[torch.Tensor, SparseTensor], Y: torch.Tensor, alpha: torch.Tensor, penalty: float, N: int
     ) -> None:
@@ -117,25 +137,13 @@ class LogisticPreconditioner(Preconditioner):
         information pertaining timings of the various preconditioner operations. This can be
         useful to help understand how the preconditioner works.
         """
-        if Y.shape[1] != 1:
-            raise ValueError("Logistic preconditioner can only deal with 1D outputs.")
-
-        dtype = X.dtype
-        M = X.size(0)
-
-        eps = self.params.pc_epsilon(dtype)
-
+        self.check_inputs(X, Y)
         if self.fC is None:
             # This is done only at the first iteration of the logistic-falkon algorithm
             # It sets the `T` variable from the paper (chol(kMM)) to the upper part of `self.fC`
-            with TicToc("Kernel", debug=self.params.debug):
-                if isinstance(X, torch.Tensor):
-                    C = create_same_stride((M, M), X, dtype=dtype, device="cpu", pin_memory=self._use_cuda)
-                else:  # If sparse tensor we need fortran for kernel calculation
-                    C = create_fortran((M, M), dtype=dtype, device="cpu", pin_memory=self._use_cuda)
-                self.kernel(X, X, out=C, opt=self.params)
-            if not is_f_contig(C):
-                C = C.T
+            C = self.init_kernel_mat(X)
+            M = C.size(0)
+            eps = self.params.pc_epsilon(C.dtype)
 
             with TicToc("Add diag", debug=self.params.debug):
                 # Compute T: lower(fC) = T.T
