@@ -164,6 +164,29 @@ class TestFalkon:
 
         np.testing.assert_allclose(flk_cpu.alpha_.numpy(), flk_gpu.alpha_.numpy())
 
+    def test_precompute_kernel(self, reg_data):
+        Xtr, Ytr, Xts, Yts = reg_data
+        kernel = kernels.GaussianKernel(20.0)
+
+        def error_fn(t, p):
+            return torch.sqrt(torch.mean((t - p) ** 2)).item(), "RMSE"
+
+        opt = FalkonOptions(
+            use_cpu=True,
+            keops_active="no",
+            debug=True,
+            never_store_kernel=False,
+            store_kernel_d_threshold=Xtr.shape[1] - 1,
+        )
+        flk = Falkon(kernel=kernel, penalty=1e-6, M=Xtr.shape[0] // 2, seed=10, options=opt, maxiter=10)
+        flk.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
+
+        assert flk.predict(Xts).shape == (Yts.shape[0], 1)
+        ts_err = error_fn(flk.predict(Xts), Yts)[0]
+        tr_err = error_fn(flk.predict(Xtr), Ytr)[0]
+        assert tr_err < ts_err
+        assert ts_err < 2.5
+
 
 class TestWeightedFalkon:
     @pytest.mark.parametrize(
@@ -220,6 +243,29 @@ class TestWeightedFalkon:
         assert err_weight_m1 < err_m1, "Error of weighted class is higher than without weighting"
         assert err_weight_p1 >= err_p1, "Error of unweighted class is lower than in flk with no weights"
 
+    def test_precompute_kernel(self, reg_data):
+        Xtr, Ytr, Xts, Yts = reg_data
+        kernel = kernels.GaussianKernel(20.0)
+
+        def error_fn(t, p):
+            return torch.sqrt(torch.mean((t - p) ** 2)).item(), "RMSE"
+
+        opt = FalkonOptions(
+            use_cpu=True,
+            keops_active="no",
+            debug=True,
+            never_store_kernel=False,
+            store_kernel_d_threshold=Xtr.shape[1] - 1,
+        )
+        flk = Falkon(kernel=kernel, penalty=1e-6, M=Xtr.shape[0] // 2, seed=10, options=opt, maxiter=10)
+        flk.fit(Xtr, Ytr, Xts=Xts, Yts=Yts)
+
+        assert flk.predict(Xts).shape == (Yts.shape[0], 1)
+        ts_err = error_fn(flk.predict(Xts), Yts)[0]
+        tr_err = error_fn(flk.predict(Xtr), Ytr)[0]
+        assert tr_err < ts_err
+        assert ts_err < 2.5
+
 
 @pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")
 class TestIncoreFalkon:
@@ -248,6 +294,33 @@ class TestIncoreFalkon:
             return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
 
         opt = FalkonOptions(use_cpu=False, keops_active="no", debug=True)
+        M = 500
+        flkc = InCoreFalkon(kernel=kernel, penalty=1e-6, M=M, seed=10, options=opt, maxiter=20, error_fn=error_fn)
+        flkc.fit(Xc, Yc)
+
+        cpreds = flkc.predict(Xc)
+        assert cpreds.device == Xc.device
+        err = error_fn(cpreds, Yc)[0]
+        assert err < 5
+
+    def test_precompute_kernel(self, cls_data):
+        X, Y = cls_data
+        Xc = X.cuda()
+        Yc = Y.cuda()
+        kernel = kernels.GaussianKernel(2.0)
+        torch.manual_seed(13)
+        np.random.seed(13)
+
+        def error_fn(t, p):
+            return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
+
+        opt = FalkonOptions(
+            use_cpu=False,
+            keops_active="no",
+            debug=True,
+            never_store_kernel=False,
+            store_kernel_d_threshold=X.shape[1] - 1,
+        )
         M = 500
         flkc = InCoreFalkon(kernel=kernel, penalty=1e-6, M=M, seed=10, options=opt, maxiter=20, error_fn=error_fn)
         flkc.fit(Xc, Yc)

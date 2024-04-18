@@ -6,7 +6,6 @@ from typing import Callable, List, Optional
 import torch
 
 import falkon
-from falkon.mmv_ops.fmmv_incore import incore_fdmmv, incore_fmmv
 from falkon.options import ConjugateGradientOptions, FalkonOptions
 from falkon.utils import TicToc
 from falkon.utils.tensor_helpers import copy_same_stride, create_same_stride
@@ -240,18 +239,14 @@ class FalkonConjugateGradient(Optimizer):
 
         self.weight_fn = weight_fn
 
-    def falkon_mmv(self, sol, penalty, X, M, Knm):
-        n = Knm.shape[0] if Knm is not None else X.shape[0]
+    def falkon_mmv(self, sol, penalty, X, M, n: int):
         prec = self.preconditioner
 
         with TicToc("MMV", False):
             v = prec.invA(sol)
             v_t = prec.invT(v)
 
-            if Knm is not None:
-                cc = incore_fdmmv(Knm, v_t, w=None, out=None, opt=self.params)
-            else:
-                cc = self.kernel.dmmv(X, M, v_t, None, opt=self.params)
+            cc = self.kernel.dmmv(X, M, v_t, None, opt=self.params)
 
             # AT^-1 @ (TT^-1 @ (cc / n) + penalty * v)
             cc_ = cc.div_(n)
@@ -260,20 +255,15 @@ class FalkonConjugateGradient(Optimizer):
             out = prec.invAt(cc_)
             return out
 
-    def weighted_falkon_mmv(self, sol, penalty, X, M, Knm, y_weights):
-        n = Knm.shape[0] if Knm is not None else X.shape[0]
+    def weighted_falkon_mmv(self, sol, penalty, X, M, y_weights, n: int):
         prec = self.preconditioner
 
         with TicToc("MMV", False):
             v = prec.invA(sol)
             v_t = prec.invT(v)
 
-            if Knm is not None:
-                cc = incore_fmmv(Knm, v_t, None, opt=self.params).mul_(y_weights)
-                cc = incore_fmmv(Knm.T, cc, None, opt=self.params)
-            else:
-                cc = self.kernel.mmv(X, M, v_t, None, opt=self.params).mul_(y_weights)
-                cc = self.kernel.mmv(M, X, cc, None, opt=self.params)
+            cc = self.kernel.mmv(X, M, v_t, None, opt=self.params).mul_(y_weights)
+            cc = self.kernel.mmv(M, X, cc, None, opt=self.params)
 
             # AT^-1 @ (TT^-1 @ (cc / n) + penalty * v)
             cc_ = cc.div_(n)
@@ -283,14 +273,9 @@ class FalkonConjugateGradient(Optimizer):
             return out
 
     def solve(self, X, M, Y, _lambda, initial_solution, max_iter, callback=None):
-        n = X.size(0)
-        if M is None:
-            Knm = X
-        else:
-            Knm = None
-
-        cuda_inputs: bool = X.is_cuda
-        device = X.device
+        n = Y.size(0)
+        cuda_inputs: bool = Y.is_cuda
+        device = Y.device
 
         stream = None
         if cuda_inputs:
@@ -308,18 +293,13 @@ class FalkonConjugateGradient(Optimizer):
                 y_over_n.mul_(y_weights)  # This can be in-place since we own y_over_n
 
             # Compute the right hand side
-            if Knm is not None:
-                B = incore_fmmv(Knm, y_over_n, None, transpose=True, opt=self.params)
-            else:
-                B = self.kernel.mmv(M, X, y_over_n, opt=self.params)
+            B = self.kernel.mmv(M, X, y_over_n, opt=self.params)
             B = self.preconditioner.apply_t(B)
 
             if self.is_weighted:
-                mmv = functools.partial(
-                    self.weighted_falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm, y_weights=y_weights
-                )
+                mmv = functools.partial(self.weighted_falkon_mmv, penalty=_lambda, X=X, M=M, y_weights=y_weights, n=n)
             else:
-                mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, Knm=Knm)
+                mmv = functools.partial(self.falkon_mmv, penalty=_lambda, X=X, M=M, n=n)
             # Run the conjugate gradient solver
             beta = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
 

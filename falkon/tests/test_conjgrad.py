@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from falkon.center_selection import UniformSelector
-from falkon.kernels import GaussianKernel
+from falkon.kernels import GaussianKernel, PrecomputedKernel
 from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
 from falkon.options import FalkonOptions
 from falkon.preconditioner import FalkonPreconditioner
@@ -154,7 +154,8 @@ class TestFalkonConjugateGradient:
     def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)
         options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")
-        opt = FalkonConjugateGradient(kernel, preconditioner, opt=options)
+        calc_kernel = PrecomputedKernel(knm, options)
+        opt = FalkonConjugateGradient(calc_kernel, preconditioner, opt=options)
 
         # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
         rhs = knm.T @ vec_rhs
@@ -164,7 +165,8 @@ class TestFalkonConjugateGradient:
         knm = move_tensor(knm, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        beta = opt.solve(X=knm, M=None, Y=vec_rhs, _lambda=self.penalty, initial_solution=None, max_iter=200)
+        # We still need to pass X and M in for shape checks to pass in MMV
+        beta = opt.solve(X=None, M=None, Y=vec_rhs, _lambda=self.penalty, initial_solution=None, max_iter=200)
         alpha = preconditioner.apply(beta)
 
         assert str(beta.device) == device, "Device has changed unexpectedly"
