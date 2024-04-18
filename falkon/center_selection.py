@@ -43,7 +43,7 @@ class CenterSelector(ABC):
         X_centers
             If Y is None this is the only output: M centers selected from the data.
         Y_centers
-            If Y is not empty, a set of label centers shall be returned as well.
+            If Y is not None, a set of label centers will be returned as well.
         """
         pass
 
@@ -61,12 +61,11 @@ class CenterSelector(ABC):
         Returns
         -------
         X_centers
-            If Y is None this is the only output: M centers selected from the data.
+            M centers selected from the data.
         Y_centers
-            If Y is not empty, a set of label centers shall be returned as well.
+            If Y is not None, a set of label centers will be returned as well.
         indices
-            The indices in X associated with the chosen centers. Subclasses may not implement
-            this method, in which case a `NotImplementedError` will be raised.
+            The indices in X (and optionally Y) associated with the chosen centers.
         """
         pass
 
