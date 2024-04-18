@@ -1,5 +1,6 @@
 import os
 
+from .options import FalkonOptions  # isort:skip
 from . import (  # isort:skip
     center_selection,
     sparse,
@@ -9,7 +10,6 @@ from . import (  # isort:skip
     gsc_losses,
     hopt,
 )
-from .options import FalkonOptions  # isort:skip
 from .models import Falkon, InCoreFalkon, LogisticFalkon  # isort:skip
 
 # Set __version__ attribute on the package

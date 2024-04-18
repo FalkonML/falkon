@@ -3,6 +3,7 @@ from .keops_helpers import KeopsKernelMixin  # isort: skip
 from .diff_kernel import DiffKernel
 from .distance_kernel import GaussianKernel, LaplacianKernel, MaternKernel
 from .dot_prod_kernel import LinearKernel, PolynomialKernel, SigmoidKernel
+from .precomputed_kernel import PrecomputedKernel
 
 __all__ = (
     "Kernel",
@@ -14,4 +15,5 @@ __all__ = (
     "LinearKernel",
     "PolynomialKernel",
     "SigmoidKernel",
+    "PrecomputedKernel",
 )
