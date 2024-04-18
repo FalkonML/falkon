@@ -1,19 +1,25 @@
 import time
+import warnings
 from typing import Callable, Optional, Tuple, Union
 
 import torch
+from torch import Tensor
 
 import falkon
 from falkon import FalkonOptions
-from falkon.models.model_utils import FalkonBase
-from falkon.utils import TicToc
+from falkon.kernels import Kernel
+from falkon.kernels.precomputed_kernel import PrecomputedKernel
+from falkon.preconditioner import FalkonPreconditioner
+from falkon.sparse import SparseTensor
 from falkon.utils.devices import get_device_info
 from falkon.utils.helpers import check_same_device
+
+from .falkon import Falkon
 
 __all__ = ("InCoreFalkon",)
 
 
-class InCoreFalkon(FalkonBase):
+class InCoreFalkon(Falkon):
     """In GPU core Falkon Kernel Ridge Regression solver.
 
     This estimator object solves approximate kernel ridge regression problems with Nystroem
@@ -116,21 +122,19 @@ class InCoreFalkon(FalkonBase):
         error_every: Optional[int] = 1,
         weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
         options: Optional[FalkonOptions] = None,
-        N: int = None,
     ):
-        super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
-        self.penalty = penalty
-        self.maxiter = maxiter
-        self.weight_fn = weight_fn
+        super().__init__(kernel, penalty, M, center_selection, maxiter, seed, error_fn, error_every, weight_fn, options)
         if not self.use_cuda_:
             raise RuntimeError(
                 "Cannot instantiate InCoreFalkon when CUDA is not available. "
                 "If CUDA is present on your system, make sure to set "
                 "'use_cpu=False' in the `FalkonOptions` object."
             )
-        self._init_cuda()
+
+    def _reset_state(self):
+        super()._reset_state()
         self.beta_ = None
-        self.N = N
+        self.precond = None
 
     def _check_fit_inputs(self, X, Y, Xts, Yts):
         if not check_same_device(X, Y, Xts, Yts) or (not X.is_cuda):
@@ -139,8 +143,37 @@ class InCoreFalkon(FalkonBase):
 
     def _check_predict_inputs(self, X):
         if not check_same_device(X, self.alpha_):
-            raise ValueError("X must be on device %s" % (self.alpha_.device))
+            raise ValueError(f"X must be on device {self.alpha_.device}")
         return super()._check_predict_inputs(X)
+
+    def init_pc(
+        self,
+        ny_points: Union[Tensor, SparseTensor],
+        use_cuda_pc: bool,
+        X: Tensor,
+        Y: Tensor,
+        ny_indices: Optional[Tensor] = None,
+    ) -> FalkonPreconditioner:
+        assert use_cuda_pc is True
+        pc_stream = torch.cuda.Stream(X.device)
+        with torch.cuda.stream(pc_stream):
+            pc = super().init_pc(ny_points=ny_points, X=X, Y=Y, use_cuda_pc=True, ny_indices=ny_indices)
+        pc_stream.synchronize()
+        return pc
+
+    def init_kernel_matrix(self, X: Tensor, ny_pts: Tensor) -> Kernel:
+        """
+        Decide whether to store the full kernel. If dimensions are such that it is convenient
+        to precompute it, it is saved in a :class:`PrecomputedKernel` which is used for
+        subsequent computations. Otherwise return the original kernel..
+        """
+        gpu_info = get_device_info(self.options)[X.device.index]
+        available_ram = min(self.options.max_gpu_mem, gpu_info.free_memory) * 0.9
+        kernel = self.kernel
+        if self._can_store_knm(X, ny_pts, available_ram):
+            Knm = self.kernel(X, ny_pts, opt=self.options)
+            kernel = PrecomputedKernel(Knm, opt=self.options)
+        return kernel
 
     def fit(
         self,
@@ -191,93 +224,42 @@ class InCoreFalkon(FalkonBase):
             The fitted model
 
         """
-        # Fix a synchronization bug which occurs when re-using center selector.
+        # Fixes a synchronization bug which occurs when re-using center selector.
         torch.cuda.synchronize()
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
-
-        self.val_errors_ = []
-        self.fit_times_ = []
-        self.ny_points_ = None
-        self.alpha_ = None
+        self._reset_state()
 
         # Start training timer
         t_s = time.time()
 
         with torch.autograd.inference_mode():
-            # Pick Nystrom centers
-            if self.weight_fn is not None:
-                # noinspection PyTupleAssignmentBalance
-                ny_points, ny_indices = self.center_selection.select_indices(X, None)
+            if self.weight_fn is None:  # don't need indices.
+                ny_points, ny_indices = self.center_selection.select(X, None), None
             else:
-                # noinspection PyTypeChecker
-                ny_points: Union[torch.Tensor, falkon.sparse.SparseTensor] = self.center_selection.select(X, None)
-                ny_indices = None
-            num_centers = ny_points.shape[0]
+                ny_points, ny_indices = self.center_selection.select_indices(X, None)
 
-            pc_stream = torch.cuda.Stream(X.device)
-            with TicToc(
-                f"Calcuating Preconditioner of size {num_centers}", debug=self.options.debug
-            ), torch.cuda.stream(pc_stream):
-                precond = falkon.preconditioner.FalkonPreconditioner(self.penalty, self.kernel, self.options)
-                self.precond = precond
-                ny_weight_vec = None
-                if self.weight_fn is not None:
-                    ny_weight_vec = self.weight_fn(Y[ny_indices], X[ny_indices], ny_indices)
-                precond.init(ny_points, weight_vec=ny_weight_vec)
-            pc_stream.synchronize()
+            self.precond = self.init_pc(ny_points, True, X, Y, ny_indices)
 
             # Cache must be emptied to ensure enough memory is visible to the optimizer
             torch.cuda.empty_cache()
 
-            # K_NM storage decision
-            gpu_info = get_device_info(self.options)[X.device.index]
-            available_ram = min(self.options.max_gpu_mem, gpu_info.free_memory) * 0.9
-            Knm = None
-            if self._can_store_knm(X, ny_points, available_ram):
-                Knm = self.kernel(X, ny_points, opt=self.options)
+            calc_kernel = self.init_kernel_matrix(X, ny_points)
             self.fit_times_.append(time.time() - t_s)  # Preparation time
 
-            # Here we define the callback function which will run at the end
-            # of conjugate gradient iterations. This function computes and
-            # displays the validation error.
+            # Define the callback function which runs after each CG iteration. Optionally computes
+            # and displays the validation error.
             validation_cback = None
             if self.error_fn is not None and self.error_every is not None:
-                validation_cback = self._get_callback_fn(X, Y, Xts, Yts, ny_points, precond)
+                validation_cback = self._get_callback_fn(X, Y, Xts, Yts, ny_points, self.precond)
 
-            # Start with the falkon algorithm
-            with TicToc("Computing Falkon iterations", debug=self.options.debug):
-                optim = falkon.optim.FalkonConjugateGradient(
-                    self.kernel, precond, self.options, weight_fn=self.weight_fn
-                )
-                if Knm is not None:
-                    beta = optim.solve(
-                        Knm,
-                        None,
-                        Y,
-                        self.penalty,
-                        initial_solution=warm_start,
-                        max_iter=self.maxiter,
-                        callback=validation_cback,
-                    )
-                else:
-                    beta = optim.solve(
-                        X,
-                        ny_points,
-                        Y,
-                        self.penalty,
-                        initial_solution=warm_start,
-                        max_iter=self.maxiter,
-                        callback=validation_cback,
-                    )
-
-                self.alpha_ = precond.apply(beta)
-                self.beta_ = beta
-                self.ny_points_ = ny_points
+            alpha, beta = self.run_solver(True, calc_kernel, X, Y, ny_points, warm_start, validation_cback)
+            self.alpha_, self.beta_, self.ny_points_ = alpha, beta, ny_points
         return self
 
     def _predict(self, X, ny_points, alpha):
         with torch.autograd.inference_mode():
             if ny_points is None:
+                warnings.warn("This code-path is deprecated and may be removed. Nys_points must be specified.")
                 # Then X is the kernel itself
                 return X @ alpha
             return self.kernel.mmv(X, ny_points, alpha, opt=self.options)

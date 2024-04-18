@@ -39,11 +39,6 @@ class FalkonBase(base.BaseEstimator, ABC):
         self.error_every = error_every
         # Options
         self.options = options or FalkonOptions()
-        self._cg_options = self.options.get_conjgrad_options()
-        self._keops_options = self.options.get_keops_options()
-        self._pc_options = self.options.get_pc_options()
-        self._cholesky_opt = self.options.get_chol_options()
-        self._base_opt = self.options.get_base_options()
 
         self.use_cuda_ = decide_cuda(self.options)
         self.num_gpus = 0
@@ -52,25 +47,33 @@ class FalkonBase(base.BaseEstimator, ABC):
         self.fit_times_ = None
         self.val_errors_ = None
 
+        self.center_selection = self._init_center_selection(center_selection)
+
+    def _init_center_selection(
+        self, center_selection: Union[str, falkon.center_selection.CenterSelector]
+    ) -> falkon.center_selection.CenterSelector:
         if isinstance(center_selection, str):
             if center_selection.lower() == "uniform":
-                if M is None:
+                if self.M is None:
                     raise ValueError(
                         "M must be specified when no `CenterSelector` object is provided. "
                         "Specify an integer value for `M` or a `CenterSelector` object."
                     )
-                self.center_selection: falkon.center_selection.CenterSelector = falkon.center_selection.UniformSelector(
-                    self.random_state_, num_centers=M
-                )
+                return falkon.center_selection.UniformSelector(self.random_state_, num_centers=self.M)
             else:
                 raise ValueError(f'Center selection "{center_selection}" is not valid.')
-        else:
-            self.center_selection: falkon.center_selection.CenterSelector = center_selection
+        return center_selection
 
     def _init_cuda(self):
         if self.use_cuda_:
             torch.cuda.init()
             self.num_gpus = devices.num_gpus(self.options)
+
+    def _reset_state(self):
+        self.alpha_ = None
+        self.ny_points_ = None
+        self.fit_times_ = []
+        self.val_errors_ = []
 
     def _get_callback_fn(
         self,

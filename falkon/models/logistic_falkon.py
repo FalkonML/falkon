@@ -128,6 +128,14 @@ class LogisticFalkon(FalkonBase):
         self.loss = loss
         self._init_cuda()
 
+    def _check_fit_inputs(self, X, Y, Xts, Yts):
+        if Y.size(1) != 1 or (Yts is not None and Yts.size(1) != 1):
+            raise ValueError(
+                "Logistic Falkon expects a single response variable: "
+                "Y must be 1-D or the second dimension must be of size 1."
+            )
+        return super()._check_fit_inputs(X, Y, Xts, Yts)
+
     def fit(
         self, X: torch.Tensor, Y: torch.Tensor, Xts: Optional[torch.Tensor] = None, Yts: Optional[torch.Tensor] = None
     ):
@@ -166,17 +174,11 @@ class LogisticFalkon(FalkonBase):
             The fitted model
         """
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
-        if Y.size(1) != 1:
-            raise ValueError(
-                "Logistic Falkon expects a single response variable: "
-                "Y must be 1-D or the second dimension must be of size 1."
-            )
 
-        dtype = X.dtype
+        self._reset_state()
         # Add a dummy `fit_time` to make compatible with normal falkon
         # where the first `fit_time` is just preparation time.
-        self.fit_times_ = [0.0]
-        self.val_errors_ = []
+        self.fit_times_.append(0.0)
 
         t_s = time.time()
 
@@ -186,7 +188,7 @@ class LogisticFalkon(FalkonBase):
                 ny_X = ny_X.pin_memory()
                 ny_Y = ny_Y.pin_memory()
 
-            beta_it = torch.zeros(ny_X.shape[0], 1, dtype=dtype)  # Temporary iterative solution
+            beta_it = torch.zeros(ny_X.shape[0], 1, dtype=X.dtype)  # Temporary iterative solution
             optim = ConjugateGradient(opt=self.options)
             precond = falkon.preconditioner.LogisticPreconditioner(self.kernel, self.loss, self.options)
 
