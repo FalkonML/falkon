@@ -154,8 +154,8 @@ class TestFalkonConjugateGradient:
     def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)
         options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")
-        knm = move_tensor(knm, device)
-        calc_kernel = PrecomputedKernel(knm, options)
+        knm_dev = move_tensor(knm, device)
+        calc_kernel = PrecomputedKernel(knm_dev, options)
         opt = FalkonConjugateGradient(calc_kernel, preconditioner, opt=options)
 
         # Solve (knm.T @ knm + lambda*n*kmm) x = knm.T @ b
