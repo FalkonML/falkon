@@ -3,9 +3,9 @@ from typing import Optional
 import torch
 from torch import Tensor
 
-from falkon import FalkonOptions
 from falkon.kernels import Kernel
 from falkon.mmv_ops.fmmv_incore import incore_fdmmv, incore_fmmv
+from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
 from falkon.utils.helpers import check_same_dtype
 
