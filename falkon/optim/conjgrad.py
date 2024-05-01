@@ -282,7 +282,7 @@ class FalkonConjugateGradient(Optimizer):
             stream = torch.cuda.current_stream(device)
 
         # Note that if we don't have CUDA this still works with stream=None.
-        with ExitStack() as stack, TicToc("ConjGrad preparation", False), torch.inference_mode():
+        with ExitStack() as stack, TicToc("ConjGrad preparation", False):
             if cuda_inputs:
                 stack.enter_context(torch.cuda.device(device))
                 stack.enter_context(torch.cuda.stream(stream))
