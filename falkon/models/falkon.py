@@ -1,7 +1,7 @@
 import dataclasses
 import time
 import warnings
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union, Any
 
 import torch
 from torch import Tensor
@@ -125,7 +125,7 @@ class Falkon(FalkonBase):
         center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
         maxiter: int = 20,
         seed: Optional[int] = None,
-        error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
+        error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[Any, Tuple[Any, str]]]] = None,
         error_every: Optional[int] = 1,
         weight_fn: Optional[Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]] = None,
         options: Optional[FalkonOptions] = None,

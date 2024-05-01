@@ -109,7 +109,7 @@ class FalkonBase(base.BaseEstimator, ABC):
             if isinstance(err, tuple) and len(err) == 2:
                 err, err_name = err
             print(
-                f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - {err_str} {err_name}: {err:.8f}",
+                f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - {err_str} {err_name}: {str(err)}",
                 flush=True,
             )
             self.val_errors_.append(err)
