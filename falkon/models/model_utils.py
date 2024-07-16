@@ -77,10 +77,10 @@ class FalkonBase(base.BaseEstimator, ABC):
 
     def _get_callback_fn(
         self,
-        X: _tensor_type,
-        Y: torch.Tensor,
-        Xts: _tensor_type,
-        Yts: torch.Tensor,
+        X: Optional[_tensor_type],
+        Y: Optional[torch.Tensor],
+        Xts: Optional[_tensor_type],
+        Yts: Optional[torch.Tensor],
         ny_points: _tensor_type,
         precond: falkon.preconditioner.Preconditioner,
     ):
@@ -88,8 +88,14 @@ class FalkonBase(base.BaseEstimator, ABC):
 
         The callback computes and displays the validation error.
         """
+        assert not (X is None and Xts is None), "At least one of `X` or `Xts` must be specified"
+        assert not (Y is None and Yts is None), "At least one of `Y` or `Yts` must be specified"
+        assert self.error_fn is not None, "Error function must be specified for callbacks"
 
         def val_cback(it, beta, train_time):
+            assert self.error_fn is not None
+            assert self.fit_times_ is not None
+            assert self.val_errors_ is not None
             # fit_times_[0] is the preparation (i.e. preconditioner time).
             # train_time is the cumulative training time (excludes time for this function)
             self.fit_times_.append(self.fit_times_[0] + train_time)
@@ -103,6 +109,7 @@ class FalkonBase(base.BaseEstimator, ABC):
                 pred = self._predict(Xts, ny_points, alpha)
                 err = self.error_fn(Yts, pred)
             else:
+                assert X is not None and Y is not None
                 pred = self._predict(X, ny_points, alpha)
                 err = self.error_fn(Y, pred)
             err_name = "error"

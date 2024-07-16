@@ -141,7 +141,7 @@ class Kernel(torch.nn.Module, ABC):
         opt: Optional[FalkonOptions] = None,
         kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
         kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
-    ):
+    ) -> torch.Tensor:
         """Compute the kernel matrix between ``X1`` and ``X2``
 
         Parameters

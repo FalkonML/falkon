@@ -159,6 +159,7 @@ class Falkon(FalkonBase):
             pc = FalkonPreconditioner(self.penalty, self.kernel, pc_opt)
             ny_weight_vec = None
             if self.weight_fn is not None:
+                assert ny_indices is not None
                 ny_weight_vec = self.weight_fn(Y[ny_indices], X[ny_indices], ny_indices)
             pc.init(ny_points, weight_vec=ny_weight_vec)
         return pc

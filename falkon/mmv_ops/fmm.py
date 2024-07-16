@@ -705,7 +705,7 @@ def fmm(
     X2: Union[torch.Tensor, SparseTensor],
     kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
     kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
-):
+) -> torch.Tensor:
     import falkon.kernels
 
     if isinstance(kernel, falkon.kernels.DiffKernel):
