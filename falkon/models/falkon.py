@@ -1,7 +1,7 @@
 import dataclasses
 import time
 import warnings
-from typing import Callable, Optional, Tuple, Union, Any
+from typing import Any, Callable, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
