@@ -191,7 +191,11 @@ def run_keops_mmv(
     differentiable = any([X1.requires_grad, X2.requires_grad, v.requires_grad] + [o.requires_grad for o in other_vars])
 
     comp_dev_type = backend[:3].lower().replace("gpu", "cuda")  # 'cpu' or 'cuda'
-    keopscore.config.config.use_cuda = comp_dev_type == "cuda"  # workaround for keops issue#248
+    if hasattr(keopscore.config, "config"):
+        keopscore.config.config.use_cuda = comp_dev_type == "cuda"  # workaround for keops issue#248
+    else:
+        # Newer (> 2.2?) keops versions
+        keopscore.config.use_cuda = comp_dev_type == "cuda"  # workaround for keops issue#248
     out = create_output_mat(
         out,
         data_devs,
