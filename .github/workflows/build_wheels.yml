@@ -13,25 +13,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         # support version based on: https://download.pytorch.org/whl/torch/
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        torch-version: [2.0.0, 2.1.0, 2.2.0]
-        cuda-version: ['cpu', 'cu117', 'cu118', 'cu121']
+        # https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix
+        python-version: ['3.9', '3.12', '3.13']
+        torch-version: [2.4.0, 2.5.0, 2.6.0, 2.7.0]
+        cuda-version: ['cpu', 'cu118', 'cu121', 'cu124', 'cu126', 'cu128']
         exclude:
-          - torch-version: 2.0.0
+          - torch-version: 2.4.0
+            cuda-version: 'cu126'
+          - torch-version: 2.4.0
+            cuda-version: 'cu128'
+          - torch-version: 2.5.0
+            python-version: '3.13'
+          - torch-version: 2.5.0
+            cuda-version: 'cu126'
+          - torch-version: 2.5.0
+            cuda-version: 'cu128'
+          - torch-version: 2.5.0
+            python-version: '3.13'
+          - torch-version: 2.6.0
             cuda-version: 'cu121'
-          - torch-version: 2.0.0
-            python-version: '3.12'
-
-          - torch-version: 2.1.0
-            cuda-version: 'cu117'
-          - torch-version: 2.1.0
-            python-version: '3.12'
-
-          - torch-version: 2.2.0
-            cuda-version: 'cu117'
-            
+          - torch-version: 2.6.0
+            cuda-version: 'cu128'
+          - torch-version: 2.7.0
+            cuda-version: 'cu121'
+          - torch-version: 2.7.0
+            cuda-version: 'cu124'
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +51,7 @@ jobs:
       - name: Upgrade pip
         run: |
           pip install --upgrade setuptools
-          pip install ninja
+          pip install ninja wheel
 
       - name: Free up disk space
         if: ${{ runner.os == 'Linux' }}
@@ -51,7 +59,11 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
           sudo rm -rf /opt/hostedtoolcache/CodeQL
+          # remove swap storage
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile || true
 
       - name: Install CUDA ${{ matrix.cuda-version }}
         if: ${{ matrix.cuda-version != 'cpu' }}
@@ -60,7 +72,6 @@ jobs:
 
       - name: Install PyTorch ${{ matrix.torch-version }}+${{ matrix.cuda-version }}
         run: |
-          pip install numpy scipy
           pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/${{ matrix.cuda-version }}
           python -c "import torch; print('PyTorch:', torch.__version__)"
           python -c "import torch; print('CUDA:', torch.version.cuda)"
@@ -69,27 +80,17 @@ jobs:
       - name: Install main package for CPU
         if: ${{ matrix.cuda-version == 'cpu' }}
         run: |
-          pip install wheel
-          FORCE_ONLY_CPU=1 pip install --no-build-isolation --editable .
+          FORCE_ONLY_CPU=1 python setup.py bdist_wheel --dist-dir=dist
+          # FORCE_ONLY_CPU=1 pip install --no-build-isolation --editable .
+        shell:
+          bash
 
       - name: Install main package for GPU
         if: ${{ matrix.cuda-version != 'cpu' }}
         run: |
           source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
-          pip install wheel
-          pip install --no-build-isolation --editable .
-        shell:
-          bash
-
-      - name: Test installation
-        run: |
-          python -c "import falkon; print('falkon:', falkon.__version__)" 
-
-      - name: Build wheel
-        run: |
-          source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
-          pip install build
-          python -m build --no-isolation
+          python setup.py bdist_wheel --dist-dir=dist
+          # pip install --no-build-isolation --editable .
         shell:
           bash
 

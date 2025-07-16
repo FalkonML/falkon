@@ -9,8 +9,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        python-version: ['3.8']
-        torch-version: [2.0.0, 2.2.0]
+        python-version: ['3.9']
+        torch-version: [2.7.0, 2.4.0]
 
     steps:
       - name: Checkout with submodules
@@ -25,6 +25,10 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
 
       - name: Setup venv
         run: |

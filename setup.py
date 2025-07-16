@@ -145,7 +145,7 @@ def get_extensions():
 
 # Requirements
 install_requires = [
-    "torch>=1.13",
+    "torch>=2.4",
     "scipy",
     "numpy",
     "scikit-learn",
