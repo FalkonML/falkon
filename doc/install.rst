@@ -55,25 +55,25 @@ There are three ways of installing Falkon:
 
 3. **From pre-built wheels** which are available for the following versions of PyTorch and CUDA:
 
-     ============== ========= ========= ========= =========
-      Linux          `cu116`   `cu117`   `cu118`   `cu121`
-     ============== ========= ========= ========= =========
-      torch 1.13.0    ✅        ✅
-      torch 2.0.0               ✅        ✅
-      torch 2.1.0                         ✅        ✅
-     ============== ========= ========= ========= =========
+    ============== ========= ========= ========= ========= =========
+     Linux          `cu118`   `cu121`   `cu124`   `cu126`   `cu128`
+    ============== ========= ========= ========= ========= =========
+     torch 2.4.0     ✅        ✅        ✅
+     torch 2.5.0     ✅        ✅        ✅
+     torch 2.6.0     ✅                  ✅        ✅
+     torch 2.7.0     ✅                            ✅        ✅
 
-    As an example, if you **already have installed** PyTorch 1.13 and CUDA 11.7 on your system, you should run
+    As an example, if you **already have installed** PyTorch 2.7 and CUDA 11.8 on your system, you should run
 
     .. code-block:: bash
 
-      $ pip install falkon -f https://falkon.dibris.unige.it/torch-1.13.0_cu117.html
+      $ pip install falkon -f https://falkon.dibris.unige.it/torch-2.7.0_cu118.html
 
     Similarly for **CPU-only packages**
 
     .. code-block:: bash
 
-      $ pip install falkon -f https://falkon.dibris.unige.it/torch-2.0.0_cpu.html
+      $ pip install falkon -f https://falkon.dibris.unige.it/torch-2.7.0_cpu.html
 
     please check `here <https://falkon.dibris.unige.it/index.html>`__ for a list of supported wheels.
 

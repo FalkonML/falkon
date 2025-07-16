@@ -21,7 +21,7 @@ For more information about the algorithm and the optimized solver, you can downl
 
 ## Documentation
 
-The API is sklearn-like, so that Falkon should be easy to integrate in your existing code. 
+The API is sklearn-like, so that Falkon should be easy to integrate in your existing code.
 Several worked-through examples are provided in [the docs](https://falkonml.github.io/falkon/examples/examples.html),
 and for more advanced usage, extensive documentation is available at https://falkonml.github.io/falkon/.
 
@@ -30,7 +30,7 @@ If you find a bug, please open a new issue on GitHub!
 
 ## Installation
 
-**Dependencies**: 
+**Dependencies**:
  - Please install [PyTorch](https://pytorch.org/get-started/locally/) first.
  - `cmake` and a C++ compiler are also needed for [KeOps](https://www.kernel-operations.io/keops/python/installation.html) acceleration (optional but strongly recommended).
 
@@ -42,37 +42,38 @@ pip install --no-build-isolation git+https://github.com/FalkonML/falkon.git
 
 We alternatively provide pre-built pip wheels for the following combinations of PyTorch and CUDA:
 
-| Linux        | `cu117` | `cu118` | `cu121` |
-|--------------|---------|---------|---------|
-| torch 2.0.0  | ✅      | ✅      |         |
-| torch 2.1.0  |         | ✅      | ✅      |
-| torch 2.2.0  |         | ✅      | ✅      |
+| Linux        | `cu118` | `cu121` | `cu124` | `cu126` | `cu128` |
+|--------------|---------|---------|---------|---------|---------|
+| torch 2.4.0  | ✅      | ✅      | ✅      |         |         |
+| torch 2.5.0  | ✅      | ✅      | ✅      |         |         |
+| torch 2.6.0  | ✅      |         | ✅      | ✅      |         |
+| torch 2.7.0  | ✅      |         |         | ✅      | ✅      |
 
 For other combinations, and previous versions of Falkon, please check [here](https://falkon.dibris.unige.it/index.html)
 for a list of supported wheels.
 
 To install a wheel for a specific PyTorch + CUDA combination, you can run
 ```bash
-# e.g., torch 2.2.0 + CUDA 12.1
-pip install falkon -f https://falkon.dibris.unige.it/torch-2.2.0_cu121.html
+# e.g., torch 2.7.0 + CUDA 11.8
+pip install falkon -f https://falkon.dibris.unige.it/torch-2.7.0_cu118.html
 ```
 
 Similarly for CPU-only packages
 ```bash
-# e.g., torch 2.1.0 + cpu
-pip install falkon -f https://falkon.dibris.unige.it/torch-2.1.0_cpu.html
+# e.g., torch 2.7.0 + cpu
+pip install falkon -f https://falkon.dibris.unige.it/torch-2.7.0_cpu.html
 ```
 
 **More detailed installation instructions are available in [the documentation](https://falkonml.github.io/falkon/install.html).**
 
 ## Gradient-based Hyperparameter Optimization
 
-**New!** We added a new module for automatic hyperparameter optimization. 
+**New!** We added a new module for automatic hyperparameter optimization.
 The [`falkon.hopt`](https://falkonml.github.io/falkon/api_reference/hopt.html) module contains the implementation
-of several objective functions which can be minimized with respect to Falkon's hyperparameters (notably the penalty, 
+of several objective functions which can be minimized with respect to Falkon's hyperparameters (notably the penalty,
 the kernel parameters and the centers themselves).
 
-For more details check out our paper: 
+For more details check out our paper:
 [Efficient Hyperparameter Tuning for Large Scale Kernel Ridge Regression](http://arxiv.org/abs/2201.06314),
 and the [automatic hyperparameter tuning notebook](https://falkonml.github.io/falkon/examples/hyperopt.html).
 
