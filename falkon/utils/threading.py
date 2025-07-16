@@ -20,5 +20,5 @@ class PropagatingThread(Thread):
     def join(self, timeout=None):
         super().join(timeout=timeout)
         if self.exc:
-            raise RuntimeError("Exception in thread %s" % self.name) from self.exc
+            raise RuntimeError(f"Exception in thread {self.name}") from self.exc
         return self.ret

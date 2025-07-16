@@ -127,13 +127,11 @@ class FalkonBase(base.BaseEstimator, ABC):
         self, X: _tensor_type, Y: torch.Tensor, Xts: _tensor_type, Yts: torch.Tensor
     ) -> Tuple[_tensor_type, torch.Tensor, _tensor_type, torch.Tensor]:
         if X.shape[0] != Y.shape[0]:
-            raise ValueError(
-                "X and Y must have the same number of samples (found %d and %d)" % (X.shape[0], Y.shape[0])
-            )
+            raise ValueError(f"X and Y must have the same number of samples (found {X.shape[0]} and {Y.shape[0]})")
         if Y.dim() == 1:
             Y = torch.unsqueeze(Y, 1)
         if Y.dim() != 2:
-            raise ValueError("Y is expected 1D or 2D. Found %dD." % (Y.dim()))
+            raise ValueError(f"Y is expected 1D or 2D. Found {Y.dim()}D.")
         if not check_same_dtype(X, Y):
             raise TypeError("X and Y must have the same data-type.")
 
@@ -180,7 +178,7 @@ class FalkonBase(base.BaseEstimator, ABC):
             necessary_ram = X.size(0) * ny_points.size(0) * dts
             if available_ram > necessary_ram:
                 if self.options.debug:
-                    print("%d*%d Kernel matrix will be stored" % (X.size(0), ny_points.size(0)))
+                    print(f"{X.size(0)}*{ny_points.size(0)} Kernel matrix will be stored")
                 return True
             elif self.options.debug:
                 print(

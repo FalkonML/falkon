@@ -314,7 +314,7 @@ class LogisticLoss(Loss):
         return out
 
     def __repr__(self):
-        return "LogisticLoss(kernel=%r)" % (self.kernel)
+        return f"LogisticLoss(kernel={self.kernel})"
 
 
 class WeightedCrossEntropyLoss(Loss):
@@ -432,4 +432,4 @@ class WeightedCrossEntropyLoss(Loss):
         return (-num).div_(den)
 
     def __repr__(self):
-        return "WeightedCrossEntropy(kernel=%r)" % (self.kernel)
+        return f"WeightedCrossEntropy(kernel={self.kernel}"

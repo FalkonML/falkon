@@ -8,6 +8,7 @@ Baseline (equivalent to FALKON MATLAB):
 4. float32 + GPU Preconditioner + 2 GPU (no keops)
 5. float32 + GPU Preconditioner + 2 GPU (keops)
 """
+
 import argparse
 import dataclasses
 import functools
@@ -60,10 +61,10 @@ def run(exp_num, dset, show_intermediate_errors: bool = False):
         opt = dataclasses.replace(opt, cpu_preconditioner=False, keops_active="force")
         dtype = DataType.float32
     else:
-        raise ValueError("exp num %d not valid" % (exp_num))
+        raise ValueError(f"exp num {exp_num} not valid")
     data = load_data(dset, data_type=dtype)
     torch.cuda.init()
-    print("\n\n --- Running Experiment %d -- %s" % (exp_num, opt))
+    print(f"\n\n --- Running Experiment {exp_num} -- {opt}")
     data = list(data)
     data[0] = data[0].pin_memory()
     data[1] = data[1].pin_memory()
@@ -72,7 +73,7 @@ def run(exp_num, dset, show_intermediate_errors: bool = False):
     t_s = time.time()
     flk = run_single(dset, data[0], data[1], data[2], data[3], data[4], show_intermediate_errors, opt, params)
     t_e = time.time()
-    print("Timing for Experiment %d: %s -- fit times %s" % (exp_num, t_e - t_s, flk.fit_times_))
+    print(f"Timing for Experiment {exp_num}: {t_e - t_s:.3f}s -- fit times {flk.fit_times_}")
 
 
 def load_data(dset, data_type):

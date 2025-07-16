@@ -33,7 +33,7 @@ def run_mmv_exp(exp_name, fn, changing_var, data_sizes, kernel, dtype, num_reps)
         _vars.update(globals())
         exp_times = timeit.repeat(fn, globals=_vars, number=1, repeat=num_reps)
         timings.append(min(exp_times))
-        print("Exp %s - N %d, D %d, M %d, T %d - %.2fs" % (exp_name, N, D, M, T, timings[-1]), flush=True)
+        print(f"Exp {exp_name} - {N=}, {D=}, {M=}, {T=} - {timings[-1]:.2fs}", flush=True)
         torch.cuda.empty_cache()
     return timings
 
@@ -140,5 +140,5 @@ if __name__ == "__main__":
         # Remove the stuff we can't serialize
         exp["kernel"] = None
         exp["dtype"] = None
-    with open("logs/mmv_timings_%dGPU.json" % (num_gpus), "w") as fh:
+    with open(f"logs/mmv_timings_{num_gpus}GPU.json", "w") as fh:
         json.dump(experiments, fh)

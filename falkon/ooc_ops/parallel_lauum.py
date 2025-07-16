@@ -57,7 +57,7 @@ def par_lauum_f_lower(
     N = A.shape[0]
     is_cuda = A.device.type == "cuda"
 
-    tc_device = torch.device("cuda:%d" % device_id)
+    tc_device = torch.device(f"cuda:{device_id}")
     s1 = torch.cuda.Stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
 
@@ -234,7 +234,7 @@ def par_lauum_c_lower(
     dts = sizeof_dtype(A.dtype)
     is_cuda = A.device.type == "cuda"
 
-    tc_device = torch.device("cuda:%d" % device_id)
+    tc_device = torch.device(f"cuda:{device_id}")
     s1 = torch.cuda.Stream(device=tc_device)
     s3 = torch.cuda.Stream(device=tc_device)
 

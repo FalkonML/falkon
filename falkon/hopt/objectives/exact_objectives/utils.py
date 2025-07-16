@@ -6,13 +6,13 @@ def cholesky(M, upper=False, check_errors=True):
         U, info = torch.linalg.cholesky_ex(M.transpose(-2, -1).conj())
         if check_errors:
             if info > 0:
-                raise RuntimeError("Cholesky failed on row %d" % (info))
+                raise RuntimeError(f"Cholesky failed on row {info}")
         return U.transpose(-2, -1).conj()
     else:
         L, info = torch.linalg.cholesky_ex(M, check_errors=False)
         if check_errors:
             if info > 0:
-                raise RuntimeError("Cholesky failed on row %d" % (info))
+                raise RuntimeError(f"Cholesky failed on row {info}")
         return L
 
 

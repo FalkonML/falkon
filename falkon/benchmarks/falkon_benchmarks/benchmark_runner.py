@@ -100,10 +100,11 @@ def run_epro(
     else:
         print(f"Will train EigenPro model on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)
-        iteration = 0
         test_errs, train_errs = [], []
 
-        for Xtr, Ytr, Xts, Yts, kwargs in load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=False):
+        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=False)
+        ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             tf_err_fn = functools.partial(tf_err_fn, **kwargs)
             tf_err_fn.__name__ = "tf_error"
@@ -118,9 +119,8 @@ def run_epro(
                 metric=tf_err_fn,
                 seed=seed,
             )
-            print(f"Starting EPRO fit (fold {iteration})")
+            print(f"Starting EPRO fit (fold {it})")
             model.fit(Xtr, Ytr, x_val=Xts, y_val=Yts, epochs=np.arange(num_iter - 1) + 1)
-            iteration += 1
             c_test_errs, c_train_errs = test_model(model, f"{algorithm} on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
@@ -232,7 +232,7 @@ def run_gpytorch(
         # Inducing points
         inducing_idx = np.random.choice(num_samples, num_centers, replace=False)
         inducing_points = Xtr[inducing_idx].reshape(num_centers, -1)
-        print("Took %d random inducing points" % (inducing_points.shape[0]))
+        print(f"Took {inducing_points.shape[0]} random inducing points")
         # Kernel
         if num_outputs == 1:
             # Kernel has 1 length-scale!
@@ -370,15 +370,15 @@ def run_falkon(
     else:
         print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)
-        iteration = 0
         test_errs, train_errs = [], []
 
-        for Xtr, Ytr, Xts, Yts, kwargs in load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True):
+        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True)
+        ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-            with TicToc(f"FALKON ALGORITHM (fold {iteration})"):
+            with TicToc(f"FALKON ALGORITHM (fold {it})"):
                 flk.error_every = err_fns[0]
                 flk.fit(Xtr, Ytr, Xts, Yts)
-            iteration += 1
             c_test_errs, c_train_errs = test_model(flk, f"{algorithm} on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
@@ -505,7 +505,7 @@ def run_sgpr_gpflow(
     # Inducing points
     inducing_idx = np.random.choice(Xtr.shape[0], num_centers, replace=False)
     inducing_points = Xtr[inducing_idx].reshape(num_centers, -1)
-    print("Took %d random inducing points" % (inducing_points.shape[0]))
+    print(f"Took {inducing_points.shape[0]} random inducing points")
     if Ytr.shape[1] != 1:
         raise NotImplementedError("SGPR GPFLOW only implemented for 1 output")
 
@@ -563,7 +563,7 @@ def run_gpflow(
         # Inducing points
         inducing_idx = np.random.choice(Xtr.shape[0], num_centers, replace=False)
         inducing_points = Xtr[inducing_idx].reshape(num_centers, -1)
-        print("Took %d random inducing points" % (inducing_points.shape[0]))
+        print(f"Took {inducing_points.shape[0]} random inducing points")
 
         num_classes = 0
         if algorithm == Algorithm.GPFLOW_CLS:

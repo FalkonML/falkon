@@ -172,7 +172,7 @@ class GPTrainer:
         self.params = params
         # Count params
         num_params = [np.prod(p.data.shape) for p in params]
-        print("Training with %d parameters" % (sum(num_params)))
+        print(f"Training with {sum(num_params)} parameters")
         # Initialize optimizer with the parameters
         if self.natgrad_lr > 0:
             self.ng_optimizer = gpytorch.optim.NGD(
@@ -221,8 +221,8 @@ class GPTrainer:
                     t_elapsed += time.time() - t_start
                     err, err_name = self.err_fn(y_batch.cpu(), self.model.likelihood(output).mean.detach().cpu())
                     print(
-                        "Epoch %d, iter %d/%d - Elapsed %.1fs - Loss: %.3f - %s: %.7f"
-                        % (epoch + 1, j, len(train_loader), t_elapsed, loss.item(), err_name, err),
+                        f"Epoch {epoch + 1}, iter {j}/{len(train_loader)} - Elapsed {t_elapsed:.2fs} - "
+                        f"Loss: {loss.item():.3f} - {err_name}: {err:.7f}",
                         flush=True,
                     )
                     t_start = time.time()
@@ -230,8 +230,8 @@ class GPTrainer:
 
             test_pred = self.predict(Xval)
             err, err_name = self.err_fn(Yval, test_pred)
-            print("Epoch %d - elapsed %.2fs - validation %s: %.5f" % (epoch + 1, t_elapsed, err_name, err))
-        print("Training took %.2fs" % (t_elapsed))
+            print(f"Epoch {epoch + 1} - elapsed {t_elapsed:.2f}s - validation {err_name}: {err:.5f}")
+        print(f"Training took {t_elapsed:.2f}s")
 
     def predict(self, X):
         test_dataset = torch.utils.data.TensorDataset(X)
@@ -295,8 +295,8 @@ class RegressionVGP(GPTrainer):
         print("Model parameters:")
         for k, v in model.named_parameters():
             print(f"\t{k} : {v.shape}")
-        print("Initialized sigma to %s" % (kernel.base_kernel.lengthscale))
-        print("Initialized lambda to %s" % (likelihood.noise_covar.noise))
+        print(f"Initialized sigma to {kernel.base_kernel.lengthscale}")
+        print(f"Initialized lambda to {likelihood.noise_covar.noise}")
         if not learn_ind_pts:
             exclude = set(mean_module.parameters()) | set(kernel.parameters())
             print("Excluding parameters from mean and covariance models:", exclude)

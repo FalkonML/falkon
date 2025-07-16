@@ -38,7 +38,7 @@ def mm_run_starter(proc_idx, queue, device_id):
     if device_id < 0:
         dev = torch.device("cpu")
     else:
-        dev = torch.device("cuda:%d" % device_id)
+        dev = torch.device(f"cuda:{device_id}")
     # decide ooc: if ooc, data and computation devices are different
     is_ooc = dev.type != X1.device.type
     change_dtype = computation_dtype != X1.dtype

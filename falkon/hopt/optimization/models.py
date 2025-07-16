@@ -2,6 +2,7 @@
 This file contains a helper function to initialize one of several
 hyperparameter optimization objectives.
 """
+
 from typing import Dict, Optional
 
 import torch

@@ -377,6 +377,7 @@ class GaussianKernel(DiffKernel, KeopsKernelMixin):
     In both cases, the actual computation follows a different path, working on the expanded
     norm.
     """
+
     kernel_name = "gaussian"
     core_fn = rbf_core
 
@@ -387,10 +388,10 @@ class GaussianKernel(DiffKernel, KeopsKernelMixin):
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         formula = "Exp(SqDist(x1 / g, x2 / g) * IntInv(-2)) * v"
         aliases = [
-            "x1 = Vi(%d)" % (X1.shape[1]),
-            "x2 = Vj(%d)" % (X2.shape[1]),
-            "v = Vj(%d)" % (v.shape[1]),
-            "g = Pm(%d)" % (self.sigma.shape[0]),
+            f"x1 = Vi({X1.shape[1]})",
+            f"x2 = Vj({X2.shape[1]})",
+            f"v = Vj({v.shape[1]})",
+            f"g = Pm({self.sigma.shape[0]})",
         ]
         other_vars = [self.sigma.to(device=X1.device, dtype=X1.dtype)]
 
@@ -451,6 +452,7 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
         k(x, x') = \exp{-\frac{\lVert x - x' \rVert}{\sigma}}
 
     """
+
     kernel_name = "laplacian"
 
     def __init__(self, sigma: Union[float, torch.Tensor], opt: Optional[FalkonOptions] = None):
@@ -461,10 +463,10 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         formula = "Exp(-Sqrt(SqDist(x1 / g, x2 / g))) * v"
         aliases = [
-            "x1 = Vi(%d)" % (X1.shape[1]),
-            "x2 = Vj(%d)" % (X2.shape[1]),
-            "v = Vj(%d)" % (v.shape[1]),
-            "g = Pm(%d)" % (self.sigma.shape[0]),
+            f"x1 = Vi({X1.shape[1]})",
+            f"x2 = Vj({X2.shape[1]})",
+            f"v = Vj({v.shape[1]})",
+            f"g = Pm({self.sigma.shape[0]})",
         ]
         other_vars = [self.sigma.to(device=X1.device, dtype=X1.dtype)]
 
@@ -532,6 +534,7 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
     may be computationally more efficient.
 
     """
+
     _valid_nu_values = frozenset({0.5, 1.5, 2.5, float("inf")})
 
     def __init__(
@@ -563,10 +566,10 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
                 f"Unrecognized value of nu ({self.nu}). The onnly allowed values are 0.5, 1.5, 2.5, inf."
             )
         aliases = [
-            "x1 = Vi(%d)" % (X1.shape[1]),
-            "x2 = Vj(%d)" % (X2.shape[1]),
-            "v = Vj(%d)" % (v.shape[1]),
-            "s = Pm(%d)" % (self.sigma.shape[0]),
+            f"x1 = Vi({X1.shape[1]})",
+            f"x2 = Vj({X2.shape[1]})",
+            f"v = Vj({v.shape[1]})",
+            f"s = Pm({self.sigma.shape[0]})",
         ]
         other_vars = [self.sigma.to(device=X1.device, dtype=X1.dtype)]
 

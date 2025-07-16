@@ -76,12 +76,7 @@ class TrainableGPR:
         return self.model.predict_y(X)[0]
 
     def __str__(self):
-        return ("TrainableGPR<kernel=%s, " "num_iter=%d, lr=%f, model=%s>") % (
-            self.kernel,
-            self.num_iter,
-            self.lr,
-            self.model,
-        )
+        return f"TrainableGPR<kernel={self.kernel}, num_iter={self.num_iter}, lr={self.lr}, model={self.model}>"
 
 
 class TrainableSGPR:
@@ -124,7 +119,7 @@ class TrainableSGPR:
             opt = gpflow.optimizers.Scipy()
 
             def scipy_callback(step, variables, value):
-                print("Step %d - Variables: %s" % (step, value))
+                print(f"Step {step} - Variables: {value}")
 
             opt.minimize(
                 self.model.training_loss,
@@ -140,7 +135,7 @@ class TrainableSGPR:
             elif self.optimizer == "sgd":
                 opt = tf.optimizers.SGD(self.lr)
             else:
-                raise ValueError("Optimizer %s unknown" % (self.optimizer))
+                raise ValueError(f"Optimizer {self.optimizer} unknown")
 
             @tf.function
             def step_fn():
@@ -196,8 +191,8 @@ class TrainableSGPR:
                 print(f"ELBO: {new_row['elbo']:10.3f} - TRAINING LOSS: {self.model.training_loss():10.3f}")
                 tr_err, tr_err_name = self.err_fn(Y, train_preds)
                 ts_err, ts_err_name = self.err_fn(Yval, test_preds)
-                new_row["train_%s" % tr_err_name] = tr_err
-                new_row["test_%s" % ts_err_name] = ts_err
+                new_row[f"train_{tr_err_name}"] = tr_err
+                new_row[f"test_{ts_err_name}"] = ts_err
                 df = df.append(new_row, ignore_index=True)
                 print(new_row)
         return df
@@ -211,8 +206,9 @@ class TrainableSGPR:
 
     def __str__(self):
         return (
-            "TrainableSGPR<kernel=%s, num_inducing_points=%d, " "num_iter=%d, lr=%f, train_hyperparams=%s, model=%s>"
-        ) % (self.kernel, self.Z.shape[0], self.num_iter, self.lr, self.train_hyperparams, self.model)
+            f"TrainableSGPR<kernel={self.kernel}, num_inducing_points={self.Z.shape[0]}, "
+            f"num_iter={self.num_iter}, lr={self.lr}, train_hyperparams={self.train_hyperparams}, model={self.model}>"
+        )
 
 
 class TrainableSVGP:
@@ -257,7 +253,7 @@ class TrainableSVGP:
         elif self.var_dist == "full":
             q_diag = False
         else:
-            raise NotImplementedError("GPFlow cannot implement %s variational distribution" % (self.var_dist))
+            raise NotImplementedError(f"GPFlow cannot implement {self.var_dist} variational distribution")
 
         if self.natgrad_lr > 0 and q_diag:
             raise ValueError("The variational distribution must be 'full' with natural gradients")
@@ -340,7 +336,7 @@ class TrainableSVGP:
             outcome = int(outcome) + 1
             t_elapsed += time.time() - t_s
             if step % 500 == 0:
-                print("Step %d -- Elapsed %.2fs" % (step, t_elapsed), flush=True)
+                print(f"Step {step} -- Elapsed {t_elapsed:.2f}s", flush=True)
                 gpflow.utilities.print_summary(self.model)
                 print(self.model.inducing_variable.Z.numpy())
             if (step + 1) % self.error_every == 0:
@@ -439,8 +435,8 @@ class TrainableSVGP:
                 }
                 tr_err, tr_err_name = self.err_fn(Y, train_preds)
                 ts_err, ts_err_name = self.err_fn(Yval, test_preds)
-                new_row["train_%s" % tr_err_name] = tr_err
-                new_row["test_%s" % ts_err_name] = ts_err
+                new_row[f"train_{tr_err_name}"] = tr_err
+                new_row[f"test_{ts_err_name}"] = ts_err
                 df = df.append(new_row, ignore_index=True)
                 print(new_row)
         return df
@@ -451,20 +447,8 @@ class TrainableSVGP:
 
     def __str__(self):
         return (
-            "TrainableSVGP<kernel=%s, num_inducing_points=%d, batch_size=%d, "
-            "num_iter=%d, lr=%f, natgrad_lr=%f, error_every=%d, train_hyperparams=%s, "
-            "var_dist=%s, do_classif=%s, model=%s, whiten=%s>"
-        ) % (
-            self.kernel,
-            self.Z.shape[0],
-            self.batch_size,
-            self.num_iter,
-            self.lr,
-            self.natgrad_lr,
-            self.error_every,
-            self.train_hyperparams,
-            self.var_dist,
-            self.do_classif,
-            self.model,
-            self.whiten,
+            f"TrainableSVGP<kernel={self.kernel}, num_inducing_points={self.Z.shape[0]}, batch_size={self.batch_size}, "
+            f"num_iter={self.num_iter}, lr={self.lr}, natgrad_lr={self.natgrad_lr}, error_every={self.error_every}, "
+            f"train_hyperparams={self.train_hyperparams}, var_dist={self.var_dist}, do_classif={self.do_classif}, "
+            f"model={self.model}, whiten={self.whiten}>"
         )

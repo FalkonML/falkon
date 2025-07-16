@@ -1,5 +1,5 @@
-"""Wrap the the various linear-algebra helpers which use c extension
-"""
+"""Wrap the the various linear-algebra helpers which use c extension"""
+
 from typing import Optional
 
 import torch

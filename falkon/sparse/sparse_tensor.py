@@ -61,7 +61,7 @@ class SparseTensor:
             if indexptr.shape[0] - 1 != size[1]:
                 raise ValueError("Data is not in correct csc format. Incorrect indexptr size.")
         else:
-            raise ValueError("Sparse type %s not valid." % (sparse_type))
+            raise ValueError(f"Sparse type {sparse_type} not valid.")
         if index.shape[0] != data.shape[0]:
             raise ValueError("Data is not in correct format. Different sizes for index and values.")
 
@@ -251,7 +251,7 @@ class SparseTensor:
             )
         else:
             raise NotImplementedError(
-                "Cannot convert type %s to SparseTensor. Please use the CSR or CSC formats" % (type(mat))
+                f"Cannot convert type {type(mat)} to SparseTensor. Please use the CSR or CSC formats"
             )
 
     def to_scipy(self, copy: bool = False) -> Union[scipy.sparse.csr_matrix, scipy.sparse.csc_matrix]:
@@ -263,4 +263,4 @@ class SparseTensor:
         elif self.is_csc:
             return scipy.sparse.csc_matrix((self.data, self.index, self.indexptr), shape=self.shape, copy=copy)
         else:
-            raise NotImplementedError("Cannot convert %s matrix to scipy" % (self.sparse_type))
+            raise NotImplementedError(f"Cannot convert {self.sparse_type} matrix to scipy")

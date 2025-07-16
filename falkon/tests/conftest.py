@@ -47,8 +47,8 @@ def memory_checker(opt: FalkonOptions, extra_mem=0, check_cpu=True):
             used_ram = tcd.max_memory_allocated(dev) - start_ram[dev] - extra_mem
             if used_ram > opt.max_gpu_mem:
                 raise MemoryError(
-                    "DEV %d - Memory usage (%.2fMB) exceeds allowed usage (%.2fMB)"
-                    % (dev, used_ram / 2**20, opt.max_gpu_mem / 2**20)
+                    f"DEV {dev} - Memory usage ({used_ram / 2**20:.2f}MB) exceeds "
+                    f"allowed usage ({opt.max_gpu_mem / 2**20:.2f}MB)"
                 )
     elif mem_check:
         used_ram = _cpu_used_mem(uss=True) - start_ram - extra_mem

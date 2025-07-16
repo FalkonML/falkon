@@ -70,7 +70,7 @@ def sigma_pen_init(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     if sigma_init == "auto":
         sigma_init = median_heuristic(data["Xtr"], sigma_type="single", num_rnd_points=5000)
-        print("Initial sigma is: %.4e" % (sigma_init))
+        print(f"Initial sigma is: {sigma_init:.4e}")
     else:
         sigma_init = float(sigma_init)
     if sigma_type == "single":
@@ -79,7 +79,7 @@ def sigma_pen_init(
         d = data["Xtr"].shape[1]
         sigma_init = torch.tensor([sigma_init] * d)
     else:
-        raise ValueError("sigma_type %s unrecognized" % (sigma_type))
+        raise ValueError(f"sigma_type {sigma_type} unrecognized")
 
     if penalty_init == "auto":
         penalty_init = AUTO_PEN_MULTIPLIER / data["Xtr"].shape[0]
@@ -196,7 +196,7 @@ def run_optimization(
     if minibatch > 0:
         num_batches = math.ceil(Xtr.shape[0] / minibatch)
         learning_rate = learning_rate / num_batches
-        print("Learning rate changed to %.2e" % (learning_rate))
+        print("Learning rate changed to {learning_rate:.2e}")
 
     model = init_model(
         model_type=model_type,
@@ -310,7 +310,7 @@ if __name__ == "__main__":
     args = p.parse_args()
     print("-------------------------------------------")
     print(datetime.datetime.now())
-    print("############### SEED: %d ################" % (args.seed))
+    print(f"############### SEED: {args.seed} ################")
     print("-------------------------------------------")
     np.random.seed(args.seed)
     get_writer(args.name)

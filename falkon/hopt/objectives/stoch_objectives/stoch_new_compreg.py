@@ -120,7 +120,7 @@ def calc_trace_fwd(
         norm = X.shape[0] / t
         init_val -= solve1.square_().sum() * norm
     else:
-        raise ValueError("Trace-type %s unknown" % (trace_type))
+        raise ValueError(f"Trace-type {trace_type} unknown")
     return init_val, solve2
 
 
@@ -251,7 +251,7 @@ class NystromCompRegFn(torch.autograd.Function):
                     X=None,
                 )
             else:
-                raise NotImplementedError("trace-type %s not implemented." % (trace_type))
+                raise NotImplementedError(f"trace-type {trace_type} not implemented.")
             # Nystrom effective dimension forward
             deff_fwd += zy_knm_solve_zy[:t].mean()
             # Data-fit forward
@@ -279,7 +279,7 @@ class NystromCompRegFn(torch.autograd.Function):
                     k_mn=None, k_mn_zy=k_mn_zy, kmm=kmm, X=X, solve2=solve2, t=t, trace_type=trace_type
                 )
             else:
-                raise NotImplementedError("trace-type %s not implemented." % (trace_type))
+                raise NotImplementedError(f"trace-type {trace_type} not implemented.")
             trace_fwd_num = (_trace_fwd * dfit_fwd).detach()
             trace_bwd_num = trace_bwd * dfit_fwd.detach() + _trace_fwd.detach() * dfit_bwd
             trace_den = pen_n * X.shape[0]
@@ -298,13 +298,13 @@ class NystromCompRegFn(torch.autograd.Function):
             gpu_info = _get_gpu_info(solve_options, slack=solve_options.memory_slack)
             single_gpu_info = [g for g in gpu_info if g.Id == data_dev.index][0]
             avail_mem = single_gpu_info.usable_memory / sizeof_dtype(dtype)
-            device = torch.device("cuda:%d" % single_gpu_info.Id)
+            device = torch.device(f"cuda:{single_gpu_info.Id}")
         elif not solve_options.use_cpu and torch.cuda.is_available():  # CUDA out-of-core
             from falkon.mmv_ops.utils import _get_gpu_info
 
             gpu_info = _get_gpu_info(solve_options, slack=solve_options.memory_slack)[0]  # TODO: Splitting across gpus
             avail_mem = gpu_info.usable_memory / sizeof_dtype(dtype)
-            device = torch.device("cuda:%d" % gpu_info.Id)
+            device = torch.device(f"cuda:{gpu_info.Id}")
         else:  # CPU in-core
             avail_mem = solve_options.max_cpu_mem / sizeof_dtype(dtype)
             device = torch.device("cpu")

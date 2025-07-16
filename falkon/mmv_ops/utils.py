@@ -102,7 +102,7 @@ def ensure_batch_dim(*args: Optional[torch.Tensor]):
         elif tensor.dim() == 2:
             yield tensor.unsqueeze(0)
         else:
-            raise ValueError("Cannot ensure batch dimension on tensor with %d dimensions" % (tensor.dim()))
+            raise ValueError(f"Cannot ensure batch dimension on tensor with {tensor.dim()} dimensions")
 
 
 def _extract_flat(flat_tn, size, other, offset):
@@ -118,7 +118,7 @@ def _is_incore(computation_device: torch.device, data_device: torch.device) -> b
 def _dev_from_id(device_id: int) -> torch.device:
     if device_id < 0:
         return torch.device("cpu")
-    return torch.device("cuda:%d" % device_id)
+    return torch.device(f"cuda:{device_id}")
 
 
 def create_output_mat(

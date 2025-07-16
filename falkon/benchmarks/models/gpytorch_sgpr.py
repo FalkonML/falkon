@@ -100,12 +100,12 @@ class GpytorchSGPR:
             torch.cuda.empty_cache()
             err, err_name = self.err_fn(Yts, self.predict(Xts))
             print(
-                "Epoch %d - Elapsed %.1fs - Train loss: %.3f - Test %s: %.3f"
-                % (epoch + 1, t_elapsed, loss.item(), err_name, err),
+                f"Epoch {epoch + 1} - Elapsed {t_elapsed:.2f}s - "
+                f"Train loss: {loss.item():.3f} - Test {err_name}: {err:.3f}",
                 flush=True,
             )
             torch.cuda.empty_cache()
-        print("Training took %.2fs" % (t_elapsed))
+        print(f"Training took {t_elapsed:.2f}s")
 
     def predict(self, X):
         self.model.eval()

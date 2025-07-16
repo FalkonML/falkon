@@ -465,7 +465,7 @@ class Mkl:
                 fn = self.libmkl.mkl_sparse_s_export_csr
                 ctype = ctypes.c_float
             else:
-                raise TypeError("Data type %s not valid to export" % (dtype))
+                raise TypeError(f"Data type {dtype} not valid to export")
         elif output_type.lower() == "csc":
             if dtype == torch.float64:
                 fn = self.libmkl.mkl_sparse_d_export_csc
@@ -474,9 +474,9 @@ class Mkl:
                 fn = self.libmkl.mkl_sparse_s_export_csc
                 ctype = ctypes.c_float
             else:
-                raise TypeError("Data type %s not valid to export" % (dtype))
+                raise TypeError(f"Data type {dtype} not valid to export")
         else:
-            raise ValueError("Output type %s not valid" % (output_type))
+            raise ValueError(f"Output type {output_type} not valid")
 
         data_ptr = ctypes.POINTER(ctype)()
 
@@ -630,7 +630,7 @@ class Mkl:
             fn = self.libmkl.mkl_sparse_d_spmmd
             output_ctype = ctypes.c_double
         else:
-            raise TypeError("Data type %s not valid for SPMMD" % (out.dtype))
+            raise TypeError(f"Data type {out.dtype} not valid for SPMMD")
 
         out_ptr = ctypes.cast(out.data_ptr(), ctypes.POINTER(output_ctype))
         ret_val = fn(

@@ -15,12 +15,12 @@ def decide_cuda(opt: Optional[BaseOptions] = None):
 
     def get_error_str(name, err):
         e_str = (
-            "Failed to initialize %s library; "
-            "falling back to CPU. Set 'use_cpu' to "
-            "True to avoid this warning." % (name)
+            f"Failed to initialize {name} library; "
+            f"falling back to CPU. Set 'use_cpu' to "
+            f"True to avoid this warning."
         )
         if err is not None:
-            e_str += "\nError encountered was %s" % (err)
+            e_str += f"\nError encountered was {err}"
         return e_str
 
     if not torch.cuda.is_available():

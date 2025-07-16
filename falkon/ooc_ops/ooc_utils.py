@@ -8,7 +8,7 @@ def calc_block_sizes(max_block_size: int, num_devices: int, num_rows: int, min_b
     if num_blocks % num_devices != 0:  # even number of blocks per GPU
         num_blocks += num_devices - (num_blocks % num_devices)
     if num_blocks <= 0:
-        raise RuntimeError("num_blocks expected > 0, found %d" % (num_blocks))
+        raise RuntimeError(f"num_blocks expected > 0, found {num_blocks}")
     # Calculate a block size which evenly splits N
     block_size, extras = divmod(num_rows, num_blocks)
     block_sizes = extras * [block_size + 1] + (num_blocks - extras) * [block_size]

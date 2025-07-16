@@ -181,7 +181,7 @@ def select_dim_over_nd(max_n, max_d, coef_nd, coef_n, coef_d, rest, max_mem):
     n = int(min(max_n, n))
     d = int(min(max_d, d))
     if n <= 0 or d <= 0:
-        raise MemoryError("Available memory %.2fMB is not enough." % (max_mem / 2**20))
+        raise MemoryError(f"Available memory {max_mem / 2**20:.2f}MB is not enough.")
     return n, d
 
 
@@ -235,7 +235,7 @@ def sizeof_dtype(dtype: Union[torch.dtype, np.dtype, Type]) -> int:
     if dtype == np.float32:
         return 4
 
-    raise TypeError("Dtype %s not valid" % (dtype))
+    raise TypeError(f"Dtype {dtype} not valid")
 
 
 def check_sparse(*args: Union[torch.Tensor, SparseTensor]) -> List[bool]:

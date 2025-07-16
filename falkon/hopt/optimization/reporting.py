@@ -215,6 +215,6 @@ def epoch_bookkeeping(
                 if np.argmin(past_errs) == (len(past_errs) - 1):  # The minimal error in the oldest log
                     cur_acc = model.flk_opt.cg_tolerance
                     new_acc = cur_acc / 10
-                    print("INFO: Changing tolerance to %e" % (new_acc))
+                    print(f"INFO: Changing tolerance to {new_acc}")
                     new_opt = dataclasses.replace(model.flk_opt, cg_tolerance=new_acc)
                     model.flk_opt = new_opt

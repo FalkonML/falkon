@@ -1,6 +1,6 @@
 import os
+import typing
 from abc import ABC, abstractmethod
-from typing import Tuple, Union
 
 import h5py
 import numpy as np
@@ -8,6 +8,9 @@ import scipy.io as scio
 import scipy.sparse
 from scipy.sparse import load_npz
 from sklearn.datasets import load_svmlight_file
+from torch import Tensor
+
+import falkon
 
 from .benchmark_utils import Dataset
 
@@ -54,10 +57,12 @@ __all__ = (
     "HouseEelectricDataset",
 )
 
+NP_ARR = typing.TypeVar("NP_ARR", bound=typing.Union[np.ndarray, scipy.sparse.spmatrix])
+
 
 def load_from_npz(dset_name, folder, dtype, verbose=False):
-    x_file = os.path.join(folder, "%s_data.npz" % dset_name)
-    y_file = os.path.join(folder, "%s_target.npy" % dset_name)
+    x_file = os.path.join(folder, f"{dset_name}_data.npz")
+    y_file = os.path.join(folder, f"{dset_name}_target.npy")
     x_data = np.asarray(load_npz(x_file).todense()).astype(as_np_dtype(dtype))
     y_data = np.load(y_file).astype(as_np_dtype(dtype))
     if verbose:
@@ -68,9 +73,9 @@ def load_from_npz(dset_name, folder, dtype, verbose=False):
 def load_from_t(dset_name, folder, verbose=False):
     file_tr = os.path.join(folder, dset_name)
     file_ts = os.path.join(folder, dset_name + ".t")
-    x_data_tr, y_data_tr = load_svmlight_file(file_tr)
+    x_data_tr, y_data_tr = load_svmlight_file(file_tr)  # type: ignore
     x_data_tr = np.asarray(x_data_tr.todense())
-    x_data_ts, y_data_ts = load_svmlight_file(file_ts)
+    x_data_ts, y_data_ts = load_svmlight_file(file_ts)  # type: ignore
     x_data_ts = np.asarray(x_data_ts.todense())
     if verbose:
         print(
@@ -151,7 +156,7 @@ def equal_split(N, train_frac):
     return idx_tr, idx_ts
 
 
-def convert_to_binary_y(Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+def convert_to_binary_y(Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
     labels = set(np.unique(Ytr))
     if labels == {0, 1}:
         # Convert labels from 0, 1 to -1, +1
@@ -167,7 +172,7 @@ def convert_to_binary_y(Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, n
 
 def convert_to_onehot(
     Ytr: np.ndarray, Yts: np.ndarray, num_classes: int, damping: bool = False
-) -> Tuple[np.ndarray, np.ndarray, dict]:
+) -> tuple[np.ndarray, np.ndarray, dict]:
     eye = np.eye(num_classes, dtype=as_np_dtype(Ytr.dtype))
     if damping:
         damp_val = 1 / (num_classes - 1)
@@ -199,7 +204,7 @@ class MyKFold:
             self.random_state.shuffle(indices)
 
         n_splits = self.n_splits
-        fold_sizes = np.full(n_splits, N // n_splits, dtype=np.int)
+        fold_sizes = np.full(n_splits, N // n_splits, dtype=int)
         fold_sizes[: N % n_splits] += 1
         current = 0
 
@@ -241,8 +246,7 @@ class BaseDataset:
         print(f"Data size: {X.shape[0]} points with {X.shape[1]} features", flush=True)
 
         kfold = MyKFold(n_splits=k, shuffle=True)
-        iteration = 0
-        for test_idx in kfold.split(X):
+        for iteration, test_idx in enumerate(kfold.split(X)):
             Xtr = X[~test_idx]
             Ytr = Y[~test_idx]
             Xts = X[test_idx]
@@ -250,8 +254,8 @@ class BaseDataset:
             Xtr, Xts, other_X = self.preprocess_x(Xtr, Xts)
             Ytr, Yts, other_Y = self.preprocess_y(Ytr, Yts)
             print(
-                "Preprocessing complete (iter %d) - Divided into %d train, %d test points"
-                % (iteration, Xtr.shape[0], Xts.shape[0])
+                f"Preprocessing complete (iter {iteration}) - "
+                f"Divided into {Xtr.shape[0]} train, {Xts.shape[0]} test points"
             )
             kwargs = dict(*other_X)
             kwargs.update(other_Y)
@@ -259,25 +263,32 @@ class BaseDataset:
                 yield self.to_torch(Xtr, Ytr, Xts, Yts, **kwargs)
             else:
                 yield Xtr, Ytr, Xts, Yts, kwargs
-            iteration += 1
 
     @abstractmethod
-    def read_data(self, dtype):
+    def read_data(self, dtype) -> tuple[np.ndarray | scipy.sparse.spmatrix, np.ndarray]:
         pass
 
     @abstractmethod
-    def split_data(self, X, Y, train_frac: Union[float, None]):
+    def split_data(
+        self, X, Y, train_frac: float | None
+    ) -> tuple[np.ndarray | scipy.sparse.spmatrix, np.ndarray, np.ndarray | scipy.sparse.spmatrix, np.ndarray]:
         pass
 
     @abstractmethod
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr: NP_ARR, Xts: NP_ARR) -> tuple[NP_ARR, NP_ARR, dict]:
         return Xtr, Xts, {}
 
     @abstractmethod
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return Ytr, Yts, {}
 
-    def to_torch(self, Xtr, Ytr, Xts, Yts, **kwargs):
+    def to_torch(self, Xtr, Ytr, Xts, Yts, **kwargs) -> tuple[
+        Tensor | falkon.sparse.sparse_tensor.SparseTensor,
+        Tensor,
+        Tensor | falkon.sparse.sparse_tensor.SparseTensor,
+        Tensor,
+        dict,
+    ]:
         import torch
 
         # torch_kwargs = {k: torch.from_numpy(v) for k, v in kwargs.items()}
@@ -301,7 +312,7 @@ class BaseDataset:
 
 
 class KnownSplitDataset(BaseDataset, ABC):
-    def split_data(self, X, Y, train_frac: Union[float, None, str] = None):
+    def split_data(self, X, Y, train_frac: float | None | str = None):
         if train_frac == "auto" or train_frac is None:
             idx_tr = np.arange(self.num_train_samples)
             if self.num_test_samples > 0:
@@ -315,16 +326,16 @@ class KnownSplitDataset(BaseDataset, ABC):
 
     @property
     @abstractmethod
-    def num_train_samples(self):
+    def num_train_samples(self) -> int:
         pass
 
     @property
-    def num_test_samples(self):
+    def num_test_samples(self) -> int:
         return -1
 
 
 class RandomSplitDataset(BaseDataset, ABC):
-    def split_data(self, X, Y, train_frac: Union[float, None, str] = None):
+    def split_data(self, X, Y, train_frac: float | None | str = None):
         if train_frac is None:
             train_frac = self.default_train_frac
         idx_tr, idx_ts = equal_split(X.shape[0], train_frac)
@@ -332,7 +343,7 @@ class RandomSplitDataset(BaseDataset, ABC):
 
     @property
     @abstractmethod
-    def default_train_frac(self):
+    def default_train_frac(self) -> float:
         pass
 
 
@@ -355,45 +366,45 @@ class Hdf5Dataset(BaseDataset, ABC):
 
     @property
     @abstractmethod
-    def file_name(self):
+    def file_name(self) -> str:
         pass
 
 
 class MillionSongsDataset(KnownSplitDataset):
     file_name = "/data/DATASETS/MillionSongs/YearPredictionMSD.mat"
-    dset_name = "MillionSongs"
-    num_train_samples = 463715
-    num_test_samples = 51630
+    dset_name = "MillionSongs"  # type: ignore
+    num_train_samples = 463715  # type: ignore
+    num_test_samples = 51630  # type: ignore
 
-    def read_data(self, dtype) -> Tuple[np.ndarray, np.ndarray]:
+    def read_data(self, dtype) -> tuple[np.ndarray, np.ndarray]:
         f = scio.loadmat(MillionSongsDataset.file_name)
         X = f["X"][:, 1:].astype(as_np_dtype(dtype))
         Y = f["X"][:, 0].astype(as_np_dtype(dtype))
         return X, Y
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)  # Original
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
 
 class NycTaxiDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/NYCTAXI/NYCTAXI.h5"
-    dset_name = "TAXI"
-    default_train_frac = 0.8
+    file_name = "/data/DATASETS/NYCTAXI/NYCTAXI.h5"  # type: ignore
+    dset_name = "TAXI"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class HiggsDataset(RandomSplitDataset):
     file_name = "/data/DATASETS/HIGGS_UCI/Higgs.mat"
-    dset_name = "HIGGS"
-    default_train_frac = 0.8
+    dset_name = "HIGGS"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
 
     def read_data(self, dtype):
         with h5py.File(HiggsDataset.file_name, "r") as h5py_file:
@@ -402,7 +413,7 @@ class HiggsDataset(RandomSplitDataset):
         Y = arr[:, 0]
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         mtr = np.mean(Xtr, axis=0, dtype=np.float64, keepdims=True).astype(Xtr.dtype)
         vtr = np.var(Xtr, axis=0, dtype=np.float64, ddof=1, keepdims=True).astype(Xtr.dtype)
 
@@ -413,14 +424,14 @@ class HiggsDataset(RandomSplitDataset):
 
         return Xtr, Xts, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
 
 
 class TimitDataset(KnownSplitDataset):
     file_name = "/data/DATASETS/TIMIT/TIMIT.mat"
-    dset_name = "TIMIT"
-    num_train_samples = 1124823
+    dset_name = "TIMIT"  # type: ignore
+    num_train_samples = 1124823  # type: ignore
 
     def read_data(self, dtype):
         f = scio.loadmat(TimitDataset.file_name)
@@ -434,38 +445,40 @@ class TimitDataset(KnownSplitDataset):
 
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         Yts = (Yts - 1) * 3
         return convert_to_onehot(Ytr, Yts, num_classes=144, damping=True)
 
 
 class YelpDataset(RandomSplitDataset):
     file_name = "/data/DATASETS/YELP_Ben/YELP_Ben_OnlyONES.mat"
-    dset_name = "YELP"
-    default_train_frac = 0.8
+    dset_name = "YELP"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
 
     def read_data(self, dtype):
         with h5py.File(YelpDataset.file_name, "r") as h5py_file:
-            X = scipy.sparse.csc_matrix(
+            X: scipy.sparse.spmatrix = scipy.sparse.csc_matrix(
                 (
-                    np.array(h5py_file["X"]["data"], as_np_dtype(dtype)),
-                    h5py_file["X"]["ir"][...],
-                    h5py_file["X"]["jc"][...],
+                    np.array(h5py_file["X"]["data"], as_np_dtype(dtype)),  # type: ignore
+                    h5py_file["X"]["ir"][...],  # type: ignore
+                    h5py_file["X"]["jc"][...],  # type: ignore
                 )
-            ).tocsr(copy=False)
+            ).tocsr(
+                copy=False
+            )  # type: ignore
             Y = np.array(h5py_file["Y"], dtype=as_np_dtype(dtype)).reshape((-1, 1))
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         # scaler = sklearn.preprocessing.StandardScaler(copy=False, with_mean=False, with_std=True)
         # Xtr = scaler.fit_transform(Xtr)
         # Xts = scaler.transform(Xts)
         return Xtr, Xts, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return Ytr, Yts, {}
 
     def to_torch(self, Xtr, Ytr, Xts, Yts, **kwargs):
@@ -495,9 +508,9 @@ class YelpDataset(RandomSplitDataset):
 
 
 class FlightsDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/FLIGHTS/flights.hdf5"
-    dset_name = "FLIGHTS"
-    default_train_frac = 0.666
+    file_name = "/data/DATASETS/FLIGHTS/flights.hdf5"  # type: ignore
+    dset_name = "FLIGHTS"  # type: ignore
+    default_train_frac = 0.666  # type: ignore
 
     def read_data(self, dtype):
         X, Y = super().read_data(dtype)
@@ -518,17 +531,17 @@ class FlightsDataset(RandomSplitDataset, Hdf5Dataset):
 
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         Ytr, Yts, metadata = standardize_y(Ytr, Yts)
         return Ytr, Yts, {}
 
 
 class FlightsClsDataset(Hdf5Dataset):
-    file_name = "/data/DATASETS/FLIGHTS/flights.hdf5"
-    dset_name = "FLIGHTS-CLS"
+    file_name = "/data/DATASETS/FLIGHTS/flights.hdf5"  # type: ignore
+    dset_name = "FLIGHTS-CLS"  # type: ignore
     _default_train_num = 100_000
 
     def read_data(self, dtype):
@@ -544,23 +557,23 @@ class FlightsClsDataset(Hdf5Dataset):
 
         return X, Y
 
-    def split_data(self, X, Y, train_frac: Union[float, None]):
+    def split_data(self, X, Y, train_frac: float | None):
         if train_frac is None:
             train_frac = (X.shape[0] - FlightsClsDataset._default_train_num) / X.shape[0]
         idx_tr, idx_ts = equal_split(X.shape[0], train_frac)
         return X[idx_tr], Y[idx_tr], X[idx_ts], Y[idx_ts]
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
 
 
 class SusyDataset(RandomSplitDataset):
     file_name = "/data/DATASETS/SUSY/Susy.mat"
-    dset_name = "SUSY"
-    default_train_frac = 0.8
+    dset_name = "SUSY"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
 
     def read_data(self, dtype):
         with h5py.File(SusyDataset.file_name, "r") as f:
@@ -569,18 +582,18 @@ class SusyDataset(RandomSplitDataset):
             Y = arr[:, 0].reshape(-1, 1)
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
 
 
 class CIFAR10Dataset(KnownSplitDataset):
     file_name = "/data/DATASETS/CIFAR10/cifar10.mat"
     ts_file_name = "/data/DATASETS/CIFAR10/cifar10.t.mat"
-    dset_name = "CIFAR10"
-    num_train_samples = 50000
+    dset_name = "CIFAR10"  # type: ignore
+    num_train_samples = 50000  # type: ignore
 
     def read_data(self, dtype):
         tr_data = scio.loadmat(CIFAR10Dataset.file_name)
@@ -590,17 +603,17 @@ class CIFAR10Dataset(KnownSplitDataset):
         X = rgb_to_bw(X, dim=32)
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return Xtr / 255, Xts / 255, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_onehot(Ytr, Yts, num_classes=10)
 
 
 class CIFAR10RGBDataset(KnownSplitDataset):
     file_name = "/data/DATASETS/CIFAR10/cifar10rgb.hdf5"
-    dset_name = "CIFAR10_RGB"
-    num_train_samples = 50000
+    dset_name = "CIFAR10_RGB"  # type: ignore
+    num_train_samples = 50000  # type: ignore
 
     def read_data(self, dtype):
         with h5py.File(self.file_name, "r") as h5py_file:
@@ -610,18 +623,18 @@ class CIFAR10RGBDataset(KnownSplitDataset):
             y_ts = np.array(h5py_file["Yts"], dtype=as_np_dtype(dtype))
             return np.concatenate((x_tr, x_ts), axis=0), np.concatenate((y_tr, y_ts), axis=0)
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return Xtr / 255, Xts / 255, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_onehot(Ytr, Yts, num_classes=10)
 
 
 class SVHNDataset(KnownSplitDataset):
     file_name = "/data/DATASETS/SVHN/SVHN.mat"
     ts_file_name = "/data/DATASETS/SVHN/SVHN.t.mat"
-    dset_name = "SVHN"
-    num_train_samples = 73257
+    dset_name = "SVHN"  # type: ignore
+    num_train_samples = 73257  # type: ignore
 
     def read_data(self, dtype):
         tr_data = scio.loadmat(SVHNDataset.file_name)
@@ -632,66 +645,66 @@ class SVHNDataset(KnownSplitDataset):
         Y = Y - 1  # Y is 1-indexed, convert to 0 index.
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return Xtr / 255, Xts / 255, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_onehot(Ytr, Yts, num_classes=10)
 
 
 class FashionMnistDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/fashion_mnist.hdf5"
-    dset_name = "FASHION_MNIST"
-    num_train_samples = 60000
+    file_name = "/data/DATASETS/misc/fashion_mnist.hdf5"  # type: ignore
+    dset_name = "FASHION_MNIST"  # type: ignore
+    num_train_samples = 60000  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         Xtr /= 255.0
         Xts /= 255.0
         return Xtr, Xts, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_onehot(Ytr, Yts, num_classes=10)
 
 
 class MnistSmallDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/mnist.hdf5"
-    dset_name = "MNIST"
-    num_train_samples = 60000
+    file_name = "/data/DATASETS/misc/mnist.hdf5"  # type: ignore
+    dset_name = "MNIST"  # type: ignore
+    num_train_samples = 60000  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         Xtr /= 255.0
         Xts /= 255.0
         return Xtr, Xts, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_onehot(Ytr, Yts, num_classes=10)
 
 
 class MnistDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/MNIST/mnist8m_normalized.hdf5"
-    dset_name = "MNIST8M"
-    num_train_samples = 6750000
-    num_test_samples = 10_000
+    file_name = "/data/DATASETS/MNIST/mnist8m_normalized.hdf5"  # type: ignore
+    dset_name = "MNIST8M"  # type: ignore
+    num_train_samples = 6750000  # type: ignore
+    num_test_samples = 10_000  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return Xtr, Xts, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_onehot(Ytr, Yts, num_classes=10, damping=True)
 
 
 class SmallHiggsDataset(Hdf5Dataset, KnownSplitDataset):
-    file_name = "/data/DATASETS/HIGGS_UCI/higgs_for_ho.hdf5"
-    dset_name = "HIGGSHO"
-    num_train_samples = 10_000
-    num_test_samples = 20_000
+    file_name = "/data/DATASETS/HIGGS_UCI/higgs_for_ho.hdf5"  # type: ignore
+    dset_name = "HIGGSHO"  # type: ignore
+    num_train_samples = 10_000  # type: ignore
+    num_test_samples = 20_000  # type: ignore
 
     def read_centers(self, dtype):
         with h5py.File(self.file_name, "r") as h5py_file:
             centers = np.array(h5py_file["centers"], dtype=as_np_dtype(dtype))
         return centers
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         centers = self.read_centers(Xtr.dtype)
 
         mtr = np.mean(Xtr, axis=0, dtype=np.float64, keepdims=True).astype(Xtr.dtype)
@@ -705,14 +718,14 @@ class SmallHiggsDataset(Hdf5Dataset, KnownSplitDataset):
 
         return Xtr, Xts, {"centers": centers}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
 
 
 class IctusDataset(RandomSplitDataset):
     file_name = "/data/DATASETS/ICTUS/run_all.mat"
-    dset_name = "ICTUS"
-    default_train_frac = 0.8
+    dset_name = "ICTUS"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
 
     def read_data(self, dtype):
         data_dict = scio.loadmat(IctusDataset.file_name)
@@ -720,7 +733,7 @@ class IctusDataset(RandomSplitDataset):
         Y = np.asarray(data_dict["Y"], dtype=as_np_dtype(dtype))
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         mtr = np.mean(Xtr, axis=0, dtype=np.float64, keepdims=True).astype(Xtr.dtype)
         vtr = (1.0 / np.std(Xtr, axis=0, dtype=np.float64, ddof=1, keepdims=True)).astype(Xtr.dtype)
 
@@ -731,14 +744,14 @@ class IctusDataset(RandomSplitDataset):
 
         return Xtr, Xts, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
 
 
 class SyntheticDataset(RandomSplitDataset):
     file_name = "/data/DATASETS/Synthetic0.1Noise.mat"
-    dset_name = "SYNTH01NOISE"
-    default_train_frac = 0.5
+    dset_name = "SYNTH01NOISE"  # type: ignore
+    default_train_frac = 0.5  # type: ignore
 
     def read_data(self, dtype):
         data_dict = scio.loadmat(SyntheticDataset.file_name)
@@ -746,80 +759,80 @@ class SyntheticDataset(RandomSplitDataset):
         Y = np.asarray(data_dict["Y"], dtype=as_np_dtype(dtype))
         return X, Y
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return Xtr, Xts, {}
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return Ytr.reshape((-1, 1)), Yts.reshape((-1, 1)), {}
 
 
 class ChietDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/weather/CHIET.hdf5"
-    dset_name = "CHIET"
-    num_train_samples = 26227
-    num_test_samples = 7832
+    file_name = "/data/DATASETS/weather/CHIET.hdf5"  # type: ignore
+    dset_name = "CHIET"  # type: ignore
+    num_train_samples = 26227  # type: ignore
+    num_test_samples = 7832  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class EnergyDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/energy.hdf5"
-    dset_name = "ENERGY"
-    default_train_frac = 0.8
+    file_name = "/data/DATASETS/energy.hdf5"  # type: ignore
+    dset_name = "ENERGY"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class BostonDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/boston.hdf5"
-    dset_name = "BOSTON"
-    default_train_frac = 0.8
+    file_name = "/data/DATASETS/boston.hdf5"  # type: ignore
+    dset_name = "BOSTON"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class ProteinDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/protein.hdf5"
-    dset_name = "PROTEIN"
-    default_train_frac = 0.8
+    file_name = "/data/DATASETS/protein.hdf5"  # type: ignore
+    dset_name = "PROTEIN"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class Kin40kDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/kin40k.hdf5"
-    dset_name = "KIN40K"
-    num_train_samples = 10_000
-    num_test_samples = 30_000
+    file_name = "/data/DATASETS/kin40k.hdf5"  # type: ignore
+    dset_name = "KIN40K"  # type: ignore
+    num_train_samples = 10_000  # type: ignore
+    num_test_samples = 30_000  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class CodRnaDataset(KnownSplitDataset):
     folder = "/data/DATASETS/libsvm/binary"
-    dset_name = "cod-rna"
-    num_train_samples = 59_535
-    num_test_samples = 271_617
+    dset_name = "cod-rna"  # type: ignore
+    num_train_samples = 59_535  # type: ignore
+    num_test_samples = 271_617  # type: ignore
 
     def read_data(self, dtype):
         x_data, y_data = load_from_t(CodRnaDataset.dset_name, CodRnaDataset.folder)
@@ -827,18 +840,18 @@ class CodRnaDataset(KnownSplitDataset):
         y_data = y_data.astype(as_np_dtype(dtype))
         return x_data, y_data
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return Ytr.reshape(-1, 1), Yts.reshape(-1, 1), {}  # Is already -1, +1
 
 
 class SvmGuide1Dataset(KnownSplitDataset):
     folder = "/data/DATASETS/libsvm/binary"
-    dset_name = "svmguide1"
-    num_train_samples = 3089
-    num_test_samples = 4000
+    dset_name = "svmguide1"  # type: ignore
+    num_train_samples = 3089  # type: ignore
+    num_test_samples = 4000  # type: ignore
 
     def read_data(self, dtype):
         x_data, y_data = load_from_t(SvmGuide1Dataset.dset_name, SvmGuide1Dataset.folder)
@@ -846,167 +859,167 @@ class SvmGuide1Dataset(KnownSplitDataset):
         y_data = y_data.astype(as_np_dtype(dtype))
         return x_data, y_data
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
 
 
 class PhishingDataset(RandomSplitDataset):
     folder = "/data/DATASETS/libsvm/binary"
-    dset_name = "phishing"
-    default_train_frac = 0.7
+    dset_name = "phishing"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
 
     def read_data(self, dtype):
         x_data, y_data = load_from_npz(self.dset_name, self.folder, dtype)
         return x_data, y_data
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return Xtr, Xts, {}  # No preproc, all values are equal-.-
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
 
 
 class SpaceGaDataset(RandomSplitDataset):
     folder = "/data/DATASETS/libsvm/regression"
-    dset_name = "space_ga"
-    default_train_frac = 0.7
+    dset_name = "space_ga"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
 
     def read_data(self, dtype):
         x_data, y_data = load_from_npz(self.dset_name, self.folder, dtype)
         return x_data, y_data
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class CadataDataset(RandomSplitDataset):
     folder = "/data/DATASETS/libsvm/regression"
-    dset_name = "cadata"
-    default_train_frac = 0.7
+    dset_name = "cadata"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
 
     def read_data(self, dtype):
         x_data, y_data = load_from_npz(self.dset_name, self.folder, dtype)
         return x_data, y_data
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class MgDataset(RandomSplitDataset):
     folder = "/data/DATASETS/libsvm/regression"
-    dset_name = "mg"
-    default_train_frac = 0.7
+    dset_name = "mg"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
 
     def read_data(self, dtype):
         x_data, y_data = load_from_npz(self.dset_name, self.folder, dtype)
         return x_data, y_data
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class CpuSmallDataset(RandomSplitDataset):
     folder = "/data/DATASETS/libsvm/regression"
-    dset_name = "cpusmall"
-    default_train_frac = 0.7
+    dset_name = "cpusmall"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
 
     def read_data(self, dtype):
         x_data, y_data = load_from_npz(self.dset_name, self.folder, dtype)
         return x_data, y_data
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class AbaloneDataset(RandomSplitDataset):
     folder = "/data/DATASETS/libsvm/regression"
-    dset_name = "abalone"
-    default_train_frac = 0.7
+    dset_name = "abalone"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
 
     def read_data(self, dtype):
         x_data, y_data = load_from_npz(self.dset_name, self.folder, dtype)
         return x_data, y_data
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class CaspDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/casp.hdf5"
-    dset_name = "casp"
-    default_train_frac = 0.7
+    file_name = "/data/DATASETS/misc/casp.hdf5"  # type: ignore
+    dset_name = "casp"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class BlogFeedbackDataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/BlogFeedback.hdf5"
-    dset_name = "blog-feedback"
-    num_train_samples = 52397
+    file_name = "/data/DATASETS/misc/BlogFeedback.hdf5"  # type: ignore
+    dset_name = "blog-feedback"  # type: ignore
+    num_train_samples = 52397  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class CovTypeDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/covtype_binary.hdf5"
-    dset_name = "covtype"
-    default_train_frac = 0.7
+    file_name = "/data/DATASETS/misc/covtype_binary.hdf5"  # type: ignore
+    dset_name = "covtype"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_binary_y(Ytr, Yts)  # 1, 2 -> -1, +1
 
 
 class Ijcnn1Dataset(KnownSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/ijcnn1.hdf5"
-    dset_name = "ijcnn1"
-    num_train_samples = 49990
+    file_name = "/data/DATASETS/misc/ijcnn1.hdf5"  # type: ignore
+    dset_name = "ijcnn1"  # type: ignore
+    num_train_samples = 49990  # type: ignore
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return Xtr, Xts, {}  # Data already standardized
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return Ytr.reshape(-1, 1), Yts.reshape(-1, 1), {}  # binary-classif : already -1, +1
 
 
 class BuzzDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/buzz.hdf5"
-    dset_name = "buzz"
-    default_train_frac = 0.7
+    file_name = "/data/DATASETS/misc/buzz.hdf5"  # type: ignore
+    dset_name = "buzz"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
     dset_shape = (583250, 77)
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         # Weird preprocessing from AGW
         Ytr = np.log(Ytr + 1.0)
         Yts = np.log(Yts + 1.0)
@@ -1014,28 +1027,28 @@ class BuzzDataset(RandomSplitDataset, Hdf5Dataset):
 
 
 class Road3DDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/3droad.hdf5"
-    dset_name = "3DRoad"
-    default_train_frac = 0.7
+    file_name = "/data/DATASETS/misc/3droad.hdf5"  # type: ignore
+    dset_name = "3DRoad"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
     dset_shape = (434874, 3)
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_y(Ytr, Yts)
 
 
 class HouseEelectricDataset(RandomSplitDataset, Hdf5Dataset):
-    file_name = "/data/DATASETS/misc/houseelectric.hdf5"
-    dset_name = "HouseElectric"
-    default_train_frac = 0.7
+    file_name = "/data/DATASETS/misc/houseelectric.hdf5"  # type: ignore
+    dset_name = "HouseElectric"  # type: ignore
+    default_train_frac = 0.7  # type: ignore
     dset_shape = (2049280, 11)
 
-    def preprocess_x(self, Xtr: np.ndarray, Xts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         return standardize_x(Xtr, Xts)
 
-    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, dict]:
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         # Weird preprocessing from AGW
         Ytr = np.log(Ytr)
         Yts = np.log(Yts)

@@ -177,9 +177,9 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         formula = "(gamma * (X | Y) + beta) * v"
         aliases = [
-            "X = Vi(%d)" % (X1.shape[1]),
-            "Y = Vj(%d)" % (X2.shape[1]),
-            "v = Vj(%d)" % (v.shape[1]),
+            f"X = Vi({X1.shape[1]})",
+            f"Y = Vj({X2.shape[1]})",
+            f"v = Vj({v.shape[1]})",
             "gamma = Pm(1)",
             "beta = Pm(1)",
         ]
@@ -245,9 +245,9 @@ class PolynomialKernel(DiffKernel, KeopsKernelMixin):
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
         formula = "Powf((gamma * (X | Y) + beta), degree) * v"
         aliases = [
-            "X = Vi(%d)" % (X1.shape[1]),
-            "Y = Vj(%d)" % (X2.shape[1]),
-            "v = Vj(%d)" % (v.shape[1]),
+            f"X = Vi({X1.shape[1]})",
+            f"Y = Vj({X2.shape[1]})",
+            f"v = Vj({v.shape[1]})",
             "gamma = Pm(1)",
             "beta = Pm(1)",
             "degree = Pm(1)",
@@ -317,16 +317,16 @@ class SigmoidKernel(DiffKernel, KeopsKernelMixin):
     def _decide_mmv_impl(self, X1, X2, v, opt):
         if self.keops_can_handle_mmv(X1, X2, v, opt):
             warnings.warn(
-                "KeOps MMV implementation for %s kernel is not available. "
-                "Falling back to matrix-multiplication based implementation." % self.name
+                f"KeOps MMV implementation for {self.name} kernel is not available. "
+                "Falling back to matrix-multiplication based implementation."
             )
         return super()._decide_mmv_impl(X1, X2, v, opt)
 
     def _decide_dmmv_impl(self, X1, X2, v, w, opt):
         if self.keops_can_handle_dmmv(X1, X2, v, w, opt):
             warnings.warn(
-                "KeOps dMMV implementation for %s kernel is not available. "
-                "Falling back to matrix-multiplication based implementation." % self.name
+                f"KeOps dMMV implementation for {self.name} kernel is not available. "
+                "Falling back to matrix-multiplication based implementation."
             )
         return super()._decide_dmmv_impl(X1, X2, v, w, opt)
 

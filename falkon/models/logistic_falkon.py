@@ -123,7 +123,7 @@ class LogisticFalkon(FalkonBase):
         if len(self.iter_list) != len(self.penalty_list):
             raise ValueError(
                 "Iteration list must be of same length as penalty list "
-                "(found %d and %d)" % (len(self.iter_list), len(self.penalty_list))
+                f"(found {len(self.iter_list)} and {len(self.penalty_list)})"
             )
         self.loss = loss
         self._init_cuda()
@@ -229,7 +229,7 @@ class LogisticFalkon(FalkonBase):
             t_elapsed = 0.0
             for out_iter, penalty in enumerate(self.penalty_list):
                 max_iter = self.iter_list[out_iter]
-                print("Iteration %d - penalty %e - sub-iterations %d" % (out_iter, penalty, max_iter), flush=True)
+                print(f"Iteration {out_iter:d} - penalty {penalty:e} - sub-iterations max_iter:d", flush=True)
 
                 with TicToc("Preconditioner", self.options.debug):
                     precond.init(ny_X, ny_Y, beta_it, penalty, X.shape[0])

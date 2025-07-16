@@ -59,7 +59,7 @@ def create_optimizer(opt_type: str, model: HyperoptObjective, learning_rate: flo
         opt_hp = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     elif opt_type == "lbfgs":
         if model.losses_are_grads:
-            raise ValueError("L-BFGS not valid for model %s" % (model))
+            raise ValueError(f"L-BFGS not valid for model {model}")
         opt_hp = torch.optim.LBFGS(
             model.parameters(),
             lr=learning_rate,
@@ -68,7 +68,7 @@ def create_optimizer(opt_type: str, model: HyperoptObjective, learning_rate: flo
     elif opt_type == "rmsprop":
         opt_hp = torch.optim.RMSprop(model.parameters(), lr=learning_rate)
     else:
-        raise ValueError("Optimizer type %s not recognized" % (opt_type))
+        raise ValueError(f"Optimizer type {opt_type} not recognized")
 
     return opt_hp, schedule
 

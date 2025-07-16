@@ -41,7 +41,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
             max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
-                "Cannot run parallel LAUUM with minimum available memory of %.2fMB" % (avail_ram * dts / 2**20)
+                f"Cannot run parallel LAUUM with minimum available memory of {avail_ram * dts / 2**20:.2f}MB"
             )
         # All computations on the same device (where data is stored). No multi-GPU support!
         block_sizes = calc_block_sizes3(max_block_size, 1, N)
@@ -57,7 +57,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
             max_block_size = int(math.floor((-2 * N + math.sqrt(4 * N**2 + 8 * avail_ram)) / 4))
         if max_block_size < 1:
             raise RuntimeError(
-                "Cannot run parallel LAUUM with minimum available memory of %.2fMB" % (avail_ram * dts / 2**20)
+                f"Cannot run parallel LAUUM with minimum available memory of {avail_ram * dts / 2**20:.2f}MB"
             )
 
         block_sizes = calc_block_sizes3(max_block_size, len(gpu_info), N)
@@ -80,7 +80,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
         gid_allocs = [i for i in range(len(block_allocations)) if i % num_gpus == _gpu_idx]
         t = PropagatingThread(
             target=target,
-            name="GPU-%d" % (g.Id),
+            name=f"GPU-{g.Id}",
             args=(A, block_allocations, gid_allocs, barrier, g.Id, write_opposite),
         )
         threads.append(t)

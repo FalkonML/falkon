@@ -44,7 +44,7 @@ class DeviceInfo:
         if self.isCPU:
             return "cpu"
         else:
-            return "cuda:%s" % self.Id
+            return f"cuda:{self.Id}"
 
     def __repr__(self):
         return (
@@ -116,7 +116,7 @@ def _measure_performance(g, mem):
     if g == -1:
         dev = torch.device("cpu")
     else:
-        dev = torch.device("cuda:%s" % g)
+        dev = torch.device(f"cuda:{g}")
     dtt = torch.double
 
     a = torch.eye(1024, 1024, dtype=dtt, device=dev)

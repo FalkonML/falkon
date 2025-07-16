@@ -35,7 +35,7 @@ def run_lauum_exp(exp_name, fn, exp_sizes, num_reps, is_torch, dtype):
             fn(Ac)
             t_e = time.time()
             rep_times.append(t_e - t_s)
-            print("Exp %s - N %d - Rep %d - %.2fs" % (exp_name, num_pts, j, rep_times[-1]), flush=True)
+            print(f"Exp {exp_name} - N {num_pts} - Rep {j} - {rep_times[-1]:.2f}s", flush=True)
             del Ac
             if is_torch:
                 torch.cuda.empty_cache()
@@ -97,5 +97,5 @@ if __name__ == "__main__":
     for exp in experiments:
         exp_times = run_lauum_exp(**exp)
         exp["timings"] = exp_times
-    with open("logs/lauum_timings_%dGPU.json" % (num_gpu), "w") as fh:
+    with open(f"logs/lauum_timings_{num_gpu}GPU.json", "w") as fh:
         json.dump(experiments, fh)
