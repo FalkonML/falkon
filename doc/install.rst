@@ -62,6 +62,7 @@ There are three ways of installing Falkon:
      torch 2.5.0     ✅        ✅        ✅
      torch 2.6.0     ✅                  ✅        ✅
      torch 2.7.0     ✅                            ✅        ✅
+    ============== ========= ========= ========= ========= =========
 
     As an example, if you **already have installed** PyTorch 2.7 and CUDA 11.8 on your system, you should run
 
