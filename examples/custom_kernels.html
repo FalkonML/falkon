@@ -1,25 +1,25 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Implementing A Custom Kernel &mdash; falkon 0.8.2 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/nbsphinx-code-cells.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+  <title>Implementing A Custom Kernel &mdash; falkon 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
   
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=1bc1ca25"></script>
+      <script src="../_static/doctools.js?v=888ff710"></script>
+      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -38,9 +38,6 @@
           <a href="../index.html" class="icon icon-home">
             falkon
           </a>
-              <div class="version">
-                0.8.2
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -354,16 +351,16 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;ggplot&#39;</span><span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn</span><span class="w"> </span><span class="kn">import</span> <span class="n">datasets</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="kn">import</span> <span class="nn">falkon</span>
-<span class="kn">from</span> <span class="nn">falkon</span> <span class="kn">import</span> <span class="n">FalkonOptions</span>
-<span class="kn">from</span> <span class="nn">falkon.kernels</span> <span class="kn">import</span> <span class="n">Kernel</span><span class="p">,</span> <span class="n">DiffKernel</span><span class="p">,</span> <span class="n">KeopsKernelMixin</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">falkon</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">falkon</span><span class="w"> </span><span class="kn">import</span> <span class="n">FalkonOptions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">falkon.kernels</span><span class="w"> </span><span class="kn">import</span> <span class="n">Kernel</span><span class="p">,</span> <span class="n">DiffKernel</span><span class="p">,</span> <span class="n">KeopsKernelMixin</span>
 </pre></div>
 </div>
 </div>
@@ -411,10 +408,10 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">rmse</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">rmse</span><span class="p">(</span><span class="n">true</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">true</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">pred</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
 
-<span class="k">def</span> <span class="nf">learn_with_kernel</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">learn_with_kernel</span><span class="p">(</span><span class="n">kernel</span><span class="p">):</span>
     <span class="n">flk_opt</span> <span class="o">=</span> <span class="n">FalkonOptions</span><span class="p">(</span><span class="n">use_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">falkon</span><span class="o">.</span><span class="n">Falkon</span><span class="p">(</span>
         <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">penalty</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">flk_opt</span><span class="p">,</span>
@@ -428,11 +425,11 @@
 </section>
 <section id="Basic-Kernel-Implementation">
 <h2>Basic Kernel Implementation<a class="headerlink" href="#Basic-Kernel-Implementation" title="Permalink to this heading"></a></h2>
-<p>We must inherit from the <code class="docutils literal notranslate"><span class="pre">falkon.kernels.Kernel</span></code> class, and implement: - <code class="docutils literal notranslate"><span class="pre">compute</span></code> method: the core of the kernel implementation. Given two input matrices (of size <span class="math notranslate nohighlight">\(n\times d\)</span> and <span class="math notranslate nohighlight">\(m\times d\)</span>), and an output matrix (of size <span class="math notranslate nohighlight">\(n\times m\)</span>), compute the kernel function between the two inputs and store it in the output.</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>The additional `diag` parameter is a boolean flag. It indicates that a) $n$ is equal to $m$, b) only the diagonal of the kernel matrix should be computed.
-</pre></div>
-</div>
-<ul class="simple">
+<p>We must inherit from the <code class="docutils literal notranslate"><span class="pre">falkon.kernels.Kernel</span></code> class, and implement:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">compute</span></code> method: the core of the kernel implementation. Given two input matrices (of size <span class="math notranslate nohighlight">\(n\times d\)</span> and <span class="math notranslate nohighlight">\(m\times d\)</span>), and an output matrix (of size <span class="math notranslate nohighlight">\(n\times m\)</span>), compute the kernel function between the two inputs and store it in the output.</p>
+<p>The additional <code class="docutils literal notranslate"><span class="pre">diag</span></code> parameter is a boolean flag. It indicates that a) <span class="math notranslate nohighlight">\(n\)</span> is equal to <span class="math notranslate nohighlight">\(m\)</span>, b) only the diagonal of the kernel matrix should be computed.</p>
+</li>
 <li><p><code class="docutils literal notranslate"><span class="pre">compute_sparse</span></code> method: this should be used if you want your kernel to support sparse data. We will implement it in a later section.</p></li>
 </ul>
 <p>We will implement a <strong>linear</strong> kernel:</p>
@@ -443,15 +440,15 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">BasicLinearKernel</span><span class="p">(</span><span class="n">Kernel</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">BasicLinearKernel</span><span class="p">(</span><span class="n">Kernel</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
         <span class="c1"># The base class takes as inputs a name for the kernel, and</span>
         <span class="c1"># an instance of `FalkonOptions`.</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;basic_linear&quot;</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span> <span class="o">=</span> <span class="n">lengthscale</span>
 
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="c1"># To support different devices/data types, you must make sure</span>
         <span class="c1"># the lengthscale is compatible with the data.</span>
         <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -467,7 +464,7 @@
 
         <span class="k">return</span> <span class="n">out</span>
 
-    <span class="k">def</span> <span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">diag</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">diag</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Sparse not implemented&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -590,16 +587,23 @@ Test RMSE: 2.19
 <section id="Differentiable-Kernel">
 <h2>Differentiable Kernel<a class="headerlink" href="#Differentiable-Kernel" title="Permalink to this heading"></a></h2>
 <p>A differentiable kernel is needed for automatic hyperparameter optimization (see the <a class="reference internal" href="hyperopt.html"><span class="doc">notebook</span></a>).</p>
-<p>It requires inheriting from <code class="docutils literal notranslate"><span class="pre">falkon.kernels.DiffKernel</span></code>. In addition to the methods already discussed, we must implement: - <code class="docutils literal notranslate"><span class="pre">compute_diff</span></code>, which works similarly to the <code class="docutils literal notranslate"><span class="pre">compute</span></code> method but it does not have an <code class="docutils literal notranslate"><span class="pre">out</span></code> parameter. The implementation should be fully differentiable with respect to its inputs, and to the kernel hyperparameters. - <code class="docutils literal notranslate"><span class="pre">detach</span></code>, which essentially clones the kernel with the parameters <em>detached</em> from the computational graph.</p>
-<p>Another important difference from the basic kernel is the call to the <em>constructor</em>, which must include - All kernel hyperparameters as keyword arguments. These will be available as attributes on the class. Hyperparameters do not need to be tensors.</p>
+<p>It requires inheriting from <code class="docutils literal notranslate"><span class="pre">falkon.kernels.DiffKernel</span></code>. In addition to the methods already discussed, we must implement:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">compute_diff</span></code>, which works similarly to the <code class="docutils literal notranslate"><span class="pre">compute</span></code> method but it does not have an <code class="docutils literal notranslate"><span class="pre">out</span></code> parameter. The implementation should be fully differentiable with respect to its inputs, and to the kernel hyperparameters.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detach</span></code>, which essentially clones the kernel with the parameters <em>detached</em> from the computational graph.</p></li>
+</ul>
+<p>Another important difference from the basic kernel is the call to the <em>constructor</em>, which must include</p>
+<ul class="simple">
+<li><p>All kernel hyperparameters as keyword arguments. These will be available as attributes on the class. Hyperparameters do not need to be tensors.</p></li>
+</ul>
 <p><strong>``core_fn`` parameter (optional)</strong></p>
 <p>The constructor can also <em>optionally</em> contain a <code class="docutils literal notranslate"><span class="pre">core_fn</span></code> parameter which can simplify implementation by uniting the <code class="docutils literal notranslate"><span class="pre">compute</span></code> and <code class="docutils literal notranslate"><span class="pre">compute_diff</span></code> implementations. Have a look at the implementation of kernels in <code class="docutils literal notranslate"><span class="pre">falkon.kernels.dot_prod_kernel.py</span></code> and <code class="docutils literal notranslate"><span class="pre">falkon.kernels.distance_kernel.py</span></code> for how to use the <code class="docutils literal notranslate"><span class="pre">core_fn</span></code> parameter.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DiffLinearKernel</span><span class="p">(</span><span class="n">DiffKernel</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DiffLinearKernel</span><span class="p">(</span><span class="n">DiffKernel</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
         <span class="c1"># Super-class constructor call. We do not specify core_fn</span>
         <span class="c1"># but we must specify the hyperparameter of this kernel (lengthscale)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;diff_linear&quot;</span><span class="p">,</span>
@@ -607,7 +611,7 @@ Test RMSE: 2.19
                          <span class="n">core_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                          <span class="n">lengthscale</span><span class="o">=</span><span class="n">lengthscale</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
         <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
@@ -617,7 +621,7 @@ Test RMSE: 2.19
 
         <span class="k">return</span> <span class="n">out</span>
 
-    <span class="k">def</span> <span class="nf">compute_diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="c1"># The implementation here is similar to `compute` without in-place operations.</span>
         <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
@@ -627,14 +631,14 @@ Test RMSE: 2.19
 
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scaled_X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Clones the class with detached hyperparameters</span>
         <span class="k">return</span> <span class="n">DiffLinearKernel</span><span class="p">(</span>
             <span class="n">lengthscale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
             <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">diag</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">diag</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Sparse not implemented&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -769,21 +773,26 @@ Test RMSE: 2.19
 <h2>Adding KeOps Support<a class="headerlink" href="#Adding-KeOps-Support" title="Permalink to this heading"></a></h2>
 <p>We must inherit from <code class="docutils literal notranslate"><span class="pre">falkon.kernels.KeopsKernelMixin</span></code> and implement the method <code class="docutils literal notranslate"><span class="pre">keops_mmv_impl</span></code>.</p>
 <p>KeOps-enabled kernels will still use the implementation in the <code class="docutils literal notranslate"><span class="pre">compute</span></code> function for computing the kernel matrix itself, but will use KeOps to compute kernel-vector products (if the data dimension is small enough).</p>
-<p>This method is responsible for kernel-vector products, and it should contain: 1. A formula definition (see <a class="reference external" href="https://www.kernel-operations.io/keops/api/math-operations.html">https://www.kernel-operations.io/keops/api/math-operations.html</a> for the appropriate syntax) 2. A definition of all variables (again have a look at the KeOps documentation, or the implementation of other kernels within Falkon) 3. A call to the <code class="docutils literal notranslate"><span class="pre">keops_mmv</span></code> method of the <code class="docutils literal notranslate"><span class="pre">KeopsKernelMixin</span></code> class, responsible for calling into the KeOps formula.</p>
+<p>This method is responsible for kernel-vector products, and it should contain:</p>
+<ol class="arabic simple">
+<li><p>A formula definition (see <a class="reference external" href="https://www.kernel-operations.io/keops/api/math-operations.html">https://www.kernel-operations.io/keops/api/math-operations.html</a> for the appropriate syntax)</p></li>
+<li><p>A definition of all variables (again have a look at the KeOps documentation, or the implementation of other kernels within Falkon)</p></li>
+<li><p>A call to the <code class="docutils literal notranslate"><span class="pre">keops_mmv</span></code> method of the <code class="docutils literal notranslate"><span class="pre">KeopsKernelMixin</span></code> class, responsible for calling into the KeOps formula.</p></li>
+</ol>
 <p>For our kernel we will use the <code class="docutils literal notranslate"><span class="pre">(X</span> <span class="pre">|</span> <span class="pre">Y)</span></code> syntax for the dot-product between samples, and then multiplication with the vector <code class="docutils literal notranslate"><span class="pre">v</span></code>. The aliases list maps the symbols used in the formula with the KeOps variable types.</p>
 <p>For more examples check the <a class="reference external" href="https://www.kernel-operations.io">KeOps documentatiaon</a> or the implementation of existing kernels.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">KeopsLinearKernel</span><span class="p">(</span><span class="n">DiffKernel</span><span class="p">,</span> <span class="n">KeopsKernelMixin</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">KeopsLinearKernel</span><span class="p">(</span><span class="n">DiffKernel</span><span class="p">,</span> <span class="n">KeopsKernelMixin</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;my-keops-linear&quot;</span><span class="p">,</span>
                          <span class="n">options</span><span class="p">,</span>
                          <span class="n">core_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                          <span class="n">lengthscale</span><span class="o">=</span><span class="n">lengthscale</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
 
@@ -794,7 +803,7 @@ Test RMSE: 2.19
 
         <span class="k">return</span> <span class="n">out</span>
 
-    <span class="k">def</span> <span class="nf">compute_diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span>
 
         <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
@@ -802,13 +811,13 @@ Test RMSE: 2.19
 
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scaled_X1</span><span class="p">,</span> <span class="n">X2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">KeopsLinearKernel</span><span class="p">(</span>
             <span class="n">lengthscale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
             <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">keops_mmv_impl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">opt</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">keops_mmv_impl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">opt</span><span class="p">):</span>
         <span class="c1"># Keops formula for kernel-vector.</span>
         <span class="n">formula</span> <span class="o">=</span> <span class="s1">&#39;(scale * (X | Y)) * v&#39;</span>
         <span class="n">aliases</span> <span class="o">=</span> <span class="p">[</span>
@@ -824,7 +833,7 @@ Test RMSE: 2.19
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">keops_mmv</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">formula</span><span class="p">,</span> <span class="n">aliases</span><span class="p">,</span> <span class="n">other_vars</span><span class="p">,</span> <span class="n">opt</span><span class="p">)</span>
 
 
-    <span class="k">def</span> <span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Sparse not implemented&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -924,8 +933,8 @@ Test RMSE: 2.19
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">falkon.sparse</span> <span class="kn">import</span> <span class="n">SparseTensor</span>
-<span class="kn">from</span> <span class="nn">falkon.sparse</span> <span class="kn">import</span> <span class="n">sparse_matmul</span><span class="p">,</span> <span class="n">bdot</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">falkon.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">SparseTensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">falkon.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">sparse_matmul</span><span class="p">,</span> <span class="n">bdot</span>
 </pre></div>
 </div>
 </div>
@@ -933,15 +942,15 @@ Test RMSE: 2.19
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">SparseLinearKernel</span><span class="p">(</span><span class="n">Kernel</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SparseLinearKernel</span><span class="p">(</span><span class="n">Kernel</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lengthscale</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
         <span class="c1"># The base class takes as inputs a name for the kernel, and</span>
         <span class="c1"># an instance of `FalkonOptions`.</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;sparse_linear&quot;</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span> <span class="o">=</span> <span class="n">lengthscale</span>
 
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">X2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">diag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">lengthscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
         <span class="n">scaled_X1</span> <span class="o">=</span> <span class="n">X1</span> <span class="o">*</span> <span class="n">lengthscale</span>
@@ -955,7 +964,7 @@ Test RMSE: 2.19
 
         <span class="k">return</span> <span class="n">out</span>
 
-    <span class="k">def</span> <span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">X1</span><span class="p">:</span> <span class="n">SparseTensor</span><span class="p">,</span>
                        <span class="n">X2</span><span class="p">:</span> <span class="n">SparseTensor</span><span class="p">,</span>
                        <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>

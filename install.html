@@ -1,22 +1,22 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Install &mdash; falkon 0.8.2 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+  <title>Install &mdash; falkon 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1bc1ca25"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -35,9 +35,6 @@
           <a href="index.html" class="icon icon-home">
             falkon
           </a>
-              <div class="version">
-                0.8.2
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -353,7 +350,7 @@ on Windows and Mac OS more easily.</p>
 alongside PyTorch.
 PyTorch can be installed in several ways by following the instructions at <a class="reference external" href="https://pytorch.org/get-started/locally/">Install PyTorch</a>.
 If GPU support is desired, make sure that PyTorch CUDA bindings are working:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -371,12 +368,12 @@ In case sparse matrix support is not needed, the MKL library will not be loaded.
 <ol class="arabic">
 <li><p><strong>From source</strong> by running</p>
 <blockquote>
-<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/falkonml/falkon.git
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>git+https://github.com/falkonml/falkon.git
 </pre></div>
 </div>
 </div></blockquote>
 </li>
-<li><p><strong>From pypi with JIT compilation</strong> (the C++ extension will be compiled when the library is first used):</p>
+<li><p><strong>From pypi with JIT compilation</strong> (the C++ extension will be compiled when the library is first used) <strong>BROKEN!!</strong>:</p>
 <blockquote>
 <div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>falkon
 </pre></div>
@@ -386,47 +383,17 @@ In case sparse matrix support is not needed, the MKL library will not be loaded.
 <li><p><strong>From pre-built wheels</strong> which are available for the following versions of PyTorch and CUDA:</p>
 <blockquote>
 <div><blockquote>
-<div><table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Linux</p></th>
-<th class="head"><p><cite>cu113</cite></p></th>
-<th class="head"><p><cite>cu115</cite></p></th>
-<th class="head"><p><cite>cu116</cite></p></th>
-<th class="head"><p><cite>cu117</cite></p></th>
-<th class="head"><p><cite>cu118</cite></p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>torch 1.11.0</p></td>
-<td><p>✅</p></td>
-<td><p>✅</p></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p>torch 1.13.0</p></td>
-<td></td>
-<td></td>
-<td><p>✅</p></td>
-<td><p>✅</p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p>torch 2.0.0</p></td>
-<td></td>
-<td></td>
-<td></td>
-<td><p>✅</p></td>
-<td><p>✅</p></td>
-</tr>
-</tbody>
-</table>
+<div><p>torch 2.4.0     ✅        ✅        ✅
+torch 2.5.0     ✅        ✅        ✅
+torch 2.6.0     ✅                  ✅        ✅
+torch 2.7.0     ✅                            ✅        ✅</p>
 </div></blockquote>
-<p>As an example, if you <strong>already have installed</strong> PyTorch 1.13 and CUDA 11.7 on your system, you should run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>falkon<span class="w"> </span>-f<span class="w"> </span>https://falkon.dibris.unige.it/torch-1.13.0_cu117.html
+<p>As an example, if you <strong>already have installed</strong> PyTorch 2.7 and CUDA 11.8 on your system, you should run</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>falkon<span class="w"> </span>-f<span class="w"> </span>https://falkon.dibris.unige.it/torch-2.7.0_cu118.html
 </pre></div>
 </div>
-<p>Similarly for CPU packages</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>falkon<span class="w"> </span>-f<span class="w"> </span>https://falkon.dibris.unige.it/torch-2.0.0_cpu.html
+<p>Similarly for <strong>CPU-only packages</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>falkon<span class="w"> </span>-f<span class="w"> </span>https://falkon.dibris.unige.it/torch-2.7.0_cpu.html
 </pre></div>
 </div>
 <p>please check <a class="reference external" href="https://falkon.dibris.unige.it/index.html">here</a> for a list of supported wheels.</p>
