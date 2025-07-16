@@ -257,7 +257,7 @@ class Mkl:
         """
         test_array: scipy.sparse.csc_matrix = scipy.sparse.random(
             5, 5, density=0.5, format="csr", dtype=np.float64, rng=np.random.default_rng(50)
-        ) # type: ignore
+        )  # type: ignore
         test_comparison = test_array.toarray()
         csc_ref = None
         try:
