@@ -239,5 +239,5 @@ def to_c_contig(tensor: Optional[torch.Tensor], name: str = "", warn: bool = Fal
             # noinspection PyArgumentList
             warnings.warn(warning_text % (name, tensor.stride()))
         orig_device = tensor.device
-        return torch.from_numpy(np.array(tensor.cpu().numpy(), order="C")).to(device=orig_device)
+        return torch.from_numpy(np.asarray(tensor.cpu().numpy(), order="C")).to(device=orig_device)
     return tensor

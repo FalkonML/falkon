@@ -32,7 +32,7 @@ def choose_on_dtype(dtype):
 
 def run_potrf_test(np_data, dtype, order, opt, input_device, upper, clean, overwrite):
     # Convert pd_data to the appropriate form
-    data = np.array(np_data, order=order, dtype=dtype, copy=True)
+    data = np.asarray(np_data, order=order, dtype=dtype, copy=True)
     lapack_fn, rtol = choose_on_dtype(dtype)
     A = move_tensor(torch.from_numpy(data.copy(order="K")), input_device)
 

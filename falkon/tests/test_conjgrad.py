@@ -123,11 +123,24 @@ class TestFalkonConjugateGradient:
         centers = move_tensor(centers, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty, initial_solution=None, max_iter=100)
-        alpha = preconditioner.apply(beta)
+        with torch.inference_mode():
+            beta = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty, initial_solution=None, max_iter=100)
+            alpha = preconditioner.apply(beta)
 
         assert str(beta.device) == device, "Device has changed unexpectedly"
         np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
+
+    def test_no_inference_mode(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
+        preconditioner = preconditioner.to(device)
+        options = dataclasses.replace(self.basic_opt, use_cpu=device == "cpu")
+        opt = FalkonConjugateGradient(kernel, preconditioner, opt=options)
+
+        data = move_tensor(data, device)
+        centers = move_tensor(centers, device)
+        vec_rhs = move_tensor(vec_rhs, device)
+
+        with pytest.raises(RuntimeError, match="InferenceMode"):
+            opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty, initial_solution=None, max_iter=100)
 
     def test_restarts(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):
         preconditioner = preconditioner.to(device)
@@ -143,12 +156,13 @@ class TestFalkonConjugateGradient:
         centers = move_tensor(centers, device)
         vec_rhs = move_tensor(vec_rhs, device)
 
-        sol = None
-        for _ in range(30):
-            sol = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty, initial_solution=sol, max_iter=6)
-            print()
+        with torch.inference_mode():
+            sol = None
+            for _ in range(30):
+                sol = opt.solve(X=data, M=centers, Y=vec_rhs, _lambda=self.penalty, initial_solution=sol, max_iter=6)
+                print()
 
-        alpha = preconditioner.apply(sol)
+            alpha = preconditioner.apply(sol)
         np.testing.assert_allclose(expected, alpha.cpu().numpy(), rtol=1e-5)
 
     def test_precomputed_kernel(self, data, centers, kernel, preconditioner, knm, kmm, vec_rhs, device):

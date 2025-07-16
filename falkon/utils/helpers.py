@@ -196,8 +196,8 @@ def select_dim_over_nm_v2(max_n, max_m, coef_nm, coef_n, coef_m, rest, max_mem):
 
 
 def calc_gpu_block_sizes(device_info, tot_size):
-    gpu_speed = np.array([g.speed for g in device_info])
-    speed_frac = np.array(gpu_speed) / np.sum(gpu_speed)
+    gpu_speed = np.asarray([g.speed for g in device_info])
+    speed_frac = np.asarray(gpu_speed) / np.sum(gpu_speed)
 
     block_sizes = np.cumsum(np.concatenate(([0], speed_frac))) * tot_size
     block_sizes[0] = 0

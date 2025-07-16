@@ -207,7 +207,7 @@ class TestPotrf:
         return exp_lower.T
 
     def test_upper(self, mat, exp_upper, clean, overwrite, order, dtype):
-        mat = fix_mat(mat, order=order, dtype=dtype, copy=False, numpy=False)
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False)
         inpt = mat.clone()
         assert inpt.stride() == mat.stride()
 
@@ -225,7 +225,7 @@ class TestPotrf:
             torch.testing.assert_close(torch.tril(mat, -1), torch.tril(our_chol, -1))
 
     def test_lower(self, mat, exp_lower, clean, overwrite, order, dtype):
-        mat = fix_mat(mat, order=order, dtype=dtype, copy=False, numpy=False)
+        mat = fix_mat(mat, order=order, dtype=dtype, numpy=False)
         inpt = mat.clone()
         assert inpt.stride() == mat.stride()
 

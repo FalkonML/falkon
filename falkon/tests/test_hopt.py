@@ -111,4 +111,5 @@ def test_stoch_objectives(kernel):
         opt_hp.step()
     ts_err = torch.mean((model.predict(X_test) - Y_test) ** 2)
     print(f"Model {model.__class__} obtains {ts_err:.4f} error")
+    assert ts_err < 60
     # assert ts_err < 300

@@ -379,7 +379,7 @@ class NystromCompRegFn(torch.autograd.Function):
                 kernel_dev = kernel.to(device)
             penalty_dev = penalty.to(device, copy=False).requires_grad_(penalty.requires_grad)
 
-            with Timer(NystromCompRegFn.solve_times):
+            with Timer(NystromCompRegFn.solve_times), torch.inference_mode():
                 solve_zy, num_flk_iters = NystromCompRegFn.solve_flk(
                     X=X,
                     M=M_dev,
@@ -394,7 +394,8 @@ class NystromCompRegFn(torch.autograd.Function):
                 NystromCompRegFn.num_flk_iters.append(num_flk_iters)
 
             with Timer(NystromCompRegFn.kmm_times):
-                solve_zy_dev = solve_zy.to(device, copy=False)
+                # copy=True to get a normal non-inference tensor
+                solve_zy_dev = solve_zy.to(device, copy=True)
 
                 with torch.autograd.enable_grad():
                     kmm = kernel_dev(M_dev, M_dev, opt=solve_options)
