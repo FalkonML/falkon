@@ -54,10 +54,6 @@ def torch_version_macros():
     ]
 
 
-def get_build_ext():
-    return BuildExtension.with_options(no_python_abi_suffix=True)
-
-
 def get_extensions():
     extensions = []
 
@@ -186,7 +182,9 @@ setup(
     extras_require={"test": test_requires, "doc": doc_requires},
     install_requires=install_requires,
     ext_modules=get_extensions() if not NO_BUILD_EXT else [],
-    cmdclass={"build_ext": get_build_ext()} if not NO_BUILD_EXT else {},
+    cmdclass={
+        "build_ext": BuildExtension.with_options(no_python_abi_suffix=True)
+    } if not NO_BUILD_EXT else {},
     packages=find_packages(where="."),
     # Files in MANIFEST.in are included in sdist and in wheel only if include_package_data is True
     include_package_data=True,
