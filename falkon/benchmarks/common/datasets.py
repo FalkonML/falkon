@@ -1,4 +1,5 @@
 import os
+import pathlib
 import typing
 from abc import ABC, abstractmethod
 
@@ -217,8 +218,8 @@ class MyKFold:
 
 
 class BaseDataset:
-    def load_data(self, dtype, as_torch=False, as_tf=False):
-        X, Y = self.read_data(dtype)
+    def load_data(self, dtype, path, as_torch=False, as_tf=False):
+        X, Y = self.read_data(dtype, path=path)
         print(f"Loaded {self.dset_name} dataset in {dtype} precision.", flush=True)
         Xtr, Ytr, Xts, Yts = self.split_data(X, Y, train_frac=None)
         assert Xtr.shape[0] == Ytr.shape[0]
@@ -240,8 +241,8 @@ class BaseDataset:
             return self.to_tensorflow(Xtr, Ytr, Xts, Yts, **kwargs)
         return Xtr, Ytr, Xts, Yts, kwargs
 
-    def load_data_cv(self, dtype, k, as_torch=False):
-        X, Y = self.read_data(dtype)
+    def load_data_cv(self, dtype, k, path, as_torch=False):
+        X, Y = self.read_data(dtype, path)
         print(f"Loaded {self.dset_name} dataset in {dtype} precision.", flush=True)
         print(f"Data size: {X.shape[0]} points with {X.shape[1]} features", flush=True)
 
@@ -265,7 +266,7 @@ class BaseDataset:
                 yield Xtr, Ytr, Xts, Yts, kwargs
 
     @abstractmethod
-    def read_data(self, dtype) -> tuple[np.ndarray | scipy.sparse.spmatrix, np.ndarray]:
+    def read_data(self, dtype, path: str | pathlib.Path) -> tuple[np.ndarray | scipy.sparse.spmatrix, np.ndarray]:
         pass
 
     @abstractmethod
@@ -348,8 +349,8 @@ class RandomSplitDataset(BaseDataset, ABC):
 
 
 class Hdf5Dataset(BaseDataset, ABC):
-    def read_data(self, dtype):
-        with h5py.File(self.file_name, "r") as h5py_file:
+    def read_data(self, dtype, path: str | pathlib.Path):
+        with h5py.File(path, "r") as h5py_file:
             if "X_train" in h5py_file and "X_test" in h5py_file and "Y_train" in h5py_file and "Y_test" in h5py_file:
                 X_train = np.array(h5py_file["X_train"], dtype=as_np_dtype(dtype))
                 Y_train = np.array(h5py_file["Y_train"], dtype=as_np_dtype(dtype))
@@ -376,8 +377,8 @@ class MillionSongsDataset(KnownSplitDataset):
     num_train_samples = 463715  # type: ignore
     num_test_samples = 51630  # type: ignore
 
-    def read_data(self, dtype) -> tuple[np.ndarray, np.ndarray]:
-        f = scio.loadmat(MillionSongsDataset.file_name)
+    def read_data(self, dtype, path: str | pathlib.Path) -> tuple[np.ndarray, np.ndarray]:
+        f = scio.loadmat(path)
         X = f["X"][:, 1:].astype(as_np_dtype(dtype))
         Y = f["X"][:, 0].astype(as_np_dtype(dtype))
         return X, Y
@@ -406,8 +407,8 @@ class HiggsDataset(RandomSplitDataset):
     dset_name = "HIGGS"  # type: ignore
     default_train_frac = 0.8  # type: ignore
 
-    def read_data(self, dtype):
-        with h5py.File(HiggsDataset.file_name, "r") as h5py_file:
+    def read_data(self, dtype, path: str | pathlib.Path):
+        with h5py.File(path, "r") as h5py_file:
             arr = np.array(h5py_file["X"], dtype=as_np_dtype(dtype)).T
         X = arr[:, 1:]
         Y = arr[:, 0]
@@ -433,8 +434,8 @@ class TimitDataset(KnownSplitDataset):
     dset_name = "TIMIT"  # type: ignore
     num_train_samples = 1124823  # type: ignore
 
-    def read_data(self, dtype):
-        f = scio.loadmat(TimitDataset.file_name)
+    def read_data(self, dtype, path):
+        f = scio.loadmat(path)
         dtype = as_np_dtype(dtype)
         Xtr = np.array(f["Xtr"], dtype=dtype)
         Xts = np.array(f["Xts"], dtype=dtype)
@@ -458,8 +459,8 @@ class YelpDataset(RandomSplitDataset):
     dset_name = "YELP"  # type: ignore
     default_train_frac = 0.8  # type: ignore
 
-    def read_data(self, dtype):
-        with h5py.File(YelpDataset.file_name, "r") as h5py_file:
+    def read_data(self, dtype, path):
+        with h5py.File(path, "r") as h5py_file:
             X: scipy.sparse.spmatrix = scipy.sparse.csc_matrix(
                 (
                     np.array(h5py_file["X"]["data"], as_np_dtype(dtype)),  # type: ignore
@@ -512,8 +513,8 @@ class FlightsDataset(RandomSplitDataset, Hdf5Dataset):
     dset_name = "FLIGHTS"  # type: ignore
     default_train_frac = 0.666  # type: ignore
 
-    def read_data(self, dtype):
-        X, Y = super().read_data(dtype)
+    def read_data(self, dtype, path: str | pathlib.Path):
+        X, Y = super().read_data(dtype, path)
         # Preprocessing independent of train/test
         # As for https://github.com/jameshensman/VFF/blob/master/experiments/airline/airline_additive_figure.py
         # 1. Convert time of day from hhmm to minutes since midnight
@@ -544,8 +545,8 @@ class FlightsClsDataset(Hdf5Dataset):
     dset_name = "FLIGHTS-CLS"  # type: ignore
     _default_train_num = 100_000
 
-    def read_data(self, dtype):
-        X, Y = super().read_data(dtype)
+    def read_data(self, dtype, path: str | pathlib.Path):
+        X, Y = super().read_data(dtype, path)
         # Preprocessing independent of train/test
         # As for https://github.com/jameshensman/VFF/blob/master/experiments/airline/airline_additive_figure.py
         # 1. Convert time of day from hhmm to minutes since midnight
@@ -575,8 +576,8 @@ class SusyDataset(RandomSplitDataset):
     dset_name = "SUSY"  # type: ignore
     default_train_frac = 0.8  # type: ignore
 
-    def read_data(self, dtype):
-        with h5py.File(SusyDataset.file_name, "r") as f:
+    def read_data(self, dtype, path: str | pathlib.Path):
+        with h5py.File(path, "r") as f:
             arr = np.asarray(f["X"], dtype=as_np_dtype(dtype)).T
             X = arr[:, 1:]
             Y = arr[:, 0].reshape(-1, 1)
@@ -595,9 +596,10 @@ class CIFAR10Dataset(KnownSplitDataset):
     dset_name = "CIFAR10"  # type: ignore
     num_train_samples = 50000  # type: ignore
 
-    def read_data(self, dtype):
-        tr_data = scio.loadmat(CIFAR10Dataset.file_name)
-        ts_data = scio.loadmat(CIFAR10Dataset.ts_file_name)
+    def read_data(self, dtype, path):
+        path = pathlib.Path(path)
+        tr_data = scio.loadmat(path / "cifar10.mat")
+        ts_data = scio.loadmat(path / "cifar10.t.mat")
         X = np.concatenate((tr_data["Z"], ts_data["Z"]), axis=0).astype(as_np_dtype(dtype))
         Y = np.concatenate((tr_data["y"], ts_data["y"]), axis=0).astype(as_np_dtype(dtype))
         X = rgb_to_bw(X, dim=32)
@@ -615,8 +617,8 @@ class CIFAR10RGBDataset(KnownSplitDataset):
     dset_name = "CIFAR10_RGB"  # type: ignore
     num_train_samples = 50000  # type: ignore
 
-    def read_data(self, dtype):
-        with h5py.File(self.file_name, "r") as h5py_file:
+    def read_data(self, dtype, path: str | pathlib.Path):
+        with h5py.File(path, "r") as h5py_file:
             x_tr = np.array(h5py_file["Xtr"], dtype=as_np_dtype(dtype))
             x_ts = np.array(h5py_file["Xts"], dtype=as_np_dtype(dtype))
             y_tr = np.array(h5py_file["Ytr"], dtype=as_np_dtype(dtype))
@@ -636,9 +638,10 @@ class SVHNDataset(KnownSplitDataset):
     dset_name = "SVHN"  # type: ignore
     num_train_samples = 73257  # type: ignore
 
-    def read_data(self, dtype):
-        tr_data = scio.loadmat(SVHNDataset.file_name)
-        ts_data = scio.loadmat(SVHNDataset.ts_file_name)
+    def read_data(self, dtype, path: str | pathlib.Path):
+        path = pathlib.Path(path)
+        tr_data = scio.loadmat(path / "SVHN.mat")
+        ts_data = scio.loadmat(path / "SVHN.t.mat")
         X = np.concatenate((tr_data["Z"], ts_data["Z"]), axis=0).astype(as_np_dtype(dtype))
         Y = np.concatenate((tr_data["y"], ts_data["y"]), axis=0).astype(as_np_dtype(dtype))
         X = rgb_to_bw(X, dim=32)
@@ -727,8 +730,8 @@ class IctusDataset(RandomSplitDataset):
     dset_name = "ICTUS"  # type: ignore
     default_train_frac = 0.8  # type: ignore
 
-    def read_data(self, dtype):
-        data_dict = scio.loadmat(IctusDataset.file_name)
+    def read_data(self, dtype, path: str | pathlib.Path):
+        data_dict = scio.loadmat(path)
         X = np.asarray(data_dict["X"], dtype=as_np_dtype(dtype))
         Y = np.asarray(data_dict["Y"], dtype=as_np_dtype(dtype))
         return X, Y
@@ -753,8 +756,8 @@ class SyntheticDataset(RandomSplitDataset):
     dset_name = "SYNTH01NOISE"  # type: ignore
     default_train_frac = 0.5  # type: ignore
 
-    def read_data(self, dtype):
-        data_dict = scio.loadmat(SyntheticDataset.file_name)
+    def read_data(self, dtype, path: str | pathlib.Path):
+        data_dict = scio.loadmat(path)
         X = np.asarray(data_dict["X"], dtype=as_np_dtype(dtype))
         Y = np.asarray(data_dict["Y"], dtype=as_np_dtype(dtype))
         return X, Y
