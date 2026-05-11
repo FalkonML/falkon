@@ -243,16 +243,18 @@ class FalkonConjugateGradient(Optimizer):
         prec = self.preconditioner
 
         with TicToc("MMV", False):
-            v = prec.invA(sol)
-            v_t = prec.invT(v)
+            with TicToc("Tri-solve 1", self.params.debug):
+                v = prec.invA(sol)
+                v_t = prec.invT(v)
+            with TicToc("DMMV", self.params.debug):
+                cc = self.kernel.dmmv(X, M, v_t, None, opt=self.params)
 
-            cc = self.kernel.dmmv(X, M, v_t, None, opt=self.params)
-
-            # AT^-1 @ (TT^-1 @ (cc / n) + penalty * v)
-            cc_ = cc.div_(n)
-            v_ = v.mul_(penalty)
-            cc_ = prec.invTt(cc_).add_(v_)
-            out = prec.invAt(cc_)
+            with TicToc("Tri-solve 2", self.params.debug):
+                # AT^-1 @ (TT^-1 @ (cc / n) + penalty * v)
+                cc_ = cc.div_(n)
+                v_ = v.mul_(penalty)
+                cc_ = prec.invTt(cc_).add_(v_)
+                out = prec.invAt(cc_)
             return out
 
     def weighted_falkon_mmv(self, sol, penalty, X, M, y_weights, n: int):
