@@ -4,7 +4,7 @@ import datetime
 
 import numpy as np
 
-from falkon.benchmarks.common.benchmark_utils import Algorithm, Dataset, DataType
+from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
 
@@ -32,7 +32,6 @@ def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
 def run_falkon(
     dset: Dataset,
     data_path: str,
-    algorithm: Algorithm,
     dtype: DataType | None,
     num_iter: int,
     num_centers: int,
@@ -63,7 +62,7 @@ def run_falkon(
     elif kernel.lower() == "linear":
         k = kernels.LinearKernel(beta=1.0, gamma=kernel_sigma)
     else:
-        raise ValueError(f"Kernel {kernel} not understood for algorithm {algorithm}")
+        raise ValueError(f"Kernel {kernel} not understood for algorithm Falkon")
 
     opt = falkon.FalkonOptions(
         compute_arch_speed=False, no_single_kernel=True, 
@@ -89,7 +88,7 @@ def run_falkon(
             flk.error_fn = err_fns[0]
             print(f"Starting to train model {flk} on data {dset}", flush=True)
             flk.fit(Xtr, Ytr, Xts, Yts)
-        test_model(flk, f"{algorithm} on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
     else:
         print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)
@@ -102,7 +101,7 @@ def run_falkon(
             with TicToc(f"FALKON ALGORITHM (fold {it})"):
                 flk.error_every = err_fns[0]
                 flk.fit(Xtr, Ytr, Xts, Yts)
-            c_test_errs, c_train_errs = test_model(flk, f"{algorithm} on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
@@ -178,7 +177,6 @@ if __name__ == "__main__":
         dset=args.dataset,
         data_path=args.data_path,
         use_keops=args.use_keops,
-        algorithm=args.algorithm,
         dtype=args.dtype,
         num_iter=args.epochs,
         num_centers=args.num_centers,
