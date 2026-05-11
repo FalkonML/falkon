@@ -243,13 +243,13 @@ class FalkonConjugateGradient(Optimizer):
         prec = self.preconditioner
 
         with TicToc("MMV", False):
-            with TicToc("Tri-solve 1", self.params.debug):
+            with TicToc("Tri-solve 1", False):
                 v = prec.invA(sol)
                 v_t = prec.invT(v)
-            with TicToc("DMMV", self.params.debug):
+            with TicToc("DMMV", False):
                 cc = self.kernel.dmmv(X, M, v_t, None, opt=self.params)
 
-            with TicToc("Tri-solve 2", self.params.debug):
+            with TicToc("Tri-solve 2", False):
                 # AT^-1 @ (TT^-1 @ (cc / n) + penalty * v)
                 cc_ = cc.div_(n)
                 v_ = v.mul_(penalty)

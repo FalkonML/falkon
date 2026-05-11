@@ -221,16 +221,10 @@ def run_keops_mmv(
     if differentiable:
         # For differentiable inputs we don't split, since we don't know how to
         # split the backward pass.
-        if opt.debug:
-            print(f"OOC KeOps MMV. Differentiable. Total size={N}")
         out = fn(X1, X2, v, *other_vars, out=out, backend=backend)
     elif comp_dev_type == "cpu" and all(ddev.type == "cpu" for ddev in data_devs):  # incore CPU
-        if opt.debug:
-            print(f"IC CPU KeOps MMV. Total size={N}")
         out = fn(X1, X2, v, *other_vars, out=out, backend=backend)
     elif comp_dev_type == "cuda" and all(ddev.type == "cuda" for ddev in data_devs):  # incore CUDA
-        if opt.debug:
-            print(f"IC GPU KeOps MMV. Total size={N}")
         device = data_devs[0]
         with torch.cuda.device(device):
             sync_current_stream(device)
@@ -239,8 +233,6 @@ def run_keops_mmv(
         # slack should be high due to imprecise memory usage estimates for keops
         gpu_info = _get_gpu_info(opt, slack=opt.keops_memory_slack)
         block_sizes = calc_gpu_block_sizes(gpu_info, N)
-        if opt.debug:
-            print(f"OOC KeOps MMV. Total size={N}. Block sizes={block_sizes}")
 
         args = []  # Arguments passed to each subprocess
         for i, g in enumerate(gpu_info):
