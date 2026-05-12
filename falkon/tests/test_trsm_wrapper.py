@@ -1,9 +1,10 @@
-import numpy as np
-import torch
-import pytest
-from scipy.linalg import blas as sclb
-from torch.profiler import profile, ProfilerActivity, record_function
 import tracemalloc
+
+import numpy as np
+import pytest
+import torch
+from scipy.linalg import blas as sclb
+from torch.profiler import ProfilerActivity, profile, record_function
 
 from falkon.la_helpers import trsm
 from falkon.tests.conftest import fix_mat

@@ -1,6 +1,6 @@
 import argparse
-import functools
 import datetime
+import functools
 
 import numpy as np
 
