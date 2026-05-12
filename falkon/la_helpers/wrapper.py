@@ -105,22 +105,12 @@ def potrf(mat: torch.Tensor, upper: bool, clean: bool, overwrite: bool, cuda: bo
 
 
 def trsm(v: torch.Tensor, A: torch.Tensor, alpha: float, lower: int = 0, transpose: int = 0) -> torch.Tensor:
-    # A is F-contiguous, we never want to transpose it
-    upper = lower == 0
     if transpose:
-        v = v.transpose(-2, -1)
-        left = False
-        trans_out = True
-    else:
-        left = True
-        trans_out = False
+        A = A.transpose(-2, -1)
+    upper = lower == 0 if not transpose else lower != 0
     if alpha != 1.0:
         v = v * alpha
-    out = torch.linalg.solve_triangular(A, v, upper=upper, left=left)
-    if trans_out:
-        return out.transpose(-2, -1)
-    else:
-        return out
+    return torch.linalg.solve_triangular(A, v, upper=upper, left=True)
 
 
 def square_norm(mat: torch.Tensor, dim: int, keepdim: Optional[bool] = None) -> torch.Tensor:
