@@ -1,10 +1,8 @@
-import tracemalloc
-
 import numpy as np
 import pytest
 import torch
 from scipy.linalg import blas as sclb
-from torch.profiler import ProfilerActivity, profile, record_function
+from torch.profiler import ProfilerActivity, profile
 
 from falkon.la_helpers import trsm
 from falkon.tests.conftest import fix_mat
@@ -65,4 +63,3 @@ def test_trsm_wrapper(mat, arr, dtype, order, device, lower, transpose):
 
 if __name__ == "__main__":
     pytest.main()
-
