@@ -381,7 +381,7 @@ class TestTrsm:
         np.testing.assert_allclose(sol_vec, out.cpu().numpy(), rtol=self.rtol[dtype])
         assert out.data_ptr() != vec.data_ptr(), "Vec was overwritten."
         assert out.device == vec.device, "Output device is incorrect."
-        #assert out.stride() == vec.stride(), f"Stride was modified. Expected {vec.stride()} found {out.stride()}"
+        # assert out.stride() == vec.stride(), f"Stride was modified. Expected {vec.stride()} found {out.stride()}"
         assert out.dtype == vec.dtype, "Dtype was modified."
 
 
