@@ -5,8 +5,6 @@ from typing import Optional
 import torch
 
 from falkon import c_ext
-from falkon.la_helpers.cpu_trsm import cpu_trsm
-from falkon.utils.helpers import check_same_device
 
 __all__ = (
     "zero_triang",
@@ -105,24 +103,12 @@ def potrf(mat: torch.Tensor, upper: bool, clean: bool, overwrite: bool, cuda: bo
 
 
 def trsm(v: torch.Tensor, A: torch.Tensor, alpha: float, lower: int = 0, transpose: int = 0) -> torch.Tensor:
-    if isinstance(A, torch.Tensor):
-        if isinstance(v, torch.Tensor):
-            if not check_same_device(A, v):
-                raise ValueError("A and v must be on the same device.")
-            if A.is_cuda and v.is_cuda:
-                from falkon.la_helpers.cuda_trsm import cuda_trsm
-
-                return cuda_trsm(A, v, alpha, bool(lower), bool(transpose))
-            else:
-                A = A.numpy()
-                v = v.numpy()
-        else:  # v is numpy array (thus CPU)
-            if A.is_cuda:
-                raise ValueError("A and v must be on the same device.")
-            A = A.numpy()
-
-    vout = cpu_trsm(A, v, alpha, lower, transpose)
-    return torch.from_numpy(vout)
+    if transpose:
+        A = A.transpose(-2, -1)
+    upper = lower == 0 if not transpose else lower != 0
+    if alpha != 1.0:
+        v = v * alpha
+    return torch.linalg.solve_triangular(A, v, upper=upper, left=True)
 
 
 def square_norm(mat: torch.Tensor, dim: int, keepdim: Optional[bool] = None) -> torch.Tensor:

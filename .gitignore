@@ -1,3 +1,8 @@
+*falkon.code-workspace
+falkon/docker_build.sh
+falkon/Dockerfile
+.dockerignore
+CMakeLists.txt
 notebooks/data/
 notebooks/logs/
 .ruff_cache/
