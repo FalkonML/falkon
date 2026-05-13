@@ -5,8 +5,6 @@ from typing import Optional
 import torch
 
 from falkon import c_ext
-from falkon.la_helpers.cpu_trsm import cpu_trsm
-from falkon.utils.helpers import check_same_device
 
 __all__ = (
     "zero_triang",

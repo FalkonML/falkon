@@ -642,7 +642,7 @@ if __name__ == "__main__":
         "--num-centers",
         type=int,
         default=0,
-        help="Number of Nystroem centers. Used for algorithms " "falkon, gpytorch and gpflow.",
+        help="Number of Nystroem centers. Used for algorithms falkon, gpytorch and gpflow.",
     )
 
     p.add_argument("--natgrad-lr", type=float, default=0.0001, help="Natural gradient learning rate (GPFlow)")

@@ -1,6 +1,6 @@
 import argparse
-import functools
 import datetime
+import functools
 
 import numpy as np
 
@@ -65,14 +65,15 @@ def run_falkon(
         raise ValueError(f"Kernel {kernel} not understood for algorithm Falkon")
 
     opt = falkon.FalkonOptions(
-        compute_arch_speed=False, no_single_kernel=True, 
-        pc_epsilon_32=1e-6, pc_epsilon_64=1e-13, 
+        compute_arch_speed=False,
+        no_single_kernel=True,
+        pc_epsilon_32=1e-6,
+        pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
         debug=True,
     )
     flk = falkon.Falkon(
-        kernel=k, penalty=penalty, M=num_centers, maxiter=num_iter, seed=seed, 
-        error_fn=None, error_every=1, options=opt
+        kernel=k, penalty=penalty, M=num_centers, maxiter=num_iter, seed=seed, error_fn=None, error_every=1, options=opt
     )
 
     # Error metrics
@@ -151,7 +152,7 @@ if __name__ == "__main__":
         "--num-centers",
         type=int,
         default=0,
-        help="Number of Nystroem centers. Used for algorithms " "falkon, gpytorch and gpflow.",
+        help="Number of Nystroem centers. Used for algorithms falkon, gpytorch and gpflow.",
     )
     p.add_argument(
         "--penalty",
@@ -166,9 +167,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--kernel", type=str, default="gaussian", required=False, help="Type of kernel to use. Used for Falkon"
     )
-    p.add_argument(
-        "--use-keops", action="store_true", help="Set this flag to enable KeOps."
-    )
+    p.add_argument("--use-keops", action="store_true", help="Set this flag to enable KeOps.")
 
     args = p.parse_args()
     print(f"STARTING WITH SEED {args.seed}")
