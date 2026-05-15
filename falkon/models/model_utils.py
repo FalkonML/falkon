@@ -1,6 +1,6 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, TypeVar, Union
 
 import numpy as np
 import torch
@@ -14,7 +14,9 @@ from falkon.utils import check_random_generator, decide_cuda, devices
 from falkon.utils.helpers import check_same_dtype, sizeof_dtype
 from falkon.utils.tensor_helpers import is_f_contig
 
-_tensor_type = Union[torch.Tensor, SparseTensor]
+_tensor_type = TypeVar("_tensor_type", bound=Union[torch.Tensor, SparseTensor], covariant=True)
+_opt_tensor_type = TypeVar("_opt_tensor_type", bound=Union[None, torch.Tensor, SparseTensor], covariant=True)
+_opt_ttensor_type = TypeVar("_opt_ttensor_type", bound=Union[None, torch.Tensor], covariant=True)
 
 
 class FalkonBase(base.BaseEstimator, ABC):
@@ -24,7 +26,7 @@ class FalkonBase(base.BaseEstimator, ABC):
         M: Optional[int],
         center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
         seed: Optional[int] = None,
-        error_fn: Optional[callable] = None,
+        error_fn: Optional[Callable] = None,
         error_every: Optional[int] = 1,
         options: Optional[FalkonOptions] = None,
     ):
@@ -124,8 +126,8 @@ class FalkonBase(base.BaseEstimator, ABC):
         return val_cback
 
     def _check_fit_inputs(
-        self, X: _tensor_type, Y: torch.Tensor, Xts: _tensor_type, Yts: torch.Tensor
-    ) -> Tuple[_tensor_type, torch.Tensor, _tensor_type, torch.Tensor]:
+        self, X: _tensor_type, Y: torch.Tensor, Xts: _opt_tensor_type, Yts: _opt_ttensor_type
+    ) -> Tuple[_tensor_type, torch.Tensor, _opt_tensor_type, _opt_ttensor_type]:
         if X.shape[0] != Y.shape[0]:
             raise ValueError(f"X and Y must have the same number of samples (found {X.shape[0]} and {Y.shape[0]})")
         if Y.dim() == 1:

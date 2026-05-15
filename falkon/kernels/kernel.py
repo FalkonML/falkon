@@ -232,7 +232,7 @@ class Kernel(torch.nn.Module, ABC):
         opt: Optional[FalkonOptions] = None,
         kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
         kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
-    ):
+    ) -> torch.Tensor:
         # noinspection PyShadowingNames
         """Compute matrix-vector multiplications where the matrix is the current kernel.
 
@@ -343,7 +343,7 @@ class Kernel(torch.nn.Module, ABC):
         opt: Optional[FalkonOptions] = None,
         kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
         kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
-    ):
+    ) -> torch.Tensor:
         # noinspection PyShadowingNames
         """Compute double matrix-vector multiplications where the matrix is the current kernel.
 
