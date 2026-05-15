@@ -21,7 +21,7 @@ def check_init(*none_check):
                     break
             if not is_init:
                 raise RuntimeError(
-                    "FALKON preconditioner is not initialized. Please run "
+                    "Preconditioner is not initialized. Please run "
                     "`init` before any other method on the "
                     "preconditioner."
                 )

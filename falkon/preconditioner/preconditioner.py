@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from torch import Tensor
+
 
 class Preconditioner(ABC):
     """Generic preconditioner class, used to accelerate solutions to linear systems.
@@ -27,9 +29,9 @@ class Preconditioner(ABC):
     """
 
     @abstractmethod
-    def apply(self, v):
+    def apply(self, v: Tensor) -> Tensor:
         pass
 
     @abstractmethod
-    def apply_t(self, v):
+    def apply_t(self, v: Tensor) -> Tensor:
         pass
