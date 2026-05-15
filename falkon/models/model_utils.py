@@ -198,7 +198,7 @@ class FalkonBase(base.BaseEstimator, ABC):
         pass
 
     @abstractmethod
-    def _predict(self, X, ny_points_, alpha_):
+    def _predict(self, X, ny_points_, alpha_) -> torch.Tensor:
         pass
 
     @abstractmethod

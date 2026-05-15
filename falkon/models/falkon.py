@@ -136,7 +136,7 @@ class Falkon(FalkonBase):
         self.weight_fn = weight_fn
         self._init_cuda()
         self.beta_ = None
-        self.precond = None
+        self.precond: FalkonPreconditioner | None = None
 
     def _reset_state(self):
         super()._reset_state()
@@ -190,6 +190,7 @@ class Falkon(FalkonBase):
         warm_start: Optional[Tensor],
         cb: Callable,
     ) -> Tuple[Tensor, Tensor]:
+        assert self.precond is not None
         with TicToc("Computing Falkon iterations", debug=self.options.debug):
             o_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not use_cuda)
             if o_opt.debug:
@@ -297,19 +298,15 @@ class Falkon(FalkonBase):
             self.alpha_, self.beta_, self.ny_points_ = alpha, beta, ny_points
         return self
 
-    def _predict(self, X, ny_points, alpha: torch.Tensor) -> torch.Tensor:
+    def _predict(self, X, ny_points_, alpha_: torch.Tensor) -> torch.Tensor:
         with torch.autograd.inference_mode():
-            if ny_points is None:
-                warnings.warn("This code-path is deprecated and may be removed. Nys_points must be specified.")
-                # Then X is the kernel itself
-                return X @ alpha
-            num_centers = alpha.shape[0]
+            num_centers = alpha_.shape[0]
             tot_mmv_mem_usage = X.shape[0] * X.shape[1] * num_centers
-            _use_cuda_mmv = alpha.device.type == "cuda" or (
+            _use_cuda_mmv = alpha_.device.type == "cuda" or (
                 self.use_cuda_ and tot_mmv_mem_usage / self.num_gpus >= get_min_cuda_mmv_size(X.dtype, self.options)
             )
             mmv_opt = dataclasses.replace(self.options, use_cpu=not _use_cuda_mmv)
-            return self.kernel.mmv(X, ny_points, alpha, opt=mmv_opt)
+            return self.kernel.mmv(X, ny_points_, alpha_, opt=mmv_opt)
 
     def _params_to_original_space(self, params, preconditioner):
         return preconditioner.apply(params)
