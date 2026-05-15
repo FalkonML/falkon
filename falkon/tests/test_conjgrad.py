@@ -6,7 +6,8 @@ import torch
 
 from falkon.center_selection import UniformSelector
 from falkon.kernels import GaussianKernel, PrecomputedKernel
-from falkon.optim.conjgrad import ConjugateGradient, FalkonConjugateGradient
+from falkon.optim.conjgrad import ConjugateGradient
+from falkon.optim.falkon import FalkonConjugateGradient
 from falkon.options import FalkonOptions
 from falkon.preconditioner import FalkonPreconditioner
 from falkon.tests.gen_random import gen_random, gen_random_pd
