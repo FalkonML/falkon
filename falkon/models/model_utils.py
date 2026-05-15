@@ -1,7 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import TypeVar
 from collections.abc import Callable
+from typing import TypeVar
 
 import numpy as np
 import torch
@@ -193,9 +193,7 @@ class FalkonBase(base.BaseEstimator, ABC):
             return False
 
     @abstractmethod
-    def fit(
-        self, X: torch.Tensor, Y: torch.Tensor, Xts: torch.Tensor | None = None, Yts: torch.Tensor | None = None
-    ):
+    def fit(self, X: torch.Tensor, Y: torch.Tensor, Xts: torch.Tensor | None = None, Yts: torch.Tensor | None = None):
         pass
 
     @abstractmethod

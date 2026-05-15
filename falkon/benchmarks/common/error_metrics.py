@@ -1,5 +1,5 @@
-from typing import Any
 from collections.abc import Callable, Generator
+from typing import Any
 
 import numpy as np
 

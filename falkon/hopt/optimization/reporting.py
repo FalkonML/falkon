@@ -38,7 +38,7 @@ def report_losses(losses: Sequence[torch.Tensor], loss_names: Sequence[str], ste
     report_str = "LOSSES: "
     report_dict = {}
     loss_sum = 0
-    for loss, loss_name in zip(losses, loss_names):
+    for loss, loss_name in zip(losses, loss_names, strict=True):
         _loss = get_scalar(loss)
         # Report the value of the loss
         writer.add_scalar(f"optim/{loss_name}", _loss, step)

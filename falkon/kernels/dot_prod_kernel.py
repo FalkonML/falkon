@@ -57,9 +57,7 @@ def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | N
     return out
 
 
-def _sparse_dot_prod_calc(
-    mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor | None, diag: bool
-) -> torch.Tensor:
+def _sparse_dot_prod_calc(mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor | None, diag: bool) -> torch.Tensor:
     if diag:
         return sparse.bdot(mat1, mat2, out)
     else:

@@ -136,9 +136,7 @@ class LogisticFalkon(FalkonBase):
             )
         return super()._check_fit_inputs(X, Y, Xts, Yts)
 
-    def fit(
-        self, X: torch.Tensor, Y: torch.Tensor, Xts: torch.Tensor | None = None, Yts: torch.Tensor | None = None
-    ):
+    def fit(self, X: torch.Tensor, Y: torch.Tensor, Xts: torch.Tensor | None = None, Yts: torch.Tensor | None = None):
         """Fits the Falkon Kernel Logistic Regression model.
 
         Parameters

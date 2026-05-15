@@ -1,6 +1,5 @@
 """Wrap the the various linear-algebra helpers which use c extension"""
 
-
 import torch
 
 from falkon import c_ext

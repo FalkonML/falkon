@@ -1,4 +1,3 @@
-
 import torch
 
 from falkon.la_helpers import copy_triang, mul_triang, trsm, vec_mul_triang

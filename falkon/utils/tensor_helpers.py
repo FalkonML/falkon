@@ -1,6 +1,6 @@
 import warnings
-from typing import Any
 from collections.abc import Generator
+from typing import Any
 
 import numpy as np
 import torch
@@ -198,7 +198,7 @@ def is_contig_vec(tensor: torch.Tensor) -> bool:
     sizes = tensor.shape
 
     num_not_1 = 0
-    for sz, st in zip(sizes, strides):
+    for sz, st in zip(sizes, strides, strict=True):
         if sz != 1:
             num_not_1 += 1
             if st != 1:

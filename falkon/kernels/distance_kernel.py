@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 
@@ -178,9 +177,7 @@ def rbf_core_sparse(
     return out
 
 
-def laplacian_core(
-    mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | None, diag: bool, sigma: torch.Tensor
-):
+def laplacian_core(mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | None, diag: bool, sigma: torch.Tensor):
     if diag:
         return _distancek_diag(mat1, out)
     # Move hparams
@@ -536,9 +533,7 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
 
     _valid_nu_values = frozenset({0.5, 1.5, 2.5, float("inf")})
 
-    def __init__(
-        self, sigma: float | torch.Tensor, nu: float | torch.Tensor, opt: FalkonOptions | None = None
-    ):
+    def __init__(self, sigma: float | torch.Tensor, nu: float | torch.Tensor, opt: FalkonOptions | None = None):
         sigma = validate_sigma(sigma)
         nu = self.validate_nu(nu)
         self.kernel_name = f"{nu:.1f}-matern"

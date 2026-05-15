@@ -1,7 +1,6 @@
 import ctypes
 from collections.abc import Callable
 from ctypes.util import find_library
-from typing import Union
 
 import numpy as np
 import scipy.sparse
@@ -13,8 +12,8 @@ from falkon.sparse.sparse_tensor import SparseTensor
 __all__ = ("mkl_lib", "Mkl", "MklError")
 
 __MKL = None
-_scipy_sparse_type = Union[scipy.sparse.csc_matrix, scipy.sparse.csr_matrix]
-_sparse_mat_type = Union[scipy.sparse.csc_matrix, scipy.sparse.csr_matrix, SparseTensor]
+_scipy_sparse_type = scipy.sparse.csc_matrix | scipy.sparse.csr_matrix
+_sparse_mat_type = scipy.sparse.csc_matrix | scipy.sparse.csr_matrix | SparseTensor
 
 
 def mkl_lib():

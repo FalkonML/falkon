@@ -16,7 +16,7 @@ def elbo_opt_step(optimizer, model, batch):
         tape.watch(model.trainable_variables)
         objective = -model.elbo(batch)
         grads = tape.gradient(objective, model.trainable_variables)
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    optimizer.apply_gradients(zip(grads, model.trainable_variables, strict=False))
     return objective
 
 

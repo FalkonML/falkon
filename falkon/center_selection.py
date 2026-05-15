@@ -1,6 +1,5 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import Union
 
 import numpy as np
 import torch
@@ -10,9 +9,9 @@ from falkon.utils import check_random_generator
 from falkon.utils.tensor_helpers import create_same_stride
 
 __all__ = ("CenterSelector", "FixedSelector", "UniformSelector")
-_tensor_type = Union[torch.Tensor, SparseTensor]
-_opt_tns_tup = Union[_tensor_type, tuple[_tensor_type, torch.Tensor]]
-_opt_tns_idx_tup = Union[tuple[_tensor_type, torch.Tensor], tuple[_tensor_type, torch.Tensor, torch.Tensor]]
+_tensor_type = torch.Tensor | SparseTensor
+_opt_tns_tup = _tensor_type | tuple[_tensor_type, torch.Tensor]
+_opt_tns_idx_tup = tuple[_tensor_type, torch.Tensor] | tuple[_tensor_type, torch.Tensor, torch.Tensor]
 
 
 class CenterSelector(ABC):

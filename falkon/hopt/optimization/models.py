@@ -3,7 +3,6 @@ This file contains a helper function to initialize one of several
 hyperparameter optimization objectives.
 """
 
-
 import torch
 
 import falkon.kernels

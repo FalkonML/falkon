@@ -39,9 +39,7 @@ class ArgsFmmv:
     kwargs_m2: dict[str, torch.Tensor] = field(default_factory=dict)
 
 
-def _init_two_streams(
-    stack: ExitStack, dev: torch.device, tid: int
-) -> tuple[tcd.Stream | None, tcd.Stream | None]:
+def _init_two_streams(stack: ExitStack, dev: torch.device, tid: int) -> tuple[tcd.Stream | None, tcd.Stream | None]:
     """
     Initialize two CUDA streams (if device is a GPU). If the thread ID is -1, we are initializing
     in the main thread so s1 will be the `current_stream`. Otherwise, it will not be a newly created
@@ -426,7 +424,9 @@ def mmv_diff_run_thread(
             grads.append(torch.zeros_like(ipt))
         else:
             grads.append(None)
-    inputs_need_grad, input_idxs = zip(*[(ipt, idx) for idx, ipt in enumerate(inputs) if ipt.requires_grad])
+    inputs_need_grad, input_idxs = zip(
+        *[(ipt, idx) for idx, ipt in enumerate(inputs) if ipt.requires_grad], strict=True
+    )
 
     with ExitStack() as stack:
         s1, s2 = _init_two_streams(stack, dev, tid)
@@ -464,7 +464,7 @@ def mmv_diff_run_thread(
                     grad_outputs=c_dev_out,
                 )
                 c_dev_grads_old = [c_dev_m1_g, c_dev_m2_g, c_dev_v_g] + grads[3:]
-                for c_grad, c_idx in zip(c_dev_grads, input_idxs):
+                for c_grad, c_idx in zip(c_dev_grads, input_idxs, strict=True):
                     c_dev_grads_old[c_idx].add_(c_grad)
                 # Move grads to host
                 if grads[1] is not None:
