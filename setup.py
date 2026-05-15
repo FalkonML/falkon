@@ -177,7 +177,7 @@ setup(
     author_email="giacomo.meanti@iit.it",
     url="https://falkonml.github.io/falkon/",
     description="Fast, GPU enabled, approximate kernel ridge regression solver.",
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     tests_require=test_requires,
     extras_require={"test": test_requires, "doc": doc_requires},
     install_requires=install_requires,

@@ -16,7 +16,7 @@ jobs:
         os: [ubuntu-22.04]
         # support version based on: https://download.pytorch.org/whl/torch/
         # https://github.com/pytorch/pytorch/blob/main/RELEASE.md#release-compatibility-matrix
-        python-version: ['3.9', '3.12', '3.13']
+        python-version: ['3.10', '3.12', '3.13']
         torch-version: [2.4.0, 2.5.0, 2.6.0, 2.7.0]
         cuda-version: ['cpu', 'cu118', 'cu121', 'cu124', 'cu126', 'cu128']
         exclude:
