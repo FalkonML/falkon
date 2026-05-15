@@ -21,7 +21,7 @@ class BalkonPreconditioner(Preconditioner):
 
         self.base_prec = FalkonPreconditioner(penalty=penalty, kernel=kernel, opt=opt)
         self.block_size = block_size
-        self.data_size = data_size 
+        self.data_size = data_size
 
     def check_inputs(self, X: Union[torch.Tensor, SparseTensor]):
         if X.is_cuda and not self._use_cuda:
@@ -47,11 +47,11 @@ class BalkonPreconditioner(Preconditioner):
             i_start = i * self.block_size
             i_end = (i + 1) * self.block_size
             # TODO: Maybe we'd like an option to send smaller nystrom chunks to GPU.
-            self.base_prec.init(self.X_nys[i_start: i_end])
-            out[i_start: i_end] = self.base_prec.apply_t(self.base_prec.apply(v[i_start: i_end]))
+            self.base_prec.init(self.X_nys[i_start:i_end])
+            out[i_start:i_end] = self.base_prec.apply_t(self.base_prec.apply(v[i_start:i_end]))
         out = out.div_(num_blocks * self.data_size)
         return out
-    
+
     def apply_t(self, v: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError("Balkon preconditioner does not support transpose application")
 

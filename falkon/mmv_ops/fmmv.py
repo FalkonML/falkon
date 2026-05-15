@@ -968,9 +968,9 @@ def fmmv(
     kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
 ) -> torch.Tensor:
     if isinstance(kernel, falkon.kernels.DiffKernel):
-        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v, *kernel.diff_params.values()) # type: ignore
+        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v, *kernel.diff_params.values())  # type: ignore
     else:
-        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v) # type: ignore
+        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v)  # type: ignore
 
 
 def fdmmv(

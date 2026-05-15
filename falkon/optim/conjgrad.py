@@ -71,7 +71,7 @@ class PreconditionedConjugateGradient(Optimizer):
         # indices of columns which have not converged, as they originally were in `X`
         col_idx_notconverged: torch.Tensor = torch.arange(T)
 
-        with timer := TicToc("PCG preparation", debug=False):
+        with (timer := TicToc("PCG preparation", debug=False)):
             if x0 is None:
                 r = copy_same_stride(rhs)  # n*T
                 x = create_same_stride(rhs.size(), rhs, rhs.dtype, rhs.device)
@@ -87,7 +87,7 @@ class PreconditionedConjugateGradient(Optimizer):
             e_train = timer.toc_val()
 
         for self.num_iter in range(max_iter):
-            with timer := TicToc("Chol Iter", debug=False):
+            with (timer := TicToc("Chol Iter", debug=False)):
                 op_q = mmv(p)
                 alpha = rs_old / (torch.sum(p * op_q, dim=0).add_(m_eps))
                 # X += P @ diag(alpha)
@@ -101,7 +101,7 @@ class PreconditionedConjugateGradient(Optimizer):
                 else:
                     # R -= AP @ diag(alpha)
                     r.addcmul_(op_q, alpha.reshape(1, -1), value=-1.0)
-            
+
                 s = self.prec.apply(r)
                 rs_new = (r * s).sum(0)
 
@@ -118,7 +118,7 @@ class PreconditionedConjugateGradient(Optimizer):
                     r = r[:, ~converged]
                     s = s[:, ~converged]
                     rhs = rhs[:, ~converged]
-                    x = x[:, ~converged] 
+                    x = x[:, ~converged]
                     tol = tol[~converged]
                     rs_new = rs_new[~converged]
                     rs_old = rs_old[~converged]
@@ -283,5 +283,3 @@ class ConjugateGradient(Optimizer):
                         X_orig[:, out_idx].copy_(X[:, i])
             X = X_orig
         return X
-
-

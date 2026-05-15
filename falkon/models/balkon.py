@@ -47,9 +47,11 @@ class Balkon(FalkonBase):
         self.penalty = penalty
         self.maxiter = maxiter
         if M < block_size:
-            raise ValueError(f"Preconditioner block size must be smaller or "
-                             f"equal to the number of centers. Found {M} centers "
-                             f"and block size {block_size}.")
+            raise ValueError(
+                f"Preconditioner block size must be smaller or "
+                f"equal to the number of centers. Found {M} centers "
+                f"and block size {block_size}."
+            )
         self.block_size = block_size
         self._init_cuda()
         self.precond: BalkonPreconditioner | None = None
@@ -109,7 +111,7 @@ class Balkon(FalkonBase):
             alpha = optim.solve(
                 X, ny_pts, Y, self.penalty, initial_solution=warm_start, max_iter=self.maxiter, callback=cb
             )
-            
+
         return alpha
 
     def fit(

@@ -4,7 +4,7 @@ from contextlib import ExitStack
 import torch
 
 import falkon
-from falkon.optim.conjgrad import PreconditionedConjugateGradient, Optimizer
+from falkon.optim.conjgrad import Optimizer, PreconditionedConjugateGradient
 from falkon.options import FalkonOptions
 from falkon.utils import TicToc
 
