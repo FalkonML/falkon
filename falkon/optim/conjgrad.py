@@ -125,7 +125,7 @@ class PreconditionedConjugateGradient(Optimizer):
 
                 # P = R + P @ diag(mul)
                 beta_multiplier = (rs_new / rs_old.add_(m_eps)).reshape(1, -1)
-                p = p.mul_(beta_multiplier).add_(r)
+                p = p.mul_(beta_multiplier).add_(s)
                 rs_old = rs_new
                 e_train += timer.toc_val()
             with TicToc("Chol callback", debug=False):

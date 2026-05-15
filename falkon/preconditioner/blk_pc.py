@@ -46,7 +46,7 @@ class BalkonPreconditioner(Preconditioner):
             i_end = (i + 1) * self.block_size
             # TODO: Maybe we'd like an option to send smaller nystrom chunks to GPU.
             self.base_prec.init(self.X_nys[i_start:i_end])
-            out[i_start:i_end] = self.base_prec.apply_t(self.base_prec.apply(v[i_start:i_end]))
+            out[i_start:i_end] = self.base_prec.apply(self.base_prec.apply_t(v[i_start:i_end]))
         out = out.div_(num_blocks * self.data_size)
         return out
 

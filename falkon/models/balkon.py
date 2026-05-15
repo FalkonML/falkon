@@ -68,13 +68,12 @@ class Balkon(FalkonBase):
         use_cuda_pc: bool,
     ) -> BalkonPreconditioner:
         num_centers = ny_points.shape[0]
-        with TicToc(f"Calcuating Preconditioner of size {num_centers}", debug=self.options.debug):
-            pc_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not use_cuda_pc)
-            if pc_opt.debug:
-                dev_str = "CPU" if pc_opt.use_cpu else f"{self.num_gpus} GPUs"
-                print(f"Preconditioner will run on {dev_str}")
-            pc = BalkonPreconditioner(self.penalty, self.kernel, data_size=n, block_size=self.block_size, opt=pc_opt)
-            pc.init(ny_points)
+        pc_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not use_cuda_pc)
+        if pc_opt.debug:
+            dev_str = "CPU" if pc_opt.use_cpu else f"{self.num_gpus} GPUs"
+            print(f"Preconditioner will run on {dev_str}")
+        pc = BalkonPreconditioner(self.penalty, self.kernel, data_size=n, block_size=self.block_size, opt=pc_opt)
+        pc.init(ny_points)
         return pc
 
     def init_kernel_matrix(self, X: Tensor, ny_pts: Tensor) -> falkon.kernels.Kernel:
@@ -132,13 +131,12 @@ class Balkon(FalkonBase):
         with torch.autograd.inference_mode():
             ny_points, ny_indices = self.center_selection.select_indices(X, None)
             num_centers = ny_points.shape[0]
-            pc_block_size = num_centers // self.block_size
 
             # Decide whether to use CUDA for preconditioning and iterations
             _use_cuda_preconditioner = (
                 self.use_cuda_
                 and (not self.options.cpu_preconditioner)
-                and pc_block_size >= get_min_cuda_preconditioner_size(X.dtype, self.options)
+                and self.block_size >= get_min_cuda_preconditioner_size(X.dtype, self.options)
             )
             tot_mmv_mem_usage = X.shape[0] * X.shape[1] * num_centers  # N*D*M
             _use_cuda_mmv = self.use_cuda_ and tot_mmv_mem_usage / self.num_gpus >= get_min_cuda_mmv_size(

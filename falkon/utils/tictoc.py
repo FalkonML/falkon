@@ -47,7 +47,7 @@ class TicToc:
         t_end = time.time()
         mp_name = self.mp_name
         times = TicToc.__t_start.setdefault(mp_name, [])
-        return t_end - times.pop()
+        return t_end - times[-1]
 
     @property
     def mp_name(self):
