@@ -10,7 +10,7 @@ from falkon.hopt.objectives.objectives import HyperoptObjective
 from falkon.hopt.objectives.stoch_objectives.utils import calc_grads_tensors, init_random_vecs
 from falkon.hopt.utils import get_scalar
 from falkon.la_helpers import trsm
-from falkon.optim import FalkonConjugateGradient
+from falkon.optim.falkon import FalkonConjugateGradient
 from falkon.preconditioner import FalkonPreconditioner
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tictoc import Timer
