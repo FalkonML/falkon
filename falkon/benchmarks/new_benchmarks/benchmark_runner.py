@@ -75,8 +75,15 @@ def run_balkon(
         debug=True,
     )
     flk = balkon.Balkon(
-        kernel=k, penalty=penalty, M=num_centers, maxiter=num_iter, seed=seed, 
-        error_fn=None, error_every=1, options=opt, block_size=block_size
+        kernel=k,
+        penalty=penalty,
+        M=num_centers,
+        maxiter=num_iter,
+        seed=seed,
+        error_fn=None,
+        error_every=1,
+        options=opt,
+        block_size=block_size,
     )
 
     # Error metrics

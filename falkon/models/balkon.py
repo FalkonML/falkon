@@ -67,7 +67,6 @@ class Balkon(FalkonBase):
         n: int,
         use_cuda_pc: bool,
     ) -> BalkonPreconditioner:
-        num_centers = ny_points.shape[0]
         pc_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not use_cuda_pc)
         if pc_opt.debug:
             dev_str = "CPU" if pc_opt.use_cpu else f"{self.num_gpus} GPUs"
@@ -102,7 +101,7 @@ class Balkon(FalkonBase):
         cb: Callable,
     ) -> Tensor:
         assert self.precond is not None
-        with TicToc("Computing Falkon iterations", debug=self.options.debug):
+        with TicToc("Computing Balkon iterations", debug=self.options.debug):
             o_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not use_cuda)
             if o_opt.debug:
                 optim_dev_str = "CPU" if o_opt.use_cpu else f"{self.num_gpus} GPUs"
