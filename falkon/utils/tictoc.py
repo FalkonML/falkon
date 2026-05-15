@@ -13,6 +13,7 @@ class Timer:
         self.start_time = time.time()
 
     def __exit__(self, type, value, traceback):
+        assert self.start_time is not None
         self.times.append(time.time() - self.start_time)
 
 
@@ -44,9 +45,10 @@ class TicToc:
             print(f"{indent_str}{mp_name}::[{self.title}] complete in {t_elapsed:.3f}s", flush=True)
 
     def toc_val(self):
+        t_end = time.time()
         mp_name = self.mp_name
         times = TicToc.__t_start.setdefault(mp_name, [])
-        return time.time() - times.pop()
+        return t_end - times.pop()
 
     @property
     def mp_name(self):
