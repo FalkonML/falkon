@@ -1,6 +1,6 @@
 import time
 import warnings
-from typing import Callable, Optional, Tuple, Union
+from collections.abc import Callable
 
 import torch
 from torch import Tensor
@@ -115,13 +115,13 @@ class InCoreFalkon(Falkon):
         kernel: falkon.kernels.Kernel,
         penalty: float,
         M: int,
-        center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
+        center_selection: str | falkon.center_selection.CenterSelector = "uniform",
         maxiter: int = 20,
-        seed: Optional[int] = None,
-        error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
-        error_every: Optional[int] = 1,
-        weight_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
-        options: Optional[FalkonOptions] = None,
+        seed: int | None = None,
+        error_fn: Callable[[torch.Tensor, torch.Tensor], float | tuple[float, str]] | None = None,
+        error_every: int | None = 1,
+        weight_fn: Callable[[torch.Tensor], torch.Tensor] | None = None,
+        options: FalkonOptions | None = None,
     ):
         super().__init__(kernel, penalty, M, center_selection, maxiter, seed, error_fn, error_every, weight_fn, options)
         if not self.use_cuda_:
@@ -148,11 +148,11 @@ class InCoreFalkon(Falkon):
 
     def init_pc(
         self,
-        ny_points: Union[Tensor, SparseTensor],
+        ny_points: Tensor | SparseTensor,
         use_cuda_pc: bool,
         X: Tensor,
         Y: Tensor,
-        ny_indices: Optional[Tensor] = None,
+        ny_indices: Tensor | None = None,
     ) -> FalkonPreconditioner:
         assert use_cuda_pc is True
         pc_stream = torch.cuda.Stream(X.device)
@@ -179,9 +179,9 @@ class InCoreFalkon(Falkon):
         self,
         X: torch.Tensor,
         Y: torch.Tensor,
-        Xts: Optional[torch.Tensor] = None,
-        Yts: Optional[torch.Tensor] = None,
-        warm_start: Optional[torch.Tensor] = None,
+        Xts: torch.Tensor | None = None,
+        Yts: torch.Tensor | None = None,
+        warm_start: torch.Tensor | None = None,
     ):
         """Fits the Falkon KRR model.
 

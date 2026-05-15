@@ -1,7 +1,7 @@
 import argparse
 import json
 import timeit
-from typing import Any, Dict, List
+from typing import Any
 
 import torch
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     defaultT = 10
     defaultD = 10
 
-    experiments: List[Dict[str, Any]] = [
+    experiments: list[dict[str, Any]] = [
         {
             "exp_name": "varying N - KeOps 32",
             "changing_var": "N",

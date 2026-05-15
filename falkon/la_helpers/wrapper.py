@@ -1,6 +1,5 @@
 """Wrap the the various linear-algebra helpers which use c extension"""
 
-from typing import Optional
 
 import torch
 
@@ -111,5 +110,5 @@ def trsm(v: torch.Tensor, A: torch.Tensor, alpha: float, lower: int = 0, transpo
     return torch.linalg.solve_triangular(A, v, upper=upper, left=True)
 
 
-def square_norm(mat: torch.Tensor, dim: int, keepdim: Optional[bool] = None) -> torch.Tensor:
+def square_norm(mat: torch.Tensor, dim: int, keepdim: bool | None = None) -> torch.Tensor:
     return c_ext.square_norm(mat, dim, keepdim)

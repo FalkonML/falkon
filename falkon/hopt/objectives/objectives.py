@@ -1,5 +1,4 @@
 import abc
-from typing import Optional
 
 import torch
 from torch.distributions.transforms import identity_transform
@@ -16,8 +15,8 @@ class HyperoptObjective(torch.nn.Module):
         penalty_init: torch.Tensor,
         opt_centers: bool,
         opt_penalty: bool,
-        centers_transform: Optional[torch.distributions.Transform],
-        pen_transform: Optional[torch.distributions.Transform],
+        centers_transform: torch.distributions.Transform | None,
+        pen_transform: torch.distributions.Transform | None,
     ):
         """
 

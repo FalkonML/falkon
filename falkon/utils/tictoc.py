@@ -1,13 +1,12 @@
 import multiprocessing as mpr
 import threading as thr
 import time
-from typing import List, Optional
 
 
 class Timer:
-    def __init__(self, time_list: List[float]):
+    def __init__(self, time_list: list[float]):
         self.times = time_list
-        self.start_time: Optional[float] = None
+        self.start_time: float | None = None
 
     def __enter__(self):
         self.start_time = time.time()

@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass
-from typing import Dict
 
 import psutil
 import torch
@@ -54,7 +53,7 @@ class DeviceInfo:
         )
 
 
-def _get_cpu_device_info(opt: BaseOptions, data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
+def _get_cpu_device_info(opt: BaseOptions, data_dict: dict[int, DeviceInfo]) -> dict[int, DeviceInfo]:
     cpu_free_mem = _cpu_available_mem()
     cpu_used_mem = _cpu_used_mem()
     if -1 in data_dict:
@@ -68,7 +67,7 @@ def _get_cpu_device_info(opt: BaseOptions, data_dict: Dict[int, DeviceInfo]) -> 
     return data_dict
 
 
-def _get_gpu_device_info(opt: BaseOptions, g: int, data_dict: Dict[int, DeviceInfo]) -> Dict[int, DeviceInfo]:
+def _get_gpu_device_info(opt: BaseOptions, g: int, data_dict: dict[int, DeviceInfo]) -> dict[int, DeviceInfo]:
     # This is often the first CUDA-related call. Call init() here to avoid segfaults due to
     # uninitialized CUDA environment.
     tcd.init()
@@ -158,7 +157,7 @@ def _cpu_used_mem(uss=True) -> int:
         return process.memory_info().rss  # in bytes
 
 
-def get_device_info(opt: BaseOptions) -> Dict[int, DeviceInfo]:
+def get_device_info(opt: BaseOptions) -> dict[int, DeviceInfo]:
     """Retrieve speed and memory information about CPU and GPU devices on the system
 
     The behaviour of this function is influenced by the `opt` parameter:

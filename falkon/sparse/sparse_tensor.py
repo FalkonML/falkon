@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional, Tuple, Union
 
 import scipy.sparse
 import torch
@@ -49,8 +48,8 @@ class SparseTensor:
         indexptr: torch.Tensor,
         index: torch.Tensor,
         data: torch.Tensor,
-        size: Tuple[int, int],
-        sparse_type: Union[str, SparseType] = SparseType.CSR,
+        size: tuple[int, int],
+        sparse_type: str | SparseType = SparseType.CSR,
     ):
         if isinstance(sparse_type, str):
             sparse_type = SparseType(sparse_type)
@@ -79,7 +78,7 @@ class SparseTensor:
     def shape(self):
         return self._size
 
-    def size(self, dim: Optional[int] = None):
+    def size(self, dim: int | None = None):
         if dim is None:
             return self._size
         return self._size[dim]
@@ -114,7 +113,7 @@ class SparseTensor:
     def dim(self):
         return len(self._size)
 
-    def narrow_rows(self, start: Optional[int], length: Optional[int]) -> "SparseTensor":
+    def narrow_rows(self, start: int | None, length: int | None) -> "SparseTensor":
         """Select a subset of contiguous rows from the sparse matrix.
         If this is a CSC sparse matrix, instead of taking contiguous rows we take contiguous
         columns.
@@ -232,7 +231,7 @@ class SparseTensor:
         )
 
     @staticmethod
-    def from_scipy(mat: Union[scipy.sparse.csr_matrix, scipy.sparse.csc_matrix]) -> "SparseTensor":
+    def from_scipy(mat: scipy.sparse.csr_matrix | scipy.sparse.csc_matrix) -> "SparseTensor":
         if isinstance(mat, scipy.sparse.csr_matrix):
             return SparseTensor(
                 indexptr=torch.from_numpy(mat.indptr).to(torch.long),
@@ -254,7 +253,7 @@ class SparseTensor:
                 f"Cannot convert type {type(mat)} to SparseTensor. Please use the CSR or CSC formats"
             )
 
-    def to_scipy(self, copy: bool = False) -> Union[scipy.sparse.csr_matrix, scipy.sparse.csc_matrix]:
+    def to_scipy(self, copy: bool = False) -> scipy.sparse.csr_matrix | scipy.sparse.csc_matrix:
         if self.is_cuda:
             return self.to(device="cpu").to_scipy(copy=copy)
 

@@ -1,6 +1,5 @@
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional
 
 import keopscore
 import torch
@@ -18,7 +17,7 @@ class ArgsFmmv:
     X1: torch.Tensor
     X2: torch.Tensor
     v: torch.Tensor
-    other_vars: List[torch.Tensor]
+    other_vars: list[torch.Tensor]
     out: torch.Tensor
     gpu_ram: float
     backend: str
@@ -163,13 +162,13 @@ def run_keops_mmv(
     X1: torch.Tensor,
     X2: torch.Tensor,
     v: torch.Tensor,
-    other_vars: List[torch.Tensor],
-    out: Optional[torch.Tensor],
+    other_vars: list[torch.Tensor],
+    out: torch.Tensor | None,
     formula: str,
-    aliases: List[str],
+    aliases: list[str],
     axis: int,
     reduction: str = "Sum",
-    opt: Optional[FalkonOptions] = None,
+    opt: FalkonOptions | None = None,
 ) -> torch.Tensor:
     if opt is None:
         opt = FalkonOptions()

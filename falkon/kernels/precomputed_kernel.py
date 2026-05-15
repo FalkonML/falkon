@@ -1,4 +1,3 @@
-from typing import Optional
 
 import torch
 from torch import Tensor
@@ -11,7 +10,7 @@ from falkon.utils.helpers import check_same_dtype
 
 
 class PrecomputedKernel(Kernel):
-    def __init__(self, k: Tensor, opt: Optional[FalkonOptions] = None):
+    def __init__(self, k: Tensor, opt: FalkonOptions | None = None):
         super().__init__("precomputed", opt)
         self.k = k
 
@@ -41,7 +40,7 @@ class PrecomputedKernel(Kernel):
     def _decide_mm_impl(self, X1, X2, diag, opt):
         return self.mm_impl
 
-    def mm_impl(self, out: Optional[Tensor], diag: bool, **kwargs) -> Tensor:
+    def mm_impl(self, out: Tensor | None, diag: bool, **kwargs) -> Tensor:
         k = self.k
         if diag:
             k = torch.diagonal(k)
@@ -54,11 +53,11 @@ class PrecomputedKernel(Kernel):
         pass
 
     @staticmethod
-    def _check_mm_dimensions(X1: torch.Tensor, X2: torch.Tensor, diag: bool, out: Optional[torch.Tensor]):
+    def _check_mm_dimensions(X1: torch.Tensor, X2: torch.Tensor, diag: bool, out: torch.Tensor | None):
         return X1, X2, out
 
     @staticmethod
-    def _check_mmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor, out: Optional[torch.Tensor]):
+    def _check_mmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor, out: torch.Tensor | None):
         if v.dim() == 1:
             v = v.reshape((-1, 1))
         if v.dim() != 2:

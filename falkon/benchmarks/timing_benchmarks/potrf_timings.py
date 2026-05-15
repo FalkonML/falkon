@@ -1,7 +1,7 @@
 import functools
 import json
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import torch
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     defaultN64 = [10_000, 20_000, 30_000, 40_000, 50_000, 65_000, 80_000]
     falkon.FalkonOptions(chol_force_ooc=True, chol_par_blk_multiplier=2, compute_arch_speed=False)
 
-    experiments: List[Dict[str, Any]] = [
+    experiments: list[dict[str, Any]] = [
         {
             "exp_name": "Parallel 32",
             "exp_sizes": defaultN32,

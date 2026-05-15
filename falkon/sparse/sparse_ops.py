@@ -1,5 +1,4 @@
 import warnings
-from typing import Optional
 
 import torch
 
@@ -154,7 +153,7 @@ def sparse_square_norm(A: SparseTensor, out: torch.Tensor) -> torch.Tensor:
     return sparse_row_norm_sq(A.indexptr, A.data, out=out)
 
 
-def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
+def sparse_norm(A: SparseTensor, out: torch.Tensor | None) -> torch.Tensor:
     """Row-wise l2 norm of a sparse 2D matrix
 
     Parameters
@@ -187,7 +186,7 @@ def sparse_norm(A: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
     return sparse_row_norm(A.indexptr, A.data, out=out)
 
 
-def bdot(A: SparseTensor, B: SparseTensor, out: Optional[torch.Tensor]) -> torch.Tensor:
+def bdot(A: SparseTensor, B: SparseTensor, out: torch.Tensor | None) -> torch.Tensor:
     """
 
     Parameters

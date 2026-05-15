@@ -1,4 +1,3 @@
-from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -29,8 +28,8 @@ class StochasticNystromCompReg(HyperoptObjective):
         flk_opt: FalkonOptions,
         flk_maxiter: int = 10,
         num_trace_est: int = 20,
-        centers_transform: Optional[torch.distributions.Transform] = None,
-        pen_transform: Optional[torch.distributions.Transform] = None,
+        centers_transform: torch.distributions.Transform | None = None,
+        pen_transform: torch.distributions.Transform | None = None,
     ):
         super().__init__(kernel, centers_init, penalty_init, opt_centers, opt_penalty, centers_transform, pen_transform)
         self.flk_opt = flk_opt
@@ -40,7 +39,7 @@ class StochasticNystromCompReg(HyperoptObjective):
         self.gaussian_ste = False
         self.warm_start = True
         self.trace_type = "fast"
-        self.losses: Optional[Dict[str, torch.Tensor]] = None
+        self.losses: dict[str, torch.Tensor] | None = None
 
     def forward(self, X, Y):
         loss = stochastic_nystrom_compreg(
@@ -93,11 +92,11 @@ class StochasticNystromCompReg(HyperoptObjective):
 
 def calc_trace_fwd(
     init_val: torch.Tensor,
-    k_mn: Optional[torch.Tensor],
-    k_mn_zy: Optional[torch.Tensor],
+    k_mn: torch.Tensor | None,
+    k_mn_zy: torch.Tensor | None,
     kmm_chol: torch.Tensor,
-    X: Optional[torch.Tensor],
-    t: Optional[int],
+    X: torch.Tensor | None,
+    t: int | None,
     trace_type: str,
 ):
     """Nystrom kernel trace forward"""
@@ -125,12 +124,12 @@ def calc_trace_fwd(
 
 
 def calc_trace_bwd(
-    k_mn: Optional[torch.Tensor],
-    k_mn_zy: Optional[torch.Tensor],
+    k_mn: torch.Tensor | None,
+    k_mn_zy: torch.Tensor | None,
     solve2: torch.Tensor,
     kmm: torch.Tensor,
-    X: Optional[torch.Tensor],
-    t: Optional[int],
+    X: torch.Tensor | None,
+    t: int | None,
     trace_type: str,
 ):
     """Nystrom kernel trace backward pass"""
@@ -291,7 +290,7 @@ class NystromCompRegFn(torch.autograd.Function):
     @staticmethod
     def choose_device_mem(
         data_dev: torch.device, dtype: torch.dtype, solve_options: FalkonOptions
-    ) -> Tuple[torch.device, float]:
+    ) -> tuple[torch.device, float]:
         if data_dev.type == "cuda":  # CUDA in-core
             from falkon.mmv_ops.utils import _get_gpu_info
 

@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, Generator, List, Tuple, Union
+from typing import Any
+from collections.abc import Callable, Generator
 
 import numpy as np
 
@@ -13,7 +14,7 @@ def _ensure_numpy(*arrays) -> Generator[np.ndarray, None, None]:
             yield arr
 
 
-def _ensure_numpy_or_float(*vals) -> Generator[Union[float, np.ndarray], None, None]:
+def _ensure_numpy_or_float(*vals) -> Generator[float | np.ndarray, None, None]:
     for val in vals:
         if (
             not isinstance(val, np.ndarray)
@@ -232,9 +233,9 @@ def timit_calc_error_tf(y_true, y_pred, **kwargs):
 
 
 ARRAY_TYPE = Any
-ERROR_FN_TYPE = Callable[[Any, Any, Dict[str, Any]], Tuple[float, str]]
+ERROR_FN_TYPE = Callable[[Any, Any, dict[str, Any]], tuple[float, str]]
 
-ERROR_METRICS: Dict[Dataset, List[ERROR_FN_TYPE]] = {
+ERROR_METRICS: dict[Dataset, list[ERROR_FN_TYPE]] = {
     Dataset.TIMIT: [timit_calc_error],
     Dataset.MILLIONSONGS: [ms_calc_relerr, ms_calc_mse],
     Dataset.HIGGS: [higgs_calc_auc, binary_cerr],
@@ -273,7 +274,7 @@ ERROR_METRICS: Dict[Dataset, List[ERROR_FN_TYPE]] = {
     Dataset.ROAD3D: [nrmse],
     Dataset.HOUSEELECTRIC: [nrmse],
 }
-TF_ERROR_METRICS: Dict[Dataset, ERROR_FN_TYPE] = {
+TF_ERROR_METRICS: dict[Dataset, ERROR_FN_TYPE] = {
     Dataset.TIMIT: timit_calc_error_tf,
     Dataset.MILLIONSONGS: ms_calc_mse_tf,
     Dataset.FLIGHTS: mse_tf,
@@ -283,7 +284,7 @@ TF_ERROR_METRICS: Dict[Dataset, ERROR_FN_TYPE] = {
 }
 
 
-def get_err_fns(dset: Dataset) -> List[ERROR_FN_TYPE]:
+def get_err_fns(dset: Dataset) -> list[ERROR_FN_TYPE]:
     try:
         return ERROR_METRICS[dset]
     except KeyError:

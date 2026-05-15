@@ -1,6 +1,7 @@
 import dataclasses
 import time
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any
+from collections.abc import Callable
 
 import torch
 from torch import Tensor
@@ -36,12 +37,12 @@ class Balkon(FalkonBase):
         penalty: float,
         M: int,
         block_size: int,
-        center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
+        center_selection: str | falkon.center_selection.CenterSelector = "uniform",
         maxiter: int = 20,
-        seed: Optional[int] = None,
-        error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[Any, Tuple[Any, str]]]] = None,
-        error_every: Optional[int] = 1,
-        options: Optional[FalkonOptions] = None,
+        seed: int | None = None,
+        error_fn: Callable[[torch.Tensor, torch.Tensor], Any | tuple[Any, str]] | None = None,
+        error_every: int | None = 1,
+        options: FalkonOptions | None = None,
     ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
@@ -98,7 +99,7 @@ class Balkon(FalkonBase):
         X: Tensor,
         Y: Tensor,
         ny_pts: Tensor,
-        warm_start: Optional[Tensor],
+        warm_start: Tensor | None,
         cb: Callable,
     ) -> Tensor:
         assert self.precond is not None
@@ -118,9 +119,9 @@ class Balkon(FalkonBase):
         self,
         X: torch.Tensor,
         Y: torch.Tensor,
-        Xts: Optional[torch.Tensor] = None,
-        Yts: Optional[torch.Tensor] = None,
-        warm_start: Optional[torch.Tensor] = None,
+        Xts: torch.Tensor | None = None,
+        Yts: torch.Tensor | None = None,
+        warm_start: torch.Tensor | None = None,
     ):
         X, Y, Xts, Yts = self._check_fit_inputs(X, Y, Xts, Yts)
         self._reset_state()

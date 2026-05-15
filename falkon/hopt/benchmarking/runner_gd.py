@@ -1,7 +1,6 @@
 import io
 import pathlib
 import subprocess
-from typing import List, Union
 
 SIMPLE_HOPT_PATH = pathlib.Path(__file__).parent.joinpath("benchmark_cli.py").resolve()
 DEFAULT_SEED = 123199
@@ -53,8 +52,8 @@ def gen_exp_name(
 
 
 def run_simple_hopt(
-    sigma_init: Union[float, str],
-    pen_init: Union[float, str],
+    sigma_init: float | str,
+    pen_init: float | str,
     lr: float,
     num_epochs: int,
     M: int,
@@ -125,15 +124,15 @@ def run_simple_hopt(
 
 
 def run_for_models(
-    sigma_init: Union[float, str],
-    pen_init: Union[float, str],
+    sigma_init: float | str,
+    pen_init: float | str,
     lr: float,
     num_epochs: int,
     M: int,
     dataset: str,
     optim: str,
     val_pct: float,
-    models: List[str],
+    models: list[str],
     sigma: str,
     opt_centers: bool,
     num_trace_vecs: int,
@@ -165,14 +164,14 @@ def run_for_models(
 
 
 def run_for_valpct(
-    sigma_init: Union[float, str],
-    pen_init: Union[float, str],
+    sigma_init: float | str,
+    pen_init: float | str,
     lr: float,
     num_epochs: int,
     M: int,
     dataset: str,
     optim: str,
-    val_pcts: List[float],
+    val_pcts: list[float],
     sigma: str,
     opt_centers: bool,
     num_trace_vecs: int,

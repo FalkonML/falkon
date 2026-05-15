@@ -1,12 +1,11 @@
 import warnings
-from typing import Optional
 
 import torch
 
 from falkon.options import BaseOptions, KeopsOptions
 
 
-def decide_cuda(opt: Optional[BaseOptions] = None):
+def decide_cuda(opt: BaseOptions | None = None):
     if opt is None:
         opt = BaseOptions()
 
@@ -29,7 +28,7 @@ def decide_cuda(opt: Optional[BaseOptions] = None):
     return True
 
 
-def decide_keops(opt: Optional[KeopsOptions] = None):
+def decide_keops(opt: KeopsOptions | None = None):
     if opt is None:
         opt = KeopsOptions()
     if opt.keops_active.lower() == "no":

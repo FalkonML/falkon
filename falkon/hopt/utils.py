@@ -1,10 +1,9 @@
 from copy import deepcopy
-from typing import Union
 
 import torch
 
 
-def get_scalar(t: Union[torch.Tensor, float]) -> float:
+def get_scalar(t: torch.Tensor | float) -> float:
     if isinstance(t, torch.Tensor):
         if t.dim() == 0:
             return deepcopy(t.detach().cpu().item())

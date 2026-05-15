@@ -1,6 +1,5 @@
 import time
 from functools import reduce
-from typing import Dict, List, Optional
 
 import numpy as np
 import torch
@@ -85,10 +84,10 @@ def train_complexity_reg(
     cuda: bool,
     loss_every: int,
     early_stop_epochs: int,
-    cgtol_decrease_epochs: Optional[int],
+    cgtol_decrease_epochs: int | None,
     optimizer: str,
     retrain_nkrr: bool = False,
-) -> List[Dict[str, float]]:
+) -> list[dict[str, float]]:
     if cuda:
         Xtr, Ytr, Xts, Yts = Xtr.cuda(), Ytr.cuda(), Xts.cuda(), Yts.cuda()
     opt_hp, schedule = create_optimizer(optimizer, model, learning_rate)
@@ -166,11 +165,11 @@ def train_complexity_reg_mb(
     cuda: bool,
     loss_every: int,
     early_stop_epochs: int,
-    cgtol_decrease_epochs: Optional[int],
+    cgtol_decrease_epochs: int | None,
     optimizer: str,
     minibatch: int,
     retrain_nkrr: bool = False,
-) -> List[Dict[str, float]]:
+) -> list[dict[str, float]]:
     Xtrc, Ytrc, Xtsc, Ytsc = Xtr, Ytr, Xts, Yts
     if cuda:
         Xtrc, Ytrc, Xtsc, Ytsc = Xtr.cuda(), Ytr.cuda(), Xts.cuda(), Yts.cuda()

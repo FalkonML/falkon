@@ -1,7 +1,6 @@
 from collections import defaultdict
 from contextlib import ExitStack
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -28,21 +27,21 @@ from falkon.utils.tensor_helpers import create_same_stride, extract_fortran
 
 @dataclass(frozen=True)
 class ArgsFmmv:
-    X1: Union[torch.Tensor, SparseTensor]
-    X2: Union[torch.Tensor, SparseTensor]
+    X1: torch.Tensor | SparseTensor
+    X2: torch.Tensor | SparseTensor
     v: torch.Tensor
     out: torch.Tensor
     kernel: "falkon.kernels.Kernel"
     max_mem: float
     w: torch.Tensor | None = None
     differentiable: bool = False
-    kwargs_m1: Dict[str, torch.Tensor] = field(default_factory=dict)
-    kwargs_m2: Dict[str, torch.Tensor] = field(default_factory=dict)
+    kwargs_m1: dict[str, torch.Tensor] = field(default_factory=dict)
+    kwargs_m2: dict[str, torch.Tensor] = field(default_factory=dict)
 
 
 def _init_two_streams(
     stack: ExitStack, dev: torch.device, tid: int
-) -> Tuple[Optional[tcd.Stream], Optional[tcd.Stream]]:
+) -> tuple[tcd.Stream | None, tcd.Stream | None]:
     """
     Initialize two CUDA streams (if device is a GPU). If the thread ID is -1, we are initializing
     in the main thread so s1 will be the `current_stream`. Otherwise, it will not be a newly created
@@ -69,11 +68,11 @@ def _mmv_blk_sizes(
     out_ic: bool,
     m1_sparsity: float,
     m2_sparsity: float,
-    dtype: Union[np.dtype, torch.dtype],
+    dtype: np.dtype | torch.dtype,
     kernel: "falkon.kernels.Kernel",
     is_differentiable: bool,
     is_sparse: bool,
-) -> Tuple[int, int, int]:
+) -> tuple[int, int, int]:
     extra_mem = kernel.extra_mem(is_differentiable, is_sparse, dtype)
     normal_mem = defaultdict(int)
     normal_mem["nm"] = 1  # kernel block
@@ -196,8 +195,8 @@ def sparse_mmv_run_thread(
     mem_needed: int,
     dev: torch.device,
     tid: int,
-    kwargs_m1: Dict[str, torch.Tensor],
-    kwargs_m2: Dict[str, torch.Tensor],
+    kwargs_m1: dict[str, torch.Tensor],
+    kwargs_m2: dict[str, torch.Tensor],
 ):
     """Inner loop to compute (part of) a kernel-vector product for sparse input matrices.
 
@@ -317,8 +316,8 @@ def mmv_run_thread(
     mem_needed: int,
     dev: torch.device,
     tid: int,
-    kwargs_m1: Dict[str, torch.Tensor],
-    kwargs_m2: Dict[str, torch.Tensor],
+    kwargs_m1: dict[str, torch.Tensor],
+    kwargs_m2: dict[str, torch.Tensor],
 ):
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
     m1_ic, m2_ic, v_ic, out_ic = (
@@ -404,15 +403,15 @@ def mmv_run_thread(
 def mmv_diff_run_thread(
     m1: torch.Tensor,
     m2: torch.Tensor,
-    v: Optional[torch.Tensor],
+    v: torch.Tensor | None,
     out: torch.Tensor,
     kernel: "falkon.kernels.DiffKernel",
     blk_n: int,
     blk_m: int,
     dev: torch.device,
     tid: int,
-    kwargs_m1: Dict[str, torch.Tensor],
-    kwargs_m2: Dict[str, torch.Tensor],
+    kwargs_m1: dict[str, torch.Tensor],
+    kwargs_m2: dict[str, torch.Tensor],
 ):
     assert v is not None
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
@@ -498,11 +497,11 @@ def _dmmv_blk_sizes(
     out_ic: bool,
     m1_sparsity: float,
     m2_sparsity: float,
-    dtype: Union[np.dtype, torch.dtype],
+    dtype: np.dtype | torch.dtype,
     kernel: "falkon.kernels.Kernel",
     is_differentiable: bool,
     is_sparse: bool,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     extra_mem = kernel.extra_mem(is_differentiable, is_sparse, dtype)
     normal_mem = defaultdict(int)
     normal_mem["nm"] = 1  # kernel block
@@ -610,15 +609,15 @@ def sparse_dmmv_run_thread(
     m1: SparseTensor,
     m2: SparseTensor,
     v: torch.Tensor,
-    w: Optional[torch.Tensor],
+    w: torch.Tensor | None,
     out: torch.Tensor,
     kernel: "falkon.kernels.Kernel",
     blk_n: int,
     mem_needed: int,
     dev: torch.device,
     tid: int,
-    kwargs_m1: Dict[str, torch.Tensor],
-    kwargs_m2: Dict[str, torch.Tensor],
+    kwargs_m1: dict[str, torch.Tensor],
+    kwargs_m2: dict[str, torch.Tensor],
 ):
     incore = _is_incore(dev, m1.device)
     dev_out_exists = out.device == dev  # out has already been allocated on the computation device
@@ -684,15 +683,15 @@ def dmmv_run_thread(
     m1: torch.Tensor,
     m2: torch.Tensor,
     v: torch.Tensor,
-    w: Optional[torch.Tensor],
+    w: torch.Tensor | None,
     out: torch.Tensor,
     kernel: "falkon.kernels.Kernel",
     blk_n: int,
     mem_needed: int,
     dev: torch.device,
     tid: int,
-    kwargs_m1: Dict[str, torch.Tensor],
-    kwargs_m2: Dict[str, torch.Tensor],
+    kwargs_m1: dict[str, torch.Tensor],
+    kwargs_m2: dict[str, torch.Tensor],
 ):
     # k(x2, x1) @ (k(x1, x2) @ v + w)
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
@@ -771,15 +770,15 @@ def dmmv_run_thread(
 class KernelMmvFnFull(torch.autograd.Function):
     @staticmethod
     def run_cpu_cpu(
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
         v: torch.Tensor,
         out: torch.Tensor,
         kernel,
         options,
         diff,
-        kwargs_m1: Optional[Dict[str, torch.Tensor]],
-        kwargs_m2: Optional[Dict[str, torch.Tensor]],
+        kwargs_m1: dict[str, torch.Tensor] | None,
+        kwargs_m2: dict[str, torch.Tensor] | None,
     ):
         args = ArgsFmmv(
             X1=X1,
@@ -796,15 +795,15 @@ class KernelMmvFnFull(torch.autograd.Function):
 
     @staticmethod
     def run_cpu_gpu(
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
         v: torch.Tensor,
         out: torch.Tensor,
         kernel,
         options,
         diff,
-        kwargs_m1: Optional[Dict[str, torch.Tensor]],
-        kwargs_m2: Optional[Dict[str, torch.Tensor]],
+        kwargs_m1: dict[str, torch.Tensor] | None,
+        kwargs_m2: dict[str, torch.Tensor] | None,
     ):
         is_sparse = isinstance(X1, SparseTensor)
         gpu_info = _get_gpu_info(options, slack=options.memory_slack)
@@ -855,15 +854,15 @@ class KernelMmvFnFull(torch.autograd.Function):
 
     @staticmethod
     def run_gpu_gpu(
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
         v: torch.Tensor,
         out: torch.Tensor,
         kernel,
         options,
         diff,
-        kwargs_m1: Optional[Dict[str, torch.Tensor]],
-        kwargs_m2: Optional[Dict[str, torch.Tensor]],
+        kwargs_m1: dict[str, torch.Tensor] | None,
+        kwargs_m2: dict[str, torch.Tensor] | None,
     ):
         if isinstance(X1, SparseTensor):
             raise NotImplementedError("In-core, sparse fmmv not implemented. Use the out-of-core version instead.")
@@ -887,12 +886,12 @@ class KernelMmvFnFull(torch.autograd.Function):
     def forward(
         ctx,
         kernel: "falkon.kernels.Kernel",
-        opt: Optional[BaseOptions],
-        kwargs_m1: Optional[Dict[str, torch.Tensor]],
-        kwargs_m2: Optional[Dict[str, torch.Tensor]],
-        out: Optional[torch.Tensor],
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
+        opt: BaseOptions | None,
+        kwargs_m1: dict[str, torch.Tensor] | None,
+        kwargs_m2: dict[str, torch.Tensor] | None,
+        out: torch.Tensor | None,
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
         v: torch.Tensor,
         *kernel_params,
     ):
@@ -958,14 +957,14 @@ class KernelMmvFnFull(torch.autograd.Function):
 
 
 def fmmv(
-    X1: Union[torch.Tensor, SparseTensor],
-    X2: Union[torch.Tensor, SparseTensor],
+    X1: torch.Tensor | SparseTensor,
+    X2: torch.Tensor | SparseTensor,
     v: torch.Tensor,
     kernel: "falkon.kernels.Kernel",
-    out: Optional[torch.Tensor] = None,
-    opt: Optional[BaseOptions] = None,
-    kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
-    kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
+    out: torch.Tensor | None = None,
+    opt: BaseOptions | None = None,
+    kwargs_m1: dict[str, torch.Tensor] | None = None,
+    kwargs_m2: dict[str, torch.Tensor] | None = None,
 ) -> torch.Tensor:
     if isinstance(kernel, falkon.kernels.DiffKernel):
         return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v, *kernel.diff_params.values())  # type: ignore
@@ -974,16 +973,16 @@ def fmmv(
 
 
 def fdmmv(
-    X1: Union[torch.Tensor, SparseTensor],
-    X2: Union[torch.Tensor, SparseTensor],
+    X1: torch.Tensor | SparseTensor,
+    X2: torch.Tensor | SparseTensor,
     v: torch.Tensor,
-    w: Optional[torch.Tensor],
+    w: torch.Tensor | None,
     kernel: "falkon.kernels.Kernel",
-    out: Optional[torch.Tensor] = None,
+    out: torch.Tensor | None = None,
     differentiable: bool = False,
-    opt: Optional[BaseOptions] = None,
-    kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
-    kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
+    opt: BaseOptions | None = None,
+    kwargs_m1: dict[str, torch.Tensor] | None = None,
+    kwargs_m2: dict[str, torch.Tensor] | None = None,
 ) -> torch.Tensor:
     r"""Double kernel-vector product
 

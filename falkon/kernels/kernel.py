@@ -1,6 +1,5 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union
 
 import torch
 
@@ -33,7 +32,7 @@ class Kernel(torch.nn.Module, ABC):
         Base set of options to be used for operations involving this kernel.
     """
 
-    def __init__(self, name: str, opt: Optional[FalkonOptions]):
+    def __init__(self, name: str, opt: FalkonOptions | None):
         super().__init__()
         self.name = name
         if opt is None:
@@ -44,9 +43,9 @@ class Kernel(torch.nn.Module, ABC):
     def _check_dmmv_dimensions(
         X1: torch.Tensor,
         X2: torch.Tensor,
-        v: Optional[torch.Tensor],
-        w: Optional[torch.Tensor],
-        out: Optional[torch.Tensor],
+        v: torch.Tensor | None,
+        w: torch.Tensor | None,
+        out: torch.Tensor | None,
     ):
         # Parameter validation
         if v is None and w is None:
@@ -81,7 +80,7 @@ class Kernel(torch.nn.Module, ABC):
         return X1, X2, v, w, out
 
     @staticmethod
-    def _check_mmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor, out: Optional[torch.Tensor]):
+    def _check_mmv_dimensions(X1: torch.Tensor, X2: torch.Tensor, v: torch.Tensor, out: torch.Tensor | None):
         # Parameter validation
         if X1.dim() != 2:
             raise ValueError("Matrix X1 must be 2D.")
@@ -105,7 +104,7 @@ class Kernel(torch.nn.Module, ABC):
         return X1, X2, v, out
 
     @staticmethod
-    def _check_mm_dimensions(X1: torch.Tensor, X2: torch.Tensor, diag: bool, out: Optional[torch.Tensor]):
+    def _check_mm_dimensions(X1: torch.Tensor, X2: torch.Tensor, diag: bool, out: torch.Tensor | None):
         # Parameter validation
         if X1.dim() != 2:
             raise ValueError("Matrix X1 must be 2D.")
@@ -137,10 +136,10 @@ class Kernel(torch.nn.Module, ABC):
         X1: torch.Tensor,
         X2: torch.Tensor,
         diag: bool = False,
-        out: Optional[torch.Tensor] = None,
-        opt: Optional[FalkonOptions] = None,
-        kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
-        kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
+        out: torch.Tensor | None = None,
+        opt: FalkonOptions | None = None,
+        kwargs_m1: dict[str, torch.Tensor] | None = None,
+        kwargs_m2: dict[str, torch.Tensor] | None = None,
     ) -> torch.Tensor:
         """Compute the kernel matrix between ``X1`` and ``X2``
 
@@ -225,13 +224,13 @@ class Kernel(torch.nn.Module, ABC):
 
     def mmv(
         self,
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
         v: torch.Tensor,
-        out: Optional[torch.Tensor] = None,
-        opt: Optional[FalkonOptions] = None,
-        kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
-        kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
+        out: torch.Tensor | None = None,
+        opt: FalkonOptions | None = None,
+        kwargs_m1: dict[str, torch.Tensor] | None = None,
+        kwargs_m2: dict[str, torch.Tensor] | None = None,
     ) -> torch.Tensor:
         # noinspection PyShadowingNames
         """Compute matrix-vector multiplications where the matrix is the current kernel.
@@ -297,8 +296,8 @@ class Kernel(torch.nn.Module, ABC):
 
     def _decide_mmv_impl(
         self,
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
         v: torch.Tensor,
         opt: FalkonOptions,
     ):
@@ -335,14 +334,14 @@ class Kernel(torch.nn.Module, ABC):
 
     def dmmv(
         self,
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
-        v: Optional[torch.Tensor],
-        w: Optional[torch.Tensor],
-        out: Optional[torch.Tensor] = None,
-        opt: Optional[FalkonOptions] = None,
-        kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
-        kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
+        v: torch.Tensor | None,
+        w: torch.Tensor | None,
+        out: torch.Tensor | None = None,
+        opt: FalkonOptions | None = None,
+        kwargs_m1: dict[str, torch.Tensor] | None = None,
+        kwargs_m2: dict[str, torch.Tensor] | None = None,
     ) -> torch.Tensor:
         # noinspection PyShadowingNames
         """Compute double matrix-vector multiplications where the matrix is the current kernel.
@@ -418,10 +417,10 @@ class Kernel(torch.nn.Module, ABC):
 
     def _decide_dmmv_impl(
         self,
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
-        v: Optional[torch.Tensor],
-        w: Optional[torch.Tensor],
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
+        v: torch.Tensor | None,
+        w: torch.Tensor | None,
         opt: FalkonOptions,
     ):
         """Choose which `dmmv` function to use for this data.
@@ -539,7 +538,7 @@ class Kernel(torch.nn.Module, ABC):
         """
         pass
 
-    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> dict[str, float]:
         """Compute the amount of extra memory which will be needed when computing this kernel.
 
         Often kernel computation needs some extra memory allocations. To avoid using too large

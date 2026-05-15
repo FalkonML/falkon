@@ -2,7 +2,6 @@ import argparse
 import functools
 import sys
 import time
-from typing import List, Optional
 
 import numpy as np
 
@@ -33,12 +32,12 @@ def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
 def run_epro(
     dset: Dataset,
     algorithm: Algorithm,
-    dtype: Optional[DataType],
+    dtype: DataType | None,
     num_iter: int,
     kernel_sigma: float,
-    n_subsample: Optional[int],
-    data_subsample: Optional[int],
-    q: Optional[int],
+    n_subsample: int | None,
+    data_subsample: int | None,
+    q: int | None,
     kfold: int,
     eta_divisor: int,
     seed: int,
@@ -145,7 +144,7 @@ def run_epro(
 def run_gpytorch_sgpr(
     dset: Dataset,
     algorithm: Algorithm,
-    dtype: Optional[DataType],
+    dtype: DataType | None,
     lr: float,
     num_iter: int,
     num_centers: int,
@@ -198,7 +197,7 @@ def run_gpytorch_sgpr(
 def run_gpytorch(
     dset: Dataset,
     algorithm: Algorithm,
-    dtype: Optional[DataType],
+    dtype: DataType | None,
     batch_size: int,
     lr: float,
     natgrad_lr: float,
@@ -209,7 +208,7 @@ def run_gpytorch(
     learn_ind_pts: bool,
     kfold: int,
     seed: int,
-    ind_pt_file: Optional[str] = None,
+    ind_pt_file: str | None = None,
 ):
     import gpytorch
     import torch
@@ -315,7 +314,7 @@ def run_gpytorch(
 def run_falkon(
     dset: Dataset,
     algorithm: Algorithm,
-    dtype: Optional[DataType],
+    dtype: DataType | None,
     num_iter: int,
     num_centers: int,
     kernel_sigma: float,
@@ -403,9 +402,9 @@ def run_falkon(
 def run_logistic_falkon(
     dset: Dataset,
     algorithm: Algorithm,
-    dtype: Optional[DataType],
-    iter_list: List[int],
-    penalty_list: List[float],
+    dtype: DataType | None,
+    iter_list: list[int],
+    penalty_list: list[float],
     num_centers: int,
     kernel_sigma: float,
     kernel: str,
@@ -468,7 +467,7 @@ def run_logistic_falkon(
 def run_sgpr_gpflow(
     dset: Dataset,
     algorithm: Algorithm,
-    dtype: Optional[DataType],
+    dtype: DataType | None,
     lr: float,
     num_iter: int,
     num_centers: int,
@@ -528,7 +527,7 @@ def run_sgpr_gpflow(
 def run_gpflow(
     dset: Dataset,
     algorithm: Algorithm,
-    dtype: Optional[DataType],
+    dtype: DataType | None,
     batch_size: int,
     lr: float,
     natgrad_lr: float,
@@ -541,7 +540,7 @@ def run_gpflow(
     kernel_variance: float,
     kfold: int,
     seed: int,
-    ind_pt_file: Optional[str] = None,
+    ind_pt_file: str | None = None,
 ):
     import gpflow
     import tensorflow as tf

@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import torch
 
@@ -18,7 +18,7 @@ def calc_grads_tensors(
     output: torch.Tensor,
     retain_graph: bool,
     allow_unused: bool,
-) -> Tuple[Optional[torch.Tensor], ...]:
+) -> tuple[torch.Tensor | None, ...]:
     """
 
     Parameters

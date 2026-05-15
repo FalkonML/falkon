@@ -1,6 +1,6 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, Union
+from typing import Union
 
 import numpy as np
 import torch
@@ -11,8 +11,8 @@ from falkon.utils.tensor_helpers import create_same_stride
 
 __all__ = ("CenterSelector", "FixedSelector", "UniformSelector")
 _tensor_type = Union[torch.Tensor, SparseTensor]
-_opt_tns_tup = Union[_tensor_type, Tuple[_tensor_type, torch.Tensor]]
-_opt_tns_idx_tup = Union[Tuple[_tensor_type, torch.Tensor], Tuple[_tensor_type, torch.Tensor, torch.Tensor]]
+_opt_tns_tup = Union[_tensor_type, tuple[_tensor_type, torch.Tensor]]
+_opt_tns_idx_tup = Union[tuple[_tensor_type, torch.Tensor], tuple[_tensor_type, torch.Tensor, torch.Tensor]]
 
 
 class CenterSelector(ABC):
@@ -90,15 +90,15 @@ class FixedSelector(CenterSelector):
     def __init__(
         self,
         centers: _tensor_type,
-        y_centers: Optional[torch.Tensor] = None,
-        idx_centers: Optional[torch.Tensor] = None,
+        y_centers: torch.Tensor | None = None,
+        idx_centers: torch.Tensor | None = None,
     ):
         super().__init__(random_gen=None)
         self.centers = centers
         self.idx_centers = idx_centers
         self.y_centers = y_centers
 
-    def select(self, X: _tensor_type, Y: Optional[torch.Tensor]) -> _opt_tns_tup:
+    def select(self, X: _tensor_type, Y: torch.Tensor | None) -> _opt_tns_tup:
         """Returns the fixed centers with which this instance was created
 
         Parameters
@@ -131,7 +131,7 @@ class FixedSelector(CenterSelector):
             return self.centers, self.y_centers
         return self.centers
 
-    def select_indices(self, X: _tensor_type, Y: Optional[torch.Tensor]) -> _opt_tns_idx_tup:
+    def select_indices(self, X: _tensor_type, Y: torch.Tensor | None) -> _opt_tns_idx_tup:
         """Returns the fixed centers, and their indices with which this instance was created
 
         Parameters
@@ -184,7 +184,7 @@ class UniformSelector(CenterSelector):
         self.num_centers = num_centers
         super().__init__(random_gen)
 
-    def select_indices(self, X: _tensor_type, Y: Optional[torch.Tensor]) -> _opt_tns_idx_tup:
+    def select_indices(self, X: _tensor_type, Y: torch.Tensor | None) -> _opt_tns_idx_tup:
         """Select M observations from 2D tensor `X`, preserving device and memory order.
 
         The selection strategy is uniformly at random. To control the randomness,
@@ -247,7 +247,7 @@ class UniformSelector(CenterSelector):
             return Xc, Yc, th_idx
         return Xc, th_idx
 
-    def select(self, X: _tensor_type, Y: Optional[torch.Tensor]) -> _opt_tns_tup:
+    def select(self, X: _tensor_type, Y: torch.Tensor | None) -> _opt_tns_tup:
         """Select M observations from 2D tensor `X`, preserving device and memory order.
 
         The selection strategy is uniformly at random. To control the randomness,

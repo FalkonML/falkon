@@ -1,6 +1,5 @@
 import abc
 import functools
-from typing import Dict, List, Optional, Union
 
 import torch
 
@@ -16,8 +15,8 @@ __all__ = (
 
 
 def should_use_keops(
-    T1: Union[torch.Tensor, SparseTensor],
-    T2: Union[torch.Tensor, SparseTensor],
+    T1: torch.Tensor | SparseTensor,
+    T2: torch.Tensor | SparseTensor,
     opt: KeopsOptions,
 ) -> bool:
     """Check whether the conditions to use KeOps for mmv operations are satisfied
@@ -71,10 +70,10 @@ class KeopsKernelMixin(Kernel, abc.ABC):
         X1: torch.Tensor,
         X2: torch.Tensor,
         v: torch.Tensor,
-        out: Optional[torch.Tensor],
+        out: torch.Tensor | None,
         formula: str,
-        aliases: List[str],
-        other_vars: List[torch.Tensor],
+        aliases: list[str],
+        other_vars: list[torch.Tensor],
         opt: FalkonOptions,
     ):
         """Helper method to call into KeOps for kernel-vector products
@@ -141,8 +140,8 @@ class KeopsKernelMixin(Kernel, abc.ABC):
         differentiable,
         opt,
         mmv_fn,
-        kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
-        kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
+        kwargs_m1: dict[str, torch.Tensor] | None = None,
+        kwargs_m2: dict[str, torch.Tensor] | None = None,
     ):
         r"""
         performs fnc(X1*X2', X1, X2)' * ( fnc(X1*X2', X1, X2) * v  +  w )
@@ -251,8 +250,8 @@ class KeopsKernelMixin(Kernel, abc.ABC):
     # noinspection PyUnusedLocal
     def keops_can_handle_mmv(
         self,
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
         v: torch.Tensor,
         opt: FalkonOptions,
     ) -> bool:
@@ -260,8 +259,8 @@ class KeopsKernelMixin(Kernel, abc.ABC):
 
     def keops_can_handle_dmmv(
         self,
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
         v: torch.Tensor,
         w: torch.Tensor,
         opt: FalkonOptions,
@@ -289,8 +288,8 @@ class KeopsKernelMixin(Kernel, abc.ABC):
         kernel,
         out,
         opt: FalkonOptions,
-        kwargs_m1: Optional[Dict[str, torch.Tensor]],
-        kwargs_m2: Optional[Dict[str, torch.Tensor]],
+        kwargs_m1: dict[str, torch.Tensor] | None,
+        kwargs_m2: dict[str, torch.Tensor] | None,
     ):
         """Implementation of the KeOps formula to compute a kernel-vector product.
 

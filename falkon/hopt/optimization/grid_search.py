@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import torch
 
@@ -13,8 +13,8 @@ from falkon.hopt.utils import get_scalar
 
 @dataclass
 class HPGridPoint:
-    attributes: Dict[str, Any]
-    results: Optional[Dict[str, float]] = None
+    attributes: dict[str, Any]
+    results: dict[str, float] | None = None
 
 
 def set_grid_point(model: HyperoptObjective, grid_point: HPGridPoint):
@@ -28,8 +28,8 @@ def run_on_grid(
     Xts: torch.Tensor,
     Yts: torch.Tensor,
     model: HyperoptObjective,
-    grid_spec: List[HPGridPoint],
-    minibatch: Optional[int],
+    grid_spec: list[HPGridPoint],
+    minibatch: int | None,
     err_fn,
     cuda: bool,
 ):

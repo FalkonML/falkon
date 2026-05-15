@@ -58,7 +58,7 @@ __all__ = (
     "HouseEelectricDataset",
 )
 
-NP_ARR = typing.TypeVar("NP_ARR", bound=typing.Union[np.ndarray, scipy.sparse.spmatrix])
+NP_ARR = typing.TypeVar("NP_ARR", bound=np.ndarray | scipy.sparse.spmatrix)
 
 
 def load_from_npz(dset_name, folder, dtype, verbose=False):

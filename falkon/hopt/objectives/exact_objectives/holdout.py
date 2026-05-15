@@ -1,4 +1,3 @@
-from typing import Dict, Optional
 
 import torch
 
@@ -18,12 +17,12 @@ class HoldOut(HyperoptObjective):
         opt_penalty: bool,
         val_pct: float,
         per_iter_split: bool,
-        centers_transform: Optional[torch.distributions.Transform] = None,
-        pen_transform: Optional[torch.distributions.Transform] = None,
+        centers_transform: torch.distributions.Transform | None = None,
+        pen_transform: torch.distributions.Transform | None = None,
     ):
         super().__init__(kernel, centers_init, penalty_init, opt_centers, opt_penalty, centers_transform, pen_transform)
         self.x_train, self.y_train = None, None
-        self.losses: Optional[Dict[str, torch.Tensor]] = None
+        self.losses: dict[str, torch.Tensor] | None = None
         self.per_iter_split = per_iter_split
         self.val_pct = val_pct
         self.tr_indices, self.val_indices = None, None

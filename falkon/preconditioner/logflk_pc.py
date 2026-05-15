@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 import numpy as np
 import scipy.linalg.blas as sclb
@@ -76,9 +75,9 @@ class LogisticPreconditioner(Preconditioner):
         self.kernel = kernel
         self.loss = loss
 
-        self.fC: Optional[torch.Tensor] = None
-        self.dT: Optional[torch.Tensor] = None
-        self.dA: Optional[torch.Tensor] = None
+        self.fC: torch.Tensor | None = None
+        self.dT: torch.Tensor | None = None
+        self.dA: torch.Tensor | None = None
 
     def _trmm(self, C: torch.Tensor, alpha: torch.Tensor) -> torch.Tensor:
         alpha_np = alpha.numpy()
@@ -111,7 +110,7 @@ class LogisticPreconditioner(Preconditioner):
         return C
 
     def init(
-        self, X: Union[torch.Tensor, SparseTensor], Y: torch.Tensor, alpha: torch.Tensor, penalty: float, N: int
+        self, X: torch.Tensor | SparseTensor, Y: torch.Tensor, alpha: torch.Tensor, penalty: float, N: int
     ) -> None:
         """Initialize the preconditioner matrix.
 

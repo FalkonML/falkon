@@ -1,5 +1,4 @@
 import math
-from typing import List, Optional, Type, Union
 
 import numpy as np
 import torch
@@ -222,7 +221,7 @@ def choose_fn(dtype, f64_fn, f32_fn, fn_name):
     raise TypeError(f"No {fn_name} function exists for data type {dtype}.")
 
 
-def sizeof_dtype(dtype: Union[torch.dtype, np.dtype, Type]) -> int:
+def sizeof_dtype(dtype: torch.dtype | np.dtype | type) -> int:
     # Necessary to check torch early because comparing
     # torch.dtype == numpy.dtype results in a type-error.
     if isinstance(dtype, torch.dtype):
@@ -238,11 +237,11 @@ def sizeof_dtype(dtype: Union[torch.dtype, np.dtype, Type]) -> int:
     raise TypeError(f"Dtype {dtype} not valid")
 
 
-def check_sparse(*args: Union[torch.Tensor, SparseTensor]) -> List[bool]:
+def check_sparse(*args: torch.Tensor | SparseTensor) -> list[bool]:
     return [isinstance(t, SparseTensor) for t in args]
 
 
-def check_same_dtype(*args: Optional[Union[torch.Tensor, SparseTensor]]) -> bool:
+def check_same_dtype(*args: torch.Tensor | SparseTensor | None) -> bool:
     dt = None
     all_equal = True
 
@@ -256,7 +255,7 @@ def check_same_dtype(*args: Optional[Union[torch.Tensor, SparseTensor]]) -> bool
     return all_equal
 
 
-def check_same_device(*args: Union[None, torch.Tensor, SparseTensor]) -> bool:
+def check_same_device(*args: None | torch.Tensor | SparseTensor) -> bool:
     dev = None
     for t in args:
         if t is None:

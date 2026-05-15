@@ -1,5 +1,5 @@
 import time
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 import torch
 
@@ -43,7 +43,7 @@ class Optimizer:
 
 
 class PreconditionedConjugateGradient(Optimizer):
-    def __init__(self, prec: Preconditioner, opt: Optional[ConjugateGradientOptions] = None):
+    def __init__(self, prec: Preconditioner, opt: ConjugateGradientOptions | None = None):
         super().__init__()
         self.params = opt or ConjugateGradientOptions()
         self.prec = prec
@@ -51,11 +51,11 @@ class PreconditionedConjugateGradient(Optimizer):
 
     def solve(
         self,
-        x0: Optional[torch.Tensor],
+        x0: torch.Tensor | None,
         rhs: torch.Tensor,
         mmv: Callable[[torch.Tensor], torch.Tensor],
         max_iter: int,
-        callback: Optional[Callable[[int, torch.Tensor, float], None]] = None,
+        callback: Callable[[int, torch.Tensor, float], None] | None = None,
     ) -> torch.Tensor:
         T = rhs.shape[1]
         m_eps = self.params.cg_epsilon(rhs.dtype)
@@ -65,9 +65,9 @@ class PreconditionedConjugateGradient(Optimizer):
         # Differential convergence: when any column of X converges we remove it from optimization.
         diff_conv = self.params.cg_differential_convergence and T > 1
         # column-vectors of X which have converged
-        x_converged: List[torch.Tensor] = []
+        x_converged: list[torch.Tensor] = []
         # indices of columns in `x_converged` as they originally appeared in `X`
-        col_idx_converged: List[int] = []
+        col_idx_converged: list[int] = []
         # indices of columns which have not converged, as they originally were in `X`
         col_idx_notconverged: torch.Tensor = torch.arange(T)
 
@@ -149,18 +149,18 @@ class PreconditionedConjugateGradient(Optimizer):
 
 
 class ConjugateGradient(Optimizer):
-    def __init__(self, opt: Optional[ConjugateGradientOptions] = None):
+    def __init__(self, opt: ConjugateGradientOptions | None = None):
         super().__init__()
         self.params = opt or ConjugateGradientOptions()
         self.num_iter = None
 
     def solve(
         self,
-        X0: Optional[torch.Tensor],
+        X0: torch.Tensor | None,
         B: torch.Tensor,
         mmv: Callable[[torch.Tensor], torch.Tensor],
         max_iter: int,
-        callback: Optional[Callable[[int, torch.Tensor, float], None]] = None,
+        callback: Callable[[int, torch.Tensor, float], None] | None = None,
     ) -> torch.Tensor:
         """Conjugate-gradient solver with optional support for preconditioning via generic MMV.
 
@@ -218,9 +218,9 @@ class ConjugateGradient(Optimizer):
 
         # Differential convergence: when any column of X converges we remove it from optimization.
         # column-vectors of X which have converged
-        x_converged: List[torch.Tensor] = []
+        x_converged: list[torch.Tensor] = []
         # indices of columns in `x_converged` as they originally appeared in `X`
-        col_idx_converged: List[int] = []
+        col_idx_converged: list[int] = []
         # indices of columns which have not converged, as they originally were in `X`
         col_idx_notconverged: torch.Tensor = torch.arange(X.shape[1])
         X_orig = X

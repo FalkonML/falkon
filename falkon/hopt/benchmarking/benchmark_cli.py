@@ -5,7 +5,7 @@ import os
 import pickle
 import warnings
 from functools import partial
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 AUTO_PEN_MULTIPLIER = 1
 
 
-def median_heuristic(X: torch.Tensor, sigma_type: str, num_rnd_points: Optional[int]):
+def median_heuristic(X: torch.Tensor, sigma_type: str, num_rnd_points: int | None):
     # https://arxiv.org/pdf/1707.07269.pdf
     if num_rnd_points is not None and num_rnd_points < X.shape[0]:
         rnd_idx = np.random.choice(X.shape[0], size=num_rnd_points, replace=False)
@@ -56,7 +56,7 @@ def save_logs(logs: Any, exp_name: str, log_folder: str = "./logs"):
     print(f"Log saved to {log_path}", flush=True)
 
 
-def read_gs_file(file_name: str) -> List[HPGridPoint]:
+def read_gs_file(file_name: str) -> list[HPGridPoint]:
     df = pd.read_csv(file_name, header=0, index_col=False)
     points = []
     for row in df.itertuples():
@@ -66,8 +66,8 @@ def read_gs_file(file_name: str) -> List[HPGridPoint]:
 
 
 def sigma_pen_init(
-    data, sigma_type: str, sigma_init: Union[float, str], penalty_init: Union[float, str]
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    data, sigma_type: str, sigma_init: float | str, penalty_init: float | str
+) -> tuple[torch.Tensor, torch.Tensor]:
     if sigma_init == "auto":
         sigma_init = median_heuristic(data["Xtr"], sigma_type="single", num_rnd_points=5000)
         print(f"Initial sigma is: {sigma_init:.4e}")
@@ -181,7 +181,7 @@ def run_optimization(
     minibatch: int,
     loss_every: int,
     early_stop_epochs: int,
-    cgtol_decrease_epochs: Optional[int],
+    cgtol_decrease_epochs: int | None,
 ):
     torch.manual_seed(seed)
     np.random.seed(seed)

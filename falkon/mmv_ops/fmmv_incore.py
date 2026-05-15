@@ -1,4 +1,3 @@
-from typing import Optional
 
 import torch
 
@@ -15,9 +14,9 @@ __all__ = (
 def incore_fmmv(
     mat: torch.Tensor,
     vec: torch.Tensor,
-    out: Optional[torch.Tensor] = None,
+    out: torch.Tensor | None = None,
     transpose: bool = False,
-    opt: Optional[FalkonOptions] = None,
+    opt: FalkonOptions | None = None,
 ) -> torch.Tensor:
     if not check_same_dtype(mat, vec, out):
         raise TypeError("Data types of input matrices must be equal.")
@@ -42,9 +41,9 @@ def incore_fmmv(
 def incore_fdmmv(
     mat: torch.Tensor,
     vec: torch.Tensor,
-    w: Optional[torch.Tensor],
-    out: Optional[torch.Tensor] = None,
-    opt: Optional[FalkonOptions] = None,
+    w: torch.Tensor | None,
+    out: torch.Tensor | None = None,
+    opt: FalkonOptions | None = None,
 ) -> torch.Tensor:
     out1 = incore_fmmv(mat, vec, None, False, opt)
     if w is not None:

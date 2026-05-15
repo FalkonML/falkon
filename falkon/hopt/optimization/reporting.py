@@ -1,6 +1,6 @@
 import dataclasses
 import os
-from typing import Dict, Iterator, Optional, Sequence
+from collections.abc import Iterator, Sequence
 
 import numpy as np
 import torch
@@ -32,7 +32,7 @@ class EarlyStop(Exception):
         super().__init__(msg)
 
 
-def report_losses(losses: Sequence[torch.Tensor], loss_names: Sequence[str], step: int) -> Dict[str, float]:
+def report_losses(losses: Sequence[torch.Tensor], loss_names: Sequence[str], step: int) -> dict[str, float]:
     assert len(losses) == len(loss_names), f"Found {len(losses)} losses and {len(loss_names)} loss-names."
     writer = get_writer()
     report_str = "LOSSES: "
@@ -52,7 +52,7 @@ def report_losses(losses: Sequence[torch.Tensor], loss_names: Sequence[str], ste
     return report_dict
 
 
-def report_hps(named_hparams: Iterator[tuple[str, torch.nn.Parameter]], step: int) -> Dict[str, float]:
+def report_hps(named_hparams: Iterator[tuple[str, torch.nn.Parameter]], step: int) -> dict[str, float]:
     writer = get_writer()
     report_dict = {}
     for hp_name, hp_val in named_hparams:
@@ -72,11 +72,11 @@ def pred_reporting(
     err_fn: callable,
     epoch: int,
     cum_time: float,
-    Xval: Optional[torch.Tensor] = None,
-    Yval: Optional[torch.Tensor] = None,
+    Xval: torch.Tensor | None = None,
+    Yval: torch.Tensor | None = None,
     resolve_model: bool = False,
-    mb_size: Optional[int] = None,
-) -> Dict[str, float]:
+    mb_size: int | None = None,
+) -> dict[str, float]:
     writer = get_writer()
     model.eval()
     sigma, penalty, centers = model.sigma, model.penalty, model.centers
@@ -147,13 +147,13 @@ def pred_reporting(
 def epoch_bookkeeping(
     epoch: int,
     model: HyperoptObjective,
-    data: Dict[str, torch.Tensor],
+    data: dict[str, torch.Tensor],
     err_fn,
     loss_every: int,
-    early_stop_patience: Optional[int],
-    accuracy_increase_patience: Optional[int],
+    early_stop_patience: int | None,
+    accuracy_increase_patience: int | None,
     schedule,
-    minibatch: Optional[int],
+    minibatch: int | None,
     logs: list,
     cum_time: float,
 ):

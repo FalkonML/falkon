@@ -1,6 +1,5 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
 
 import torch
 
@@ -40,12 +39,12 @@ class Loss(ABC):
     :class:`falkon.models.LogisticFalkon` : the logistic Falkon model which uses GSC losses.
     """
 
-    def __init__(self, name: str, kernel: falkon.kernels.Kernel, opt: Optional[FalkonOptions] = None):
+    def __init__(self, name: str, kernel: falkon.kernels.Kernel, opt: FalkonOptions | None = None):
         self.name = name
         self.kernel = kernel
         self.params = opt or FalkonOptions()
 
-    def _update_opt(self, opt: Optional[FalkonOptions]):
+    def _update_opt(self, opt: FalkonOptions | None):
         new_opt = self.params
         if opt is not None:
             new_opt = dataclasses.replace(self.params, **dataclasses.asdict(opt))
@@ -110,8 +109,8 @@ class Loss(ABC):
         pass
 
     def knmp_grad(
-        self, X: torch.Tensor, Xc: torch.Tensor, Y: torch.Tensor, u: torch.Tensor, opt: Optional[FalkonOptions] = None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, X: torch.Tensor, Xc: torch.Tensor, Y: torch.Tensor, u: torch.Tensor, opt: FalkonOptions | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""Computes a kernel vector product where the vector is the first derivative of this loss
 
         Given kernel function :math:`K`, the loss represented by this class :math:`\mathcal{l}`,
@@ -162,7 +161,7 @@ class Loss(ABC):
         Y: torch.Tensor,
         f: torch.Tensor,
         u: torch.Tensor,
-        opt: Optional[FalkonOptions] = None,
+        opt: FalkonOptions | None = None,
     ) -> torch.Tensor:
         r"""Compute a kernel-vector product with a rescaling with the second derivative
 
@@ -233,7 +232,7 @@ class LogisticLoss(Loss):
 
     """
 
-    def __init__(self, kernel: falkon.kernels.Kernel, opt: Optional[FalkonOptions] = None):
+    def __init__(self, kernel: falkon.kernels.Kernel, opt: FalkonOptions | None = None):
         super().__init__(name="LogisticLoss", kernel=kernel, opt=opt)
 
     def __call__(self, y1: torch.Tensor, y2: torch.Tensor) -> torch.Tensor:
@@ -347,7 +346,7 @@ class WeightedCrossEntropyLoss(Loss):
 
     """
 
-    def __init__(self, kernel: falkon.kernels.Kernel, neg_weight: float, opt: Optional[FalkonOptions] = None):
+    def __init__(self, kernel: falkon.kernels.Kernel, neg_weight: float, opt: FalkonOptions | None = None):
         super().__init__(name="WeightedCrossEntropy", kernel=kernel, opt=opt)
         self.neg_weight = neg_weight
 

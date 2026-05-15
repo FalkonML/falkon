@@ -1,5 +1,6 @@
 import dataclasses
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any
+from collections.abc import Sequence
 
 import numpy as np
 import torch
@@ -27,13 +28,13 @@ __all__ = (
 )
 
 
-def _setup_opt(opt: Optional[BaseOptions], is_cpu=False) -> BaseOptions:
+def _setup_opt(opt: BaseOptions | None, is_cpu=False) -> BaseOptions:
     if opt is None:
         opt = BaseOptions()
     return dataclasses.replace(opt, use_cpu=is_cpu)
 
 
-def _check_contiguity(*args: Tuple[Optional[torch.Tensor], str]) -> None:
+def _check_contiguity(*args: tuple[torch.Tensor | None, str]) -> None:
     for tensor, name in args:
         if tensor is not None and not is_contig(tensor):
             raise ValueError(f"Tensor '{name}' must be memory contiguous")
@@ -44,7 +45,7 @@ def _check_contiguity(*args: Tuple[Optional[torch.Tensor], str]) -> None:
 CUDA_EXTRA_MM_RAM = 8519680
 
 
-def _get_gpu_info(opt: BaseOptions, slack: float = 0.9) -> List[DeviceInfo]:
+def _get_gpu_info(opt: BaseOptions, slack: float = 0.9) -> list[DeviceInfo]:
     # List available devices, get their relative speed and split
     # computations based on device relative speed.
     gpu_info = [v for k, v in devices.get_device_info(opt).items() if v.isGPU]
@@ -64,7 +65,7 @@ def _get_cpu_ram(opt: BaseOptions, slack: float = 0.9) -> float:
     return avail_mem * slack
 
 
-def _start_wait_processes(target, args) -> List[Any]:
+def _start_wait_processes(target, args) -> list[Any]:
     processes, outputs = [], []
     for i, a in enumerate(args):
         args_queue = FakeQueue()
@@ -93,7 +94,7 @@ def _gpu_tns_same_memory(A: torch.Tensor, B: torch.Tensor) -> bool:
     )
 
 
-def ensure_batch_dim(*args: Optional[torch.Tensor]):
+def ensure_batch_dim(*args: torch.Tensor | None):
     for tensor in args:
         if tensor is None:
             yield tensor
@@ -122,14 +123,14 @@ def _dev_from_id(device_id: int) -> torch.device:
 
 
 def create_output_mat(
-    out: Optional[torch.Tensor],
+    out: torch.Tensor | None,
     data_devs: Sequence[torch.device],
     is_sparse: bool,
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     dtype: torch.dtype,
     comp_dev_type: str,
     other_mat: torch.Tensor,
-    output_stride: Optional[str] = None,
+    output_stride: str | None = None,
 ) -> torch.Tensor:
     if out is not None:
         return out

@@ -1,6 +1,6 @@
 import abc
 import dataclasses
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional
 
 import torch
 from torch import nn
@@ -62,7 +62,7 @@ class DiffKernel(Kernel, abc.ABC):
                 setattr(self, k, v)
 
     @property
-    def diff_params(self) -> Dict[str, torch.Tensor]:
+    def diff_params(self) -> dict[str, torch.Tensor]:
         """
         A dictionary mapping parameter names to their values for all **differentiable** parameters
         of the kernel.
@@ -75,7 +75,7 @@ class DiffKernel(Kernel, abc.ABC):
         return dict(self.named_parameters())
 
     @property
-    def nondiff_params(self) -> Dict[str, Any]:
+    def nondiff_params(self) -> dict[str, Any]:
         """
         A dictionary mapping parameter names to their values for all **non-differentiable**
         parameters of the kernel.
@@ -126,11 +126,11 @@ class DiffKernel(Kernel, abc.ABC):
 
     def dmmv(
         self,
-        X1: Union[torch.Tensor, SparseTensor],
-        X2: Union[torch.Tensor, SparseTensor],
-        v: Optional[torch.Tensor],
-        w: Optional[torch.Tensor],
-        out: Optional[torch.Tensor] = None,
+        X1: torch.Tensor | SparseTensor,
+        X2: torch.Tensor | SparseTensor,
+        v: torch.Tensor | None,
+        w: torch.Tensor | None,
+        out: torch.Tensor | None = None,
         opt: Optional["falkon.FalkonOptions"] = None,
     ):
         X1, X2, v, w, out = self._check_dmmv_dimensions(X1, X2, v, w, out)

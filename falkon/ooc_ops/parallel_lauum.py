@@ -1,7 +1,6 @@
 import math
 import threading
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 import torch
@@ -48,8 +47,8 @@ def _extract_flat(flat_tn, size, other, offset):
 
 def par_lauum_f_lower(
     A: torch.Tensor,
-    block_allocs: List[BlockAlloc],
-    my_rows: List[int],
+    block_allocs: list[BlockAlloc],
+    my_rows: list[int],
     barrier: threading.Barrier,
     device_id: int,
     independent_output: bool,
@@ -224,8 +223,8 @@ def par_lauum_f_lower(
 
 def par_lauum_c_lower(
     A: torch.Tensor,
-    block_allocs: List[BlockAlloc],
-    my_rows: List[int],
+    block_allocs: list[BlockAlloc],
+    my_rows: list[int],
     barrier: threading.Barrier,
     device_id: int,
     independent_output: bool,

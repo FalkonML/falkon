@@ -1,5 +1,4 @@
 import warnings
-from typing import Dict, Optional, Union
 
 import torch
 
@@ -10,7 +9,7 @@ from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
 
 
-def validate_diff_float(num: Union[float, torch.Tensor], param_name: str) -> torch.Tensor:
+def validate_diff_float(num: float | torch.Tensor, param_name: str) -> torch.Tensor:
     if isinstance(num, torch.Tensor):
         # Sigma is a 1-item tensor ('single')
         try:
@@ -42,7 +41,7 @@ def _dot_kernel_extra_mem(is_differentiable: bool, is_sparse: bool):
     return base
 
 
-def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.Tensor], diag: bool) -> torch.Tensor:
+def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | None, diag: bool) -> torch.Tensor:
     if diag:
         N, D = mat1.shape
         if out is None:
@@ -59,7 +58,7 @@ def _dot_prod_calc(mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.T
 
 
 def _sparse_dot_prod_calc(
-    mat1: SparseTensor, mat2: SparseTensor, out: Optional[torch.Tensor], diag: bool
+    mat1: SparseTensor, mat2: SparseTensor, out: torch.Tensor | None, diag: bool
 ) -> torch.Tensor:
     if diag:
         return sparse.bdot(mat1, mat2, out)
@@ -67,7 +66,7 @@ def _sparse_dot_prod_calc(
         return sparse.sparse_matmul(mat1, mat2, out)
 
 
-def linear_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamma):
+def linear_core(mat1, mat2, out: torch.Tensor | None, diag: bool, beta, gamma):
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
@@ -89,7 +88,7 @@ def linear_core_sparse(
     return out
 
 
-def polynomial_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamma, degree):
+def polynomial_core(mat1, mat2, out: torch.Tensor | None, diag: bool, beta, gamma, degree):
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
@@ -115,7 +114,7 @@ def polynomial_core_sparse(
     return out
 
 
-def sigmoid_core(mat1, mat2, out: Optional[torch.Tensor], diag: bool, beta, gamma):
+def sigmoid_core(mat1, mat2, out: torch.Tensor | None, diag: bool, beta, gamma):
     # Move hyper-parameters
     beta = beta.to(device=mat1.device, dtype=mat1.dtype)
     gamma = gamma.to(device=mat1.device, dtype=mat1.dtype)
@@ -166,9 +165,9 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
 
     def __init__(
         self,
-        beta: Union[float, torch.Tensor] = 0.0,
-        gamma: Union[float, torch.Tensor] = 1.0,
-        opt: Optional[FalkonOptions] = None,
+        beta: float | torch.Tensor = 0.0,
+        gamma: float | torch.Tensor = 1.0,
+        opt: FalkonOptions | None = None,
     ):
         beta = validate_diff_float(beta, param_name="beta")
         gamma = validate_diff_float(gamma, param_name="gamma")
@@ -189,7 +188,7 @@ class LinearKernel(DiffKernel, KeopsKernelMixin):
         ]
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> dict[str, float]:
         return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
     def detach(self) -> "LinearKernel":
@@ -232,10 +231,10 @@ class PolynomialKernel(DiffKernel, KeopsKernelMixin):
 
     def __init__(
         self,
-        beta: Union[float, torch.Tensor],
-        gamma: Union[float, torch.Tensor],
-        degree: Union[float, torch.Tensor],
-        opt: Optional[FalkonOptions] = None,
+        beta: float | torch.Tensor,
+        gamma: float | torch.Tensor,
+        degree: float | torch.Tensor,
+        opt: FalkonOptions | None = None,
     ):
         beta = validate_diff_float(beta, param_name="beta")
         gamma = validate_diff_float(gamma, param_name="gamma")
@@ -260,7 +259,7 @@ class PolynomialKernel(DiffKernel, KeopsKernelMixin):
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> dict[str, float]:
         return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
     def detach(self) -> "PolynomialKernel":
@@ -303,9 +302,9 @@ class SigmoidKernel(DiffKernel, KeopsKernelMixin):
 
     def __init__(
         self,
-        beta: Union[float, torch.Tensor],
-        gamma: Union[float, torch.Tensor],
-        opt: Optional[FalkonOptions] = None,
+        beta: float | torch.Tensor,
+        gamma: float | torch.Tensor,
+        opt: FalkonOptions | None = None,
     ):
         beta = validate_diff_float(beta, param_name="beta")
         gamma = validate_diff_float(gamma, param_name="gamma")
@@ -330,7 +329,7 @@ class SigmoidKernel(DiffKernel, KeopsKernelMixin):
             )
         return super()._decide_dmmv_impl(X1, X2, v, w, opt)
 
-    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> dict[str, float]:
         return _dot_kernel_extra_mem(is_differentiable, is_sparse)
 
     def detach(self) -> "SigmoidKernel":

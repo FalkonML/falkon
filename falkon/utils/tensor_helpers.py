@@ -1,5 +1,6 @@
 import warnings
-from typing import Any, Generator, Tuple, Union
+from typing import Any
+from collections.abc import Generator
 
 import numpy as np
 import torch
@@ -21,20 +22,20 @@ __all__ = (
 )
 
 
-def _fcontig_strides(sizes) -> Tuple[int, ...]:
+def _fcontig_strides(sizes) -> tuple[int, ...]:
     if len(sizes) == 0:
         return ()
     return tuple([1] + np.cumprod(sizes)[:-1].tolist())
 
 
-def _ccontig_strides(sizes) -> Tuple[int, ...]:
+def _ccontig_strides(sizes) -> tuple[int, ...]:
     if len(sizes) == 0:
         return ()
     return tuple(np.cumprod(sizes[1:][::-1])[::-1].tolist() + [1])
 
 
 def _new_strided_tensor(
-    size: Tuple[int], stride: Tuple[int], dtype: torch.dtype, device: Union[str, torch.device], pin_memory: bool
+    size: tuple[int], stride: tuple[int], dtype: torch.dtype, device: str | torch.device, pin_memory: bool
 ) -> torch.Tensor:
     if not torch.cuda.is_available():
         pin_memory = False
@@ -50,18 +51,18 @@ def _new_strided_tensor(
     )
 
 
-def extract_fortran(from_tns: torch.Tensor, size: Tuple[int, ...], offset: int) -> torch.Tensor:
+def extract_fortran(from_tns: torch.Tensor, size: tuple[int, ...], offset: int) -> torch.Tensor:
     strides = _fcontig_strides(size)
     return from_tns.as_strided(size=size, stride=strides, storage_offset=int(offset))
 
 
-def extract_C(from_tns: torch.Tensor, size: Tuple[int, ...], offset: int) -> torch.Tensor:
+def extract_C(from_tns: torch.Tensor, size: tuple[int, ...], offset: int) -> torch.Tensor:
     strides = _ccontig_strides(size)
     return from_tns.as_strided(size=size, stride=strides, storage_offset=int(offset))
 
 
 def extract_same_stride(
-    from_tns: torch.Tensor, size: Tuple[int, ...], other: torch.Tensor, offset: int = 0
+    from_tns: torch.Tensor, size: tuple[int, ...], other: torch.Tensor, offset: int = 0
 ) -> torch.Tensor:
     if is_f_contig(other, strict=True):
         return extract_fortran(from_tns, size, offset)
@@ -72,7 +73,7 @@ def extract_same_stride(
 
 
 def create_fortran(
-    size: Tuple[int, ...], dtype: torch.dtype, device: Union[str, torch.device], pin_memory: bool = False
+    size: tuple[int, ...], dtype: torch.dtype, device: str | torch.device, pin_memory: bool = False
 ) -> torch.Tensor:
     """Allocates an empty, column-contiguous 1 or 2-dimensional tensor
 
@@ -99,7 +100,7 @@ def create_fortran(
 
 
 def create_C(
-    size: Tuple[int, ...], dtype: torch.dtype, device: Union[str, torch.device], pin_memory: bool = False
+    size: tuple[int, ...], dtype: torch.dtype, device: str | torch.device, pin_memory: bool = False
 ) -> torch.Tensor:
     """Allocates an empty, row-contiguous 1 or 2-dimensional tensor
 
@@ -126,10 +127,10 @@ def create_C(
 
 
 def create_same_stride(
-    size: Tuple[int, ...],
+    size: tuple[int, ...],
     other: torch.Tensor,
     dtype: torch.dtype,
-    device: Union[str, torch.device],
+    device: str | torch.device,
     pin_memory: bool = False,
 ) -> torch.Tensor:
     if is_f_contig(other, strict=True):
@@ -237,7 +238,7 @@ def cast_tensor(tensor: torch.Tensor, dtype: torch.dtype, warn: bool = True) -> 
     return torch.from_numpy(out_np)
 
 
-def move_tensor(tensor: torch.Tensor, device: Union[torch.device, str]) -> torch.Tensor:
+def move_tensor(tensor: torch.Tensor, device: torch.device | str) -> torch.Tensor:
     if str(device) == str(tensor.device):
         return tensor
 

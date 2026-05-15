@@ -1,5 +1,4 @@
 import warnings
-from typing import Tuple
 
 import numpy as np
 import pytest
@@ -42,7 +41,7 @@ def assert_sparse_equal(s1: SparseTensor, s2: SparseTensor):
 @pytest.mark.parametrize(
     "dtype", [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])], ids=["float32", "float64"]
 )
-def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
+def test_through_mkl(sparse1: tuple[SparseTensor, torch.Tensor], dtype):
     orig, _ = sparse1
     orig = orig.to(dtype=dtype)
     mkl_sparse1 = mkl.mkl_create_sparse(orig)
@@ -55,7 +54,7 @@ def test_through_mkl(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
 @pytest.mark.parametrize(
     "dtype", [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])], ids=["float32", "float64"]
 )
-def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
+def test_through_mkl_scipy(sparse1: tuple[SparseTensor, torch.Tensor], dtype):
     orig, _ = sparse1
     orig = orig.to(dtype=dtype)
     orig_scipy = orig.to_scipy()  # Needs to be in its own variable or will fail..
@@ -69,7 +68,7 @@ def test_through_mkl_scipy(sparse1: Tuple[SparseTensor, torch.Tensor], dtype):
 @pytest.mark.parametrize(
     "dtype", [torch.float32, pytest.param(torch.float64, marks=[pytest.mark.full()])], ids=["float32", "float64"]
 )
-def test_convert_csr(sparse2: Tuple[SparseTensor, torch.Tensor], dtype):
+def test_convert_csr(sparse2: tuple[SparseTensor, torch.Tensor], dtype):
     orig, dense = sparse2
     orig = orig.to(dtype=dtype)
     dense = dense.to(dtype=dtype)
@@ -89,7 +88,7 @@ def test_convert_csr(sparse2: Tuple[SparseTensor, torch.Tensor], dtype):
 
 @pytest.mark.skipif(mkl is None, reason="MKL not available.")
 @pytest.mark.skip(reason="Unknown MKL problems with large first dimension and creation of CSC.")
-def test_csc_creation(sparse1: Tuple[SparseTensor, torch.Tensor]):
+def test_csc_creation(sparse1: tuple[SparseTensor, torch.Tensor]):
     # Note that this test works with sparse2 (e.g. see test_convert_csr)
     orig, dense = sparse1
     orig_csc = orig.transpose_csc()

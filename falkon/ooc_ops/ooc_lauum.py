@@ -1,6 +1,5 @@
 import math
 import threading
-from typing import List, Optional
 
 import torch
 
@@ -63,7 +62,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
         block_sizes = calc_block_sizes3(max_block_size, len(gpu_info), N)
 
     # Create BlockAlloc objects describing the subdivision of input
-    block_allocations: List[BlockAlloc] = []
+    block_allocations: list[BlockAlloc] = []
     cur_n = 0
     for bs in block_sizes:
         block_allocations.append(BlockAlloc(start=cur_n, end=cur_n + bs, length=bs))
@@ -97,7 +96,7 @@ def gpu_lauum(
     upper: bool,
     overwrite: bool = True,
     write_opposite: bool = False,
-    opt: Optional[FalkonOptions] = None,
+    opt: FalkonOptions | None = None,
 ):
     """
     Parameters

@@ -13,7 +13,6 @@ import os.path as osp
 import shutil
 import warnings
 from subprocess import DEVNULL, call
-from typing import Optional
 
 import torch.cuda
 from torch.utils.cpp_extension import _get_build_directory, load
@@ -67,7 +66,7 @@ def torch_version():
     return [int(v) for v in split_version]
 
 
-def lib_from_oserror(exc: OSError) -> Optional[str]:
+def lib_from_oserror(exc: OSError) -> str | None:
     e_str = str(exc)
     so_idx = e_str.index(".so")  # TODO: Platform specific code
     if so_idx <= 0:

@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 import torch
 
@@ -62,11 +61,11 @@ class FalkonPreconditioner(Preconditioner):
         self._lambda = penalty
         self.kernel = kernel
 
-        self.fC: Optional[torch.Tensor] = None
-        self.dT: Optional[torch.Tensor] = None
-        self.dA: Optional[torch.Tensor] = None
+        self.fC: torch.Tensor | None = None
+        self.dT: torch.Tensor | None = None
+        self.dA: torch.Tensor | None = None
 
-    def check_inputs(self, X: Union[torch.Tensor, SparseTensor], weight_vec: Optional[torch.Tensor] = None):
+    def check_inputs(self, X: torch.Tensor | SparseTensor, weight_vec: torch.Tensor | None = None):
         if X.is_cuda and not self._use_cuda:
             raise RuntimeError("use_cuda is set to False, but data is CUDA tensor. Check your options.")
         if weight_vec is not None and not check_same_device(X, weight_vec):
@@ -91,7 +90,7 @@ class FalkonPreconditioner(Preconditioner):
             C = C.T
         return C
 
-    def init(self, X: Union[torch.Tensor, SparseTensor], weight_vec: Optional[torch.Tensor] = None):
+    def init(self, X: torch.Tensor | SparseTensor, weight_vec: torch.Tensor | None = None):
         """Initialize the preconditioner matrix.
 
         This method must be called before the preconditioner can be used.

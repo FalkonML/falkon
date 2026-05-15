@@ -1,4 +1,3 @@
-from typing import Dict, Optional, Type, Union
 
 import numpy as np
 import torch
@@ -17,7 +16,7 @@ SQRT3 = 1.7320508075688772
 SQRT5 = 2.23606797749979
 
 
-def validate_sigma(sigma: Union[float, torch.Tensor]) -> torch.Tensor:
+def validate_sigma(sigma: float | torch.Tensor) -> torch.Tensor:
     if isinstance(sigma, torch.Tensor):
         # Sigma is a 1-item tensor ('single')
         try:
@@ -41,10 +40,10 @@ def validate_sigma(sigma: Union[float, torch.Tensor]) -> torch.Tensor:
 def _distance_kernel_extra_mem(
     is_differentiable: bool,
     is_sparse: bool,
-    kernel_cls: Type["falkon.kernels.Kernel"],
-    dtype: Union[np.dtype, torch.dtype],
-    density1: Optional[float] = None,
-    density2: Optional[float] = None,
+    kernel_cls: type["falkon.kernels.Kernel"],
+    dtype: np.dtype | torch.dtype,
+    density1: float | None = None,
+    density2: float | None = None,
     **kernel_params,
 ):
     # TODO: Consider CPU-CPU case (especially wrt to sparse mm)
@@ -85,7 +84,7 @@ def _distance_kernel_extra_mem(
     return out_dict
 
 
-def _sq_dist(mat1, mat2, norm_mat1, norm_mat2, out: Optional[torch.Tensor]) -> torch.Tensor:
+def _sq_dist(mat1, mat2, norm_mat1, norm_mat2, out: torch.Tensor | None) -> torch.Tensor:
     if mat1.dim() == 3:
         if out is None:
             out = torch.baddbmm(norm_mat1, mat1, mat2.transpose(-2, -1), alpha=-2, beta=1)  # b*n*m
@@ -118,7 +117,7 @@ def _sparse_sq_dist(
     return out
 
 
-def _distancek_diag(mat1, out: Optional[torch.Tensor]):
+def _distancek_diag(mat1, out: torch.Tensor | None):
     if out is None:
         return torch.ones(mat1.shape[0], device=mat1.device, dtype=mat1.dtype)
 
@@ -126,7 +125,7 @@ def _distancek_diag(mat1, out: Optional[torch.Tensor]):
     return out
 
 
-def _rbf_diag_core(mat1, mat2, out: Optional[torch.Tensor], sigma: torch.Tensor) -> torch.Tensor:
+def _rbf_diag_core(mat1, mat2, out: torch.Tensor | None, sigma: torch.Tensor) -> torch.Tensor:
     out_ = square_norm(mat1 / sigma - mat2 / sigma, dim=-1, keepdim=False)
     if out is not None:
         out.copy_(out_)
@@ -138,7 +137,7 @@ def _rbf_diag_core(mat1, mat2, out: Optional[torch.Tensor], sigma: torch.Tensor)
 
 
 def rbf_core(
-    mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.Tensor], diag: bool, sigma: torch.Tensor
+    mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | None, diag: bool, sigma: torch.Tensor
 ) -> torch.Tensor:
     """
     Note 1: if out is None, then this function will be differentiable wrt all three remaining inputs.
@@ -180,7 +179,7 @@ def rbf_core_sparse(
 
 
 def laplacian_core(
-    mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.Tensor], diag: bool, sigma: torch.Tensor
+    mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | None, diag: bool, sigma: torch.Tensor
 ):
     if diag:
         return _distancek_diag(mat1, out)
@@ -226,7 +225,7 @@ def laplacian_core_sparse(
 
 
 def matern_core(
-    mat1: torch.Tensor, mat2: torch.Tensor, out: Optional[torch.Tensor], diag: bool, sigma: torch.Tensor, nu: float
+    mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | None, diag: bool, sigma: torch.Tensor, nu: float
 ):
     if diag:
         return _distancek_diag(mat1, out)
@@ -381,7 +380,7 @@ class GaussianKernel(DiffKernel, KeopsKernelMixin):
     kernel_name = "gaussian"
     core_fn = rbf_core
 
-    def __init__(self, sigma: Union[float, torch.Tensor], opt: Optional[FalkonOptions] = None):
+    def __init__(self, sigma: float | torch.Tensor, opt: FalkonOptions | None = None):
         sigma = validate_sigma(sigma)
         super().__init__(self.kernel_name, opt, core_fn=GaussianKernel.core_fn, sigma=sigma)
 
@@ -397,7 +396,7 @@ class GaussianKernel(DiffKernel, KeopsKernelMixin):
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> dict[str, float]:
         return _distance_kernel_extra_mem(
             is_differentiable=is_differentiable,
             is_sparse=is_sparse,
@@ -455,7 +454,7 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
 
     kernel_name = "laplacian"
 
-    def __init__(self, sigma: Union[float, torch.Tensor], opt: Optional[FalkonOptions] = None):
+    def __init__(self, sigma: float | torch.Tensor, opt: FalkonOptions | None = None):
         sigma = validate_sigma(sigma)
 
         super().__init__(self.kernel_name, opt, core_fn=laplacian_core, sigma=sigma)
@@ -472,7 +471,7 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> dict[str, float]:
         return _distance_kernel_extra_mem(
             is_differentiable=is_differentiable,
             is_sparse=is_sparse,
@@ -538,7 +537,7 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
     _valid_nu_values = frozenset({0.5, 1.5, 2.5, float("inf")})
 
     def __init__(
-        self, sigma: Union[float, torch.Tensor], nu: Union[float, torch.Tensor], opt: Optional[FalkonOptions] = None
+        self, sigma: float | torch.Tensor, nu: float | torch.Tensor, opt: FalkonOptions | None = None
     ):
         sigma = validate_sigma(sigma)
         nu = self.validate_nu(nu)
@@ -575,7 +574,7 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
 
         return self.keops_mmv(X1, X2, v, out, formula, aliases, other_vars, opt)
 
-    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> Dict[str, float]:
+    def extra_mem(self, is_differentiable, is_sparse, dtype, density1=None, density2=None) -> dict[str, float]:
         return _distance_kernel_extra_mem(
             is_differentiable=is_differentiable,
             is_sparse=is_sparse,
@@ -590,7 +589,7 @@ class MaternKernel(DiffKernel, KeopsKernelMixin):
         return MaternKernel(self.sigma.detach(), self.nondiff_params["nu"], opt=self.params)
 
     @staticmethod
-    def validate_nu(nu: Union[torch.Tensor, float]) -> float:
+    def validate_nu(nu: torch.Tensor | float) -> float:
         if isinstance(nu, torch.Tensor):
             if nu.requires_grad:
                 raise ValueError(

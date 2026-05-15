@@ -1,5 +1,5 @@
 import time
-from typing import Callable, List, Optional, Tuple, Union
+from collections.abc import Callable
 
 import torch
 
@@ -107,15 +107,15 @@ class LogisticFalkon(FalkonBase):
     def __init__(
         self,
         kernel: falkon.kernels.Kernel,
-        penalty_list: List[float],
-        iter_list: List[int],
+        penalty_list: list[float],
+        iter_list: list[int],
         loss: Loss,
         M: int,
-        center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
-        seed: Optional[int] = None,
-        error_fn: Optional[Callable[[torch.Tensor, torch.Tensor], Union[float, Tuple[float, str]]]] = None,
-        error_every: Optional[int] = 1,
-        options: Optional[FalkonOptions] = None,
+        center_selection: str | falkon.center_selection.CenterSelector = "uniform",
+        seed: int | None = None,
+        error_fn: Callable[[torch.Tensor, torch.Tensor], float | tuple[float, str]] | None = None,
+        error_every: int | None = 1,
+        options: FalkonOptions | None = None,
     ):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty_list = penalty_list
@@ -137,7 +137,7 @@ class LogisticFalkon(FalkonBase):
         return super()._check_fit_inputs(X, Y, Xts, Yts)
 
     def fit(
-        self, X: torch.Tensor, Y: torch.Tensor, Xts: Optional[torch.Tensor] = None, Yts: Optional[torch.Tensor] = None
+        self, X: torch.Tensor, Y: torch.Tensor, Xts: torch.Tensor | None = None, Yts: torch.Tensor | None = None
     ):
         """Fits the Falkon Kernel Logistic Regression model.
 

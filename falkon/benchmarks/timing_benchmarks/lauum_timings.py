@@ -1,7 +1,7 @@
 import functools
 import json
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import torch
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     gpu_info = [v for k, v in devices.get_device_info(init_opt).items() if k >= 0]
     num_gpu = len(gpu_info)
 
-    experiments: List[Dict[str, Any]] = [
+    experiments: list[dict[str, Any]] = [
         {
             "exp_name": "OOC 32",
             "exp_sizes": [10_000, 20_000, 30_000, 40_000, 50_000, 75_000, 100_000, 120_000, 140_000],

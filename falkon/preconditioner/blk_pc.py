@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 import torch
 
@@ -17,13 +16,13 @@ class BalkonPreconditioner(Preconditioner):
         self.params = opt
         self._use_cuda = decide_cuda(self.params) and not self.params.cpu_preconditioner
 
-        self.X_nys: Optional[torch.Tensor] = None
+        self.X_nys: torch.Tensor | None = None
 
         self.base_prec = FalkonPreconditioner(penalty=penalty, kernel=kernel, opt=opt)
         self.block_size = block_size
         self.data_size = data_size
 
-    def check_inputs(self, X: Union[torch.Tensor, SparseTensor]):
+    def check_inputs(self, X: torch.Tensor | SparseTensor):
         if X.is_cuda and not self._use_cuda:
             raise RuntimeError("use_cuda is set to False, but data is CUDA tensor. Check your options.")
 

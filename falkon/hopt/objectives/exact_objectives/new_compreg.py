@@ -1,4 +1,3 @@
-from typing import Dict, Optional
 
 import torch
 
@@ -16,12 +15,12 @@ class NystromCompReg(HyperoptObjective):
         penalty_init: torch.Tensor,
         opt_centers: bool,
         opt_penalty: bool,
-        centers_transform: Optional[torch.distributions.Transform] = None,
-        pen_transform: Optional[torch.distributions.Transform] = None,
+        centers_transform: torch.distributions.Transform | None = None,
+        pen_transform: torch.distributions.Transform | None = None,
     ):
         super().__init__(kernel, centers_init, penalty_init, opt_centers, opt_penalty, centers_transform, pen_transform)
         self.x_train, self.y_train = None, None
-        self.losses: Optional[Dict[str, torch.Tensor]] = None
+        self.losses: dict[str, torch.Tensor] | None = None
 
     def forward(self, X, Y):
         self.x_train, self.y_train = X.detach(), Y.detach()

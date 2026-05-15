@@ -1,6 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Tuple, TypeVar, Union
+from typing import TypeVar
+from collections.abc import Callable
 
 import numpy as np
 import torch
@@ -14,21 +15,21 @@ from falkon.utils import check_random_generator, decide_cuda, devices
 from falkon.utils.helpers import check_same_dtype, sizeof_dtype
 from falkon.utils.tensor_helpers import is_f_contig
 
-_tensor_type = TypeVar("_tensor_type", bound=Union[torch.Tensor, SparseTensor], covariant=True)
-_opt_tensor_type = TypeVar("_opt_tensor_type", bound=Union[None, torch.Tensor, SparseTensor], covariant=True)
-_opt_ttensor_type = TypeVar("_opt_ttensor_type", bound=Union[None, torch.Tensor], covariant=True)
+_tensor_type = TypeVar("_tensor_type", bound=torch.Tensor | SparseTensor, covariant=True)
+_opt_tensor_type = TypeVar("_opt_tensor_type", bound=None | torch.Tensor | SparseTensor, covariant=True)
+_opt_ttensor_type = TypeVar("_opt_ttensor_type", bound=None | torch.Tensor, covariant=True)
 
 
 class FalkonBase(base.BaseEstimator, ABC):
     def __init__(
         self,
         kernel: falkon.kernels.Kernel,
-        M: Optional[int],
-        center_selection: Union[str, falkon.center_selection.CenterSelector] = "uniform",
-        seed: Optional[int] = None,
-        error_fn: Optional[Callable] = None,
-        error_every: Optional[int] = 1,
-        options: Optional[FalkonOptions] = None,
+        M: int | None,
+        center_selection: str | falkon.center_selection.CenterSelector = "uniform",
+        seed: int | None = None,
+        error_fn: Callable | None = None,
+        error_every: int | None = 1,
+        options: FalkonOptions | None = None,
     ):
         self.kernel = kernel
         self.M = M
@@ -52,7 +53,7 @@ class FalkonBase(base.BaseEstimator, ABC):
         self.center_selection = self._init_center_selection(center_selection)
 
     def _init_center_selection(
-        self, center_selection: Union[str, falkon.center_selection.CenterSelector]
+        self, center_selection: str | falkon.center_selection.CenterSelector
     ) -> falkon.center_selection.CenterSelector:
         if isinstance(center_selection, str):
             if center_selection.lower() == "uniform":
@@ -79,10 +80,10 @@ class FalkonBase(base.BaseEstimator, ABC):
 
     def _get_callback_fn(
         self,
-        X: Optional[_tensor_type],
-        Y: Optional[torch.Tensor],
-        Xts: Optional[_tensor_type],
-        Yts: Optional[torch.Tensor],
+        X: _tensor_type | None,
+        Y: torch.Tensor | None,
+        Xts: _tensor_type | None,
+        Yts: torch.Tensor | None,
         ny_points: _tensor_type,
         precond: falkon.preconditioner.Preconditioner,
     ):
@@ -127,7 +128,7 @@ class FalkonBase(base.BaseEstimator, ABC):
 
     def _check_fit_inputs(
         self, X: _tensor_type, Y: torch.Tensor, Xts: _opt_tensor_type, Yts: _opt_ttensor_type
-    ) -> Tuple[_tensor_type, torch.Tensor, _opt_tensor_type, _opt_ttensor_type]:
+    ) -> tuple[_tensor_type, torch.Tensor, _opt_tensor_type, _opt_ttensor_type]:
         if X.shape[0] != Y.shape[0]:
             raise ValueError(f"X and Y must have the same number of samples (found {X.shape[0]} and {Y.shape[0]})")
         if Y.dim() == 1:
@@ -193,7 +194,7 @@ class FalkonBase(base.BaseEstimator, ABC):
 
     @abstractmethod
     def fit(
-        self, X: torch.Tensor, Y: torch.Tensor, Xts: Optional[torch.Tensor] = None, Yts: Optional[torch.Tensor] = None
+        self, X: torch.Tensor, Y: torch.Tensor, Xts: torch.Tensor | None = None, Yts: torch.Tensor | None = None
     ):
         pass
 
@@ -227,7 +228,7 @@ class FalkonBase(base.BaseEstimator, ABC):
         return super().__repr__(N_CHAR_MAX=5000)
 
 
-def to_c_contig(tensor: Optional[torch.Tensor], name: str = "", warn: bool = False) -> Optional[torch.Tensor]:
+def to_c_contig(tensor: torch.Tensor | None, name: str = "", warn: bool = False) -> torch.Tensor | None:
     warning_text = (
         "Input '%s' is F-contiguous (stride=%s); to ensure KeOps compatibility, C-contiguous inputs "
         "are necessary. The data will be copied to change its order. To avoid this "

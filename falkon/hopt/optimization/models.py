@@ -3,7 +3,6 @@ This file contains a helper function to initialize one of several
 hyperparameter optimization objectives.
 """
 
-from typing import Dict, Optional
 
 import torch
 
@@ -14,18 +13,18 @@ from falkon.hopt.objectives import GCV, LOOCV, SGPR, CompReg, HoldOut, NystromCo
 
 def init_model(
     model_type: str,
-    data: Dict[str, torch.Tensor],
+    data: dict[str, torch.Tensor],
     kernel: falkon.kernels.DiffKernel,
     penalty_init: torch.Tensor,
     centers_init: torch.Tensor,
     opt_penalty: bool,
     opt_centers: bool,
     cuda: bool,
-    val_pct: Optional[float],
-    per_iter_split: Optional[bool],
-    cg_tol: Optional[float],
-    num_trace_vecs: Optional[int],
-    flk_maxiter: Optional[int],
+    val_pct: float | None,
+    per_iter_split: bool | None,
+    cg_tol: float | None,
+    num_trace_vecs: int | None,
+    flk_maxiter: int | None,
 ):
     flk_opt = FalkonOptions(
         cg_tolerance=cg_tol,

@@ -5,7 +5,7 @@ Copyright (c) 2022 Ruilong Li, UC Berkeley.
 Copyright (c) 2023 Giacomo Meanti
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 
