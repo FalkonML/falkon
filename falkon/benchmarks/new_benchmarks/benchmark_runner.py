@@ -29,6 +29,103 @@ def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
     return test_errs, train_errs
 
 
+def run_balkon(
+    dset: Dataset,
+    data_path: str,
+    dtype: DataType | None,
+    num_iter: int,
+    num_centers: int,
+    kernel_sigma: float,
+    penalty: float,
+    kernel: str,
+    kfold: int,
+    seed: int,
+    use_keops: bool,
+    block_size: int,
+):
+    import torch
+
+    import falkon
+    from falkon import kernels
+    from falkon.models import balkon
+    from falkon.utils import TicToc
+
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    # Data types
+    if dtype is None:
+        dtype = DataType.float64
+    # Arguments
+    if kernel.lower() == "gaussian":
+        k = kernels.GaussianKernel(kernel_sigma)
+    elif kernel.lower() == "laplacian":
+        k = kernels.LaplacianKernel(kernel_sigma)
+    elif kernel.lower() == "linear":
+        k = kernels.LinearKernel(beta=1.0, gamma=kernel_sigma)
+    else:
+        raise ValueError(f"Kernel {kernel} not understood for algorithm Falkon")
+
+    opt = falkon.FalkonOptions(
+        compute_arch_speed=False,
+        no_single_kernel=True,
+        pc_epsilon_32=1e-6,
+        pc_epsilon_64=1e-13,
+        keops_active="force" if use_keops else "no",
+        debug=True,
+    )
+    flk = balkon.Balkon(
+        kernel=k, penalty=penalty, M=num_centers, maxiter=num_iter, seed=seed, 
+        error_fn=None, error_every=1, options=opt, block_size=block_size
+    )
+
+    # Error metrics
+    err_fns = get_err_fns(dset)
+    if kfold == 1:
+        # Load data
+        load_fn = get_load_fn(dset)
+        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
+        Xtr = Xtr.pin_memory()
+        Ytr = Ytr.pin_memory()
+        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
+        with TicToc("BALKON ALGORITHM"):
+            flk.error_fn = err_fns[0]
+            print(f"Starting to train model {flk} on data {dset}", flush=True)
+            flk.fit(Xtr, Ytr, Xts, Yts)
+        test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+    else:
+        print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
+        load_fn = get_cv_fn(dset)
+        test_errs, train_errs = [], []
+
+        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True)
+        ):
+            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
+            with TicToc(f"BALKON ALGORITHM (fold {it})"):
+                flk.error_every = err_fns[0]
+                flk.fit(Xtr, Ytr, Xts, Yts)
+            c_test_errs, c_train_errs = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            train_errs.append(c_train_errs)
+            test_errs.append(c_test_errs)
+
+        print(f"Full errors: Test {test_errs} - Train {train_errs}")
+        print()
+        print(f"{kfold}-Fold Error Report")
+        for err_fn_i in range(len(err_fns)):
+            print(
+                f"Final test errors: "
+                f"{np.mean([e[err_fn_i] for e in test_errs]):.4f} +- "
+                f"{np.std([e[err_fn_i] for e in test_errs]):4f}"
+            )
+            print(
+                f"Final train errors: "
+                f"{np.mean([e[err_fn_i] for e in train_errs]):.4f} +- "
+                f"{np.std([e[err_fn_i] for e in train_errs]):.4f}"
+            )
+            print()
+
+
 def run_falkon(
     dset: Dataset,
     data_path: str,
@@ -128,6 +225,7 @@ if __name__ == "__main__":
     print(print(datetime.datetime.now()))
     p = argparse.ArgumentParser(description="FALKON Benchmark Runner")
 
+    p.add_argument("-a", "--algorithm", type=str, choices=["falkon", "balkon"])
     p.add_argument("-d", "--dataset", type=Dataset, choices=list(Dataset), required=True, help="Dataset")
     p.add_argument("--data-path", type=str, help="Path to dataset")
     p.add_argument(
@@ -169,19 +267,41 @@ if __name__ == "__main__":
     )
     p.add_argument("--use-keops", action="store_true", help="Set this flag to enable KeOps.")
 
-    args = p.parse_args()
-    print(f"STARTING WITH SEED {args.seed}")
+    # Algo-specific
+    p.add_argument("--balkon-block-size", type=int, required=False)
 
-    run_falkon(
-        dset=args.dataset,
-        data_path=args.data_path,
-        use_keops=args.use_keops,
-        dtype=args.dtype,
-        num_iter=args.epochs,
-        num_centers=args.num_centers,
-        kernel_sigma=args.sigma,
-        penalty=args.penalty,
-        kernel=args.kernel,
-        kfold=args.kfold,
-        seed=args.seed,
-    )
+    args = p.parse_args()
+    print(f"STARTING {args.algorithm} WITH SEED {args.seed}")
+
+    if args.algorithm == "falkon":
+        run_falkon(
+            dset=args.dataset,
+            data_path=args.data_path,
+            use_keops=args.use_keops,
+            dtype=args.dtype,
+            num_iter=args.epochs,
+            num_centers=args.num_centers,
+            kernel_sigma=args.sigma,
+            penalty=args.penalty,
+            kernel=args.kernel,
+            kfold=args.kfold,
+            seed=args.seed,
+        )
+    elif args.algorithm == "balkon":
+        assert args.balkon_block_size is not None
+        run_balkon(
+            dset=args.dataset,
+            data_path=args.data_path,
+            use_keops=args.use_keops,
+            dtype=args.dtype,
+            num_iter=args.epochs,
+            num_centers=args.num_centers,
+            kernel_sigma=args.sigma,
+            penalty=args.penalty,
+            kernel=args.kernel,
+            kfold=args.kfold,
+            seed=args.seed,
+            block_size=args.balkon_block_size,
+        )
+    else:
+        raise ValueError(args.algorithm)
