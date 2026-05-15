@@ -34,7 +34,7 @@ class ArgsFmmv:
     out: torch.Tensor
     kernel: "falkon.kernels.Kernel"
     max_mem: float
-    w: torch.Tensor = None
+    w: torch.Tensor | None = None
     differentiable: bool = False
     kwargs_m1: Dict[str, torch.Tensor] = field(default_factory=dict)
     kwargs_m2: Dict[str, torch.Tensor] = field(default_factory=dict)
@@ -132,10 +132,10 @@ def mmv_run_starter(proc_idx, queue, device_id):
         _is_incore(dev, out.device),
     )
     blk_n, blk_m, mem_needed = _mmv_blk_sizes(
-        n=X1.size(-2),
-        d=X1.size(-1),
-        m=X2.size(-2),
-        t=v.size(-1),
+        n=X1.shape[-2],
+        d=X1.shape[-1],
+        m=X2.shape[-2],
+        t=v.shape[-1],
         avail_mem=avail_mem,
         m1_ic=m1_ic,
         m2_ic=m2_ic,
@@ -309,7 +309,7 @@ def sparse_mmv_run_thread(
 def mmv_run_thread(
     m1: torch.Tensor,
     m2: torch.Tensor,
-    v: Optional[torch.Tensor],
+    v: torch.Tensor,
     out: torch.Tensor,
     kernel: "falkon.kernels.Kernel",
     blk_n: int,
@@ -375,7 +375,6 @@ def mmv_run_thread(
                     c_dev_m2 = m2[j : j + lenj, :]
                 else:
                     c_dev_m2 = copy(m2[j : j + lenj, :], dev_m2[:lenj, :], non_blocking=True)
-                # c_dev_m2 = m2[j: j + lenj].to(dev, copy=False, non_blocking=True)
                 if v_ic:
                     c_dev_v = v[j : j + lenj, :]
                 else:
@@ -407,7 +406,7 @@ def mmv_diff_run_thread(
     m2: torch.Tensor,
     v: Optional[torch.Tensor],
     out: torch.Tensor,
-    kernel: "falkon.kernels.Kernel",
+    kernel: "falkon.kernels.DiffKernel",
     blk_n: int,
     blk_m: int,
     dev: torch.device,
@@ -415,6 +414,7 @@ def mmv_diff_run_thread(
     kwargs_m1: Dict[str, torch.Tensor],
     kwargs_m2: Dict[str, torch.Tensor],
 ):
+    assert v is not None
     # data(CUDA), dev(CUDA) or data(CPU), dev(CPU)
     incore = _is_incore(dev, m1.device)
     N, D = m1.shape
@@ -556,10 +556,10 @@ def dmmv_run_starter(proc_idx, queue, device_id):
     # Choose batch sizes
     avail_mem = max_mem / sizeof_dtype(X1.dtype)
     blk_n, mem_needed = _dmmv_blk_sizes(
-        n=X1.size(-2),
-        d=X1.size(-1),
-        m=X2.size(-2),
-        t=v.size(-1),
+        n=X1.shape[-2],
+        d=X1.shape[-1],
+        m=X2.shape[-2],
+        t=v.shape[-1],
         avail_mem=avail_mem,
         m1_ic=_is_incore(dev, X1.device),
         m2_ic=_is_incore(dev, X2.device),
@@ -966,11 +966,11 @@ def fmmv(
     opt: Optional[BaseOptions] = None,
     kwargs_m1: Optional[Dict[str, torch.Tensor]] = None,
     kwargs_m2: Optional[Dict[str, torch.Tensor]] = None,
-):
+) -> torch.Tensor:
     if isinstance(kernel, falkon.kernels.DiffKernel):
-        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v, *kernel.diff_params.values())
+        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v, *kernel.diff_params.values()) # type: ignore
     else:
-        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v)
+        return KernelMmvFnFull.apply(kernel, opt, kwargs_m1, kwargs_m2, out, X1, X2, v) # type: ignore
 
 
 def fdmmv(
