@@ -71,6 +71,11 @@ class PreconditionedConjugateGradient(Optimizer):
         # indices of columns which have not converged, as they originally were in `X`
         col_idx_notconverged: torch.Tensor = torch.arange(T)
 
+        # stagnation detection
+        stag_thresh = self.params.cg_stagnation_threshold
+        stag_iters_min = self.params.cg_stagnation_iterations
+        rs_norms: list[torch.Tensor] = []
+
         with (timer := TicToc("PCG preparation", debug=False)):
             if x0 is None:
                 r = copy_same_stride(rhs)  # n*T
@@ -82,14 +87,14 @@ class PreconditionedConjugateGradient(Optimizer):
 
             s = self.prec.apply(r)
             p = s  # no need to clone (unlike in conjgrad) since s gets modified.
-            rs_old = (r * s).sum(dim=0)  # T
+            rs_norms.append((r * s).sum(dim=0))
             x_orig = x  # keep a reference for differential convergence
             e_train = timer.toc_val()
 
         for self.num_iter in range(max_iter):
             with (timer := TicToc("Chol Iter", debug=False)):
                 op_q = mmv(p)
-                alpha = rs_old / (torch.sum(p * op_q, dim=0).add_(m_eps))
+                alpha = rs_norms[-1] / (torch.sum(p * op_q, dim=0).add_(m_eps))
                 # X += P @ diag(alpha)
                 x.addcmul_(p, alpha.reshape(1, -1))
 
@@ -103,30 +108,38 @@ class PreconditionedConjugateGradient(Optimizer):
                     r.addcmul_(op_q, alpha.reshape(1, -1), value=-1.0)
 
                 s = self.prec.apply(r)
-                rs_new = (r * s).sum(0)
+                rs_norms.append((r * s).sum(0))
 
-                converged = torch.less(rs_new, tol)
-                if torch.all(converged):
+                # Stopping criterion:
+                # 1. |residual| < eps * |rhs|
+                # 2. |residual_{k}|/|residual_{k-m}| > stag_thresh
+                converged = torch.less(rs_norms[-1], tol)
+                if (self.num_iter + 1) > stag_iters_min:
+                    stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
+                    stagnated = stagnation_rho > stag_thresh
+                    stop_iterates = converged | stagnated
+                else:
+                    stop_iterates = converged
+                if torch.all(stop_iterates):
                     break
-                if diff_conv and torch.any(converged):
-                    for idx in torch.where(converged)[0]:
+                if diff_conv and torch.any(stop_iterates):
+                    for idx in torch.where(stop_iterates)[0]:
                         col_idx_converged.append(int(col_idx_notconverged[idx].item()))
                         x_converged.append(x[:, idx])
                     # These are all copies
-                    col_idx_notconverged = col_idx_notconverged[~converged]
-                    p = p[:, ~converged]
-                    r = r[:, ~converged]
-                    s = s[:, ~converged]
-                    rhs = rhs[:, ~converged]
-                    x = x[:, ~converged]
-                    tol = tol[~converged]
-                    rs_new = rs_new[~converged]
-                    rs_old = rs_old[~converged]
+                    col_idx_notconverged = col_idx_notconverged[~stop_iterates]
+                    p = p[:, ~stop_iterates]
+                    r = r[:, ~stop_iterates]
+                    s = s[:, ~stop_iterates]
+                    rhs = rhs[:, ~stop_iterates]
+                    x = x[:, ~stop_iterates]
+                    tol = tol[~stop_iterates]
+                    rs_norms[-1] = rs_norms[-1][~stop_iterates]
+                    rs_norms[-2] = rs_norms[-2][~stop_iterates]
 
                 # P = R + P @ diag(mul)
-                beta_multiplier = (rs_new / rs_old.add_(m_eps)).reshape(1, -1)
+                beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
                 p = p.mul_(beta_multiplier).add_(s)
-                rs_old = rs_new
                 e_train += timer.toc_val()
             with TicToc("Chol callback", debug=False):
                 if callback is not None:

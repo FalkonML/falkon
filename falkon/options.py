@@ -225,6 +225,8 @@ class ConjugateGradientOptions:
     cg_tolerance: float = 1e-7
     cg_full_gradient_every: int = 10
     cg_differential_convergence: bool = False
+    cg_stagnation_threshold: float = 0.95
+    cg_stagnation_iterations: int = 2
 
     def cg_epsilon(self, dtype):
         if dtype == torch.float32:
