@@ -7,6 +7,7 @@ import torchaudio
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from espnet2.tasks.asr import ASRTask
 from espnet2.bin.asr_inference import Speech2Text
 from espnet_model_zoo.downloader import ModelDownloader
 
@@ -42,15 +43,18 @@ dataset = torchaudio.datasets.LIBRISPEECH(
 MODEL_NAME = "espnet/owsm_v3.1_ebf"
 print(f"Loading pretrained ESPnet model {MODEL_NAME}")
 d = ModelDownloader()
-model = d.download_and_unpack(MODEL_NAME)
-print(f"{model.keys()=}")
-speech2text = Speech2Text(
-    asr_train_config=model["s2t_train_config"],
-    asr_model_file=model["s2t_model_file"],
+model_data = d.download_and_unpack(MODEL_NAME)
+# speech2text = Speech2Text(
+#     asr_train_config=model["s2t_train_config"],
+#     asr_model_file=model["s2t_model_file"],
+#     device=DEVICE,
+# )
+model, train_args = ASRTask.build_model_from_file(
+    config_file=model_data["s2t_train_config"],
+    model_file=model_data["s2t_model_file"],
     device=DEVICE,
 )
-
-model = speech2text.asr_model
+# model = speech2text.asr_model
 model.eval()
 
 print("Model loaded.")
@@ -111,16 +115,16 @@ def extract_encoder_features(waveform):
     waveform = waveform.unsqueeze(0)
 
     # Frontend + encoder
-    enc, enc_len = model.encode(
+    feats, feats_len = model.encode(
         speech=waveform,
         speech_lengths=lengths,
     )
 
     # Shape:
     # [1, T, D]
-    enc = enc.squeeze(0)
+    feats = feats.squeeze(0)
 
-    return enc.cpu()
+    return feats.cpu()
 
 
 # Main extraction loop
