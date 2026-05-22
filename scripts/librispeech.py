@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+os.environ["NLTK_DATA"] = "/data/DATASETS/nltk_data"
 
 import torch
 import torchaudio
@@ -30,6 +31,7 @@ Path(FEATURE_ROOT).mkdir(parents=True, exist_ok=True)
 
 
 # Load LibriSpeech
+print(f"Loading Librispeech dataset {LIBRISPEECH_SPLIT}")
 dataset = torchaudio.datasets.LIBRISPEECH(
     root=DATA_ROOT,
     url=LIBRISPEECH_SPLIT,
@@ -37,14 +39,14 @@ dataset = torchaudio.datasets.LIBRISPEECH(
 )
 
 # ESPnet pretrained Conformer
-print("Loading pretrained ESPnet model...")
-
+MODEL_NAME = "espnet/owsm_v3.1_ebf"
+print(f"Loading pretrained ESPnet model {MODEL_NAME}")
 d = ModelDownloader()
-
+model = d.download_and_unpack(MODEL_NAME)
+print(f"{model.keys()=}")
 speech2text = Speech2Text(
-    **d.download_and_unpack(
-        "espnet/owsm_v3.1_ebf"
-    ),
+    asr_train_config=model["s2t_train_config"],
+    asr_model_file=model["s2t_model_file"],
     device=DEVICE,
 )
 
