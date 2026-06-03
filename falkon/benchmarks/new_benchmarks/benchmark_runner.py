@@ -69,10 +69,13 @@ def run_balkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
+        cg_tolerance=1e-6,
+        cg_stagnation_iterations=4,
+        cg_stagnation_threshold=0.96,
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
-        debug=True,
+        debug=False,
     )
     flk = balkon.Balkon(
         kernel=k,
@@ -106,13 +109,13 @@ def run_balkon(
         test_errs, train_errs = [], []
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True)
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             with TicToc(f"BALKON ALGORITHM (fold {it})"):
                 flk.error_every = err_fns[0]
                 flk.fit(Xtr, Ytr, Xts, Yts)
-            c_test_errs, c_train_errs = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
@@ -171,6 +174,7 @@ def run_falkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
+        cg_tolerance=1e-6,
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
@@ -200,7 +204,7 @@ def run_falkon(
         test_errs, train_errs = [], []
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True)
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             with TicToc(f"FALKON ALGORITHM (fold {it})"):
