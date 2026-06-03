@@ -38,7 +38,8 @@ class EigenProWrapper():
             for err_fn in err_fns:
                 test_err, test_err_name = err_fn(Yts, preds)
                 print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
-                print()
+            print()
+            self.epoch_times.append(time.time())
         return fn
 
     def fit(self, Xtr, Ytr, Xts, Yts, err_fns):
