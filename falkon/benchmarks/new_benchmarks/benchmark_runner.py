@@ -9,31 +9,17 @@ import torch
 from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
+from falkon.benchmarks.new_benchmarks.eigenpro_wrapper import EigenProWrapper
 
 RANDOM_SEED = 123
 EIGENPRO_BASE_PATH = "/home/giacomo/EigenPro"
 
 
-def run_model_predict(model_name, model, data, batch_size=None, device=None):
-    if "balkon" in model_name.lower() or "falkon" in model_name.lower():
-        return model.predict(data)
-    elif "eigenpro" in model_name.lower():
-        if batch_size is None:
-            batch_size = 1024
-        outputs = []
-        for i in range(0, data.shape[0], batch_size):
-            batch = data[i: i + batch_size].to(device=device)
-            outputs.append(model(batch).cpu())
-        return torch.cat(outputs, 0)
-    else:
-        raise ValueError(model_name)
-
-
-def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns, **predict_kwargs):
-    test_preds = run_model_predict(model_name, model, Xts, **predict_kwargs)
+def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
+    test_preds = model.predict(Xts)
     train_preds = None
     if Xtr is not None:
-        train_preds = run_model_predict(model_name, model, Xtr, **predict_kwargs)
+        train_preds = model.predict(Xtr)
     test_errs, train_errs = [], []
     for err_fn in err_fns:
         test_err, test_err_name = err_fn(Yts, test_preds)
@@ -65,6 +51,8 @@ def print_kfold_error_report(k, test_errs, train_errs, err_fns):
         print()
 
 
+################
+### EIGENPRO ###
 def run_eigenpro(
     dset: Dataset,
     data_path: str,
@@ -82,8 +70,6 @@ def run_eigenpro(
     
     sys.path.append(EIGENPRO_BASE_PATH)
     import eigenpro.kernels as kernels # pyright: ignore[reportMissingImports]
-    import eigenpro.models.sharded_kernel_machine as skm # pyright: ignore[reportMissingImports]
-    import eigenpro.solver as solver # pyright: ignore[reportMissingImports]
     import eigenpro.utils.device as dev # pyright: ignore[reportMissingImports]
 
     torch.manual_seed(seed)
@@ -98,7 +84,10 @@ def run_eigenpro(
     else:
         raise ValueError(kernel)
     device = dev.Device.create(use_gpu_if_available=True)
-
+    model = EigenProWrapper(device, dtype.to_torch_dtype(), kernel_fn, num_centers=num_centers,
+                            num_pc_centers=num_pc_centers, num_eigenvalues=num_eigenvalues,
+                            num_epochs=num_iter)
+    
     # Error metrics
     err_fns = get_err_fns(dset)
     if kfold == 1:
@@ -106,47 +95,24 @@ def run_eigenpro(
         load_fn = get_load_fn(dset)
         Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
 
-        centers_set_indices = np.random.choice(Xtr.shape[0], num_centers, replace=False)
-        Z = Xtr[centers_set_indices, :]
-
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
         with TicToc("EigenPro4 Algorithm"):
-            kernel_model = skm.create_sharded_kernel_machine(
-                Z, Ytr.shape[-1], kernel_fn, device, dtype=dtype.to_torch_dtype(), tmp_centers_coeff=2
-            )
-            model = solver.fit(
-                kernel_model, Xtr, Ytr, Xts, Yts, device,
-                dtype=dtype.to_torch_dtype(), kernel=kernel_fn, n_data_pcd_nyst_samples=num_pc_centers,
-                n_model_pcd_nyst_samples=num_pc_centers, n_data_pcd_eigenvals=num_eigenvalues,
-                n_model_pcd_eigenvals=num_eigenvalues, wandb=None, epochs=num_iter,
-                accumulated_gradients=True
-            )
-        test_model(model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns, device="cuda:0", batch_size=8192)
+            model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+        test_model(model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
     else:
         # print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)
         test_errs, train_errs = [], []
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True)
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             with TicToc(f"EigenPro4 Algorithm (fold {it})"):
-                centers_set_indices = np.random.choice(Xtr.shape[0], num_centers, replace=False)
-                Z = Xtr[centers_set_indices, :]
-                kernel_model = skm.create_sharded_kernel_machine(
-                    Z, Ytr.shape[-1], kernel_fn, device, dtype=dtype.to_torch_dtype(), tmp_centers_coeff=2
-                )
-                model = solver.fit(
-                    kernel_model, Xtr, Ytr, Xts, Yts, device,
-                    dtype=dtype.to_torch_dtype(), kernel=kernel_fn, n_data_pcd_nyst_samples=num_pc_centers,
-                    n_model_pcd_nyst_samples=num_pc_centers, n_data_pcd_eigenvals=num_eigenvalues,
-                    n_model_pcd_eigenvals=num_eigenvalues, wandb=None, epochs=num_iter,
-                    accumulated_gradients=True
-                )
+                model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+
             c_test_errs, c_train_errs = test_model(
                 model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns, 
-                device="cuda:0", batch_size=8192
             )
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
@@ -154,6 +120,8 @@ def run_eigenpro(
         print_kfold_error_report(kfold, test_errs, train_errs, err_fns)
 
 
+##############
+### BALKON ###
 def run_balkon(
     dset: Dataset,
     data_path: str,
@@ -245,6 +213,8 @@ def run_balkon(
         print_kfold_error_report(kfold, test_errs, train_errs, err_fns)
 
 
+##############
+### FALKON ###
 def run_falkon(
     dset: Dataset,
     data_path: str,
