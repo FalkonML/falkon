@@ -9,7 +9,6 @@ import torch
 from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
-from falkon.benchmarks.new_benchmarks.eigenpro_wrapper import EigenProWrapper
 
 RANDOM_SEED = 123
 EIGENPRO_BASE_PATH = "/home/giacomo/EigenPro"
@@ -67,10 +66,11 @@ def run_eigenpro(
     seed: int,
 ):
     from falkon.utils import TicToc
-    
+
     sys.path.append(EIGENPRO_BASE_PATH)
     import eigenpro.kernels as kernels # pyright: ignore[reportMissingImports]
     import eigenpro.utils.device as dev # pyright: ignore[reportMissingImports]
+    from falkon.benchmarks.new_benchmarks.eigenpro_wrapper import EigenProWrapper
 
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -87,7 +87,7 @@ def run_eigenpro(
     model = EigenProWrapper(device, dtype.to_torch_dtype(), kernel_fn, num_centers=num_centers,
                             num_pc_centers=num_pc_centers, num_eigenvalues=num_eigenvalues,
                             num_epochs=num_iter)
-    
+
     # Error metrics
     err_fns = get_err_fns(dset)
     if kfold == 1:
@@ -112,7 +112,7 @@ def run_eigenpro(
                 model.fit(Xtr, Ytr, Xts, Yts, err_fns)
 
             c_test_errs, c_train_errs = test_model(
-                model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns, 
+                model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns,
             )
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
