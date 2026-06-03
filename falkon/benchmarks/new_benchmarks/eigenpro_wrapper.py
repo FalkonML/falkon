@@ -30,11 +30,13 @@ class EigenProWrapper():
             epoch = len(self.epoch_times)
             self.model = model
             print("Running test-set predictions...", flush=True)
+            pred_start_time = time.time()
             preds = self.predict(Xts)
+            pred_elapsed = time.time() - pred_start_time
+            print(f"EigenPro4 epoch {epoch}:")
+            print(f"\telapsed: {sum(self.epoch_times):.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
             for err_fn in err_fns:
                 test_err, test_err_name = err_fn(Yts, preds)
-                print(f"EigenPro4 epoch {epoch}:")
-                print(f"\telapsed: {sum(self.epoch_times):.2f}s", flush=True)
                 print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
                 print()
         return fn
