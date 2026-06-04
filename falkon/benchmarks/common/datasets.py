@@ -129,6 +129,8 @@ def standardize_y(Ytr, Yts):
 def as_np_dtype(dtype):
     if "float32" in str(dtype):
         return np.float32
+    if "float16" in str(dtype):
+        return np.float16
     if "float64" in str(dtype):
         return np.float64
     if "int32" in str(dtype):
@@ -646,7 +648,7 @@ class CIFAR105M_MBV2Dataset(KnownSplitDataset):
             return np.concatenate((x_tr, x_ts), axis=0), np.concatenate((y_tr, y_ts), axis=0)
 
     def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
-        return Xtr, Xts, {}
+        return standardize_x(Xtr, Xts)
 
     def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
         return convert_to_onehot(Ytr, Yts, num_classes=10)

@@ -75,6 +75,7 @@ def run_eigenpro(
     torch.manual_seed(seed)
     np.random.seed(seed)
 
+    data_dtype = DataType.float32
     if dtype is None:
         dtype = DataType.float32
     if kernel == "laplacian":
@@ -93,7 +94,7 @@ def run_eigenpro(
     if kfold == 1:
         # Load data
         load_fn = get_load_fn(dset)
-        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
+        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=data_dtype.to_numpy_dtype(), as_torch=True, path=data_path)
 
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
         with TicToc("EigenPro4 Algorithm"):
@@ -105,7 +106,7 @@ def run_eigenpro(
         test_errs, train_errs = [], []
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
+            load_fn(k=kfold, dtype=data_dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             with TicToc(f"EigenPro4 Algorithm (fold {it})"):
