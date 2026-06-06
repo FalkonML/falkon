@@ -47,10 +47,10 @@ class Balkon(FalkonBase):
         super().__init__(kernel, M, center_selection, seed, error_fn, error_every, options)
         self.penalty = penalty
         self.maxiter = maxiter
-        if M < block_size:
+        if M % block_size != 0:
             raise ValueError(
-                f"Preconditioner block size must be smaller or "
-                f"equal to the number of centers. Found {M} centers "
+                f"Preconditioner block size must divide "
+                f"the number of centers. Found {M} centers "
                 f"and block size {block_size}."
             )
         self.block_size = block_size
