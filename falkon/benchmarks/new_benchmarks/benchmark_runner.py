@@ -422,7 +422,7 @@ def run_joker(
         te_err, tr_err, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
         print(f"[--] Test errors: {te_err}")
         print(f"[--] Train errors: {tr_err}")
-        with open(f"./joker_{dset}_single_run.log", 'w') as f_out:
+        with open(f"./joker_{criterion}_{inexact_type}_{dset}_single_run.log", 'w') as f_out:
             f_out.write(','.join([str(e) for e in tr_err]) +"," + ','.join([str(e) for e in te_err]) +f",{tr_time},{te_pred_time}\n")
             f_out.flush()
     else:
@@ -448,7 +448,7 @@ def run_joker(
 
 
             if kernel_type == 'gaussian':
-                ktype = 'gaussian'
+                ktype = 'rbf'
                 gamma = 0.5 / (sigma**2) 
             elif kernel_type == 'lap':
                 ktype = 'lap'
@@ -512,7 +512,7 @@ def run_joker(
         print(f"Full errors: Test {test_errs} - Train {train_errs}")
         print()
         print(f"{kfold}-Fold Error Report")
-        with open(f"./joker_{dset}_kfold_{kfold}.log", 'w') as f_out:
+        with open(f"./joker_{criterion}_{inexact_type}_{dset}_kfold_{kfold}.log", 'w') as f_out:
             f_out.write(f"[TIME] {np.mean(train_times)},{np.std(train_times)},{np.mean(test_pred_times)},{np.std(test_pred_times)}\n")
             f_out.write(f"[TEST PERFORMANCE]\n")
             for err_fn_i in range(len(err_fns)):
@@ -606,7 +606,7 @@ def run_falkon(
         test_errs, train_errs = [], []
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True)
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             with TicToc(f"FALKON ALGORITHM (fold {it})"):
