@@ -136,7 +136,7 @@ class FalkonBase(base.BaseEstimator, ABC):
         if Y.dim() != 2:
             raise ValueError(f"Y is expected 1D or 2D. Found {Y.dim()}D.")
         if not check_same_dtype(X, Y):
-            raise TypeError("X and Y must have the same data-type.")
+            raise TypeError(f"X and Y must have the same data-type. Found {X.dtype} and {Y.dtype}")
 
         # If KeOps is used, data must be C-contiguous.
         if should_use_keops(X, X, self.options):
