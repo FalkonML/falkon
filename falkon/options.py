@@ -243,6 +243,8 @@ class ConjugateGradientOptions:
             cg_tolerance=self.cg_tolerance,
             cg_full_gradient_every=self.cg_full_gradient_every,
             cg_differential_convergence=self.cg_differential_convergence,
+            cg_stagnation_threshold=self.cg_stagnation_threshold,
+            cg_stagnation_iterations=self.cg_stagnation_iterations,
         )
 
 
