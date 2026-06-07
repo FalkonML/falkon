@@ -82,6 +82,7 @@ class Dataset(Enum):
     CIFAR10 = "cifar10"
     CIFAR10RGB = "cifar10-rgb"
     CIFAR105MMBV2 = "cifar10-5m-mbv2"
+    CIFAR105M = "cifar10-5m"
     HOHIGGS = "ho-higgs"
     ICTUS = "ictus"
     SYNTH01NOISE = "synth-01noise"
