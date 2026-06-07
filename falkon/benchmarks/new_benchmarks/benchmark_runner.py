@@ -68,8 +68,9 @@ def run_eigenpro(
     from falkon.utils import TicToc
 
     sys.path.append(EIGENPRO_BASE_PATH)
-    import eigenpro.kernels as kernels # pyright: ignore[reportMissingImports]
-    import eigenpro.utils.device as dev # pyright: ignore[reportMissingImports]
+    import eigenpro.kernels as kernels  # pyright: ignore[reportMissingImports]
+    import eigenpro.utils.device as dev  # pyright: ignore[reportMissingImports]
+
     from falkon.benchmarks.new_benchmarks.eigenpro_wrapper import EigenProWrapper
 
     torch.manual_seed(seed)
@@ -85,9 +86,15 @@ def run_eigenpro(
     else:
         raise ValueError(kernel)
     device = dev.Device.create(use_gpu_if_available=True)
-    model = EigenProWrapper(device, dtype.to_torch_dtype(), kernel_fn, num_centers=num_centers,
-                            num_pc_centers=num_pc_centers, num_eigenvalues=num_eigenvalues,
-                            num_epochs=num_iter)
+    model = EigenProWrapper(
+        device,
+        dtype.to_torch_dtype(),
+        kernel_fn,
+        num_centers=num_centers,
+        num_pc_centers=num_pc_centers,
+        num_eigenvalues=num_eigenvalues,
+        num_epochs=num_iter,
+    )
 
     # Error metrics
     err_fns = get_err_fns(dset)
@@ -113,7 +120,7 @@ def run_eigenpro(
                 model.fit(Xtr, Ytr, Xts, Yts, err_fns)
 
             c_test_errs, c_train_errs = test_model(
-                model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns,
+                model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns
             )
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
@@ -310,10 +317,7 @@ if __name__ == "__main__":
         choices=list(DataType),
         required=False,
         default=None,
-        help="Floating point precision to work with. Lower precision will be "
-        "faster but less accurate. Certain algorithms require a specific precision. "
-        "If this argument is not specified we will use the highest precision "
-        "supported by the chosen algorithm.",
+        help="Floating point precision to work with."
     )
     p.add_argument("-e", "--epochs", type=int, required=True, help="Number of epochs to run the algorithm for.")
     p.add_argument("--subsample", type=int, required=False, default=0, help="Data subsampling")
@@ -346,8 +350,12 @@ if __name__ == "__main__":
     p.add_argument("--balkon-block-size", type=int, required=False, help="Required for Balkon")
 
     # EigenPro-specific
-    p.add_argument("--epro-pc-centers", type=int, required=False, help="Number of centers used for the preconditioner in EigenPro4")
-    p.add_argument("--epro-eigvals", type=int, required=False, help="Number of eigenvalues retained in preconditioner of EigenPro4")
+    p.add_argument(
+        "--epro-pc-centers", type=int, required=False, help="Number of centers used for the preconditioner in EigenPro4"
+    )
+    p.add_argument(
+        "--epro-eigvals", type=int, required=False, help="Number of eigenvalues retained in preconditioner of EigenPro4"
+    )
 
     args = p.parse_args()
     print(f"STARTING {args.algorithm} WITH SEED {args.seed}")
