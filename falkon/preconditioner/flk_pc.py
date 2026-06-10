@@ -80,7 +80,9 @@ class FalkonPreconditioner(Preconditioner):
         dev = X.device
         M = X.size(0)
         with TicToc("Kernel", debug=self.params.debug):
-            if isinstance(X, torch.Tensor):
+            if self.fC is not None and self.fC.shape == (M, M) and self.fC.dtype == dtype and self.fC.device == dev:
+                C = self.fC
+            elif isinstance(X, torch.Tensor):
                 C = create_same_stride((M, M), X, dtype=dtype, device=dev, pin_memory=self._use_cuda)
             else:  # If sparse tensor we need fortran for kernel calculation
                 C = create_fortran((M, M), dtype=dtype, device=dev, pin_memory=self._use_cuda)
