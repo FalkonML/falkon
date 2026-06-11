@@ -49,6 +49,7 @@ def run_balkon(
     seed: int,
     use_keops: bool,
     block_size: int,
+    debug: bool,
 ):
     import torch
 
@@ -71,7 +72,7 @@ def run_balkon(
     elif kernel.lower() == "linear":
         k = kernels.LinearKernel(beta=1.0, gamma=kernel_sigma)
     else:
-        raise ValueError(f"Kernel {kernel} not understood for algorithm Falkon")
+        raise ValueError(f"Kernel {kernel} not understood for algorithm Balkon")
 
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
@@ -79,7 +80,7 @@ def run_balkon(
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
-        debug=True,
+        debug=debug,
     )
     flk = balkon.Balkon(
         kernel=k,
@@ -119,7 +120,7 @@ def run_balkon(
             with TicToc(f"BALKON ALGORITHM (fold {it})"):
                 flk.error_every = err_fns[0]
                 flk.fit(Xtr, Ytr, Xts, Yts)
-            c_test_errs, c_train_errs = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, _ = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
@@ -551,6 +552,7 @@ def run_falkon(
     kfold: int,
     seed: int,
     use_keops: bool,
+    debug: bool,
 ):
     import torch
 
@@ -580,7 +582,7 @@ def run_falkon(
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
-        debug=True,
+        debug=debug,
     )
     flk = falkon.Falkon(
         kernel=k, penalty=penalty, M=num_centers, maxiter=num_iter, seed=seed, error_fn=None, error_every=1, options=opt
@@ -606,13 +608,13 @@ def run_falkon(
         test_errs, train_errs = [], []
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True)
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             with TicToc(f"FALKON ALGORITHM (fold {it})"):
                 flk.error_every = err_fns[0]
                 flk.fit(Xtr, Ytr, Xts, Yts)
-            c_test_errs, c_train_errs = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, _ = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
