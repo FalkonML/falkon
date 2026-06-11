@@ -2,6 +2,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import TypeVar
+import time
 
 import numpy as np
 import torch
@@ -103,23 +104,27 @@ class FalkonBase(base.BaseEstimator, ABC):
             # train_time is the cumulative training time (excludes time for this function)
             self.fit_times_.append(self.fit_times_[0] + train_time)
             if it % self.error_every != 0:
-                print(f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s", flush=True)
+                print(f"[{it:3d}] Elapsed (train) {self.fit_times_[-1]:.2f}s", flush=True)
                 return
             err_str = "training" if Xts is None or Yts is None else "validation"
             alpha = self._params_to_original_space(beta, precond)
             # Compute error: can be train or test
             if Xts is not None and Yts is not None:
+                val_s = time.time()
                 pred = self._predict(Xts, ny_points, alpha)
+                val_time = time.time() - val_s
                 err = self.error_fn(Yts, pred)
             else:
                 assert X is not None and Y is not None
+                val_s = time.time()
                 pred = self._predict(X, ny_points, alpha)
+                val_time = time.time() - val_s
                 err = self.error_fn(Y, pred)
             err_name = "error"
             if isinstance(err, tuple) and len(err) == 2:
                 err, err_name = err
             print(
-                f"Iteration {it:3d} - Elapsed {self.fit_times_[-1]:.2f}s - {err_str} {err_name}: {str(err)}",
+                f"[{it:3d}] Elapsed (train) {self.fit_times_[-1]:.2f}s, (val) {val_time:.2f}s - {err_str} {err_name}: {str(err)}",
                 flush=True,
             )
             self.val_errors_.append(err)
