@@ -16,12 +16,7 @@ def _ensure_numpy(*arrays) -> Generator[np.ndarray, None, None]:
 
 def _ensure_numpy_or_float(*vals) -> Generator[float | np.ndarray, None, None]:
     for val in vals:
-        if (
-            not isinstance(val, np.ndarray)
-            and not isinstance(val, np.float64)
-            and not isinstance(val, np.float32)
-            and not isinstance(val, float)
-        ):
+        if not isinstance(val, (np.ndarray, float)):
             yield val.cpu().numpy()
         else:
             yield val
@@ -250,6 +245,8 @@ ERROR_METRICS: dict[Dataset, list[ERROR_FN_TYPE]] = {
     Dataset.SVHN: [mnist_calc_cerr],
     Dataset.CIFAR10: [mnist_calc_cerr],
     Dataset.CIFAR10RGB: [mnist_calc_cerr],
+    Dataset.CIFAR105MMBV2: [mnist_calc_cerr],
+    Dataset.CIFAR105M: [mnist_calc_cerr],
     Dataset.ICTUS: [binary_cerr],
     Dataset.SYNTH01NOISE: [rmse],
     Dataset.CHIET: [nrmse],

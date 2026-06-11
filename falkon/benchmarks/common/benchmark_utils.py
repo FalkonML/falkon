@@ -4,6 +4,9 @@ __all__ = ("DataType", "Algorithm", "Dataset", "VariationalDistribution")
 
 
 class DataType(Enum):
+    half = 101
+    float16 = 102
+
     single = 1
     float32 = 2
 
@@ -15,16 +18,20 @@ class DataType(Enum):
 
         if self.value < 10:
             return torch.float32
-        else:
+        elif self.value < 100:
             return torch.float64
+        else:
+            return torch.float16
 
     def to_numpy_dtype(self):
         import numpy as np
 
         if self.value < 10:
             return np.float32
-        else:
+        elif self.value < 100:
             return np.float64
+        else:
+            return np.float16
 
     def __str__(self):
         return self.name
@@ -74,6 +81,8 @@ class Dataset(Enum):
     MNIST = "mnist"
     CIFAR10 = "cifar10"
     CIFAR10RGB = "cifar10-rgb"
+    CIFAR105MMBV2 = "cifar10-5m-mbv2"
+    CIFAR105M = "cifar10-5m"
     HOHIGGS = "ho-higgs"
     ICTUS = "ictus"
     SYNTH01NOISE = "synth-01noise"

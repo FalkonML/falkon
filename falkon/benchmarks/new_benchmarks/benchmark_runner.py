@@ -1,8 +1,10 @@
 import argparse
 import datetime
 import functools
+import sys
 
 import numpy as np
+import torch
 
 from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
@@ -11,9 +13,8 @@ from falkon.benchmarks.common.error_metrics import get_err_fns
 import time
 
 
-
-
 RANDOM_SEED = 123
+EIGENPRO_BASE_PATH = "/home/giacomo/EigenPro"
 
 
 def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
@@ -36,6 +37,104 @@ def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
     return test_errs, train_errs, te_pred_time
 
 
+def print_kfold_error_report(k, test_errs, train_errs, err_fns):
+    print(f"Full errors: Test {test_errs} - Train {train_errs}")
+    print()
+    print(f"{k}-Fold Error Report")
+    for err_fn_i in range(len(err_fns)):
+        print(
+            f"Final test errors: "
+            f"{np.mean([e[err_fn_i] for e in test_errs]):.4f} +- "
+            f"{np.std([e[err_fn_i] for e in test_errs]):4f}"
+        )
+        print(
+            f"Final train errors: "
+            f"{np.mean([e[err_fn_i] for e in train_errs]):.4f} +- "
+            f"{np.std([e[err_fn_i] for e in train_errs]):.4f}"
+        )
+        print()
+
+
+################
+### EIGENPRO ###
+def run_eigenpro(
+    dset: Dataset,
+    data_path: str,
+    dtype: DataType | None,
+    num_iter: int,
+    num_centers: int,
+    num_pc_centers: int,
+    num_eigenvalues: int,
+    kernel_sigma: float,
+    kernel: str,
+    kfold: int,
+    seed: int,
+):
+    from falkon.utils import TicToc
+
+    sys.path.append(EIGENPRO_BASE_PATH)
+    import eigenpro.kernels as kernels  # pyright: ignore[reportMissingImports]
+    import eigenpro.utils.device as dev  # pyright: ignore[reportMissingImports]
+
+    from falkon.benchmarks.new_benchmarks.eigenpro_wrapper import EigenProWrapper
+
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    data_dtype = DataType.float32
+    if dtype is None:
+        dtype = DataType.float32
+    if kernel == "laplacian":
+        kernel_fn = lambda x, z: kernels.laplacian(x, z, bandwidth=kernel_sigma)
+    elif kernel == "gaussian":
+        kernel_fn = lambda x, z: kernels.gaussian(x, z, bandwidth=kernel_sigma)
+    else:
+        raise ValueError(kernel)
+    device = dev.Device.create(use_gpu_if_available=True)
+    model = EigenProWrapper(
+        device,
+        dtype.to_torch_dtype(),
+        kernel_fn,
+        num_centers=num_centers,
+        num_pc_centers=num_pc_centers,
+        num_eigenvalues=num_eigenvalues,
+        num_epochs=num_iter,
+    )
+
+    # Error metrics
+    err_fns = get_err_fns(dset)
+    if kfold == 1:
+        # Load data
+        load_fn = get_load_fn(dset)
+        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=data_dtype.to_numpy_dtype(), as_torch=True, path=data_path)
+
+        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
+        with TicToc("EigenPro4 Algorithm"):
+            model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+        test_model(model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+    else:
+        # print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
+        load_fn = get_cv_fn(dset)
+        test_errs, train_errs = [], []
+
+        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
+            load_fn(k=kfold, dtype=data_dtype.to_numpy_dtype(), as_torch=True, path=data_path)
+        ):
+            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
+            with TicToc(f"EigenPro4 Algorithm (fold {it})"):
+                model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+
+            c_test_errs, c_train_errs = test_model(
+                model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns
+            )
+            train_errs.append(c_train_errs)
+            test_errs.append(c_test_errs)
+
+        print_kfold_error_report(kfold, test_errs, train_errs, err_fns)
+
+
+##############
+### BALKON ###
 def run_balkon(
     dset: Dataset,
     data_path: str,
@@ -51,8 +150,6 @@ def run_balkon(
     block_size: int,
     debug: bool,
 ):
-    import torch
-
     import falkon
     from falkon import kernels
     from falkon.models import balkon
@@ -77,6 +174,9 @@ def run_balkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
+        cg_tolerance=1e-6,
+        cg_stagnation_iterations=4,
+        cg_stagnation_threshold=0.96,
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
@@ -107,7 +207,7 @@ def run_balkon(
             flk.error_fn = err_fns[0]
             print(f"Starting to train model {flk} on data {dset}", flush=True)
             flk.fit(Xtr, Ytr, Xts, Yts)
-        test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
     else:
         print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)
@@ -124,22 +224,7 @@ def run_balkon(
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
-        print(f"Full errors: Test {test_errs} - Train {train_errs}")
-        print()
-        print(f"{kfold}-Fold Error Report")
-        for err_fn_i in range(len(err_fns)):
-            print(
-                f"Final test errors: "
-                f"{np.mean([e[err_fn_i] for e in test_errs]):.4f} +- "
-                f"{np.std([e[err_fn_i] for e in test_errs]):4f}"
-            )
-            print(
-                f"Final train errors: "
-                f"{np.mean([e[err_fn_i] for e in train_errs]):.4f} +- "
-                f"{np.std([e[err_fn_i] for e in train_errs]):.4f}"
-            )
-            print()
-
+        print_kfold_error_report(kfold, test_errs, train_errs, err_fns)
 
 
 def run_askotch(
@@ -300,7 +385,6 @@ def run_askotch(
             print()
 
 
-
 def run_joker(
     dset: Dataset,
     data_path: str,
@@ -423,7 +507,7 @@ def run_joker(
         te_err, tr_err, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
         print(f"[--] Test errors: {te_err}")
         print(f"[--] Train errors: {tr_err}")
-        with open(f"./joker_{dset}_single_run.log", 'w') as f_out:
+        with open(f"./joker_{criterion}_{inexact_type}_{dset}_single_run.log", 'w') as f_out:
             f_out.write(','.join([str(e) for e in tr_err]) +"," + ','.join([str(e) for e in te_err]) +f",{tr_time},{te_pred_time}\n")
             f_out.flush()
     else:
@@ -449,7 +533,7 @@ def run_joker(
 
 
             if kernel_type == 'gaussian':
-                ktype = 'gaussian'
+                ktype = 'rbf'
                 gamma = 0.5 / (sigma**2) 
             elif kernel_type == 'lap':
                 ktype = 'lap'
@@ -513,7 +597,7 @@ def run_joker(
         print(f"Full errors: Test {test_errs} - Train {train_errs}")
         print()
         print(f"{kfold}-Fold Error Report")
-        with open(f"./joker_{dset}_kfold_{kfold}.log", 'w') as f_out:
+        with open(f"./joker_{criterion}_{inexact_type}_{dset}_kfold_{kfold}.log", 'w') as f_out:
             f_out.write(f"[TIME] {np.mean(train_times)},{np.std(train_times)},{np.mean(test_pred_times)},{np.std(test_pred_times)}\n")
             f_out.write(f"[TEST PERFORMANCE]\n")
             for err_fn_i in range(len(err_fns)):
@@ -539,7 +623,6 @@ def run_joker(
             print()
             
 
-
 def run_falkon(
     dset: Dataset,
     data_path: str,
@@ -554,8 +637,6 @@ def run_falkon(
     use_keops: bool,
     debug: bool,
 ):
-    import torch
-
     from falkon import kernels
     from falkon.models import falkon
     from falkon.utils import TicToc
@@ -579,6 +660,7 @@ def run_falkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
+        cg_tolerance=1e-6,
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
@@ -618,21 +700,7 @@ def run_falkon(
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
-        print(f"Full errors: Test {test_errs} - Train {train_errs}")
-        print()
-        print(f"{kfold}-Fold Error Report")
-        for err_fn_i in range(len(err_fns)):
-            print(
-                f"Final test errors: "
-                f"{np.mean([e[err_fn_i] for e in test_errs]):.4f} +- "
-                f"{np.std([e[err_fn_i] for e in test_errs]):4f}"
-            )
-            print(
-                f"Final train errors: "
-                f"{np.mean([e[err_fn_i] for e in train_errs]):.4f} +- "
-                f"{np.std([e[err_fn_i] for e in train_errs]):.4f}"
-            )
-            print()
+        print_kfold_error_report(kfold, test_errs, train_errs, err_fns)
 
 
 if __name__ == "__main__":
@@ -640,7 +708,7 @@ if __name__ == "__main__":
     print(print(datetime.datetime.now()))
     p = argparse.ArgumentParser(description="FALKON Benchmark Runner")
 
-    p.add_argument("-a", "--algorithm", type=str, choices=["falkon", "balkon", "askotch", "joker"])
+    p.add_argument("-a", "--algorithm", type=str, choices=["falkon", "balkon", "eigenpro", "askotch", "joker"])
     p.add_argument("-d", "--dataset", type=Dataset, choices=list(Dataset), required=True, help="Dataset")
     p.add_argument("--data-path", type=str, help="Path to dataset")
     p.add_argument(
@@ -650,10 +718,7 @@ if __name__ == "__main__":
         choices=list(DataType),
         required=False,
         default=None,
-        help="Floating point precision to work with. Lower precision will be "
-        "faster but less accurate. Certain algorithms require a specific precision. "
-        "If this argument is not specified we will use the highest precision "
-        "supported by the chosen algorithm.",
+        help="Floating point precision to work with."
     )
     p.add_argument("-e", "--epochs", type=int, required=True, help="Number of epochs to run the algorithm for.")
     p.add_argument("--subsample", type=int, required=False, default=0, help="Data subsampling")
@@ -682,8 +747,16 @@ if __name__ == "__main__":
     )
     p.add_argument("--use-keops", action="store_true", help="Set this flag to enable KeOps.")
 
-    # Algo-specific
-    p.add_argument("--balkon-block-size", type=int, required=False)
+    # Balkon-specific
+    p.add_argument("--balkon-block-size", type=int, required=False, help="Required for Balkon")
+
+    # EigenPro-specific
+    p.add_argument(
+        "--epro-pc-centers", type=int, required=False, help="Number of centers used for the preconditioner in EigenPro4"
+    )
+    p.add_argument(
+        "--epro-eigvals", type=int, required=False, help="Number of eigenvalues retained in preconditioner of EigenPro4"
+    )
 
     ######### ASKOTCH PARAMS ##############
     p.add_argument('--askotch-task', default='classification', choices=['classification', 'regression'], help='Task tackled by ASkotch')
@@ -746,6 +819,22 @@ if __name__ == "__main__":
             seed=args.seed,
             block_size=args.balkon_block_size,
         )
+    elif args.algorithm == "eigenpro":
+        assert args.epro_pc_centers is not None
+        assert args.epro_eigvals is not None
+        run_eigenpro(
+            dset=args.dataset,
+            data_path=args.data_path,
+            dtype=args.dtype,
+            num_iter=args.epochs,
+            num_centers=args.num_centers,
+            num_pc_centers=args.epro_pc_centers,
+            num_eigenvalues=args.epro_eigvals,
+            kernel_sigma=args.sigma,
+            kernel=args.kernel,
+            kfold=args.kfold,
+            seed=args.seed,
+        )
     elif args.algorithm == "askotch":
         run_askotch(
             dset = args.dataset,
@@ -763,29 +852,28 @@ if __name__ == "__main__":
             seed=args.seed
         )
     elif args.algorithm == "joker":
-    # dset: Dataset,
-    # data_path: str,
-    # dtype : DataType | None,
-    # num_iter_subprob : int,
-    # criterion : str,
-    # c : float, # penalty parameter of error term
-    # kernel_type : str, # 'rbf' or 'matern'
-    # sigma : float,  # used for both matern and rbf kernel
-    # lam : float, # regularization
-    # num_iter : int,
-    # block_size : int,
-    # data_block_size : int,
-    # max_region_size : float,
-    # opt_name : str, #trust_region or tncg
-    # kfold : int,
-    # incore : bool,
-    # region_shrink_freq : int = 1000,
-    # region_shrink_rate : float = 0.5,
-    # delta_huber : float = -1.0, 
-    # eps : float = -1.0,
-    # device : str = 'cuda',
-    # seed : int = 124151
-
+        # dset: Dataset,
+        # data_path: str,
+        # dtype : DataType | None,
+        # num_iter_subprob : int,
+        # criterion : str,
+        # c : float, # penalty parameter of error term
+        # kernel_type : str, # 'rbf' or 'matern'
+        # sigma : float,  # used for both matern and rbf kernel
+        # lam : float, # regularization
+        # num_iter : int,
+        # block_size : int,
+        # data_block_size : int,
+        # max_region_size : float,
+        # opt_name : str, #trust_region or tncg
+        # kfold : int,
+        # incore : bool,
+        # region_shrink_freq : int = 1000,
+        # region_shrink_rate : float = 0.5,
+        # delta_huber : float = -1.0, 
+        # eps : float = -1.0,
+        # device : str = 'cuda',
+        # seed : int = 124151
         run_joker(
             dset = args.dataset,
             data_path=args.data_path,

@@ -129,6 +129,8 @@ def standardize_y(Ytr, Yts):
 def as_np_dtype(dtype):
     if "float32" in str(dtype):
         return np.float32
+    if "float16" in str(dtype):
+        return np.float16
     if "float64" in str(dtype):
         return np.float64
     if "int32" in str(dtype):
@@ -632,6 +634,46 @@ class CIFAR10RGBDataset(KnownSplitDataset):
         return convert_to_onehot(Ytr, Yts, num_classes=10)
 
 
+class CIFAR105M_MBV2Dataset(KnownSplitDataset):
+    file_name = "/data/DATASETS/CIFAR10-5M/mbv2-features.hdf5"
+    dset_name = "CIFAR10-5M-MBV2"  # type: ignore
+    num_train_samples = 5002240  # type: ignore
+
+    def read_data(self, dtype, path: str | pathlib.Path):
+        with h5py.File(path, "r") as h5py_file:
+            x_tr = np.array(h5py_file["Xtr"], dtype=as_np_dtype(dtype))
+            x_ts = np.array(h5py_file["Xts"], dtype=as_np_dtype(dtype))
+            y_tr = np.array(h5py_file["Ytr"], dtype=as_np_dtype(dtype))
+            y_ts = np.array(h5py_file["Yts"], dtype=as_np_dtype(dtype))
+            return np.concatenate((x_tr, x_ts), axis=0), np.concatenate((y_tr, y_ts), axis=0)
+
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
+        return standardize_x(Xtr, Xts)
+
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+        return convert_to_onehot(Ytr, Yts, num_classes=10)
+
+
+class CIFAR105MDataset(KnownSplitDataset):
+    file_name = "/data/DATASETS/CIFAR10-5M/pixelspace.hdf5"
+    dset_name = "CIFAR10-5M"  # type: ignore
+    num_train_samples = 5002240  # type: ignore
+
+    def read_data(self, dtype, path: str | pathlib.Path):
+        with h5py.File(path, "r") as h5py_file:
+            x_tr = np.array(h5py_file["Xtr"], dtype=as_np_dtype(dtype))
+            x_ts = np.array(h5py_file["Xts"], dtype=as_np_dtype(dtype))
+            y_tr = np.array(h5py_file["Ytr"], dtype=as_np_dtype(dtype))
+            y_ts = np.array(h5py_file["Yts"], dtype=as_np_dtype(dtype))
+            return np.concatenate((x_tr, x_ts), axis=0), np.concatenate((y_tr, y_ts), axis=0)
+
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
+        return Xtr / 255, Xts / 255, {}
+
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+        return convert_to_onehot(Ytr, Yts, num_classes=10)
+
+
 class SVHNDataset(KnownSplitDataset):
     file_name = "/data/DATASETS/SVHN/SVHN.mat"
     ts_file_name = "/data/DATASETS/SVHN/SVHN.t.mat"
@@ -1074,6 +1116,8 @@ __LOADERS = {
     Dataset.MNIST_SMALL: MnistSmallDataset(),
     Dataset.CIFAR10: CIFAR10Dataset(),
     Dataset.CIFAR10RGB: CIFAR10RGBDataset(),
+    Dataset.CIFAR105MMBV2: CIFAR105M_MBV2Dataset(),
+    Dataset.CIFAR105M: CIFAR105MDataset(),
     Dataset.HOHIGGS: SmallHiggsDataset(),
     Dataset.ICTUS: IctusDataset(),
     Dataset.SYNTH01NOISE: SyntheticDataset(),
