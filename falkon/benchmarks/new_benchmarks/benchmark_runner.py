@@ -20,19 +20,22 @@ EIGENPRO_BASE_PATH = "/home/giacomo/EigenPro"
 def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
     te_pred_time = time.time()
     test_preds = model.predict(Xts)
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
     te_pred_time = time.time() - te_pred_time
     train_preds = None
     if Xtr is not None:
         train_preds = model.predict(Xtr)
     test_errs, train_errs = [], []
+    print("Test inference time: {te_pred_time:.2f}s")
     for err_fn in err_fns:
         test_err, test_err_name = err_fn(Yts, test_preds)
         test_errs.append(test_err)
-        print(f"Test {model_name} {test_err_name}: {test_err:9.6f}", flush=True)
+        print(f"Test error {model_name} {test_err_name}: {test_err:9.6f}", flush=True)
         if Xtr is not None and Ytr is not None:
             assert train_preds is not None
             train_err, train_err_name = err_fn(Ytr, train_preds)
-            print(f"Train {model_name} {train_err_name}: {train_err:9.6f}", flush=True)
+            print(f"Train error {model_name} {train_err_name}: {train_err:9.6f}", flush=True)
             train_errs.append(train_err)
     return test_errs, train_errs, te_pred_time
 
@@ -111,7 +114,7 @@ def run_eigenpro(
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
         with TicToc("EigenPro4 Algorithm"):
             model.fit(Xtr, Ytr, Xts, Yts, err_fns)
-        test_model(model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        test_errs, train_errs, test_time = test_model(model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
     else:
         # print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)
@@ -124,7 +127,7 @@ def run_eigenpro(
             with TicToc(f"EigenPro4 Algorithm (fold {it})"):
                 model.fit(Xtr, Ytr, Xts, Yts, err_fns)
 
-            c_test_errs, c_train_errs = test_model(
+            c_test_errs, c_train_errs, test_time = test_model(
                 model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns
             )
             train_errs.append(c_train_errs)
@@ -207,7 +210,7 @@ def run_balkon(
             flk.error_fn = err_fns[0]
             print(f"Starting to train model {flk} on data {dset}", flush=True)
             flk.fit(Xtr, Ytr, Xts, Yts)
-        test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        test_errs, train_errs, test_time = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
     else:
         print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)

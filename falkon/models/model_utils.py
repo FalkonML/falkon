@@ -112,12 +112,16 @@ class FalkonBase(base.BaseEstimator, ABC):
             if Xts is not None and Yts is not None:
                 val_s = time.time()
                 pred = self._predict(Xts, ny_points, alpha)
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
                 val_time = time.time() - val_s
                 err = self.error_fn(Yts, pred)
             else:
                 assert X is not None and Y is not None
                 val_s = time.time()
                 pred = self._predict(X, ny_points, alpha)
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
                 val_time = time.time() - val_s
                 err = self.error_fn(Y, pred)
             err_name = "error"
