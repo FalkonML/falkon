@@ -16,7 +16,7 @@ def _ensure_numpy(*arrays) -> Generator[np.ndarray, None, None]:
 
 def _ensure_numpy_or_float(*vals) -> Generator[float | np.ndarray, None, None]:
     for val in vals:
-        if not isinstance(val, (np.ndarray, float)):
+        if not isinstance(val, (np.ndarray, float, np.floating)):
             yield val.cpu().numpy()
         else:
             yield val
