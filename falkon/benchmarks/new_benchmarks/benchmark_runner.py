@@ -14,7 +14,7 @@ import time
 
 
 RANDOM_SEED = 123
-EIGENPRO_BASE_PATH = "/home/giacomo/EigenPro"
+EIGENPRO_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/EigenPro"
 
 
 def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
@@ -27,7 +27,7 @@ def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
     if Xtr is not None:
         train_preds = model.predict(Xtr)
     test_errs, train_errs = [], []
-    print("Test inference time: {te_pred_time:.2f}s")
+    print(f"Test inference time: {te_pred_time:.2f}s")
     for err_fn in err_fns:
         test_err, test_err_name = err_fn(Yts, test_preds)
         test_errs.append(test_err)
@@ -177,9 +177,9 @@ def run_balkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
-        cg_tolerance=1e-6,
-        cg_stagnation_iterations=4,
-        cg_stagnation_threshold=0.96,
+        cg_tolerance=1e-7,
+        cg_stagnation_iterations=2,
+        cg_stagnation_threshold=0.98,
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
@@ -749,6 +749,7 @@ if __name__ == "__main__":
         "--kernel", type=str, default="gaussian", required=False, help="Type of kernel to use. Used for Falkon"
     )
     p.add_argument("--use-keops", action="store_true", help="Set this flag to enable KeOps.")
+    p.add_argument("--debug", action="store_true")
 
     # Balkon-specific
     p.add_argument("--balkon-block-size", type=int, required=False, help="Required for Balkon")
@@ -805,6 +806,7 @@ if __name__ == "__main__":
             kernel=args.kernel,
             kfold=args.kfold,
             seed=args.seed,
+            debug=args.debug,
         )
     elif args.algorithm == "balkon":
         assert args.balkon_block_size is not None
@@ -821,6 +823,7 @@ if __name__ == "__main__":
             kfold=args.kfold,
             seed=args.seed,
             block_size=args.balkon_block_size,
+            debug=args.debug,
         )
     elif args.algorithm == "eigenpro":
         assert args.epro_pc_centers is not None
