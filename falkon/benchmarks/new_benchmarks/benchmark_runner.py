@@ -27,6 +27,7 @@ def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
     if Xtr is not None:
         train_preds = model.predict(Xtr)
     test_errs, train_errs = [], []
+    err_names = []
     print(f"Test inference time: {te_pred_time:.2f}s")
     for err_fn in err_fns:
         test_err, test_err_name = err_fn(Yts, test_preds)
@@ -37,23 +38,24 @@ def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
             train_err, train_err_name = err_fn(Ytr, train_preds)
             print(f"Train error {model_name} {train_err_name}: {train_err:9.6f}", flush=True)
             train_errs.append(train_err)
-    return test_errs, train_errs, te_pred_time
+        err_names.append(test_err_name)
+    return test_errs, train_errs, err_names, te_pred_time
 
 
-def print_kfold_error_report(k, test_errs, train_errs, err_fns):
+def print_kfold_error_report(k, test_errs, train_errs, err_names):
     print(f"Full errors: Test {test_errs} - Train {train_errs}")
     print()
     print(f"{k}-Fold Error Report")
-    for err_fn_i in range(len(err_fns)):
+    for i in range(len(err_names)):
         print(
-            f"Final test errors: "
-            f"{np.mean([e[err_fn_i] for e in test_errs]):.6e} +- "
-            f"{np.std([e[err_fn_i] for e in test_errs]):6e}"
+            f"Final test {err_names[i]}: "
+            f"{np.mean([e[i] for e in test_errs]):.6e} +- "
+            f"{np.std([e[i] for e in test_errs]):6e}"
         )
         print(
-            f"Final train errors: "
-            f"{np.mean([e[err_fn_i] for e in train_errs]):.6e} +- "
-            f"{np.std([e[err_fn_i] for e in train_errs]):.6e}"
+            f"Final train {err_names[i]}: "
+            f"{np.mean([e[i] for e in train_errs]):.6e} +- "
+            f"{np.std([e[i] for e in train_errs]):.6e}"
         )
         print()
 
@@ -114,7 +116,7 @@ def run_eigenpro(
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
         with TicToc("EigenPro4 Algorithm"):
             model.fit(Xtr, Ytr, Xts, Yts, err_fns)
-        test_errs, train_errs, test_time = test_model(model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        test_errs, train_errs, err_names, test_time = test_model(model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
     else:
         # print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)
@@ -127,13 +129,13 @@ def run_eigenpro(
             with TicToc(f"EigenPro4 Algorithm (fold {it})"):
                 model.fit(Xtr, Ytr, Xts, Yts, err_fns)
 
-            c_test_errs, c_train_errs, test_time = test_model(
+            c_test_errs, c_train_errs, err_names, test_time = test_model(
                 model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns
             )
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
-        print_kfold_error_report(kfold, test_errs, train_errs, err_fns)
+        print_kfold_error_report(kfold, test_errs, train_errs, err_names)
 
 
 ##############
@@ -210,11 +212,12 @@ def run_balkon(
             flk.error_fn = err_fns[0]
             print(f"Starting to train model {flk} on data {dset}", flush=True)
             flk.fit(Xtr, Ytr, Xts, Yts)
-        test_errs, train_errs, test_time = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        test_errs, train_errs, err_names, test_time = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
     else:
         print(f"{kfold}-CV training model {flk} on data {dset}", flush=True)
         load_fn = get_cv_fn(dset)
         test_errs, train_errs = [], []
+        err_names = None
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
             load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
@@ -223,11 +226,11 @@ def run_balkon(
             with TicToc(f"BALKON ALGORITHM (fold {it})"):
                 flk.error_fn = err_fns[0]
                 flk.fit(Xtr, Ytr, Xts, Yts)
-            c_test_errs, c_train_errs, _ = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, err_names, _ = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
-        print_kfold_error_report(kfold, test_errs, train_errs, err_fns)
+        print_kfold_error_report(kfold, test_errs, train_errs, err_names)
 
 
 def run_askotch(
@@ -315,7 +318,7 @@ def run_askotch(
         tr_time = time.time() - tr_time
 
         print(f"[--] Train time: {tr_time}")                
-        te_err, tr_err, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        te_err, tr_err, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
         print(f"[--] Test errors: {te_err}")
         print(f"[--] Train errors: {tr_err}")
         with open(f"./askotch_{dset}_single_run.log", 'w') as f_out:
@@ -350,7 +353,7 @@ def run_askotch(
             wrapper.fit(Xtr, Ytr, Xts, Yts, err_fns[0])
             tr_time = time.time() - tr_time
             
-            c_test_errs, c_train_errs, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
             train_times.append(tr_time)
@@ -507,7 +510,7 @@ def run_joker(
         tr_time = time.time() - tr_time
 
         print(f"[--] Train time: {tr_time}")                
-        te_err, tr_err, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        te_err, tr_err, err_names, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
         print(f"[--] Test errors: {te_err}")
         print(f"[--] Train errors: {tr_err}")
         with open(f"./joker_{criterion}_{inexact_type}_{dset}_single_run.log", 'w') as f_out:
@@ -588,7 +591,7 @@ def run_joker(
             tr_time = time.time() - tr_time
 
             
-            c_test_errs, c_train_errs, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, err_names, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
             train_times.append(tr_time)
@@ -699,7 +702,7 @@ def run_falkon(
             with TicToc(f"FALKON ALGORITHM (fold {it})"):
                 flk.error_every = err_fns[0]
                 flk.fit(Xtr, Ytr, Xts, Yts)
-            c_test_errs, c_train_errs, _ = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, err_names, _ = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
