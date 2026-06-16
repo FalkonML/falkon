@@ -47,13 +47,13 @@ def print_kfold_error_report(k, test_errs, train_errs, err_fns):
     for err_fn_i in range(len(err_fns)):
         print(
             f"Final test errors: "
-            f"{np.mean([e[err_fn_i] for e in test_errs]):.4f} +- "
-            f"{np.std([e[err_fn_i] for e in test_errs]):4f}"
+            f"{np.mean([e[err_fn_i] for e in test_errs]):.6e} +- "
+            f"{np.std([e[err_fn_i] for e in test_errs]):6e}"
         )
         print(
             f"Final train errors: "
-            f"{np.mean([e[err_fn_i] for e in train_errs]):.4f} +- "
-            f"{np.std([e[err_fn_i] for e in train_errs]):.4f}"
+            f"{np.mean([e[err_fn_i] for e in train_errs]):.6e} +- "
+            f"{np.std([e[err_fn_i] for e in train_errs]):.6e}"
         )
         print()
 
@@ -177,7 +177,7 @@ def run_balkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
-        cg_tolerance=1e-7,
+        cg_tolerance=2e-7,
         cg_stagnation_iterations=2,
         cg_stagnation_threshold=0.98,
         pc_epsilon_32=1e-6,
@@ -212,7 +212,7 @@ def run_balkon(
             flk.fit(Xtr, Ytr, Xts, Yts)
         test_errs, train_errs, test_time = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
     else:
-        print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
+        print(f"{kfold}-CV training model {flk} on data {dset}", flush=True)
         load_fn = get_cv_fn(dset)
         test_errs, train_errs = [], []
 
@@ -221,9 +221,9 @@ def run_balkon(
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             with TicToc(f"BALKON ALGORITHM (fold {it})"):
-                flk.error_every = err_fns[0]
+                flk.error_fn = err_fns[0]
                 flk.fit(Xtr, Ytr, Xts, Yts)
-            c_test_errs, c_train_errs, _ = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, _ = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
 
