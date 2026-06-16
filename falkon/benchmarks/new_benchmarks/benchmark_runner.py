@@ -688,7 +688,7 @@ if __name__ == "__main__":
     p.add_argument("--joker-n-fastfood", type=int, default=100, help="Number of samples for Fastfood approximation")
 
     args = p.parse_args()
-    print(f"STARTING {args.algorithm} WITH SEED {args.seed}")
+    print(f"STARTING {args.algorithm} WITH SEED {args.seed}. K-fold={args.kfold}")
 
     if args.algorithm == "falkon":
         run_falkon(
