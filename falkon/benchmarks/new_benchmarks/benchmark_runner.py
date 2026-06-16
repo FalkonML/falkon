@@ -132,6 +132,7 @@ def run_eigenpro(
     else:
         # print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
         load_fn = get_cv_fn(dset)
+        err_names = None
         test_errs, train_errs = [], []
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
@@ -146,6 +147,7 @@ def run_eigenpro(
             )
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
+            model.reset()
 
         print_kfold_error_report(kfold, test_errs, train_errs, err_names)
 
