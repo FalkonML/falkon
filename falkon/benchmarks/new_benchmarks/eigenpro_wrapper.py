@@ -20,6 +20,10 @@ class EigenProWrapper:
         self.model = None
         self.batch_size = 8192
 
+    def reset(self):
+        self.epoch_times = []
+        self.model = None
+
     def inter_epoch_cback(self, Xts, Yts, err_fns):
         def fn(model):
             start_time = self.epoch_times[-1]
