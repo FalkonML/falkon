@@ -279,6 +279,8 @@ def run_askotch(
 
     if kernel_type == 'gaussian':
         kernel_params = {'type' : 'rbf', 'sigma' : sigma }
+    elif kernel_type == 'laplacian':
+        kernel_params = {'type' : 'l1_laplace', 'sigma' : sigma }
     
     precond_params = {"type": "nystrom", "r": rank, "rho": "damped"}
     
@@ -541,6 +543,10 @@ def run_joker(
             elif kernel_type == 'lap':
                 ktype = 'lap'
                 gamma = 1/sigma 
+                
+                
+                
+            print(f"[--] gamma: {1 / sig2}")
             kernel = make_kernel(ktype, gamma=gamma) if sigma > 0 else make_kernel(ktype, gamma=1.0 / sig2, degree=2)
 
 
