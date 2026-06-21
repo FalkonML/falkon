@@ -70,7 +70,7 @@ def seed_all(seed):
 
 def get_median_sigma(data, num_samples=10000):
     sub_data = data[:num_samples]
-    return torch.mean(torch.pdist(sub_data) ** 2)
+    return torch.median(torch.pdist(sub_data) ** 2)
 
 
 ################
@@ -94,7 +94,7 @@ def run_eigenpro(
     import eigenpro.kernels as kernels  # pyright: ignore[reportMissingImports]
     import eigenpro.utils.device as dev  # pyright: ignore[reportMissingImports]
 
-    from falkon.benchmarks.new_benchmarks.eigenpro_wrapper import EigenProWrapper
+    from falkon.benchmarks.models.eigenpro_wrapper import EigenProWrapper
     
     seed_all(seed)
 
@@ -401,15 +401,15 @@ def run_joker(
     def joker_get_kernel(training_data):
         if sigma < 0:
             sigma_square = get_median_sigma(training_data, num_samples=10_000)
-            gamma = 1 / sigma_square
-            print(f"Using sigma = {np.sqrt(sigma_square):.4f} from the median trick.")
+            print(f"Using sigma = {float(np.sqrt(sigma_square)):.4f} from the median trick.")
         else:
-            if joker_ktype == "rbf":
-                gamma = 0.5 / (sigma ** 2)
-            elif joker_ktype == "lap":
-                gamma = 1 / sigma
-            else:
-                raise RuntimeError
+            sigma_square = sigma ** 2
+        if joker_ktype == "rbf":
+            gamma = 0.5 / sigma_square
+        elif joker_ktype == "lap":
+            gamma = 1 / float(np.sqrt(sigma_square))
+        else:
+            raise RuntimeError(joker_ktype)
         return make_kernel(joker_ktype, gamma=gamma)
     
     if kfold == 1:
@@ -445,6 +445,7 @@ def run_joker(
                     incore=incore,#cfg["incore"],
                     data_blksz=data_block_size,
                     optim=opt_name)
+        print(f"Starting to train Joker model {model} on data {dset}", flush=True)
         
         tr_time = time.time()
         model.fit(max_iter=num_iter,
@@ -500,6 +501,7 @@ def run_joker(
                         incore=incore,#cfg["incore"],
                         data_blksz=data_block_size,
                         optim=opt_name)
+            print(f"Starting to train Joker model {model} on data {dset} fold {it}", flush=True)
 
             tr_time = time.time()
             model.fit(max_iter=num_iter,
@@ -677,7 +679,7 @@ if __name__ == "__main__":
     p.add_argument('--nu', default=5/2, type=float, help='nu of Matern kernel')
     
     ########## JOKER PARAMS
-    p.add_argument('--joker-criterion', type=str, default="mse", choices=["mse", "huber", "svm", "log", "svr"], help="Which criterion to use for Joker")
+    p.add_argument('--joker-criterion', type=str, default=None, choices=["mse", "huber", "svm", "log", "svr"], help="Which criterion to use for Joker")
     p.add_argument('--joker-c', type=float, default=1.0, help='Penalty parameter C of the error term in Joker')
     p.add_argument('--joker-delta-huber', type=float, default=-1, help='Joker\'s parameter delta')
     p.add_argument('--joker-eps', type=float, default=-1, help='Joker\'s parameter epsilon')
@@ -754,13 +756,14 @@ if __name__ == "__main__":
             seed=args.seed
         )
     elif args.algorithm == "joker":
+        assert args.joker_criterion is not None
         run_joker(
             dset = args.dataset,
             data_path=args.data_path,
             dtype=args.dtype,
             num_iter_subprob=50,
             criterion=args.joker_criterion,
-            c = args.joker_c,
+            c=args.joker_c,
             data_block_size=args.joker_blksz,
             block_size=args.joker_blksz,
             sigma=args.sigma,
