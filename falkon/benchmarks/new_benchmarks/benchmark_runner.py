@@ -412,43 +412,66 @@ def run_joker(
             raise RuntimeError(joker_ktype)
         return make_kernel(joker_ktype, gamma=gamma)
     
+
+    def joker_init_model(train_x, train_y):
+        kernel_func = joker_get_kernel(train_x)
+        if inexact_type == 'rff':
+            model = InexactJoker(
+                train_x,
+                train_y,
+                dtype=dtype.to_torch_dtype(), 
+                kernel=kernel_func, 
+                criterion=crit,
+                device=device,
+                n_features=nrff,
+                inexact_type=inexact_type,
+                opt_blksz=block_size, #cfg["blksz"],
+                incore=incore,#cfg["incore"],
+                data_blksz=data_block_size,
+                optim=opt_name,
+            )
+        elif inexact_type == 'fastfood':
+            model = InexactJoker(
+                train_x, 
+                train_y, 
+                dtype=dtype.to_torch_dtype(), 
+                kernel=kernel_func, 
+                criterion=crit,
+                device=device,
+                n_features=n_fastfood,
+                inexact_type=inexact_type,
+                opt_blksz=block_size, #cfg["blksz"],
+                incore=incore,#cfg["incore"],
+                data_blksz=data_block_size,
+                optim=opt_name,
+            )
+        else:
+            model = Joker(
+                train_x, 
+                train_y, 
+                dtype=dtype.to_torch_dtype(), 
+                kernel=kernel_func, 
+                criterion=crit,
+                device=device,
+                opt_blksz=block_size, #cfg["blksz"],
+                incore=incore,#cfg["incore"],
+                data_blksz=data_block_size,
+                optim=opt_name,
+            )
+        print(f"Starting to train Joker model {model} on data {dset} kernel {kernel_func}", flush=True)
+        return model
+
+    
     if kfold == 1:
         load_fn = get_load_fn(dset)
         Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
 
-        kernel = joker_get_kernel(Xtr)
-
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-
-        if inexact_type == 'rff':
-            model = InexactJoker(Xtr, Ytr, dtype=dtype.to_torch_dtype(), kernel=kernel, criterion=crit,
-                    device=device,
-                    n_features=nrff,
-                    inexact_type=inexact_type,
-                    opt_blksz=block_size, #cfg["blksz"],
-                    incore=incore,#cfg["incore"],
-                    data_blksz=data_block_size,
-                    optim=opt_name)
-        elif inexact_type == 'fastfood':
-            model = InexactJoker(Xtr, Ytr, dtype=dtype.to_torch_dtype(), kernel=kernel, criterion=crit,
-                    device=device,
-                    n_features=n_fastfood,
-                    inexact_type=inexact_type,
-                    opt_blksz=block_size, #cfg["blksz"],
-                    incore=incore,#cfg["incore"],
-                    data_blksz=data_block_size,
-                    optim=opt_name)
-        else:
-            model = Joker(Xtr, Ytr, dtype=dtype.to_torch_dtype(), kernel=kernel, criterion=crit,
-                    device=device,
-                    opt_blksz=block_size, #cfg["blksz"],
-                    incore=incore,#cfg["incore"],
-                    data_blksz=data_block_size,
-                    optim=opt_name)
-        print(f"Starting to train Joker model {model} on data {dset}", flush=True)
+        model = joker_init_model(Xtr, Ytr)
         
         tr_time = time.time()
-        model.fit(max_iter=num_iter,
+        model.fit(
+            max_iter=num_iter,
             max_iter_subprob=num_iter_subprob, #cfg["max_iter_subprob"],
             max_region_size=max_region_size, #cfg["max_trust_region_size"],
             region_shrink_freq=region_shrink_freq,
@@ -457,10 +480,13 @@ def run_joker(
             blk_strategy='random', #cfg["blk_strategy"],
             val_x=Xts,
             val_y=Yts,
-            verbose_primal_dual=False)
+            verbose_primal_dual=False
+        )
         tr_time = time.time() - tr_time
 
-        te_err, tr_err, err_names, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        te_err, tr_err, err_names, te_pred_time = test_model(
+            model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns
+        )
         print(f"Joker timings. training={tr_time:.2f}s inference={te_pred_time:.2f}s")
         with open(f"./joker_{criterion}_{inexact_type}_{dset}_single_run.log", 'w') as f_out:
             f_out.write(','.join([str(e) for e in tr_err]) +"," + ','.join([str(e) for e in te_err]) +f",{tr_time},{te_pred_time}\n")
@@ -473,38 +499,11 @@ def run_joker(
             load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-
-            kernel = joker_get_kernel(Xtr)
-
-            if inexact_type == 'rff':
-                model = InexactJoker(Xtr, Ytr, dtype=dtype.to_torch_dtype(), kernel=kernel, criterion=crit,
-                        device=device,
-                        n_features=nrff,
-                        inexact_type=inexact_type,
-                        opt_blksz=block_size, #cfg["blksz"],
-                        incore=incore,#cfg["incore"],
-                        data_blksz=data_block_size,
-                        optim=opt_name)
-            elif inexact_type == 'fastfood':
-                model = InexactJoker(Xtr, Ytr, dtype=dtype.to_torch_dtype(), kernel=kernel, criterion=crit,
-                        device=device,
-                        n_features=n_fastfood,
-                        inexact_type=inexact_type,
-                        opt_blksz=block_size, #cfg["blksz"],
-                        incore=incore,#cfg["incore"],
-                        data_blksz=data_block_size,
-                        optim=opt_name)
-            else:
-                model = Joker(Xtr, Ytr, dtype=dtype.to_torch_dtype(), kernel=kernel, criterion=crit,
-                        device=device,
-                        opt_blksz=block_size, #cfg["blksz"],
-                        incore=incore,#cfg["incore"],
-                        data_blksz=data_block_size,
-                        optim=opt_name)
-            print(f"Starting to train Joker model {model} on data {dset} fold {it}", flush=True)
-
+            print(f"Starting fold {it}")
+            model = joker_init_model(Xtr, Ytr)
             tr_time = time.time()
-            model.fit(max_iter=num_iter,
+            model.fit(
+                max_iter=num_iter,
                 max_iter_subprob=num_iter_subprob, #cfg["max_iter_subprob"],
                 max_region_size=max_region_size, #cfg["max_trust_region_size"],
                 region_shrink_freq=region_shrink_freq,
@@ -513,10 +512,13 @@ def run_joker(
                 verbose_freq=5000,
                 val_x=Xts,
                 val_y=Yts,
-                verbose_primal_dual=False)
+                verbose_primal_dual=False
+            )
             tr_time = time.time() - tr_time
 
-            c_test_errs, c_train_errs, err_names, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, err_names, te_pred_time = test_model(
+                model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns
+            )
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
             train_times.append(tr_time)
