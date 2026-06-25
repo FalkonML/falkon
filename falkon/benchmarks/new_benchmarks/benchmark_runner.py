@@ -274,8 +274,8 @@ def run_askotch(
 
     if dtype is None:
         dtype = DataType.float32
-    if dtype.to_numpy_dtype() != np.float32:
-        raise RuntimeError(f"ASkotch can only run on single-precision floats.")
+#    if dtype.to_numpy_dtype() != np.float32:
+#        raise RuntimeError(f"ASkotch can only run on single-precision floats.")
 
     err_fns = get_err_fns(dset)
 
@@ -304,7 +304,7 @@ def run_askotch(
 
         te_err, tr_err, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
         print(f"ASkotch timings. training={tr_time:.2f}s inference={te_pred_time:.2f}s")
-        with open(f"./askotch_{dset}_single_run.log", 'w') as f_out:
+        with open(f"./askotch_{dset}_{str(dtype)}_single_run.log", 'w') as f_out:
             f_out.write(','.join([str(e) for e in tr_err]) +"," + ','.join([str(e) for e in te_err]) +f",{tr_time},{te_pred_time}\n")
             f_out.flush()
     else:
@@ -331,10 +331,11 @@ def run_askotch(
             train_times.append(tr_time)
             test_pred_times.append(te_pred_time)
             torch.cuda.empty_cache()
+            print(f"[--] Fold {it} -> test_err: {c_test_errs}\ttr_err: {c_train_errs}\terr_name: {err_names}\tte_pred_time: {te_pred_time}\ttr_time: {tr_time}")
 
         print_kfold_error_report(kfold, test_errs, train_errs, err_names, train_times, test_pred_times)
         print()
-        with open(f"./askotch_{dset}_kfold_{kfold}.log", 'w') as f_out:
+        with open(f"./askotch_{dset}_{str(dtype)}_kfold_{kfold}.log", 'w') as f_out:
             f_out.write(f"[TIME] {np.mean(train_times)},{np.std(train_times)},{np.mean(test_pred_times)},{np.std(test_pred_times)}\n")
             f_out.write(f"[TEST PERFORMANCE]\n")
             for err_fn_i in range(len(err_fns)):
@@ -383,8 +384,8 @@ def run_joker(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if dtype is None:
         dtype = DataType.float32
-    if dtype.to_numpy_dtype() != np.float32:
-        raise RuntimeError(f"Joker can only run on single-precision floats.")
+#    if dtype.to_numpy_dtype() != np.float32:
+#        raise RuntimeError(f"Joker can only run on single-precision floats.")
 
     err_fns = get_err_fns(dset)
 
@@ -461,7 +462,7 @@ def run_joker(
 
         te_err, tr_err, err_names, te_pred_time = test_model(model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
         print(f"Joker timings. training={tr_time:.2f}s inference={te_pred_time:.2f}s")
-        with open(f"./joker_{criterion}_{inexact_type}_{dset}_single_run.log", 'w') as f_out:
+        with open(f"./joker_{criterion}_{inexact_type}_{dset}_{str(dtype)}_single_run.log", 'w') as f_out:
             f_out.write(','.join([str(e) for e in tr_err]) +"," + ','.join([str(e) for e in te_err]) +f",{tr_time},{te_pred_time}\n")
             f_out.flush()
     else:
@@ -523,7 +524,7 @@ def run_joker(
 
         print_kfold_error_report(kfold, test_errs, train_errs, err_names, train_times, test_pred_times)
         print()
-        with open(f"./joker_{criterion}_{inexact_type}_{dset}_kfold_{kfold}.log", 'w') as f_out:
+        with open(f"./joker_{criterion}_{inexact_type}_{dset}_{str(dtype)}_kfold_{kfold}.log", 'w') as f_out:
             f_out.write(f"[TIME] {np.mean(train_times)},{np.std(train_times)},{np.mean(test_pred_times)},{np.std(test_pred_times)}\n")
             f_out.write(f"[TEST PERFORMANCE]\n")
             for err_fn_i in range(len(err_fns)):
