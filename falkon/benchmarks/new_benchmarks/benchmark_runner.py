@@ -525,6 +525,7 @@ def run_joker(
             train_times.append(tr_time)
             test_pred_times.append(te_pred_time)
             torch.cuda.empty_cache()
+            print(f"[--] Fold {it} -> test_err: {c_test_errs}\ttr_err: {c_train_errs}\terr_name: {err_names}\tte_pred_time: {te_pred_time}\ttr_time: {tr_time}")
 
         print_kfold_error_report(kfold, test_errs, train_errs, err_names, train_times, test_pred_times)
         print()
