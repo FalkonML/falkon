@@ -19,12 +19,14 @@ JOKER_BASE_PATH = "./joker/src"
 def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
     te_pred_time = time.time()
     test_preds = model.predict(Xts)
+    print("SHAPE TEST: ", Xts.shape, test_preds.shape, Yts.shape)
     if torch.cuda.is_available():
         torch.cuda.synchronize()
     te_pred_time = time.time() - te_pred_time
     train_preds = None
     if Xtr is not None:
         train_preds = model.predict(Xtr)
+    print("SHAPE TRAIN: ", Xtr.shape, train_preds.shape, Ytr.shape)
     test_errs, train_errs = [], []
     err_names = []
     print(f"Test inference time: {te_pred_time:.2f}s")
@@ -291,18 +293,22 @@ def run_askotch(
     if kfold == 1:
         load_fn = get_load_fn(dset)
         Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+        Xtr_as, Ytr_as, Xts_as, Yts_as = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
         if block_size <= 0:
             block_size = Xtr.shape[0] // 100
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
+
         wrapper = ASkotchWrapper(
-            Xtr, Ytr, Xts, Yts, block_size, precond_params, kernel_params, lam*Xtr.shape[0], task, num_iter, device
+            Xtr_as, Ytr_as, Xts_as, Yts_as, block_size, precond_params, kernel_params, lam*Xtr_as.shape[0], task, num_iter, device
         )
+
         tr_time = time.time()
-        wrapper.fit(Xtr, Ytr, Xts, Yts, err_fns[0])
+        wrapper.fit(Xtr_as, Ytr_as, Xts_as, Yts_as, err_fns[0])
         tr_time = time.time() - tr_time
 
-        te_err, tr_err, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+        #def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
+        print(f"[RUNNER] Shapes -> Xtr: {Xtr.shape}\tXts: {Xts.shape}")
+        te_err, tr_err, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts.to(device), Yts.to(device), Xtr.to(device), Ytr.to(device), err_fns)
         print(f"ASkotch timings. training={tr_time:.2f}s inference={te_pred_time:.2f}s")
         with open(f"./askotch_{dset}_{str(dtype)}_single_run.log", 'w') as f_out:
             f_out.write(','.join([str(e) for e in tr_err]) +"," + ','.join([str(e) for e in te_err]) +f",{tr_time},{te_pred_time}\n")
@@ -314,18 +320,18 @@ def run_askotch(
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
             load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
-            Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+            Xtr_as, Ytr_as, Xts_as, Yts_as = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
             if block_size <= 0:
                 block_size = Xtr.shape[0] // 100
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
             wrapper = ASkotchWrapper(
-                Xtr, Ytr, Xts, Yts, block_size, precond_params, kernel_params, lam*Xtr.shape[0], task, num_iter, device
+                Xtr_as, Ytr_as, Xts_as, Yts_as, block_size, precond_params, kernel_params, lam*Xtr_as.shape[0], task, num_iter, device
             )
             tr_time = time.time()
-            wrapper.fit(Xtr, Ytr, Xts, Yts, err_fns[0])
+            wrapper.fit(Xtr_as, Ytr_as, Xts_as, Yts_as, err_fns[0])
             tr_time = time.time() - tr_time
             
-            c_test_errs, c_train_errs, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
+            c_test_errs, c_train_errs, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts.to(device), Yts.to(device), Xtr.to(device), Ytr.to(device), err_fns)
             train_errs.append(c_train_errs)
             test_errs.append(c_test_errs)
             train_times.append(tr_time)
