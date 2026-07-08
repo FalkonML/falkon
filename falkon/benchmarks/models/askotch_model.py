@@ -22,6 +22,6 @@ class ASkotchWrapper:
             self.opt.step()
 
     def predict(self, Xtst):
-        K_pred = self.kern_fn(Xtst, self.opt.model.x, False) # I m assuming model is FullKRR
+        K_pred = self.kern_fn(Xtst, self.opt.model.x, False)
         return K_pred @ self.opt.model.w
     
