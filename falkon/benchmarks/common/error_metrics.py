@@ -270,6 +270,7 @@ ERROR_METRICS: dict[Dataset, list[ERROR_FN_TYPE]] = {
     Dataset.BUZZ: [nrmse],
     Dataset.ROAD3D: [nrmse],
     Dataset.HOUSEELECTRIC: [nrmse],
+    Dataset.MCCOMET: [binary_cerr, higgs_calc_auc],
 }
 TF_ERROR_METRICS: dict[Dataset, ERROR_FN_TYPE] = {
     Dataset.TIMIT: timit_calc_error_tf,
