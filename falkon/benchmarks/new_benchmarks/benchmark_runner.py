@@ -94,7 +94,7 @@ def generic_fit(
 
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
         t_start = time.time()
-        model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+        model.fit(Xtr, Ytr, Xts, Yts)
         t_elapsed = time.time() - t_start
 
         if hasattr(model, "fit_times_"):
@@ -124,7 +124,9 @@ def generic_fit(
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
             t_start = time.time()
-            model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+            if hasattr(model, "error_fn"):
+                model.error_fn = err_fns[0]
+            model.fit(Xtr, Ytr, Xts, Yts)
             t_elapsed = time.time() - t_start
 
             c_test_errs, c_train_errs, err_names, test_time = test_model(
