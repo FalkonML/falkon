@@ -10,7 +10,6 @@ import torch
 from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
-from falkon.benchmarks.models.joker_model import JokerWrapper
 
 
 RANDOM_SEED = 123
@@ -352,6 +351,7 @@ def run_joker(
 ):
     sys.path.append(JOKER_BASE_PATH)
     from criterion import make_criterion
+    from falkon.benchmarks.models.joker_model import JokerWrapper
 
     seed_all(seed)
     
