@@ -69,6 +69,9 @@ class EigenProWrapper:
             accumulated_gradients=True,
             callback=self.inter_epoch_cback(Xts, Yts, err_fns),
         )
+        start_time = self.epoch_times[-1]
+        elapsed_time = time.time() - start_time
+        self.epoch_times[-1] = elapsed_time
         return self
 
     def predict(self, data, batch_size=None):
