@@ -10,7 +10,6 @@ import torch
 from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
-from falkon.benchmarks.models.joker_model import JokerWrapper
 
 
 RANDOM_SEED = 123
@@ -95,7 +94,7 @@ def generic_fit(
 
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
         t_start = time.time()
-        model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+        model.fit(Xtr, Ytr, Xts, Yts)
         t_elapsed = time.time() - t_start
 
         if hasattr(model, "fit_times_"):
@@ -125,7 +124,9 @@ def generic_fit(
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
             t_start = time.time()
-            model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+            if hasattr(model, "error_fn"):
+                model.error_fn = err_fns[0]
+            model.fit(Xtr, Ytr, Xts, Yts)
             t_elapsed = time.time() - t_start
 
             c_test_errs, c_train_errs, err_names, test_time = test_model(
@@ -350,6 +351,7 @@ def run_joker(
 ):
     sys.path.append(JOKER_BASE_PATH)
     from criterion import make_criterion
+    from falkon.benchmarks.models.joker_model import JokerWrapper
 
     seed_all(seed)
     

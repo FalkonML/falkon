@@ -46,6 +46,7 @@ class JokerWrapper:
         self.region_shrink_freq = region_shrink_freq
         self.region_shrink_rate = region_shrink_rate
         self.fit_times_ = []
+        self.model = None
 
     def get_median_sigma_square(self, data, num_samples=10000):
         sub_data = data[:num_samples]
@@ -115,8 +116,8 @@ class JokerWrapper:
     def fit(self, Xtr, Ytr, Xts, Yts, err_fn):
         self.fit_times_ = []
         t_start = time.time()
-        model = self.init_model(Xtr, Ytr)
-        model.fit(
+        self.model = self.init_model(Xtr, Ytr)
+        self.model.fit(
             max_iter=self.num_iter,
             max_iter_subprob=self.num_iter_subprob, #cfg["max_iter_subprob"],
             max_region_size=self.max_region_size, #cfg["max_trust_region_size"],
@@ -131,80 +132,8 @@ class JokerWrapper:
         self.fit_times_.append(time.time() - t_start)
 
     def predict(self, Xtst):
-        pass
+        if self.model is None:
+            raise RuntimeError("predict called before fit")
+        return self.model.predict(Xtst)
 
 
-
-
-    def joker_get_kernel(training_data):
-    
-
-    def joker_init_model(train_x, train_y):
-        kernel_func = joker_get_kernel(train_x)
-        if inexact_type == 'rff':
-            model = InexactJoker(
-                train_x,
-                train_y,
-                dtype=dtype.to_torch_dtype(), 
-                kernel=kernel_func, 
-                criterion=crit,
-                device=device,
-                n_features=nrff,
-                inexact_type=inexact_type,
-                opt_blksz=block_size, #cfg["blksz"],
-                incore=incore,#cfg["incore"],
-                data_blksz=data_block_size,
-                optim=opt_name,
-            )
-        elif inexact_type == 'fastfood':
-            model = InexactJoker(
-                train_x, 
-                train_y, 
-                dtype=dtype.to_torch_dtype(), 
-                kernel=kernel_func, 
-                criterion=crit,
-                device=device,
-                n_features=n_fastfood,
-                inexact_type=inexact_type,
-                opt_blksz=block_size, #cfg["blksz"],
-                incore=incore,#cfg["incore"],
-                data_blksz=data_block_size,
-                optim=opt_name,
-            )
-        else:
-            model = Joker(
-                train_x, 
-                train_y, 
-                dtype=dtype.to_torch_dtype(), 
-                kernel=kernel_func, 
-                criterion=crit,
-                device=device,
-                opt_blksz=block_size, #cfg["blksz"],
-                incore=incore,#cfg["incore"],
-                data_blksz=data_block_size,
-                optim=opt_name,
-            )
-        print(f"Starting to train Joker model {model} on data {dset} kernel {kernel_func}", flush=True)
-        return model
-
-    
-    if kfold == 1:
-        load_fn = get_load_fn(dset)
-        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-
-        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-        model = joker_init_model(Xtr, Ytr)
-        
-        tr_time = time.time()
-        model.fit(
-            max_iter=num_iter,
-            max_iter_subprob=num_iter_subprob, #cfg["max_iter_subprob"],
-            max_region_size=max_region_size, #cfg["max_trust_region_size"],
-            region_shrink_freq=region_shrink_freq,
-            verbose_freq=5000,
-            region_shrink_rate=region_shrink_rate, #cfg["region_shrink_rate"],
-            blk_strategy='random', #cfg["blk_strategy"],
-            val_x=Xts,
-            val_y=Yts,
-            verbose_primal_dual=False
-        )
