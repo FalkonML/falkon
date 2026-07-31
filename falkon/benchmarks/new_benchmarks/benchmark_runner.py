@@ -220,7 +220,6 @@ def run_balkon(
     import falkon
     from falkon import kernels
     from falkon.models import balkon
-    from falkon.utils import TicToc
 
     seed_all(seed)
 
@@ -261,7 +260,6 @@ def run_balkon(
         options=opt,
         block_size=block_size,
     )
-
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
         flk, 
@@ -415,7 +413,6 @@ def run_falkon(
 ):
     from falkon import kernels
     from falkon.models import falkon
-    from falkon.utils import TicToc
 
     seed_all(seed)
 
@@ -435,47 +432,39 @@ def run_falkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
-        cg_tolerance=1e-6,
-        pc_epsilon_32=1e-6,
+        cg_tolerance=2e-7,
+        cg_stagnation_iterations=3,
+        cg_stagnation_threshold=0.98,
+        pc_epsilon_32=1e-6, # lowered this for flights (was 1e-6)
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
+        store_kernel_d_threshold=1500,
+        #max_cpu_mem=(160*2**30),
         debug=debug,
     )
+    neg_weight = 100.0
     flk = falkon.Falkon(
-        kernel=k, penalty=penalty, M=num_centers, maxiter=num_iter, seed=seed, error_fn=None, error_every=1, options=opt
+        kernel=k,
+        penalty=penalty,
+        M=num_centers,
+        maxiter=num_iter,
+        seed=seed,
+        error_fn=None,
+        error_every=1,
+        weight_fn=lambda Y, X, indices: torch.where(Y == 1, 1.0, neg_weight),
+        options=opt,
     )
-
-    # Error metrics
-    err_fns = get_err_fns(dset)
-    if kfold == 1:
-        # Load data
-        load_fn = get_load_fn(dset)
-        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        Xtr = Xtr.pin_memory()
-        Ytr = Ytr.pin_memory()
-        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-        with TicToc("FALKON ALGORITHM"):
-            flk.error_fn = err_fns[0]
-            print(f"Starting to train model {flk} on data {dset}", flush=True)
-            flk.fit(Xtr, Ytr, Xts, Yts)
-        test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
-    else:
-        print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
-        load_fn = get_cv_fn(dset)
-        test_errs, train_errs = [], []
-
-        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        ):
-            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-            with TicToc(f"FALKON ALGORITHM (fold {it})"):
-                flk.error_every = err_fns[0]
-                flk.fit(Xtr, Ytr, Xts, Yts)
-            c_test_errs, c_train_errs, err_names, _ = test_model(flk, f"Falkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
-            train_errs.append(c_train_errs)
-            test_errs.append(c_test_errs)
-
-        print_kfold_error_report(kfold, test_errs, train_errs, err_fns)
+    pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    generic_fit(
+        flk, 
+        model_name="Falkon",
+        dset=dset, 
+        device=pt_device,
+        kfold=kfold, 
+        dtype=dtype, 
+        data_path=data_path, 
+        data_on_dev=False,
+    )
 
 
 if __name__ == "__main__":
