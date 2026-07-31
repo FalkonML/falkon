@@ -10,6 +10,7 @@ import torch
 from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
+from falkon.benchmarks.models.joker_model import JokerWrapper
 
 
 RANDOM_SEED = 123
@@ -70,14 +71,80 @@ def seed_all(seed):
     np.random.seed(seed)
 
 
-def get_median_sigma_square(data, num_samples=10000):
-    sub_data = data[:num_samples]
-    return torch.median(torch.pdist(sub_data) ** 2)
+def generic_fit(
+    model, 
+    model_name: str,
+    dset: Dataset,
+    device: torch.device,
+    kfold: int,
+    dtype: DataType,
+    data_path: str,
+    data_on_dev: bool,
+):
+    err_fns_ = get_err_fns(dset)
+    if kfold == 1:
+        print(f"Starting to train model {model_name} on data {dset}", flush=True)
+        # Load data
+        load_fn = get_load_fn(dset)
+        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
+        if data_on_dev:
+            Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+        else:
+            Xtr = Xtr.pin_memory()
+            Ytr = Ytr.pin_memory()
 
-def get_median_sigma(data, num_samples=10000):
-    sub_data = data[:num_samples]
-    return torch.median(torch.pdist(sub_data))
+        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
+        t_start = time.time()
+        model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+        t_elapsed = time.time() - t_start
 
+        if hasattr(model, "fit_times_"):
+            train_time = model.fit_times_[-1]
+        else:
+            train_time = t_elapsed
+        test_errs, train_errs, err_names, test_time = test_model(
+            model, f"{model_name} on {dset}", Xts, Yts, Xtr, Ytr, err_fns
+        )
+        print_kfold_error_report(
+            1, [test_errs], [train_errs], err_names, train_times=[train_time], inference_times=[test_time]
+        )
+    else:
+        print(f"{kfold}-CV training model {model_name} on data {dset}", flush=True)
+        load_fn = get_cv_fn(dset)
+        err_names = None
+        test_errs, train_errs = [], []
+        train_times, test_times = [], []
+
+        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
+        ):
+            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
+            if data_on_dev:
+                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+            else:
+                Xtr = Xtr.pin_memory()
+                Ytr = Ytr.pin_memory()
+            t_start = time.time()
+            model.fit(Xtr, Ytr, Xts, Yts, err_fns)
+            t_elapsed = time.time() - t_start
+
+            c_test_errs, c_train_errs, err_names, test_time = test_model(
+                model, f"{model_name} on {dset}", Xts, Yts, Xtr, Ytr, err_fns
+            )
+            train_errs.append(c_train_errs)
+            test_errs.append(c_test_errs)
+            test_times.append(test_time)
+            if hasattr(model, "fit_times_"):
+                train_times.append(model.fit_times_[-1])
+            else:
+                train_times.append(t_elapsed)
+            if hasattr(model, "reset"):
+                model.reset()
+            torch.cuda.empty_cache()
+        print_kfold_error_report(
+            kfold, test_errs, train_errs, err_names, train_times=train_times, inference_times=test_times
+        )
+    
 
 ################
 ### EIGENPRO ###
@@ -94,8 +161,6 @@ def run_eigenpro(
     kfold: int,
     seed: int,
 ):
-    from falkon.utils import TicToc
-
     sys.path.append(EIGENPRO_BASE_PATH)
     import eigenpro.kernels as kernels  # pyright: ignore[reportMissingImports]
     import eigenpro.utils.device as dev  # pyright: ignore[reportMissingImports]
@@ -104,7 +169,6 @@ def run_eigenpro(
     
     seed_all(seed)
 
-    data_dtype = DataType.float32
     if dtype is None:
         dtype = DataType.float32
     if kernel == "laplacian":
@@ -123,42 +187,17 @@ def run_eigenpro(
         num_eigenvalues=num_eigenvalues,
         num_epochs=num_iter,
     )
-
-    # Error metrics
-    err_fns = get_err_fns(dset)
-    if kfold == 1:
-        # Load data
-        load_fn = get_load_fn(dset)
-        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=data_dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-
-        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-        with TicToc("EigenPro4 Algorithm"):
-            model.fit(Xtr, Ytr, Xts, Yts, err_fns)
-        test_errs, train_errs, err_names, test_time = test_model(model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
-    else:
-        # print(f"Will train model {flk} on data {dset} with {kfold}-fold CV", flush=True)
-        load_fn = get_cv_fn(dset)
-        err_names = None
-        test_errs, train_errs = [], []
-        train_times, test_times = [], []
-
-        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=data_dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        ):
-            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-            with TicToc(f"EigenPro4 Algorithm (fold {it})"):
-                model.fit(Xtr, Ytr, Xts, Yts, err_fns)
-
-            c_test_errs, c_train_errs, err_names, test_time = test_model(
-                model, f"EigenPro on {dset}", Xts, Yts, Xtr, Ytr, err_fns
-            )
-            train_errs.append(c_train_errs)
-            test_errs.append(c_test_errs)
-            test_times.append(test_time)
-            train_times.append(model.epoch_times[-1])
-            model.reset()
-
-        print_kfold_error_report(kfold, test_errs, train_errs, err_names, train_times=train_times, inference_times=test_times)
+    pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    generic_fit(
+        model, 
+        model_name="EigenPro4",
+        dset=dset, 
+        device=pt_device,
+        kfold=kfold, 
+        dtype=dtype, 
+        data_path=data_path, 
+        data_on_dev=False,
+    )
 
 
 ##############
@@ -223,41 +262,17 @@ def run_balkon(
         block_size=block_size,
     )
 
-    # Error metrics
-    err_fns = get_err_fns(dset)
-    if kfold == 1:
-        # Load data
-        load_fn = get_load_fn(dset)
-        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        Xtr = Xtr.pin_memory()
-        Ytr = Ytr.pin_memory()
-        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-        with TicToc("BALKON ALGORITHM"):
-            flk.error_fn = err_fns[0]
-            print(f"Starting to train model {flk} on data {dset}", flush=True)
-            flk.fit(Xtr, Ytr, Xts, Yts)
-        test_errs, train_errs, err_names, test_time = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
-    else:
-        print(f"{kfold}-CV training model {flk} on data {dset}", flush=True)
-        load_fn = get_cv_fn(dset)
-        test_errs, train_errs = [], []
-        test_times, train_times = [], []
-        err_names = None
-
-        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        ):
-            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-            with TicToc(f"BALKON ALGORITHM (fold {it})"):
-                flk.error_fn = err_fns[0]
-                flk.fit(Xtr, Ytr, Xts, Yts)
-            train_times.append(flk.fit_times_[-1])
-            c_test_errs, c_train_errs, err_names, c_test_time = test_model(flk, f"Balkon on {dset}", Xts, Yts, Xtr, Ytr, err_fns)
-            train_errs.append(c_train_errs)
-            test_errs.append(c_test_errs)
-            test_times.append(c_test_time)
-
-        print_kfold_error_report(kfold, test_errs, train_errs, err_names, train_times=train_times, inference_times=test_times)
+    pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    generic_fit(
+        flk, 
+        model_name="Balkon",
+        dset=dset, 
+        device=pt_device,
+        kfold=kfold, 
+        dtype=dtype, 
+        data_path=data_path, 
+        data_on_dev=False,
+    )
 
 
 def run_askotch(
@@ -272,7 +287,6 @@ def run_askotch(
     num_iter : int,
     block_size : int,
     kfold : int,
-    device : str = 'cuda',
     seed : int = 124151
 ):
     sys.path.append(ASKOTCH_BASE_PATH)
@@ -284,76 +298,31 @@ def run_askotch(
     print(f"{gpu_available=}")
     seed_all(seed)
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # type: ignore
+    pt_device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # type: ignore
 
     if dtype is None:
         dtype = DataType.float32
-#    if dtype.to_numpy_dtype() != np.float32:
-#        raise RuntimeError(f"ASkotch can only run on single-precision floats.")
 
-    err_fns = get_err_fns(dset)
-    
-    def get_kernel_params(X, sigma):
-        if sigma < 0:
-            sigma = get_median_sigma(X).item()
-            print(f"kernel sigma chosen with median heuristic: {sigma}")
-        if kernel_type == 'gaussian':
-            return {'type' : 'rbf', 'sigma': sigma}
-        elif kernel_type == 'laplacian':
-            return {'type' : 'l1_laplace', 'sigma': sigma}
-        else:
-            raise ValueError(f"Kernel {kernel_type} not valid for ASkotch")
-    
     precond_params = {"type": "nystrom", "r": rank, "rho": "damped"}
-    
-    if kfold == 1:
-        load_fn = get_load_fn(dset)
-        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        Xtr_as, Ytr_as, Xts_as, Yts_as = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
-        if block_size <= 0:
-            block_size = Xtr.shape[0] // 100
-        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-        kernel_params = get_kernel_params(Xtr, sigma)
-        wrapper = ASkotchWrapper(
-            Xtr_as, Ytr_as, Xts_as, Yts_as, block_size, precond_params, kernel_params, lam*Xtr_as.shape[0], task, num_iter, device
-        )
-
-        tr_time = time.time()
-        wrapper.fit(Xtr_as, Ytr_as, Xts_as, Yts_as, err_fns[0])
-        tr_time = time.time() - tr_time
-
-        te_err, tr_err, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts.to(device), Yts.to(device), Xtr.to(device), Ytr.to(device), err_fns)
-        print(f"ASkotch timings. training={tr_time:.2f}s inference={te_pred_time:.2f}s")
-    else:
-        load_fn = get_cv_fn(dset)
-        err_names = None
-        test_errs, train_errs, train_times, test_pred_times = [], [], [], []
-        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        ):
-            Xtr_as, Ytr_as, Xts_as, Yts_as = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
-            act_block_size = block_size
-            if act_block_size <= 0:
-                act_block_size = Xtr.shape[0] // 100
-            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-            kernel_params = get_kernel_params(Xtr, sigma)
-            wrapper = ASkotchWrapper(
-                Xtr_as, Ytr_as, Xts_as, Yts_as, act_block_size, precond_params, kernel_params, lam*Xtr_as.shape[0], task, num_iter, device
-            )
-            tr_time = time.time()
-            wrapper.fit(Xtr_as, Ytr_as, Xts_as, Yts_as, err_fns[0])
-            tr_time = time.time() - tr_time
-            
-            c_test_errs, c_train_errs, err_names, te_pred_time = test_model(wrapper, f"ASkotch on {dset}", Xts.to(device), Yts.to(device), Xtr.to(device), Ytr.to(device), err_fns)
-            train_errs.append(c_train_errs)
-            test_errs.append(c_test_errs)
-            train_times.append(tr_time)
-            test_pred_times.append(te_pred_time)
-            torch.cuda.empty_cache()
-            print(f"[--] Fold {it} -> test_err: {c_test_errs}\ttr_err: {c_train_errs}\terr_name: {err_names}\tte_pred_time: {te_pred_time}\ttr_time: {tr_time}")
-
-        print_kfold_error_report(kfold, test_errs, train_errs, err_names, train_times, test_pred_times)
-        print()
+    askotch = ASkotchWrapper(
+        block_size, 
+        precond_params, 
+        kernel_type=kernel_type,
+        kernel_sigma=sigma, 
+        unsc_lam=lam, 
+        task=task, num_iter=num_iter, 
+        device=pt_device
+    )
+    generic_fit(
+        askotch, 
+        model_name="Balkon",
+        dset=dset, 
+        device=pt_device,
+        kfold=kfold, 
+        dtype=dtype, 
+        data_path=data_path, 
+        data_on_dev=True,
+    )
 
 
 def run_joker(
@@ -379,172 +348,55 @@ def run_joker(
     region_shrink_rate : float = 0.5,
     delta_huber : float = -1.0, 
     eps : float = -1.0,
-    device : str = 'cuda',
     seed : int = 124151
 ):
     sys.path.append(JOKER_BASE_PATH)
-    from joker import InexactJoker, Joker
-    from kernels.kernel import make_kernel
     from criterion import make_criterion
 
     seed_all(seed)
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    pt_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if dtype is None:
         dtype = DataType.float32
-#    if dtype.to_numpy_dtype() != np.float32:
-#        raise RuntimeError(f"Joker can only run on single-precision floats.")
 
-    err_fns = get_err_fns(dset)
-
+    crit = make_criterion(
+        criterion, c=c, delta=delta_huber, eps=eps, dtype=dtype.to_torch_dtype()
+    )
     if kernel_type == "laplacian":
         joker_ktype = "lap"
     elif kernel_type == "gaussian":
         joker_ktype = "rbf"
     else:
         raise ValueError(f"Unrecognized kernel for Joker: {kernel_type}")
-    crit = make_criterion(
-        criterion, c=c, delta=delta_huber, eps=eps, dtype=dtype.to_torch_dtype()
+    model = JokerWrapper(
+        inexact_type=inexact_type,
+        dtype=dtype.to_torch_dtype(),
+        crit=crit,
+        kernel_type=joker_ktype,
+        kernel_sigma=sigma,
+        device=pt_device,
+        nrff=nrff,
+        nfastfood=n_fastfood,
+        block_size=block_size,
+        incore=incore,
+        data_block_size=data_block_size,
+        opt_name=opt_name,
+        num_iter=num_iter,
+        num_iter_subprob=num_iter_subprob,
+        max_region_size=max_region_size,
+        region_shrink_freq=region_shrink_freq,
+        region_shrink_rate=region_shrink_rate,
     )
-
-    def joker_get_kernel(training_data):
-        if sigma < 0:
-            sigma_square = get_median_sigma_square(training_data, num_samples=10_000)
-            print(f"Using sigma = {float(np.sqrt(sigma_square)):.4f} from the median trick.")
-        else:
-            sigma_square = sigma ** 2
-        if joker_ktype == "rbf":
-            gamma = 0.5 / sigma_square
-        elif joker_ktype == "lap":
-            gamma = 1 / float(np.sqrt(sigma_square))
-        else:
-            raise RuntimeError(joker_ktype)
-        return make_kernel(joker_ktype, gamma=gamma)
-    
-
-    def joker_init_model(train_x, train_y):
-        kernel_func = joker_get_kernel(train_x)
-        if inexact_type == 'rff':
-            model = InexactJoker(
-                train_x,
-                train_y,
-                dtype=dtype.to_torch_dtype(), 
-                kernel=kernel_func, 
-                criterion=crit,
-                device=device,
-                n_features=nrff,
-                inexact_type=inexact_type,
-                opt_blksz=block_size, #cfg["blksz"],
-                incore=incore,#cfg["incore"],
-                data_blksz=data_block_size,
-                optim=opt_name,
-            )
-        elif inexact_type == 'fastfood':
-            model = InexactJoker(
-                train_x, 
-                train_y, 
-                dtype=dtype.to_torch_dtype(), 
-                kernel=kernel_func, 
-                criterion=crit,
-                device=device,
-                n_features=n_fastfood,
-                inexact_type=inexact_type,
-                opt_blksz=block_size, #cfg["blksz"],
-                incore=incore,#cfg["incore"],
-                data_blksz=data_block_size,
-                optim=opt_name,
-            )
-        else:
-            model = Joker(
-                train_x, 
-                train_y, 
-                dtype=dtype.to_torch_dtype(), 
-                kernel=kernel_func, 
-                criterion=crit,
-                device=device,
-                opt_blksz=block_size, #cfg["blksz"],
-                incore=incore,#cfg["incore"],
-                data_blksz=data_block_size,
-                optim=opt_name,
-            )
-        print(f"Starting to train Joker model {model} on data {dset} kernel {kernel_func}", flush=True)
-        return model
-
-    
-    if kfold == 1:
-        load_fn = get_load_fn(dset)
-        Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-
-        err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-        model = joker_init_model(Xtr, Ytr)
-        
-        tr_time = time.time()
-        model.fit(
-            max_iter=num_iter,
-            max_iter_subprob=num_iter_subprob, #cfg["max_iter_subprob"],
-            max_region_size=max_region_size, #cfg["max_trust_region_size"],
-            region_shrink_freq=region_shrink_freq,
-            verbose_freq=5000,
-            region_shrink_rate=region_shrink_rate, #cfg["region_shrink_rate"],
-            blk_strategy='random', #cfg["blk_strategy"],
-            val_x=Xts,
-            val_y=Yts,
-            verbose_primal_dual=False
-        )
-        tr_time = time.time() - tr_time
-
-        te_err, tr_err, err_names, te_pred_time = test_model(
-            model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns
-        )
-        print(f"Joker timings. training={tr_time:.2f}s inference={te_pred_time:.2f}s")
-    else:
-        load_fn = get_cv_fn(dset)
-        err_names = None
-        test_errs, train_errs, train_times, test_pred_times = [], [], [], []
-        for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
-        ):
-            err_fns = [functools.partial(fn, **kwargs) for fn in err_fns]
-            print(f"Starting fold {it}")
-            model = joker_init_model(Xtr, Ytr)
-            tr_time = time.time()
-            model.fit(
-                max_iter=num_iter,
-                max_iter_subprob=num_iter_subprob, #cfg["max_iter_subprob"],
-                max_region_size=max_region_size, #cfg["max_trust_region_size"],
-                region_shrink_freq=region_shrink_freq,
-                region_shrink_rate=region_shrink_rate, #cfg["region_shrink_rate"],
-                blk_strategy='random', #cfg["blk_strategy"],
-                verbose_freq=5000,
-                val_x=Xts,
-                val_y=Yts,
-                verbose_primal_dual=False
-            )
-            tr_time = time.time() - tr_time
-
-            c_test_errs, c_train_errs, err_names, te_pred_time = test_model(
-                model, f"Joker on {dset}", Xts, Yts, Xtr, Ytr, err_fns
-            )
-            train_errs.append(c_train_errs)
-            test_errs.append(c_test_errs)
-            train_times.append(tr_time)
-            test_pred_times.append(te_pred_time)
-            torch.cuda.empty_cache()
-            print(f"[--] Fold {it} -> test_err: {c_test_errs}\ttr_err: {c_train_errs}\terr_name: {err_names}\tte_pred_time: {te_pred_time}\ttr_time: {tr_time}")
-
-        print_kfold_error_report(kfold, test_errs, train_errs, err_names, train_times, test_pred_times)
-        print()
-        with open(f"./joker_{criterion}_{inexact_type}_{dset}_{str(dtype)}_kfold_{kfold}.log", 'w') as f_out:
-            f_out.write(f"[TIME] {np.mean(train_times)},{np.std(train_times)},{np.mean(test_pred_times)},{np.std(test_pred_times)}\n")
-            f_out.write(f"[TEST PERFORMANCE]\n")
-            for err_fn_i in range(len(err_fns)):
-                mu_perf, std_perf = np.mean([e[err_fn_i] for e in test_errs]), np.std([e[err_fn_i] for e in test_errs])
-                f_out.write(','.join([str(e[err_fn_i]) for e in test_errs]) +  f",{mu_perf},{std_perf}\n")
-            f_out.write(f"[TRAIN PERFORMANCE]\n")
-            for err_fn_i in range(len(err_fns)):
-                mu_perf, std_perf = np.mean([e[err_fn_i] for e in train_errs]), np.std([e[err_fn_i] for e in train_errs])
-                f_out.write(','.join([str(e[err_fn_i]) for e in train_errs]) +  f",{mu_perf},{std_perf}\n")
-            f_out.flush()
+    generic_fit(
+        model, 
+        model_name="Joker",
+        dset=dset, 
+        device=pt_device,
+        kfold=kfold, 
+        dtype=dtype, 
+        data_path=data_path, 
+        data_on_dev=False,
+    )
 
 
 def run_falkon(
