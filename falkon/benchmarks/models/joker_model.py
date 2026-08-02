@@ -9,7 +9,7 @@ from kernels.kernel import make_kernel
 
 class JokerWrapper:
     def __init__(
-        self, 
+        self,
         inexact_type,
         dtype,
         crit,
@@ -73,7 +73,7 @@ class JokerWrapper:
                 Xtr,
                 Ytr,
                 dtype=self.dtype,
-                kernel=kernel_func, 
+                kernel=kernel_func,
                 criterion=self.crit,
                 device=self.device,
                 n_features=self.nrff,
@@ -85,10 +85,10 @@ class JokerWrapper:
             )
         elif self.inexact_type == 'fastfood':
             model = InexactJoker(
-                Xtr, 
-                Ytr, 
-                dtype=self.dtype, 
-                kernel=kernel_func, 
+                Xtr,
+                Ytr,
+                dtype=self.dtype,
+                kernel=kernel_func,
                 criterion=self.crit,
                 device=self.device,
                 n_features=self.nfastfood,
@@ -100,10 +100,10 @@ class JokerWrapper:
             )
         else:
             model = Joker(
-                Xtr, 
-                Ytr, 
-                dtype=self.dtype, 
-                kernel=kernel_func, 
+                Xtr,
+                Ytr,
+                dtype=self.dtype,
+                kernel=kernel_func,
                 criterion=self.crit,
                 device=self.device,
                 opt_blksz=self.block_size, #cfg["blksz"],

@@ -180,7 +180,7 @@ def binary_f1(y_true, y_pred, **kwargs):
     if np.min(y_true) == 0:
         y_true = y_true * 2 - 1
         y_pred = y_pred * 2 - 1
-    
+
     y_true = np.where(y_true.ravel() < 0, -1, 1)
     y_pred = np.where(y_pred.ravel() < 0, -1, 1)
     # precision: TP/(TP+FP)
@@ -193,7 +193,7 @@ def binary_f1(y_true, y_pred, **kwargs):
     # F1: 2(precision*recall)/(precision + recall)
     f1 = 2 * precision * recall / (precision + recall)
     return 1.0 - f1, "1-F1score"
-    
+
 
 def mnist_calc_cerr(y_true, y_pred, **kwargs):
     y_true, y_pred = _ensure_numpy(y_true, y_pred)

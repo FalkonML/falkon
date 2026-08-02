@@ -8,7 +8,18 @@ from tqdm import trange
 
 
 class ASkotchWrapper:
-    def __init__(self, block_size, precond_params, kernel_type, kernel_sigma, unsc_lam, task, num_iter, device, log_every=1):
+    def __init__(
+        self,
+        block_size,
+        precond_params,
+        kernel_type,
+        kernel_sigma,
+        unsc_lam,
+        task,
+        num_iter,
+        device,
+        log_every=1
+    ):
         self.block_size = block_size
         self.precond_params = precond_params
         self.kernel_type = kernel_type
@@ -25,7 +36,7 @@ class ASkotchWrapper:
     def get_median_sigma(self, data, num_samples=10000):
         sub_data = data[:num_samples]
         return torch.median(torch.pdist(sub_data))
-    
+
     def get_kernel_params(self, X):
         sigma = self.kernel_sigma
         if sigma < 0:
@@ -37,7 +48,7 @@ class ASkotchWrapper:
             return {'type' : 'l1_laplace', 'sigma': sigma}
         else:
             raise ValueError(f"Kernel {self.kernel_type} not valid for ASkotch")
-        
+
     def fit(self, Xtr, Ytr, Xts, Yts, err_fn):
         self.fit_times_ = []
         block_size = self.block_size
@@ -46,8 +57,8 @@ class ASkotchWrapper:
         t_start = time.time()
         w0 = torch.zeros((Xtr.shape[0], ), device=self.device)
         model = FullKRR(
-            Xtr, Ytr, Xts, Yts, kernel_params=self.get_kernel_params(Xtr), 
-            Ktr_needed=True, lambd=self.unsc_lam * Xtr.shape[0], task=self.task, w0=w0, 
+            Xtr, Ytr, Xts, Yts, kernel_params=self.get_kernel_params(Xtr),
+            Ktr_needed=True, lambd=self.unsc_lam * Xtr.shape[0], task=self.task, w0=w0,
             device=self.device
         )
         self.opt = ASkotchV2(model=model, block_sz=self.block_size, precond_params=self.precond_params)
@@ -61,4 +72,3 @@ class ASkotchWrapper:
             raise ValueError("predict called before fit")
         K_pred = self.kern_fn(Xtst, self.opt.model.x, False)
         return K_pred @ self.opt.model.w
-    

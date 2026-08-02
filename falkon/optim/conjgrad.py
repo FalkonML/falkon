@@ -1,4 +1,3 @@
-import time
 from collections.abc import Callable
 
 import torch
@@ -230,7 +229,7 @@ class ConjugateGradient(Optimizer):
         stag_iters_min = self.params.cg_stagnation_iterations
         rs_norms: list[torch.Tensor] = []
 
-        with timer := TicToc("CG preparation", debug=False):
+        with (timer := TicToc("CG preparation", debug=False)):
             if X0 is None:
                 R = copy_same_stride(B)  # n*t
                 X = create_same_stride(B.size(), B, B.dtype, B.device)
@@ -244,7 +243,7 @@ class ConjugateGradient(Optimizer):
             e_train = timer.toc_val()
 
         for self.num_iter in range(max_iter):
-            with timer := TicToc("CG Iter", debug=False):
+            with (timer := TicToc("CG Iter", debug=False)):
                 AP = mmv(P)
                 alpha = rs_norms[-1] / (torch.sum(P * AP, dim=0).add_(m_eps))
                 # X += P @ diag(alpha)
