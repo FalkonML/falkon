@@ -49,7 +49,7 @@ class ASkotchWrapper:
         else:
             raise ValueError(f"Kernel {self.kernel_type} not valid for ASkotch")
 
-    def fit(self, Xtr, Ytr, Xts, Yts, err_fn):
+    def fit(self, Xtr, Ytr, Xts, Yts):
         self.fit_times_ = []
         block_size = self.block_size
         if block_size <= 0:
@@ -61,7 +61,7 @@ class ASkotchWrapper:
             Ktr_needed=True, lambd=self.unsc_lam * Xtr.shape[0], task=self.task, w0=w0,
             device=self.device
         )
-        self.opt = ASkotchV2(model=model, block_sz=self.block_size, precond_params=self.precond_params)
+        self.opt = ASkotchV2(model=model, block_sz=block_size, precond_params=self.precond_params)
         self.kern_fn = self.opt.model._get_kernel_fn()
         for _ in trange(1, self.num_iter + 1, desc="Optimization progress"):
             self.opt.step()

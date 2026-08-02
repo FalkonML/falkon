@@ -113,7 +113,7 @@ class JokerWrapper:
             )
         return model
 
-    def fit(self, Xtr, Ytr, Xts, Yts, err_fn):
+    def fit(self, Xtr, Ytr, Xts, Yts):
         self.fit_times_ = []
         t_start = time.time()
         self.model = self.init_model(Xtr, Ytr)
