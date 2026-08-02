@@ -93,6 +93,8 @@ def generic_fit(
             Ytr = Ytr.pin_memory()
 
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
+        if hasattr(model, "error_fn"):
+            model.error_fn = err_fns[0]
         t_start = time.time()
         model.fit(Xtr, Ytr, Xts, Yts)
         t_elapsed = time.time() - t_start
@@ -118,14 +120,15 @@ def generic_fit(
             load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
+            if hasattr(model, "error_fn"):
+                model.error_fn = err_fns[0]
             if data_on_dev:
                 Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
             else:
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
+
             t_start = time.time()
-            if hasattr(model, "error_fn"):
-                model.error_fn = err_fns[0]
             model.fit(Xtr, Ytr, Xts, Yts)
             t_elapsed = time.time() - t_start
 
@@ -243,7 +246,7 @@ def run_balkon(
         cg_tolerance=2e-7,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
-        pc_epsilon_32=1e-7, # lowered this for flights (was 1e-6)
+        pc_epsilon_32=1e-6, # lowered this for flights (was 1e-6)
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
         store_kernel_d_threshold=1500,
@@ -314,7 +317,7 @@ def run_askotch(
     )
     generic_fit(
         askotch, 
-        model_name="Balkon",
+        model_name="ASkotch",
         dset=dset, 
         device=pt_device,
         kfold=kfold, 
@@ -434,7 +437,7 @@ def run_falkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
-        cg_tolerance=2e-7,
+        cg_tolerance=1e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
         pc_epsilon_32=1e-6, # lowered this for flights (was 1e-6)
@@ -444,7 +447,8 @@ def run_falkon(
         #max_cpu_mem=(160*2**30),
         debug=debug,
     )
-    neg_weight = 100.0
+    neg_weight = 1.0
+    pos_weight = 1.0
     flk = falkon.Falkon(
         kernel=k,
         penalty=penalty,
@@ -453,7 +457,7 @@ def run_falkon(
         seed=seed,
         error_fn=None,
         error_every=1,
-        weight_fn=lambda Y, X, indices: torch.where(Y == 1, 1.0, neg_weight),
+        weight_fn=lambda Y, X, indices: torch.where(Y < 0, neg_weight, pos_weight),
         options=opt,
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
