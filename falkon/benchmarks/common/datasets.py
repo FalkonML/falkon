@@ -510,6 +510,22 @@ class YelpDataset(RandomSplitDataset):
         return (scipy2tf(Xtr), Ytr, scipy2tf(Xts), Yts, {})
 
 
+class MCCometDataset(RandomSplitDataset, Hdf5Dataset):
+    file_name = "/data/DATASETS/mccomet.hdf5"
+    dset_name = "MCComet"
+    default_train_frac = 0.8
+
+    def read_data(self, dtype, path: str | pathlib.Path):
+        X, Y = super().read_data(dtype, path)
+        return X, Y
+
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
+        return standardize_x(Xtr, Xts)
+
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+        return convert_to_binary_y(Ytr, Yts)  # 0, 1 -> -1, +1
+
+
 class FlightsDataset(RandomSplitDataset, Hdf5Dataset):
     file_name = "/data/DATASETS/FLIGHTS/flights.hdf5"  # type: ignore
     dset_name = "FLIGHTS"  # type: ignore
@@ -651,7 +667,12 @@ class CIFAR105M_MBV2Dataset(KnownSplitDataset):
         return standardize_x(Xtr, Xts)
 
     def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
-        return convert_to_onehot(Ytr, Yts, num_classes=10)
+        Ytr, Yts, extras = convert_to_onehot(Ytr, Yts, num_classes=10)
+        #Ytr *= 2
+        #Ytr -= 1
+        #Yts *= 2
+        #Yts -= 1
+        return Ytr, Yts, extras
 
 
 class CIFAR105MDataset(KnownSplitDataset):
@@ -1142,6 +1163,7 @@ __LOADERS = {
     Dataset.BUZZ: BuzzDataset(),
     Dataset.ROAD3D: Road3DDataset(),
     Dataset.HOUSEELECTRIC: HouseEelectricDataset(),
+    Dataset.MCCOMET: MCCometDataset(),
 }
 
 

@@ -141,6 +141,8 @@ def run_epro(
             print()
 
 
+
+
 def run_gpytorch_sgpr(
     dset: Dataset,
     algorithm: Algorithm,
@@ -483,6 +485,7 @@ def run_sgpr_gpflow(
 
     tf.random.set_seed(seed)
     np.random.seed(seed)
+    
 
     # Data types
     if dtype is None:
@@ -726,7 +729,7 @@ if __name__ == "__main__":
         required=False,
         help="List of penalty values for logistic falkon",
     )
-
+    
     args = p.parse_args()
     print(f"STARTING WITH SEED {args.seed}")
 

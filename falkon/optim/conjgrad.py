@@ -1,4 +1,3 @@
-import time
 from collections.abc import Callable
 
 import torch
@@ -92,7 +91,7 @@ class PreconditionedConjugateGradient(Optimizer):
             e_train = timer.toc_val()
 
         for self.num_iter in range(max_iter):
-            with (timer := TicToc("Chol Iter", debug=False)):
+            with (timer := TicToc("PCG Iter", debug=False)):
                 op_q = mmv(p)
                 alpha = rs_norms[-1] / (torch.sum(p * op_q, dim=0).add_(m_eps))
                 # X += P @ diag(alpha)
@@ -113,13 +112,13 @@ class PreconditionedConjugateGradient(Optimizer):
                 # Stopping criterion:
                 # 1. |residual| < eps * |rhs|
                 # 2. |residual_{k}|/|residual_{k-m}| > stag_thresh
-                converged = torch.less(rs_norms[-1], tol)
+                print(f"Error norm: {rs_norms[-1].item():.2e}. Tolerance: {tol.item():.2e}")
+                stop_iterates = torch.less(rs_norms[-1], tol)
                 if (self.num_iter + 1) > stag_iters_min:
+                    # TODO: This breaks in case of differential convergence
                     stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
-                    stagnated = stagnation_rho > stag_thresh
-                    stop_iterates = converged | stagnated
-                else:
-                    stop_iterates = converged
+                    stagnated = torch.gt(stagnation_rho, stag_thresh)
+                    stop_iterates = stop_iterates | stagnated
                 if torch.all(stop_iterates):
                     break
                 if diff_conv and torch.any(stop_iterates):
@@ -141,7 +140,7 @@ class PreconditionedConjugateGradient(Optimizer):
                 beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
                 p = p.mul_(beta_multiplier).add_(s)
                 e_train += timer.toc_val()
-            with TicToc("Chol callback", debug=False):
+            with TicToc("PCG callback", debug=False):
                 if callback is not None:
                     try:
                         callback(self.num_iter + 1, x, e_train)
@@ -209,40 +208,44 @@ class ConjugateGradient(Optimizer):
         -------
         The solution to the linear system `X`.
         """
-        t_start = time.time()
 
-        if X0 is None:
-            R = copy_same_stride(B)  # n*t
-            X = create_same_stride(B.size(), B, B.dtype, B.device)
-            X.fill_(0.0)
-        else:
-            R = B - mmv(X0)  # n*t
-            X = X0
-
-        m_eps = self.params.cg_epsilon(X.dtype)
-        full_grad_every = self.params.cg_full_gradient_every or max_iter * 2
-        tol = self.params.cg_tolerance**2
-        diff_conv = self.params.cg_differential_convergence and X.shape[1] > 1
-
-        P = R.clone()
-        Rsold = R.square().sum(dim=0)
-
-        e_train = time.time() - t_start
+        T = B.shape[1]
+        m_eps = self.params.cg_epsilon(B.dtype)
+        full_grad_every = self.params.cg_full_gradient_every or max_iter + 1
+        # tol = self.params.cg_tolerance**2
+        tol = (self.params.cg_tolerance * torch.linalg.vector_norm(B, dim=0)) ** 2
 
         # Differential convergence: when any column of X converges we remove it from optimization.
+        diff_conv = self.params.cg_differential_convergence and T > 1
         # column-vectors of X which have converged
         x_converged: list[torch.Tensor] = []
         # indices of columns in `x_converged` as they originally appeared in `X`
         col_idx_converged: list[int] = []
         # indices of columns which have not converged, as they originally were in `X`
-        col_idx_notconverged: torch.Tensor = torch.arange(X.shape[1])
-        X_orig = X
+        col_idx_notconverged: torch.Tensor = torch.arange(T)
+
+        # stagnation detection
+        stag_thresh = self.params.cg_stagnation_threshold
+        stag_iters_min = self.params.cg_stagnation_iterations
+        rs_norms: list[torch.Tensor] = []
+
+        with (timer := TicToc("CG preparation", debug=False)):
+            if X0 is None:
+                R = copy_same_stride(B)  # n*t
+                X = create_same_stride(B.size(), B, B.dtype, B.device)
+                X.fill_(0.0)
+            else:
+                R = B - mmv(X0)  # n*t
+                X = X0
+            P = R.clone()
+            rs_norms.append(R.square().sum(dim=0))
+            X_orig = X  # Keep a reference for differential convergence
+            e_train = timer.toc_val()
 
         for self.num_iter in range(max_iter):
-            with TicToc("Chol Iter", debug=False):
-                t_start = time.time()
+            with (timer := TicToc("CG Iter", debug=False)):
                 AP = mmv(P)
-                alpha = Rsold / (torch.sum(P * AP, dim=0).add_(m_eps))
+                alpha = rs_norms[-1] / (torch.sum(P * AP, dim=0).add_(m_eps))
                 # X += P @ diag(alpha)
                 X.addcmul_(P, alpha.reshape(1, -1))
 
@@ -254,31 +257,37 @@ class ConjugateGradient(Optimizer):
                 else:
                     # R -= AP @ diag(alpha)
                     R.addcmul_(AP, alpha.reshape(1, -1), value=-1.0)
+                rs_norms.append(R.square().sum(dim=0))
 
-                Rsnew = R.square().sum(dim=0)  # t
-                converged = torch.less(Rsnew, tol)
-                if torch.all(converged):
+                # Stopping detection
+                print(f"Error norm: {rs_norms[-1].item():.2e}. Tolerance: {tol.item():.2e}")
+                stop_iterates = torch.less(rs_norms[-1], tol)
+                if (self.num_iter + 1) > stag_iters_min:
+                    # TODO: This breaks in case of differential convergence
+                    stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
+                    stagnated = torch.gt(stagnation_rho, stag_thresh)
+                    stop_iterates = stop_iterates | stagnated
+                if torch.all(stop_iterates):
                     break
-                if diff_conv and torch.any(converged):
-                    for idx in torch.where(converged)[0]:
+                if diff_conv and torch.any(stop_iterates):
+                    for idx in torch.where(stop_iterates)[0]:
                         col_idx_converged.append(int(col_idx_notconverged[idx].item()))
                         x_converged.append(X[:, idx])
-                    col_idx_notconverged = col_idx_notconverged[~converged]
-                    P = P[:, ~converged]
-                    R = R[:, ~converged]
-                    B = B[:, ~converged]
-                    X = X[:, ~converged]  # These are all copies
-                    Rsnew = Rsnew[~converged]
-                    Rsold = Rsold[~converged]
+                    col_idx_notconverged = col_idx_notconverged[~stop_iterates]
+                    P = P[:, ~stop_iterates]
+                    R = R[:, ~stop_iterates]
+                    B = B[:, ~stop_iterates]
+                    X = X[:, ~stop_iterates]  # These are all copies
+                    # TODO: This breaks in case of differential convergence and stagnation detection
+                    rs_norms[-1] = rs_norms[-1][~stop_iterates]
+                    rs_norms[-2] = rs_norms[-2][~stop_iterates]
 
                 # P = R + P @ diag(mul)
-                multiplier = (Rsnew / Rsold.add_(m_eps)).reshape(1, -1)
-                P = P.mul_(multiplier).add_(R)
-                Rsold = Rsnew
+                beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
+                P = P.mul_(beta_multiplier).add_(R)
 
-                e_iter = time.time() - t_start
-                e_train += e_iter
-            with TicToc("Chol callback", debug=False):
+                e_train += timer.toc_val()
+            with TicToc("CG callback", debug=False):
                 if callback is not None:
                     try:
                         callback(self.num_iter + 1, X, e_train)

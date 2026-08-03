@@ -1,66 +1,74 @@
+import time
+
 import torch
-import pykeops
-from pykeops.config import gpu_available
 from fast_krr.models import FullKRR
 from fast_krr.opts import ASkotchV2
-from pykeops.torch import LazyTensor
-
-import time 
 
 from tqdm import trange
 
+
 class ASkotchWrapper:
-    
-    
-#    def __init__(self, opt, num_iter, log_every = 1):
-    def __init__(self, Xtr, Ytr, Xts, Yts, block_size, precond_params, kernel_params, lam, task, num_iter, device, log_every=1):
-
-        w0 = torch.zeros((Xtr.shape[0], ), device=device)
-        model = FullKRR(Xtr, Ytr, Xts, Yts, kernel_params=kernel_params, Ktr_needed=True, lambd=lam, task=task, w0=w0, device=device)
-
-        self.opt = ASkotchV2(model=model, block_sz=block_size, precond_params=precond_params)
-
-#        self.opt = opt
-        self.kern_fn = self.opt.model._get_kernel_fn()
+    def __init__(
+        self,
+        block_size,
+        precond_params,
+        kernel_type,
+        kernel_sigma,
+        unsc_lam,
+        task,
+        num_iter,
+        device,
+        log_every=1
+    ):
+        self.block_size = block_size
+        self.precond_params = precond_params
+        self.kernel_type = kernel_type
+        self.kernel_sigma = kernel_sigma
+        self.unsc_lam = unsc_lam
+        self.task = task
         self.num_iter = num_iter
+        self.device = device
         self.log_every = log_every
+        self.opt = None
+        self.kern_fn = None
+        self.fit_times_ = []
 
-    def fit(self, Xtr, Ytr, Xts, Yts, err_fn):
-        
-#        ker_fun = self.opt.model._get_kernel_fn()
-#        ft_time = time.time()
-#        tr_errors, te_errors, it_times = [], [], []
-        for i in trange(1, self.num_iter + 1, desc="Optimization progress"):
-#            it_time = time.time()
+    def get_median_sigma(self, data, num_samples=10000):
+        sub_data = data[:num_samples]
+        return torch.median(torch.pdist(sub_data))
+
+    def get_kernel_params(self, X):
+        sigma = self.kernel_sigma
+        if sigma < 0:
+            sigma = self.get_median_sigma(X).item()
+            print(f"kernel sigma chosen with median heuristic: {sigma}")
+        if self.kernel_type == 'gaussian':
+            return {'type' : 'rbf', 'sigma': sigma}
+        elif self.kernel_type == 'laplacian':
+            return {'type' : 'l1_laplace', 'sigma': sigma}
+        else:
+            raise ValueError(f"Kernel {self.kernel_type} not valid for ASkotch")
+
+    def fit(self, Xtr, Ytr, Xts, Yts):
+        self.fit_times_ = []
+        block_size = self.block_size
+        if block_size <= 0:
+            block_size = Xtr.shape[0] // 100
+        t_start = time.time()
+        w0 = torch.zeros((Xtr.shape[0], ), device=self.device)
+        model = FullKRR(
+            Xtr, Ytr, Xts, Yts, kernel_params=self.get_kernel_params(Xtr),
+            Ktr_needed=True, lambd=self.unsc_lam * Xtr.shape[0], task=self.task, w0=w0,
+            device=self.device
+        )
+        self.opt = ASkotchV2(model=model, block_sz=block_size, precond_params=self.precond_params)
+        self.kern_fn = self.opt.model._get_kernel_fn()
+        for _ in trange(1, self.num_iter + 1, desc="Optimization progress"):
             self.opt.step()
-#            it_time = time.time() - it_time
-            
-#            if i % self.log_every == 0:
-#                tr_errors.append(err_fn(self.predict(Xtr), Ytr)[0])
-#                te_errors.append(err_fn(self.predict(Xte), Yte)[0])
-#            it_times.append(it_time)
+        self.fit_times_.append(time.time() - t_start)
 
-#        return tr_errors, te_errors, it_times
-            
-            
-#        ft_time = time.time()
-            # if i % log_freq == 0:
-            #     metrics.append((i, model.compute_metrics(v=opt.model.w, log_test_only=False)))
-                
-            #     Ktst = ker_fun(Xtst,opt.model.x, False)
-            #     preds = Ktst @ opt.model.w
-            #     print(Ktst @ opt.model.w)
-            #     print(opt.model.K_tst @ opt.model.w)
-            #     print(metrics[-1])
-            #     print((preds - ytst).square().mean().item() * 0.5)
-
-        
-        
-        
-        
     def predict(self, Xtst):
-        K_pred = self.kern_fn(Xtst, self.opt.model.x, False) # I m assuming model is FullKRR
+        if self.opt is None or self.kern_fn is None:
+            raise ValueError("predict called before fit")
+        K_pred = self.kern_fn(Xtst, self.opt.model.x, False)
         return K_pred @ self.opt.model.w
-    
-
-

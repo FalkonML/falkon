@@ -167,8 +167,32 @@ def binary_cerr(y_true, y_pred, **kwargs):
     if y_true.ndim > 1 and y_true.shape[1] > 1:
         y_true = np.argmax(y_true, axis=1) * 2 - 1
 
-    c_err = np.mean(np.sign(y_pred.ravel()) != np.sign(y_true.ravel()))
+    # arbitrarily assign 0 to positive class
+    y_true = np.where(y_true.ravel() < 0, -1, 1)
+    y_pred = np.where(y_pred.ravel() < 0, -1, 1)
+    c_err = np.mean(y_true != y_pred)
     return c_err, "c-error"
+
+
+def binary_f1(y_true, y_pred, **kwargs):
+    y_true, y_pred = _ensure_numpy(y_true, y_pred)
+
+    if np.min(y_true) == 0:
+        y_true = y_true * 2 - 1
+        y_pred = y_pred * 2 - 1
+
+    y_true = np.where(y_true.ravel() < 0, -1, 1)
+    y_pred = np.where(y_pred.ravel() < 0, -1, 1)
+    # precision: TP/(TP+FP)
+    tp = np.sum(np.logical_and(y_true == 1, y_pred == 1))
+    fp = np.sum(np.logical_and(y_true == -1, y_pred == 1))
+    precision = tp / (tp + fp)
+    # recall: TP/(TP+FN)
+    fn = np.sum(np.logical_and(y_true == 1, y_pred == -1))
+    recall = tp / (tp + fn)
+    # F1: 2(precision*recall)/(precision + recall)
+    f1 = 2 * precision * recall / (precision + recall)
+    return 1.0 - f1, "1-F1score"
 
 
 def mnist_calc_cerr(y_true, y_pred, **kwargs):
@@ -270,6 +294,7 @@ ERROR_METRICS: dict[Dataset, list[ERROR_FN_TYPE]] = {
     Dataset.BUZZ: [nrmse],
     Dataset.ROAD3D: [nrmse],
     Dataset.HOUSEELECTRIC: [rmse, nrmse],
+    Dataset.MCCOMET: [binary_cerr, higgs_calc_auc, binary_f1],
 }
 TF_ERROR_METRICS: dict[Dataset, ERROR_FN_TYPE] = {
     Dataset.TIMIT: timit_calc_error_tf,

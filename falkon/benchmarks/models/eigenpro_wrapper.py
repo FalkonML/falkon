@@ -16,28 +16,32 @@ class EigenProWrapper:
         self.num_eigenvalues = num_eigenvalues
         self.num_epochs = num_epochs
 
-        self.epoch_times = []
+        self.fit_times_ = []
         self.model = None
         self.batch_size = 8192
 
+    def reset(self):
+        self.fit_times_ = []
+        self.model = None
+
     def inter_epoch_cback(self, Xts, Yts, err_fns):
         def fn(model):
-            start_time = self.epoch_times[-1]
+            start_time = self.fit_times_[-1]
             elapsed_time = time.time() - start_time
-            self.epoch_times[-1] = elapsed_time
-            epoch = len(self.epoch_times)
+            self.fit_times_[-1] = elapsed_time
+            epoch = len(self.fit_times_)
             self.model = model
             print("Running test-set predictions...", flush=True)
             pred_start_time = time.time()
             preds = self.predict(Xts)
             pred_elapsed = time.time() - pred_start_time
             print(f"EigenPro4 epoch {epoch}:")
-            print(f"\telapsed: {sum(self.epoch_times):.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
+            print(f"\telapsed: {sum(self.fit_times_):.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
             for err_fn in err_fns:
                 test_err, test_err_name = err_fn(Yts, preds)
                 print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
             print()
-            self.epoch_times.append(time.time())
+            self.fit_times_.append(time.time())
 
         return fn
 
@@ -47,7 +51,7 @@ class EigenProWrapper:
         kernel_model = skm.create_sharded_kernel_machine(
             Z, Ytr.shape[-1], self.kernel_fn, self.device, dtype=self.dtype, tmp_centers_coeff=2
         )
-        self.epoch_times.append(time.time())
+        self.fit_times_.append(time.time())
         self.model = solver.fit(
             kernel_model,
             Xtr,
@@ -65,6 +69,9 @@ class EigenProWrapper:
             accumulated_gradients=True,
             callback=self.inter_epoch_cback(Xts, Yts, err_fns),
         )
+        start_time = self.fit_times_[-1]
+        elapsed_time = time.time() - start_time
+        self.fit_times_[-1] = elapsed_time
         return self
 
     def predict(self, data, batch_size=None):
