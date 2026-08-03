@@ -269,7 +269,7 @@ ERROR_METRICS: dict[Dataset, list[ERROR_FN_TYPE]] = {
     Dataset.FASHION_MNIST: [mnist_calc_cerr],
     Dataset.BUZZ: [nrmse],
     Dataset.ROAD3D: [nrmse],
-    Dataset.HOUSEELECTRIC: [nrmse],
+    Dataset.HOUSEELECTRIC: [rmse, nrmse],
 }
 TF_ERROR_METRICS: dict[Dataset, ERROR_FN_TYPE] = {
     Dataset.TIMIT: timit_calc_error_tf,
