@@ -34,11 +34,18 @@ class BalkonPreconditioner(Preconditioner):
             self.X_nys = self.X_nys.to(device)
         return self
 
+    @property
+    def num_blocks(self):
+        if self.X_nys is None:
+            raise RuntimeError("Cannot query num_blocks before initialization")
+        M = self.X_nys.shape[0]
+        num_blocks = M // self.block_size
+        return num_blocks
+
     @check_init("X_nys")
     def apply(self, v: torch.Tensor) -> torch.Tensor:
         assert self.X_nys is not None
-        M = self.X_nys.shape[0]
-        num_blocks = M // self.block_size
+        num_blocks = self.num_blocks
 
         out = torch.empty_like(v)
         for i in range(num_blocks):
@@ -47,7 +54,6 @@ class BalkonPreconditioner(Preconditioner):
             # TODO: Maybe we'd like an option to send smaller nystrom chunks to GPU.
             self.base_prec.init(self.X_nys[i_start:i_end])
             out[i_start:i_end] = self.base_prec.apply(self.base_prec.apply_t(v[i_start:i_end]))
-        out = out.div_(num_blocks * self.data_size)
         return out
 
     def apply_t(self, v: torch.Tensor) -> torch.Tensor:
