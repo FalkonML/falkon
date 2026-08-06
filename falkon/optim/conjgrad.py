@@ -115,7 +115,6 @@ class PreconditionedConjugateGradient(Optimizer):
                 print(f"Error norm: {rs_norms[-1].item():.2e}. Tolerance: {tol.item():.2e}")
                 stop_iterates = torch.less(rs_norms[-1], tol)
                 if (self.num_iter + 1) > stag_iters_min:
-                    # TODO: This breaks in case of differential convergence
                     stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
                     stagnated = torch.gt(stagnation_rho, stag_thresh)
                     stop_iterates = stop_iterates | stagnated
@@ -135,6 +134,8 @@ class PreconditionedConjugateGradient(Optimizer):
                     tol = tol[~stop_iterates]
                     rs_norms[-1] = rs_norms[-1][~stop_iterates]
                     rs_norms[-2] = rs_norms[-2][~stop_iterates]
+                    if (self.num_iter + 1) > stag_iters_min:
+                        rs_norms[-(stag_iters_min + 1)] = rs_norms[-(stag_iters_min + 1)][~stop_iterates]
 
                 # P = R + P @ diag(mul)
                 beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
@@ -263,7 +264,6 @@ class ConjugateGradient(Optimizer):
                 print(f"Error norm: {rs_norms[-1].item():.2e}. Tolerance: {tol.item():.2e}")
                 stop_iterates = torch.less(rs_norms[-1], tol)
                 if (self.num_iter + 1) > stag_iters_min:
-                    # TODO: This breaks in case of differential convergence
                     stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
                     stagnated = torch.gt(stagnation_rho, stag_thresh)
                     stop_iterates = stop_iterates | stagnated
@@ -278,9 +278,10 @@ class ConjugateGradient(Optimizer):
                     R = R[:, ~stop_iterates]
                     B = B[:, ~stop_iterates]
                     X = X[:, ~stop_iterates]  # These are all copies
-                    # TODO: This breaks in case of differential convergence and stagnation detection
                     rs_norms[-1] = rs_norms[-1][~stop_iterates]
                     rs_norms[-2] = rs_norms[-2][~stop_iterates]
+                    if (self.num_iter + 1) > stag_iters_min:
+                        rs_norms[-(stag_iters_min + 1)] = rs_norms[-(stag_iters_min + 1)][~stop_iterates]
 
                 # P = R + P @ diag(mul)
                 beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
