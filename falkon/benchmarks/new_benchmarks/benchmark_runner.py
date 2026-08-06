@@ -71,7 +71,7 @@ def seed_all(seed):
 
 
 def generic_fit(
-    model, 
+    model,
     model_name: str,
     dset: Dataset,
     device: torch.device,
@@ -82,7 +82,7 @@ def generic_fit(
 ):
     err_fns_ = get_err_fns(dset)
     if kfold == 1:
-        print(f"Starting to train model {model_name} on data {dset}", flush=True)
+        print(f"Starting to train model {model} on data {dset}", flush=True)
         # Load data
         load_fn = get_load_fn(dset)
         Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
@@ -110,7 +110,7 @@ def generic_fit(
             1, [test_errs], [train_errs], err_names, train_times=[train_time], inference_times=[test_time]
         )
     else:
-        print(f"{kfold}-CV training model {model_name} on data {dset}", flush=True)
+        print(f"{kfold}-CV training model {model} on data {dset}", flush=True)
         load_fn = get_cv_fn(dset)
         err_names = None
         test_errs, train_errs = [], []
@@ -148,7 +148,7 @@ def generic_fit(
         print_kfold_error_report(
             kfold, test_errs, train_errs, err_names, train_times=train_times, inference_times=test_times
         )
-    
+
 
 ################
 ### EIGENPRO ###
@@ -170,7 +170,7 @@ def run_eigenpro(
     import eigenpro.utils.device as dev  # pyright: ignore[reportMissingImports]
 
     from falkon.benchmarks.models.eigenpro_wrapper import EigenProWrapper
-    
+
     seed_all(seed)
 
     if dtype is None:
@@ -193,13 +193,13 @@ def run_eigenpro(
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
-        model, 
+        model,
         model_name="EigenPro4",
-        dset=dset, 
+        dset=dset,
         device=pt_device,
-        kfold=kfold, 
-        dtype=dtype, 
-        data_path=data_path, 
+        kfold=kfold,
+        dtype=dtype,
+        data_path=data_path,
         data_on_dev=False,
     )
 
@@ -266,13 +266,13 @@ def run_balkon(
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
-        flk, 
+        flk,
         model_name="Balkon",
-        dset=dset, 
+        dset=dset,
         device=pt_device,
-        kfold=kfold, 
-        dtype=dtype, 
-        data_path=data_path, 
+        kfold=kfold,
+        dtype=dtype,
+        data_path=data_path,
         data_on_dev=False,
     )
 
@@ -299,7 +299,7 @@ def run_askotch(
     print(f"{pykeops.__version__=}")
     print(f"{gpu_available=}")
     seed_all(seed)
-    
+
     pt_device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # type: ignore
 
     if dtype is None:
@@ -307,22 +307,22 @@ def run_askotch(
 
     precond_params = {"type": "nystrom", "r": rank, "rho": "damped"}
     askotch = ASkotchWrapper(
-        block_size, 
-        precond_params, 
+        block_size,
+        precond_params,
         kernel_type=kernel_type,
-        kernel_sigma=sigma, 
-        unsc_lam=lam, 
-        task=task, num_iter=num_iter, 
+        kernel_sigma=sigma,
+        unsc_lam=lam,
+        task=task, num_iter=num_iter,
         device=pt_device
     )
     generic_fit(
-        askotch, 
+        askotch,
         model_name="ASkotch",
-        dset=dset, 
+        dset=dset,
         device=pt_device,
-        kfold=kfold, 
-        dtype=dtype, 
-        data_path=data_path, 
+        kfold=kfold,
+        dtype=dtype,
+        data_path=data_path,
         data_on_dev=True,
     )
 
@@ -348,7 +348,7 @@ def run_joker(
     inexact_type : str,
     region_shrink_freq : int = 1000,
     region_shrink_rate : float = 0.5,
-    delta_huber : float = -1.0, 
+    delta_huber : float = -1.0,
     eps : float = -1.0,
     seed : int = 124151
 ):
@@ -357,7 +357,7 @@ def run_joker(
     from falkon.benchmarks.models.joker_model import JokerWrapper
 
     seed_all(seed)
-    
+
     pt_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if dtype is None:
         dtype = DataType.float32
@@ -391,13 +391,13 @@ def run_joker(
         region_shrink_rate=region_shrink_rate,
     )
     generic_fit(
-        model, 
+        model,
         model_name="Joker",
-        dset=dset, 
+        dset=dset,
         device=pt_device,
-        kfold=kfold, 
-        dtype=dtype, 
-        data_path=data_path, 
+        kfold=kfold,
+        dtype=dtype,
+        data_path=data_path,
         data_on_dev=False,
     )
 
@@ -414,6 +414,7 @@ def run_falkon(
     kfold: int,
     seed: int,
     use_keops: bool,
+    pos_weight: float | None,
     debug: bool,
 ):
     from falkon import kernels
@@ -447,8 +448,11 @@ def run_falkon(
         #max_cpu_mem=(160*2**30),
         debug=debug,
     )
-    neg_weight = 1.0
-    pos_weight = 1.0
+    weight_fn = None
+    if pos_weight is not None:
+        neg_weight = 1.0
+        weight_fn = lambda Y, X, indices: torch.where(Y < 0, neg_weight, pos_weight)
+
     flk = falkon.Falkon(
         kernel=k,
         penalty=penalty,
@@ -457,18 +461,18 @@ def run_falkon(
         seed=seed,
         error_fn=None,
         error_every=1,
-        weight_fn=lambda Y, X, indices: torch.where(Y < 0, neg_weight, pos_weight),
+        weight_fn=weight_fn,
         options=opt,
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
-        flk, 
+        flk,
         model_name="Falkon",
-        dset=dset, 
+        dset=dset,
         device=pt_device,
-        kfold=kfold, 
-        dtype=dtype, 
-        data_path=data_path, 
+        kfold=kfold,
+        dtype=dtype,
+        data_path=data_path,
         data_on_dev=False,
     )
 
@@ -518,6 +522,9 @@ if __name__ == "__main__":
     p.add_argument("--use-keops", action="store_true", help="Set this flag to enable KeOps.")
     p.add_argument("--debug", action="store_true")
 
+    # Falkon-specific
+    p.add_argument("--falkon-pos-weight", type=float, required=False, help="Positive-class weight for falkon classification problem")
+
     # Balkon-specific
     p.add_argument("--balkon-block-size", type=int, required=False, help="Required for Balkon")
 
@@ -533,7 +540,7 @@ if __name__ == "__main__":
     p.add_argument('--askotch-task', default='classification', choices=['classification', 'regression'], help='Task tackled by ASkotch')
     p.add_argument('--askotch-bs', default=100, type=int, help='Block-size used in ASkotch')
     p.add_argument('--nu', default=5/2, type=float, help='nu of Matern kernel')
-    
+
     ########## JOKER PARAMS
     p.add_argument('--joker-criterion', type=str, default=None, choices=["mse", "huber", "svm", "log", "svr"], help="Which criterion to use for Joker")
     p.add_argument('--joker-c', type=float, default=1.0, help='Penalty parameter C of the error term in Joker')
@@ -559,6 +566,7 @@ if __name__ == "__main__":
             kernel_sigma=args.sigma,
             penalty=args.penalty,
             kernel=args.kernel,
+            pos_weight=args.falkon_pos_weight,
             kfold=args.kfold,
             seed=args.seed,
             debug=args.debug,
