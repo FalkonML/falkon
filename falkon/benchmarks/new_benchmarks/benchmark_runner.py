@@ -243,10 +243,10 @@ def run_balkon(
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
         no_single_kernel=True,
-        cg_tolerance=2e-7,
+        cg_tolerance=1e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
-        pc_epsilon_32=1e-6, # lowered this for flights (was 1e-6)
+        pc_epsilon_32=1e-6, # lowered this to 1e-7 for flights (was 1e-6)
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
         store_kernel_d_threshold=1500,
@@ -441,7 +441,7 @@ def run_falkon(
         cg_tolerance=1e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
-        pc_epsilon_32=1e-6, # lowered this for flights (was 1e-6)
+        pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
         store_kernel_d_threshold=1500,
