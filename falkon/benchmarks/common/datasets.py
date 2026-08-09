@@ -543,6 +543,31 @@ class BenzeneDataset(RandomSplitDataset):
         return mean_remove_y(Ytr, Yts)
 
 
+
+class NaphthalineDataset(RandomSplitDataset):
+    
+    folder = "/data/DATASETS/naphthalene/md17_naphthalene.npz"
+    dset_name = "naphthalene"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
+
+    def read_data(self, dtype, path : str | pathlib.Path):
+        path = self.folder if path is None else path
+
+        data = np.load(path)
+        
+        x_data = _process_molecule(data['R']).astype(as_np_dtype(dtype))
+        y_data = np.squeeze(data['E']).astype(as_np_dtype(dtype))
+
+        return x_data, y_data
+
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
+        return standardize_x(Xtr, Xts)
+
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+        return mean_remove_y(Ytr, Yts)
+
+
+
 class MCCometDataset(RandomSplitDataset, Hdf5Dataset):
     file_name = "/data/DATASETS/mccomet.hdf5"
     dset_name = "MCComet"
@@ -1198,6 +1223,7 @@ __LOADERS = {
     Dataset.HOUSEELECTRIC: HouseEelectricDataset(),
     Dataset.MCCOMET: MCCometDataset(),
     Dataset.BENZENE: BenzeneDataset(),
+    Dataset.NAPHTHALINE: NaphthalineDataset(),
 }
 
 

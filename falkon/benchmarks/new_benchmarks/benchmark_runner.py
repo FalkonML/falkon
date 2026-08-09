@@ -14,7 +14,7 @@ from falkon.benchmarks.common.error_metrics import get_err_fns
 
 RANDOM_SEED = 123
 EIGENPRO_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/EigenPro"
-JOKER_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/Joker-paper/src"
+JOKER_BASE_PATH = "./joker/src" #"/leonardo/home/userexternal/gmeanti0/Joker-paper/src"
 ASKOTCH_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/fast_krr"
 
 
