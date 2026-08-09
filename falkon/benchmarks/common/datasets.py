@@ -10,7 +10,7 @@ import scipy.sparse
 from scipy.sparse import load_npz
 from sklearn.datasets import load_svmlight_file
 from torch import Tensor
-
+from sklearn.preprocessing import StandardScaler
 import falkon
 
 from .benchmark_utils import Dataset
@@ -191,6 +191,15 @@ def rgb_to_bw(X, dim=32):
     G = X[:, img_len : 2 * img_len]
     B = X[:, 2 * img_len : 3 * img_len]
     return 0.2126 * R + 0.7152 * G + 0.0722 * B
+
+
+def _process_molecule(R: np.ndarray) -> np.ndarray:
+    n_atoms = R.shape[1]
+    X = np.sum((R[:, :, np.newaxis, :] - R[:, np.newaxis, :, :]) ** 2, axis=-1) ** 0.5
+    X = X[:, np.triu_indices(n_atoms, 1)[0], np.triu_indices(n_atoms, 1)[1]] ** -1.0
+    return X
+
+
 
 
 class MyKFold:
@@ -508,6 +517,30 @@ class YelpDataset(RandomSplitDataset):
             return tf.SparseTensor(indices, coo.data, coo.shape)
 
         return (scipy2tf(Xtr), Ytr, scipy2tf(Xts), Yts, {})
+
+
+
+class BenzeneDataset(RandomSplitDataset):
+    
+    folder = "/data/DATASETS/benzene/md17_benzene2017.npz"
+    dset_name = "benzene"  # type: ignore
+    default_train_frac = 0.8  # type: ignore
+
+    def read_data(self, dtype, path : str | pathlib.Path):
+        path = self.folder if path is None else path
+
+        data = np.load(path)
+        
+        x_data = _process_molecule(data['R']).astype(as_np_dtype(dtype))
+        y_data = np.squeeze(data['E']).astype(as_np_dtype(dtype))
+
+        return x_data, y_data
+
+    def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
+        return standardize_x(Xtr, Xts)
+
+    def preprocess_y(self, Ytr: np.ndarray, Yts: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+        return mean_remove_y(Ytr, Yts)
 
 
 class MCCometDataset(RandomSplitDataset, Hdf5Dataset):
@@ -1164,6 +1197,7 @@ __LOADERS = {
     Dataset.ROAD3D: Road3DDataset(),
     Dataset.HOUSEELECTRIC: HouseEelectricDataset(),
     Dataset.MCCOMET: MCCometDataset(),
+    Dataset.BENZENE: BenzeneDataset(),
 }
 
 

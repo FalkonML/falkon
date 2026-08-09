@@ -285,6 +285,7 @@ def run_askotch(
     kernel_type : str, # 'rbf' or 'matern'
     sigma : float,  # used for both matern and rbf kernel
     lam : float, # regularization
+    nu : float,
     rank : int,
     num_iter : int,
     block_size : int,
@@ -311,6 +312,7 @@ def run_askotch(
         precond_params,
         kernel_type=kernel_type,
         kernel_sigma=sigma,
+        kernel_nu=nu,
         unsc_lam=lam,
         task=task, num_iter=num_iter,
         device=pt_device
@@ -611,6 +613,7 @@ if __name__ == "__main__":
             dtype=args.dtype,
             task=args.askotch_task,
             sigma=args.sigma,
+            nu=args.nu,
             lam=args.penalty,
             kernel_type = args.kernel,
             rank=args.num_centers,
