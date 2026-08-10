@@ -295,6 +295,8 @@ ERROR_METRICS: dict[Dataset, list[ERROR_FN_TYPE]] = {
     Dataset.ROAD3D: [nrmse],
     Dataset.HOUSEELECTRIC: [rmse, nrmse],
     Dataset.MCCOMET: [binary_cerr, higgs_calc_auc, binary_f1],
+    Dataset.BENZENE : [mse],
+    Dataset.NAPHTHALINE : [mse],
 }
 TF_ERROR_METRICS: dict[Dataset, ERROR_FN_TYPE] = {
     Dataset.TIMIT: timit_calc_error_tf,

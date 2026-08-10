@@ -108,6 +108,8 @@ class Dataset(Enum):
     ROAD3D = "road3d"
     HOUSEELECTRIC = "houseelectric"
     MCCOMET = "mccomet"
+    BENZENE = "benzene"
+    NAPHTHALINE = "naphthalene"
 
     def __str__(self):
         return self.value

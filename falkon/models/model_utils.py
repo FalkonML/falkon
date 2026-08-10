@@ -1,8 +1,8 @@
+import time
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import TypeVar
-import time
 
 import numpy as np
 import torch

@@ -3,7 +3,6 @@ import time
 import torch
 from fast_krr.models import FullKRR
 from fast_krr.opts import ASkotchV2
-
 from tqdm import trange
 
 
@@ -14,6 +13,7 @@ class ASkotchWrapper:
         precond_params,
         kernel_type,
         kernel_sigma,
+        kernel_nu,
         unsc_lam,
         task,
         num_iter,
@@ -24,6 +24,7 @@ class ASkotchWrapper:
         self.precond_params = precond_params
         self.kernel_type = kernel_type
         self.kernel_sigma = kernel_sigma
+        self.kernel_nu = kernel_nu
         self.unsc_lam = unsc_lam
         self.task = task
         self.num_iter = num_iter
@@ -46,6 +47,8 @@ class ASkotchWrapper:
             return {'type' : 'rbf', 'sigma': sigma}
         elif self.kernel_type == 'laplacian':
             return {'type' : 'l1_laplace', 'sigma': sigma}
+        elif self.kernel_type == 'matern':
+            return {'type' : 'matern', 'sigma' : sigma, 'nu' : self.kernel_nu}
         else:
             raise ValueError(f"Kernel {self.kernel_type} not valid for ASkotch")
 
