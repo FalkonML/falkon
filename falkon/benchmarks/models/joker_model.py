@@ -1,8 +1,7 @@
 import time
 
-import torch
 import numpy as np
-
+import torch
 from joker import InexactJoker, Joker
 from kernels.kernel import make_kernel
 

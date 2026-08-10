@@ -11,7 +11,6 @@ from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
 
-
 RANDOM_SEED = 123
 EIGENPRO_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/EigenPro"
 JOKER_BASE_PATH = "./joker/src" #"/leonardo/home/userexternal/gmeanti0/Joker-paper/src"
@@ -293,9 +292,10 @@ def run_askotch(
     seed : int = 124151
 ):
     sys.path.append(ASKOTCH_BASE_PATH)
-    import torch
     import pykeops
+    import torch
     from pykeops.config import gpu_available
+
     from falkon.benchmarks.models.askotch_model import ASkotchWrapper
     print(f"{pykeops.__version__=}")
     print(f"{gpu_available=}")
@@ -356,6 +356,7 @@ def run_joker(
 ):
     sys.path.append(JOKER_BASE_PATH)
     from criterion import make_criterion
+
     from falkon.benchmarks.models.joker_model import JokerWrapper
 
     seed_all(seed)

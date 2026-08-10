@@ -9,8 +9,9 @@ import scipy.io as scio
 import scipy.sparse
 from scipy.sparse import load_npz
 from sklearn.datasets import load_svmlight_file
-from torch import Tensor
 from sklearn.preprocessing import StandardScaler
+from torch import Tensor
+
 import falkon
 
 from .benchmark_utils import Dataset

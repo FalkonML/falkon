@@ -3,7 +3,6 @@ import time
 import torch
 from fast_krr.models import FullKRR
 from fast_krr.opts import ASkotchV2
-
 from tqdm import trange
 
 
