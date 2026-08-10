@@ -112,7 +112,7 @@ class PreconditionedConjugateGradient(Optimizer):
                 # Stopping criterion:
                 # 1. |residual| < eps * |rhs|
                 # 2. |residual_{k}|/|residual_{k-m}| > stag_thresh
-                print(f"Error norm: {rs_norms[-1].item():.2e}. Tolerance: {tol.item():.2e}")
+                print(f"Error norm: {rs_norms[-1].tolist()}. Tolerance: {tol.tolist()}")
                 stop_iterates = torch.less(rs_norms[-1], tol)
                 if (self.num_iter + 1) > stag_iters_min:
                     stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
@@ -261,7 +261,7 @@ class ConjugateGradient(Optimizer):
                 rs_norms.append(R.square().sum(dim=0))
 
                 # Stopping detection
-                print(f"Error norm: {rs_norms[-1].item():.2e}. Tolerance: {tol.item():.2e}")
+                print(f"Error norm: {rs_norms[-1].tolist()}. Tolerance: {tol.tolist()}")
                 stop_iterates = torch.less(rs_norms[-1], tol)
                 if (self.num_iter + 1) > stag_iters_min:
                     stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]

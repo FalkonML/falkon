@@ -197,6 +197,45 @@ class TestWeightedFalkon:
             "cpu_only",
         ],
     )
+    def test_unit_weight(self, cls_data, cuda_usage):
+        X, Y = cls_data
+        if cuda_usage == "incore":
+            X, Y = X.cuda(), Y.cuda()
+            flk_cls = InCoreFalkon
+        else:
+            flk_cls = Falkon
+        kernel = kernels.GaussianKernel(2.0)
+
+        def error_fn(t, p):
+            return 100 * torch.sum(t * p <= 0).to(torch.float32) / t.shape[0], "c-err"
+
+        def weight_fn(y, x, indices):
+            return torch.ones_like(y)
+
+        opt = FalkonOptions(use_cpu=cuda_usage == "cpu_only", keops_active="no", debug=False)
+
+        flk_weight = flk_cls(
+            kernel=kernel, penalty=1e-6, M=500, seed=10, options=opt, error_fn=error_fn, weight_fn=weight_fn
+        )
+        flk_weight.fit(X, Y)
+        preds_weight = flk_weight.predict(X)
+        err_weight = error_fn(preds_weight, Y)[0]
+
+        flk = flk_cls(kernel=kernel, penalty=1e-6, M=500, seed=10, options=opt, error_fn=error_fn, weight_fn=None)
+        flk.fit(X, Y)
+        preds = flk.predict(X)
+        err = error_fn(preds, Y)[0]
+
+        torch.testing.assert_close(err_weight, err)
+
+    @pytest.mark.parametrize(
+        "cuda_usage",
+        [
+            pytest.param("incore", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")]),
+            pytest.param("mixed", marks=[pytest.mark.skipif(not decide_cuda(), reason="No GPU found.")]),
+            "cpu_only",
+        ],
+    )
     def test_classif(self, cls_data, cuda_usage):
         X, Y = cls_data
         if cuda_usage == "incore":
@@ -211,8 +250,8 @@ class TestWeightedFalkon:
 
         def weight_fn(y, x, indices):
             weight = torch.empty_like(y)
-            weight[y == 1] = 1
-            weight[y == -1] = 2
+            weight[y > 0] = 1
+            weight[y < 0] = 0.1
             return weight
 
         opt = FalkonOptions(use_cpu=cuda_usage == "cpu_only", keops_active="no", debug=False)
