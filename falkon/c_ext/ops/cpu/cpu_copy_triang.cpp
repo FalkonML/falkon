@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cstdint>
+
 #include <ATen/ATen.h>
 #include <torch/library.h>
 #include <ATen/Parallel.h>
@@ -11,6 +14,46 @@ namespace {
 template <class scalar_t>
 void copy_triang_impl(scalar_t *mat, const int n, const int stride1, const int stride2, const bool upper) {
     // assume input is f-contiguous (contiguous columns, stride1 == 1)
+    assert(stride1 == 1);
+    constexpr int64_t TILE_SIZE = 64;   // tune for your L1/L2 cache size
+    const int64_t B = std::min<int64_t>(n, TILE_SIZE);
+    if (upper) {
+        at::parallel_for(0, n, B, [&](int64_t jj_start, int64_t jj_end) {
+            for (int64_t jj = jj_start; jj < jj_end; jj += B) {
+                int64_t j_end = std::min(jj + B, static_cast<int64_t>(n));
+                // The i‑loop must start at j+1, so the earliest possible i is jj+1.
+                // Process all i blocks that intersect (j_end, n).
+                for (int64_t ii = jj + 1; ii < n; ii += B) {
+                    int64_t i_end = std::min(ii + B, static_cast<int64_t>(n));
+                    for (int64_t j = jj; j < j_end; ++j) {
+                        int64_t i_start = std::max(ii, j + 1);
+                        // The block might contain no work if i_start >= i_end.
+                        for (int64_t i = i_start; i < i_end; ++i) {
+                            mat[i + j * stride2] = mat[j + i * stride2];
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        at::parallel_for(0, n, B, [&](int64_t jj_start, int64_t jj_end) {
+            for (int64_t jj = jj_start; jj < jj_end; jj += B) {
+                int64_t j_end = std::min(jj + B, static_cast<int64_t>(n));
+                // The i‑loop goes up to j, so only i blocks that overlap 0..j-1 matter.
+                for (int64_t ii = 0; ii < j_end; ii += B) {
+                    int64_t i_end = std::min(ii + B, static_cast<int64_t>(n));
+                    for (int64_t j = jj; j < j_end; ++j) {
+                        int64_t i_stop = std::min(i_end, j);   // i < j
+                        // i_start = ii, but also ensure i_start < i_stop.
+                        for (int64_t i = ii; i < i_stop; ++i) {
+                            mat[i + j * stride2] = mat[j + i * stride2];
+                        }
+                    }
+                }
+            }
+        });
+    }
+    /*
     if (upper) {
         at::parallel_for(0, n, 0, [&](int64_t start, int64_t end) {
             for (int64_t i : c10::irange(start, end)) {
@@ -30,6 +73,7 @@ void copy_triang_impl(scalar_t *mat, const int n, const int stride1, const int s
             }
         });
     }
+    */
 }
 
 at::Tensor copy_triang_kernel(
