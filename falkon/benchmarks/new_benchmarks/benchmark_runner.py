@@ -249,6 +249,7 @@ def run_balkon(
         pc_epsilon_32=1e-6, # lowered this to 1e-7 for flights (was 1e-6)
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
+        keops_sum_scheme="kahan_scheme",
         store_kernel_d_threshold=1500,
         #max_cpu_mem=(160*2**30),
         debug=debug,
