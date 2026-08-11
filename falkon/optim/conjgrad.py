@@ -97,50 +97,55 @@ class PreconditionedConjugateGradient(Optimizer):
                 # X += P @ diag(alpha)
                 x.addcmul_(p, alpha.reshape(1, -1))
 
-                if (self.num_iter + 1) % full_grad_every == 0:
-                    if x.is_cuda:
-                        # addcmul_ may not be finished yet causing mmv to get stale inputs.
-                        torch.cuda.synchronize()
-                    r = rhs - mmv(x)
-                else:
-                    # R -= AP @ diag(alpha)
-                    r.addcmul_(op_q, alpha.reshape(1, -1), value=-1.0)
+                if self.num_iter < max_iter - 1:
+                    if (self.num_iter + 1) % full_grad_every == 0:
+                        if x.is_cuda:
+                            # addcmul_ may not be finished yet causing mmv to get stale inputs.
+                            torch.cuda.synchronize()
+                        r = rhs - mmv(x)
+                    else:
+                        # R -= AP @ diag(alpha)
+                        r.addcmul_(op_q, alpha.reshape(1, -1), value=-1.0)
 
-                s = self.prec.apply(r)
-                rs_norms.append((r * s).sum(0))
+                    s = self.prec.apply(r)
+                    rs_norms.append((r * s).sum(0))
 
-                # Stopping criterion:
-                # 1. |residual| < eps * |rhs|
-                # 2. |residual_{k}|/|residual_{k-m}| > stag_thresh
-                print(f"Error norm: {rs_norms[-1].tolist()}. Tolerance: {tol.tolist()}")
-                stop_iterates = torch.less(rs_norms[-1], tol)
-                if (self.num_iter + 1) > stag_iters_min:
-                    stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
-                    stagnated = torch.gt(stagnation_rho, stag_thresh)
-                    stop_iterates = stop_iterates | stagnated
-                if torch.all(stop_iterates):
-                    break
-                if diff_conv and torch.any(stop_iterates):
-                    for idx in torch.where(stop_iterates)[0]:
-                        col_idx_converged.append(int(col_idx_notconverged[idx].item()))
-                        x_converged.append(x[:, idx])
-                    # These are all copies
-                    col_idx_notconverged = col_idx_notconverged[~stop_iterates]
-                    p = p[:, ~stop_iterates]
-                    r = r[:, ~stop_iterates]
-                    s = s[:, ~stop_iterates]
-                    rhs = rhs[:, ~stop_iterates]
-                    x = x[:, ~stop_iterates]
-                    tol = tol[~stop_iterates]
-                    rs_norms[-1] = rs_norms[-1][~stop_iterates]
-                    rs_norms[-2] = rs_norms[-2][~stop_iterates]
+                    # Stopping criterion:
+                    # 1. |residual| < eps * |rhs|
+                    # 2. |residual_{k}|/|residual_{k-m}| > stag_thresh
+                    print(f"Residual squared norm (preconditioned): {rs_norms[-1].tolist()}. Tolerance: {tol.tolist()}")
+                    stop_iterates = torch.less(rs_norms[-1], tol)
                     if (self.num_iter + 1) > stag_iters_min:
-                        rs_norms[-(stag_iters_min + 1)] = rs_norms[-(stag_iters_min + 1)][~stop_iterates]
+                        stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
+                        stagnated = torch.gt(stagnation_rho, stag_thresh)
+                        stop_iterates = stop_iterates | stagnated
+                    if torch.all(stop_iterates):
+                        break
+                    if diff_conv and torch.any(stop_iterates):
+                        for idx in torch.where(stop_iterates)[0]:
+                            col_idx_converged.append(int(col_idx_notconverged[idx].item()))
+                            x_converged.append(x[:, idx])
+                        # These are all copies
+                        col_idx_notconverged = col_idx_notconverged[~stop_iterates]
+                        p = p[:, ~stop_iterates]
+                        r = r[:, ~stop_iterates]
+                        s = s[:, ~stop_iterates]
+                        rhs = rhs[:, ~stop_iterates]
+                        x = x[:, ~stop_iterates]
+                        tol = tol[~stop_iterates]
+                        rs_norms[-1] = rs_norms[-1][~stop_iterates]
+                        rs_norms[-2] = rs_norms[-2][~stop_iterates]
+                        if (self.num_iter + 1) > stag_iters_min:
+                            rs_norms[-(stag_iters_min + 1)] = rs_norms[-(stag_iters_min + 1)][~stop_iterates]
 
-                # P = R + P @ diag(mul)
-                beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
-                p = p.mul_(beta_multiplier).add_(s)
+                    # P = R + P @ diag(mul)
+                    beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
+                    p = p.mul_(beta_multiplier).add_(s)
+                else:
+                    print(f"Maximum number of iterations ({max_iter}) reached. Ignoring computation of new residual")
+                
                 e_train += timer.toc_val()
+
             with TicToc("PCG callback", debug=False):
                 if callback is not None:
                     try:
@@ -250,44 +255,48 @@ class ConjugateGradient(Optimizer):
                 # X += P @ diag(alpha)
                 X.addcmul_(P, alpha.reshape(1, -1))
 
-                if (self.num_iter + 1) % full_grad_every == 0:
-                    if X.is_cuda:
-                        # addmm_ may not be finished yet causing mmv to get stale inputs.
-                        torch.cuda.synchronize()
-                    R = B - mmv(X)
-                else:
-                    # R -= AP @ diag(alpha)
-                    R.addcmul_(AP, alpha.reshape(1, -1), value=-1.0)
-                rs_norms.append(R.square().sum(dim=0))
+                if self.num_iter < max_iter - 1:
+                    if (self.num_iter + 1) % full_grad_every == 0:
+                        if X.is_cuda:
+                            # addmm_ may not be finished yet causing mmv to get stale inputs.
+                            torch.cuda.synchronize()
+                        R = B - mmv(X)
+                    else:
+                        # R -= AP @ diag(alpha)
+                        R.addcmul_(AP, alpha.reshape(1, -1), value=-1.0)
+                    rs_norms.append(R.square().sum(dim=0))
 
-                # Stopping detection
-                print(f"Error norm: {rs_norms[-1].tolist()}. Tolerance: {tol.tolist()}")
-                stop_iterates = torch.less(rs_norms[-1], tol)
-                if (self.num_iter + 1) > stag_iters_min:
-                    stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
-                    stagnated = torch.gt(stagnation_rho, stag_thresh)
-                    stop_iterates = stop_iterates | stagnated
-                if torch.all(stop_iterates):
-                    break
-                if diff_conv and torch.any(stop_iterates):
-                    for idx in torch.where(stop_iterates)[0]:
-                        col_idx_converged.append(int(col_idx_notconverged[idx].item()))
-                        x_converged.append(X[:, idx])
-                    col_idx_notconverged = col_idx_notconverged[~stop_iterates]
-                    P = P[:, ~stop_iterates]
-                    R = R[:, ~stop_iterates]
-                    B = B[:, ~stop_iterates]
-                    X = X[:, ~stop_iterates]  # These are all copies
-                    rs_norms[-1] = rs_norms[-1][~stop_iterates]
-                    rs_norms[-2] = rs_norms[-2][~stop_iterates]
+                    # Stopping detection
+                    print(f"Residual squared norm: {rs_norms[-1].tolist()}. Tolerance: {tol.tolist()}")
+                    stop_iterates = torch.less(rs_norms[-1], tol)
                     if (self.num_iter + 1) > stag_iters_min:
-                        rs_norms[-(stag_iters_min + 1)] = rs_norms[-(stag_iters_min + 1)][~stop_iterates]
+                        stagnation_rho = rs_norms[-1] / rs_norms[-(stag_iters_min + 1)]
+                        stagnated = torch.gt(stagnation_rho, stag_thresh)
+                        stop_iterates = stop_iterates | stagnated
+                    if torch.all(stop_iterates):
+                        break
+                    if diff_conv and torch.any(stop_iterates):
+                        for idx in torch.where(stop_iterates)[0]:
+                            col_idx_converged.append(int(col_idx_notconverged[idx].item()))
+                            x_converged.append(X[:, idx])
+                        col_idx_notconverged = col_idx_notconverged[~stop_iterates]
+                        P = P[:, ~stop_iterates]
+                        R = R[:, ~stop_iterates]
+                        B = B[:, ~stop_iterates]
+                        X = X[:, ~stop_iterates]  # These are all copies
+                        rs_norms[-1] = rs_norms[-1][~stop_iterates]
+                        rs_norms[-2] = rs_norms[-2][~stop_iterates]
+                        if (self.num_iter + 1) > stag_iters_min:
+                            rs_norms[-(stag_iters_min + 1)] = rs_norms[-(stag_iters_min + 1)][~stop_iterates]
 
-                # P = R + P @ diag(mul)
-                beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
-                P = P.mul_(beta_multiplier).add_(R)
+                    # P = R + P @ diag(mul)
+                    beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
+                    P = P.mul_(beta_multiplier).add_(R)
+                else:
+                    print(f"Maximum number of iterations ({max_iter}) reached. Ignoring computation of new residual")
 
                 e_train += timer.toc_val()
+
             with TicToc("CG callback", debug=False):
                 if callback is not None:
                     try:
