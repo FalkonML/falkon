@@ -3,16 +3,40 @@ import threading
 
 import torch
 
+from falkon.ooc_ops.serial_lauum import ooc_lauum_single_gpu
 from falkon.options import FalkonOptions
 from falkon.utils import PropagatingThread, devices
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.stream_utils import sync_current_stream
 from falkon.utils.tensor_helpers import copy_same_stride, is_contig, is_f_contig
 
-from .ooc_utils import calc_block_sizes3
+from .ooc_utils import calc_block_sizes3, calc_block_sizes_serial_ooc_lauum
 from .parallel_lauum import BlockAlloc, par_lauum_c_lower, par_lauum_f_lower
 
 __all__ = ("gpu_lauum",)
+
+
+def _serial_lauum_runner(A: torch.Tensor, gpu_info: devices.DeviceInfo):
+    N = A.shape[0]
+    dts = A.element_size()
+    avail_ram = gpu_info.actual_free_mem / dts
+    # required GPU RAM:
+    # 3 * N * B + 2 * B ** 2 = avail_ram --> B = (-3N + sqrt(9N^2 - 8*RAM))/4
+    max_block_size = int(math.floor(
+        -3*N + math.sqrt(9*N**2 - 8*avail_ram) / 4
+    ))
+    if max_block_size < 1:
+        raise RuntimeError(
+            f"Cannot run LAUUM with  {avail_ram * dts / 2**20:.2f}MB of available GPU memory."
+        )
+    block_sizes = calc_block_sizes_serial_ooc_lauum(max_block_size, N, gpu_info.compute_capability)
+    block_allocations: list[BlockAlloc] = []
+    cur_n = 0
+    for bs in block_sizes:
+        block_allocations.append(BlockAlloc(start=cur_n, end=cur_n + bs, length=bs))
+        cur_n += bs
+    ooc_lauum_single_gpu(A, block_allocations)
+    return A
 
 
 def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
@@ -140,7 +164,10 @@ def gpu_lauum(
         transposed = True
 
     # The parallel runner chooses based on the contiguity pattern of the inputs.
-    _parallel_lauum_runner(A, write_opposite, gpu_info)
+    if len(gpu_info) == 1 and write_opposite and not A.is_cuda:
+        _serial_lauum_runner(A, gpu_info[0])
+    else:
+        _parallel_lauum_runner(A, write_opposite, gpu_info)
 
     if transposed:
         A = A.T

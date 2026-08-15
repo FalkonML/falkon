@@ -24,6 +24,7 @@ class DeviceInfo:
     free_memory: float = 0
     usable_memory: float = 0
     gpu_name: str = ""
+    compute_capability: int = -1
 
     def update_memory(self, total_memory=0, used_memory=0, free_memory=0):
         self.total_memory = total_memory
@@ -103,6 +104,7 @@ def _get_gpu_device_info(opt: BaseOptions, g: int, data_dict: dict[int, DeviceIn
                 used_memory=mem_used - cached_free_mem,
                 free_memory=mem_free + cached_free_mem,
                 gpu_name=properties.name,
+                compute_capability=tcd.get_device_capability(g)[0],
             )
 
         return data_dict
