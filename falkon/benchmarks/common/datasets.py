@@ -402,6 +402,7 @@ class MillionSongsDataset(KnownSplitDataset):
         return standardize_x(Xtr, Xts)
 
 
+
 class NycTaxiDataset(RandomSplitDataset, Hdf5Dataset):
     file_name = "/data/DATASETS/NYCTAXI/NYCTAXI.h5"  # type: ignore
     dset_name = "TAXI"  # type: ignore
@@ -519,6 +520,23 @@ class YelpDataset(RandomSplitDataset):
 
         return (scipy2tf(Xtr), Ytr, scipy2tf(Xts), Yts, {})
 
+
+class MiniBooneDataset(RandomSplitDataset,Hdf5Dataset):
+    file_name = "/data/DATASETS/miniboone/miniboone.h5" # type: ignore
+    
+    dset_name = "miniboone" # type: ignore
+    default_train_frac = 0.8 # type: ignore
+    
+    
+    def read_data(self, dtype, path):
+        path = self.file_name if path is None else path
+        X, Y = super().read_data(dtype, path)
+        
+        Y = 2 * Y - 1
+        return X, Y.reshape(-1, 1)
+
+    def preprocess_x(self, Xtr, Xts):
+        return standardize_x(Xtr, Xts)
 
 
 class BenzeneDataset(RandomSplitDataset):
@@ -1225,6 +1243,7 @@ __LOADERS = {
     Dataset.MCCOMET: MCCometDataset(),
     Dataset.BENZENE: BenzeneDataset(),
     Dataset.NAPHTHALINE: NaphthalineDataset(),
+    Dataset.MINIBOONE : MiniBooneDataset()
 }
 
 

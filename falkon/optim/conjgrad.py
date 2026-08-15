@@ -141,8 +141,6 @@ class PreconditionedConjugateGradient(Optimizer):
                     # P = R + P @ diag(mul)
                     beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
                     p = p.mul_(beta_multiplier).add_(s)
-                else:
-                    print(f"Maximum number of iterations ({max_iter}) reached. Ignoring computation of new residual")
                 
                 e_train += timer.toc_val()
 
@@ -292,8 +290,6 @@ class ConjugateGradient(Optimizer):
                     # P = R + P @ diag(mul)
                     beta_multiplier = (rs_norms[-1] / (rs_norms[-2] + m_eps)).reshape(1, -1)
                     P = P.mul_(beta_multiplier).add_(R)
-                else:
-                    print(f"Maximum number of iterations ({max_iter}) reached. Ignoring computation of new residual")
 
                 e_train += timer.toc_val()
 
