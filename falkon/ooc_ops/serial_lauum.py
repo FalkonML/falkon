@@ -96,7 +96,7 @@ def ooc_lauum_single_gpu(
             except ValueError:  # all rows are smaller than `b`?
                 raise
 
-        # Start by preloading the first column r = b + 1. 
+        # Start by preloading the first column r = b + 1.
         # Overlaps with computation of r == b below.
         buf_idx = 0
         if (len(block_allocs) - b) > 1:
@@ -311,10 +311,10 @@ def ooc_lauum_single_gpu(
                     r_buffers_clear[buf_idx].record(compute_stream)
 
                     if r > b + 1:
-                        # Make sure temp_buf is free, and issue CPU copy. 
+                        # Make sure temp_buf is free, and issue CPU copy.
                         # synchronize() (blocking) is necessary since the operation here is on CPU.
                         tmp_buf_ready[1 - buf_idx].synchronize()
-                        # Copy result back to L from temporary CPU buffer. 
+                        # Copy result back to L from temporary CPU buffer.
                         # Data is written to temp_buf from the compute stream.
                         prev_br = block_allocs[r - 2]
                         if contig == "C":
@@ -376,7 +376,7 @@ def ooc_lauum_single_gpu(
                     temp_bufs[1 - buf_idx][:br.length, :bb.length].T
                 )
         if len(block_allocs) - b > 0:
-            r_buffers_clear[buf_idx].synchronize()
+            tmp_buf_ready[buf_idx].synchronize()
             r = len(block_allocs) - 1
             br = block_allocs[r]
             if contig == "C":
@@ -391,3 +391,4 @@ def ooc_lauum_single_gpu(
                 ].copy_(
                     temp_bufs[buf_idx][:br.length, :bb.length].T
                 )
+
