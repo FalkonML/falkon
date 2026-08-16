@@ -23,7 +23,7 @@ def _serial_lauum_runner(A: torch.Tensor, gpu_info: devices.DeviceInfo):
     # required GPU RAM:
     # 3 * N * B + 2 * B ** 2 = avail_ram --> B = (-3N + sqrt(9N^2 + 8*RAM))/4
     max_block_size = int(math.floor(
-        -3*N + math.sqrt(9*N**2 + 8*avail_ram) / 4
+        (-3*N + math.sqrt(9*N**2 + 8*avail_ram)) / 4
     ))
     if max_block_size < 1:
         raise RuntimeError(
