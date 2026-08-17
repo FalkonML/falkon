@@ -44,39 +44,42 @@ __global__ static void manhattan_kernel_cuda_impl_C(
     const int64_t m,
     const int64_t r1,
     const int64_t result_stride_0,
-    const int64_t result_stride_1) {
+    const int64_t result_stride_1,
+    const int64_t x1_stride_0,
+    const int64_t x1_stride_1,
+    const int64_t x2_stride_0,
+    const int64_t x2_stride_1) {
   // one warp per output entry
   // each block has e.g 256 threads and 8 warps
   // hence processes 8 output entries
   const int lane_id = threadIdx.x & 31;
   const int warp_id = threadIdx.x >> 5;
+  const int64_t r_size = r1 * r2;
+  const int64_t start_pair = static_cast<int64_t>(blockIdx.x) * kCUDANumWarpsPerBlock + warp_id;
+  const int64_t pair_stride = static_cast<int64_t>(gridDim.x) * kCUDANumWarpsPerBlock;
 
-  const int64_t pair = static_cast<int64_t>(blockIdx.x) * kCUDANumWarpsPerBlock + warp_id;
-  const int64_t batch_id = pair / (r1 * r2);
-  const int64_t batch_offset = pair % (r1 * r2);
-  const int64_t pair_1 = batch_offset / r2;
-  const int64_t pair_2 = batch_offset % r2;
-  if (pair >= r1 * r2) {
-    return;
-  }
+  for (int64_t pair = start_pair; pair < r_size; pair += pair_stride) {
+    const int64_t batch_id = pair / r_size;
+    const int64_t batch_offset = pair % r_size;
+    const int64_t i = batch_offset / r2;
+    const int64_t j = batch_offset % r2;
 
-  const int64_t i = pair / r2;
-  const int64_t j = pair % r2;
+    const scalar_t* a = x1 + batch_id * x1_stride_0 + i * x1_stride_1;
+    const scalar_t* b = x2 + batch_id * x2_stride_0 + j * x2_stride_1;
 
-  const scalar_t* a = x1 + i * m;
-  const scalar_t* b = x2 + j * m;
+    scalar_t agg = scalar_t(0);
+    #pragma unroll 4
+    for (int64_t k = lane_id; k < m; k += 32) {
+      agg += std::abs(a[k] - b[k]);
+    }
 
-  scalar_t agg = scalar_t(0);
-  for (int64_t k = lane_id; k < m; k += 32) {
-    agg += std::abs(a[k] - b[k]);
-  }
-
-  // Warp reduction
-  for (int offset = 16; offset > 0; offset >>= 1) {
-    agg += __shfl_down_sync(0xffffffff, agg, offset);
-  }
-  if (lane_id == 0) {
-    result[batch_id * result_stride_0 + pair_1 * result_stride_1 + pair_2] = agg;
+    // Warp reduction
+    for (int offset = 16; offset > 0; offset >>= 1) {
+      agg += __shfl_down_sync(0xffffffff, agg, offset);
+    }
+    if (lane_id == 0) {
+      result[batch_id * result_stride_0 + i * result_stride_1 + j] = agg;
+    }
   }
 }
 
@@ -188,17 +191,19 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
         x2.const_data_ptr<scalar_t>(),
-        r2, 
-        m, 
-        r_size, 
+        r2,
+        m,
+        r_size,
         l1_size, 
         l2_size,
         d,
         r1
       );
-    } else if (is_c_contiguous(x1) && is_c_contiguous(x2) && result.stride(-1) == 1) {
+    } else if (x1.stride(-1) == 1 && x2.stride(-1) == 1 && result.stride(-1) == 1) {
+      const int sm_count = at::cuda::getCurrentDeviceProperties()->multiProcessorCount;
+      const int blocks = sm_count * 32;
+      const dim3 grid(blocks);
       const dim3 block(kCUDANumThreads);
-      const dim3 grid((r_size + kCUDANumWarpsPerBlock - 1) / kCUDANumWarpsPerBlock);
       std::cout << "Block dimensions: (" 
                 << block.x << ")" << std::endl;
       std::cout << "Grid dimensions: (" 
@@ -211,7 +216,11 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
         m, 
         r1,
         result.stride(0),
-        result.stride(1)
+        result.stride(1),
+        x1.stride(0),
+        x1.stride(1),
+        x2.stride(0),
+        x2.stride(1)
     );
     } else {
       const dim3 grid(result.numel());
@@ -236,6 +245,7 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
       );
     }
     C10_CUDA_KERNEL_LAUNCH_CHECK();
+    C10_CUDA_CHECK(cudaDeviceSynchronize());
   });
   return result;
 }
