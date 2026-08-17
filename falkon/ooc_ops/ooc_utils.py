@@ -44,14 +44,13 @@ def round_down_to_multiple(num: int, mul: int) -> int:
 
 def calc_block_sizes_serial_ooc_lauum(max_block_size: int, num_rows: int, cuda_compute_capability: int,) -> list[int]:
     # Heuristics for best performance. Tuned on begato so probably not great for newer GPUs.
-    print(f"{cuda_compute_capability=}")
     if cuda_compute_capability >= 8:
         # a100 (leonardo) has 4.5
         preferred_block_size = max(1, round_down_to_multiple(int(num_rows / 4.5), 32))
         if preferred_block_size > 7712:
             preferred_block_size = 7712
     else:
-        # begato has cc 7.5
+        # begato has cc 7
         preferred_block_size = max(1, round_down_to_multiple(int(num_rows / 6.5), 32))
         if preferred_block_size > 4640:
             preferred_block_size = 4640
