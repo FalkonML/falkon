@@ -150,6 +150,82 @@ static void run_parallel_manhattan_F(
     });
 }
 
+template <typename scalar_t>
+static void run_parallel_manhattan_strided(
+    at::Tensor& result,
+    const at::Tensor& t1,
+    const at::Tensor& t2) {
+    const scalar_t* const t1_start = t1.const_data_ptr<scalar_t>();
+    const scalar_t* const t2_start = t2.const_data_ptr<scalar_t>();
+    scalar_t* const res_start = result.data_ptr<scalar_t>();
+    // Logical shapes:
+    // t1     : [d, r1, m]
+    // t2     : [d, r2, m]
+    // result : [d, r1, r2]
+    const int64_t d  = t1.size(0);
+    const int64_t r1 = t1.size(-2);
+    const int64_t r2 = t2.size(-2);
+    const int64_t m  = t1.size(-1);
+    const int64_t t1_d_stride = t1.stride(0);
+    const int64_t t1_i_stride = t1.stride(-2);
+    const int64_t t1_m_stride = t1.stride(-1);
+    const int64_t t2_d_stride = t2.stride(0);
+    const int64_t t2_j_stride = t2.stride(-2);
+    const int64_t t2_m_stride = t2.stride(-1);
+    const int64_t res_d_stride = result.stride(0);
+    const int64_t res_i_stride = result.stride(-2);
+    const int64_t res_j_stride = result.stride(-1);
+
+    constexpr int64_t TILE_I = 16;
+    constexpr int64_t TILE_J = 32;
+    const int64_t num_i_tiles = (r1 + TILE_I - 1) / TILE_I;
+    const int64_t num_j_tiles = (r2 + TILE_J - 1) / TILE_J;
+    const int64_t tiles_per_batch = num_i_tiles * num_j_tiles;
+    const int64_t num_tiles = d * tiles_per_batch;
+
+    at::parallel_for(0, num_tiles, at::internal::GRAIN_SIZE / (TILE_I * TILE_J), [=](int64_t start, int64_t end) {
+        // One output row of a tile is accumulated at a time.
+        scalar_t accum[TILE_J];
+        for (int64_t tile = start; tile < end; ++tile) {
+            // Decode tile -> (l, tile_i, tile_j)
+            const int64_t l = tile / tiles_per_batch;
+            const int64_t tile_in_batch = tile % tiles_per_batch;
+            const int64_t tile_i = tile_in_batch / num_j_tiles;
+            const int64_t tile_j = tile_in_batch % num_j_tiles;
+            const int64_t i0 = tile_i * TILE_I;
+            const int64_t j0 = tile_j * TILE_J;
+            const int64_t ni = std::min(TILE_I, r1 - i0);
+            const int64_t nj = std::min(TILE_J, r2 - j0);
+
+            // Pointers to the current batch
+            const scalar_t* const x1 = t1_start + l * t1_d_stride + i0 * t1_i_stride;
+            const scalar_t* const x2 = t2_start + l * t2_d_stride + j0 * t2_j_stride;
+            scalar_t* const out = res_start + l * res_d_stride + i0 * res_i_stride + j0 * res_j_stride;
+
+            for (int64_t ii = 0; ii < ni; ++ii) {
+                // Initialize accumulator.
+                for (int64_t jj = 0; jj < nj; ++jj) {
+                    accum[jj] = scalar_t(0);
+                }
+
+                // Feature (m) reduction.
+                for (int64_t x = 0; x < m; ++x) {
+                    const scalar_t a = x1[ii * t1_i_stride + x * t1_m_stride];
+                    const scalar_t* b = x2 + x * t2_m_stride;
+                    for (int64_t jj = 0; jj < nj; ++jj) {
+                        const scalar_t bv = b[jj * t2_j_stride];
+                        accum[jj] += std::abs(a - bv);
+                    }
+                }
+                // Store the output tile.
+                for (int64_t jj = 0; jj < nj; ++jj) {
+                    out[ii * res_i_stride + jj * res_j_stride] = accum[jj];
+                }
+            }
+        }
+    });
+}
+
 
 bool is_fortran_contiguous(const at::Tensor& x) {
     return x.stride(-2) == 1 && x.stride(-1) == x.size(-2);
@@ -157,11 +233,12 @@ bool is_fortran_contiguous(const at::Tensor& x) {
 
 at::Tensor manhattan_dist_kernel(at::Tensor& result, const at::Tensor& x1, const at::Tensor& x2) {
     AT_DISPATCH_FLOATING_TYPES(x1.scalar_type(), "cpu_manhattan", [&] {
-        if (is_fortran_contiguous(x1)) {
-            run_parallel_manhattan_F<scalar_t>(result, x1, x2);
-        } else {
-            run_parallel_manhattan_C<scalar_t>(result, x1, x2);
-        }
+        run_parallel_manhattan_strided<scalar_t>(result, x1, x2);
+        // if (is_fortran_contiguous(x1)) {
+        //     run_parallel_manhattan_F<scalar_t>(result, x1, x2);
+        // } else {
+        //     run_parallel_manhattan_C<scalar_t>(result, x1, x2);
+        // }
     });
     return result;
 }
