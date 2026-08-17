@@ -54,8 +54,8 @@ __global__ static void manhattan_kernel_cuda_impl_C(
   const int64_t pair = static_cast<int64_t>(blockIdx.x) * kCUDANumWarpsPerBlock + warp_id;
   const int64_t batch_id = pair / (r1 * r2);
   const int64_t batch_offset = pair % (r1 * r2);
-  const int64_t pair_1 = batch_offset / r1;
-  const int64_t pair_2 = pair % r1;
+  const int64_t pair_1 = batch_offset / r2;
+  const int64_t pair_2 = batch_offset % r2;
   if (pair >= r1 * r2) {
     return;
   }
