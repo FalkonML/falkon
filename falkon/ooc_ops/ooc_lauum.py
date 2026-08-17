@@ -19,7 +19,7 @@ __all__ = ("gpu_lauum",)
 def _serial_lauum_runner(A: torch.Tensor, gpu_info: devices.DeviceInfo):
     N = A.shape[0]
     dts = A.element_size()
-    avail_ram = gpu_info.actual_free_mem / dts
+    avail_ram = gpu_info.usable_memory / dts
     # required GPU RAM:
     # 3 * N * B + 2 * B ** 2 = avail_ram --> B = (-3N + sqrt(9N^2 + 8*RAM))/4
     max_block_size = int(math.floor(
@@ -39,7 +39,7 @@ def _serial_lauum_runner(A: torch.Tensor, gpu_info: devices.DeviceInfo):
     return A
 
 
-def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
+def _parallel_lauum_runner(A, write_opposite: bool, gpu_info: list[devices.DeviceInfo]):
     # Choose target:
     if is_f_contig(A):
         target = par_lauum_f_lower
@@ -54,7 +54,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
     if A.is_cuda:  # In-core
         sync_current_stream(A.device)
         gpu_info = [g for g in gpu_info if g.Id == A.device.index]
-        avail_ram = gpu_info[0].actual_free_mem / dts
+        avail_ram = gpu_info[0].usable_memory / dts
         if target.__name__ == "par_lauum_f_lower":
             # Each GPU should hold in memory two additional blocks (2*B^2 <= M)
             # and 1 full column.
@@ -69,7 +69,7 @@ def _parallel_lauum_runner(A, write_opposite: bool, gpu_info):
         # All computations on the same device (where data is stored). No multi-GPU support!
         block_sizes = calc_block_sizes3(max_block_size, 1, N)
     else:  # Out-of-core
-        avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
+        avail_ram = min([g.usable_memory for g in gpu_info]) / dts
         # Each GPU should be able to hold in memory 2 block columns
         # Plus two blocks (=> quadratic equation 2B^2 + 2BN - M <= 0.
         # An additional block is needed whenever write_opposite is True, due to
@@ -154,7 +154,7 @@ def gpu_lauum(
     # TODO: There is a helper function in mmv_ops for this.
     gpu_info = [v for k, v in devices.get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
-        g.actual_free_mem = min((g.free_memory - 300 * 2**20) * 0.95, opt.max_gpu_mem * 0.95)
+        g.usable_memory = min((g.free_memory - 300 * 2**20) * 0.95, opt.max_gpu_mem * 0.95)
 
     # Parallel can only do lower C or F-contiguous arrays
     # By transposing as necessary, it is able to run with every combination of inputs.

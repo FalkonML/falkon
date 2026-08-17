@@ -85,7 +85,7 @@ def _parallel_potrf_runner(A: torch.Tensor, opt: CholeskyOptions, gpu_info) -> t
     # (plus the cuSOLVER buffer which is small).
     # block_size < (sqrt((2*N)^2 + 4R) - 2*N) / 2
     dts = sizeof_dtype(dt)
-    avail_ram = min([g.actual_free_mem for g in gpu_info]) / dts
+    avail_ram = min([g.usable_memory for g in gpu_info]) / dts
     max_block_size = (math.sqrt(4 * N**2 + 4 * avail_ram) - 2 * N) / 2
     max_block_size = int(math.floor(max_block_size))
     if max_block_size < 1:
@@ -129,7 +129,7 @@ GPU Cholesky, we implement use cuSOLVER as a backend for POTRF.
 
 def can_do_ic(A: torch.Tensor, device: DeviceInfo):
     # noinspection PyUnresolvedReferences
-    avail_ram = device.actual_free_mem
+    avail_ram = device.usable_memory
     # The multiplier here is a bit tricky since setting it too high results
     # in hard-to-debug cuda errors
     avail_ram *= 0.85
@@ -183,7 +183,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
     # Determine GPU free RAM
     gpu_info = [v for k, v in get_device_info(opt).items() if k >= 0]
     for g in gpu_info:
-        g.actual_free_mem = min((g.free_memory - 300 * 2**20) * 0.95, opt.max_gpu_mem * 0.95)
+        g.usable_memory = min((g.free_memory - 300 * 2**20) * 0.95, opt.max_gpu_mem * 0.95)
 
     if A.is_cuda:
         try:
@@ -192,7 +192,7 @@ def gpu_cholesky(A: torch.Tensor, upper: bool, clean: bool, overwrite: bool, opt
             # This should never happen!
             raise RuntimeError(f"Device of matrix A ({A.device}) is not recognized") from e
     else:
-        device = max(gpu_info, key=lambda g_: g_.actual_free_mem)
+        device = max(gpu_info, key=lambda g_: g_.usable_memory)
     ic = can_do_ic(A, device) and not opt.chol_force_ooc
     if opt.chol_force_in_core and not ic:
         raise RuntimeError("Cannot run in-core POTRF but `chol_force_in_core` was specified.")
