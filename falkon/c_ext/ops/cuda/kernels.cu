@@ -43,8 +43,6 @@ __global__ static void manhattan_kernel_cuda_impl_C(
     const int64_t r2,
     const int64_t m,
     const int64_t r1,
-    const int64_t l1_size,  // r1 * m
-    const int64_t l2_size,  // r2 * m
     const int64_t result_stride_0,
     const int64_t result_stride_1) {
   // one warp per output entry
@@ -201,15 +199,17 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
     } else if (is_c_contiguous(x1) && is_c_contiguous(x2) && result.stride(-1) == 1) {
       const dim3 block(kCUDANumThreads);
       const dim3 grid((r_size + kCUDANumWarpsPerBlock - 1) / kCUDANumWarpsPerBlock);
+      std::cout << "Block dimensions: (" 
+                << block.x << ")" << std::endl;
+      std::cout << "Grid dimensions: (" 
+                << grid.x << ")" << std::endl;
       manhattan_kernel_cuda_impl_C<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
         x2.const_data_ptr<scalar_t>(),
         r2, 
         m, 
-        r_size, 
-        l1_size, 
-        l2_size,
+        r1,
         result.stride(0),
         result.stride(1)
     );
@@ -217,10 +217,6 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
       const dim3 grid(result.numel());
       const dim3 block(kCUDANumThreads);
 
-      std::cout << "Block dimensions: (" 
-                << block.x << ")" << std::endl;
-      std::cout << "Grid dimensions: (" 
-                << grid.x << ")" << std::endl;
       manhattan_kernel_cuda_impl_strided<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
