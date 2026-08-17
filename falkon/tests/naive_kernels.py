@@ -26,8 +26,8 @@ def naive_diff_gaussian_kernel(X1, X2, sigma):
 
 
 def naive_diff_laplacian_kernel(X1, X2, sigma):
-    # http://crsouza.com/2010/03/17/kernel-functions-for-machine-learning-applications/#laplacian
-    pairwise_dists = torch.cdist(X1 / sigma, X2 / sigma, p=2)
+    # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise.laplacian_kernel.html
+    pairwise_dists = torch.cdist(X1 / sigma, X2 / sigma, p=1)
     return torch.exp(-pairwise_dists)
 
 

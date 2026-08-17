@@ -58,3 +58,6 @@ cublas_trmm = _make_lazy_cuda_func("cublas_trmm")
 cublas_gemm = _make_lazy_cuda_func("cublas_gemm")
 cublas_syrk = _make_lazy_cuda_func("cublas_syrk")
 cuda_version = _make_lazy_cuda_func("_cuda_version")
+
+# Kernels
+cdist_l1_out = _make_lazy_cuda_func("cdist_l1_out")

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 import falkon
+from falkon import c_ext
 from falkon import sparse
 from falkon.kernels import KeopsKernelMixin
 from falkon.kernels.diff_kernel import DiffKernel
@@ -182,17 +183,18 @@ def laplacian_core(mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | N
         return _distancek_diag(mat1, out)
     # Move hparams
     sigma = sigma.to(device=mat1.device, dtype=mat1.dtype)
+
     mat1_div_sig = mat1 / sigma
     mat2_div_sig = mat2 / sigma
-    norm_sq_mat1 = square_norm(mat1_div_sig, -1, True)  # b*n*1
-    norm_sq_mat2 = square_norm(mat2_div_sig, -1, True)  # b*m*1
-    orig_out = out
-    out = _sq_dist(mat1_div_sig, mat2_div_sig, norm_sq_mat1, norm_sq_mat2, out)
-    out.sqrt_()  # Laplacian: sqrt of squared-difference
-    # The gradient calculation needs the output of sqrt_ so we can't overwrite it when
-    # differentiability is required.
-    # TODO: We could be more explicit in the parameters about whether the gradient is or isn't needed
-    if orig_out is None:
+
+    out_is_none = out is None
+    if out is None:
+        # this works for batched matrices also
+        out = torch.zeros(
+            list(mat1.shape[:-1]) + [mat2.shape[-2]], dtype=mat1.dtype, device=mat1.device,
+        )
+    c_ext.cdist_l1_out(mat1_div_sig, mat2_div_sig, out)
+    if out_is_none:
         out = out.neg()
     else:
         out.neg_()
@@ -457,7 +459,7 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
         super().__init__(self.kernel_name, opt, core_fn=laplacian_core, sigma=sigma)
 
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
-        formula = "Exp(-Sqrt(SqDist(x1 / g, x2 / g))) * v"
+        formula = "Exp(-Sum(Abs((x1 / g) - (x2 / g)))) * v"
         aliases = [
             f"x1 = Vi({X1.shape[1]})",
             f"x2 = Vj({X2.shape[1]})",
