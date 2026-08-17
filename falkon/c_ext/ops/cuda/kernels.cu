@@ -19,6 +19,7 @@ namespace ops {
 namespace {
 
 constexpr int kCUDANumThreads = 256;
+constexpr int kCUDANumWarpsPerBlock = kCUDANumThreads / 32;
 
 
 template <typename scalar_t>
@@ -44,17 +45,11 @@ __global__ static void manhattan_kernel_cuda_impl_C(
     const int64_t l1_size,
     const int64_t l2_size) {
 
-  constexpr int WARPS_PER_BLOCK = kCUDANumThreads / 32;
-
   const int lane = threadIdx.x & 31;
   const int warp = threadIdx.x >> 5;
 
-  const int64_t pair =
-      static_cast<int64_t>(blockIdx.x) * WARPS_PER_BLOCK + warp;
-
-  const int64_t total_pairs =
-      static_cast<int64_t>(r1) * r2;
-
+  const int64_t pair = static_cast<int64_t>(blockIdx.x) * kCUDANumWarpsPerBlock + warp;
+  const int64_t total_pairs = r1 * r2;
   if (pair >= total_pairs) {
     return;
   }
@@ -66,7 +61,6 @@ __global__ static void manhattan_kernel_cuda_impl_C(
   const scalar_t* b = x2 + j * m;
 
   scalar_t agg = scalar_t(0);
-
   for (int64_t k = lane; k < m; k += 32) {
     agg += std::abs(a[k] - b[k]);
   }
@@ -75,7 +69,6 @@ __global__ static void manhattan_kernel_cuda_impl_C(
   for (int offset = 16; offset > 0; offset >>= 1) {
     agg += __shfl_down_sync(0xffffffff, agg, offset);
   }
-
   if (lane == 0) {
     result[pair] = agg;
   }
@@ -179,9 +172,7 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
   const int64_t r_size = r1 * r2;
   const int64_t l1_size = r1 * m;
   const int64_t l2_size = r2 * m;
-  constexpr int THREADS = 256;
-  constexpr int WARPS = THREADS / 32;
-  
+
   AT_DISPATCH_FLOATING_TYPES(x1.scalar_type(), "cdist_cuda", [&] {
     at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
     if (is_fortran_contiguous(x1) && is_fortran_contiguous(x2) && is_fortran_contiguous(result)) {
@@ -200,8 +191,8 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
         r1
       );
     } else if (is_c_contiguous(x1) && is_c_contiguous(x2) && is_c_contiguous(result)) {
-      const dim3 block(THREADS);
-      const dim3 grid((r_size + WARPS - 1) / WARPS);
+      const dim3 block(kCUDANumThreads);
+      const dim3 grid((r_size + kCUDANumWarpsPerBlock - 1) / kCUDANumWarpsPerBlock);
       manhattan_kernel_cuda_impl_C<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
