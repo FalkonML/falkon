@@ -13,7 +13,7 @@ at::Tensor manhattan_dist(
     at::Tensor &x2) {
     static auto op = c10::Dispatcher::singleton()
                        .findSchemaOrThrow("falkon::manhattan_dist", "")
-                       .typed<decltype(lauum)>();
+                       .typed<decltype(manhattan_dist)>();
     at::AutoDispatchBelowAutograd guard;
     at::tracer::impl::NoTracerDispatchMode tracer_guard;
     op.call(

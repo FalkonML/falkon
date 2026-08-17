@@ -127,8 +127,8 @@ def manhattan_dist(x1: torch.Tensor, x2: torch.Tensor, out: torch.Tensor) -> tor
         raise RuntimeError(f"x1 and x2 must have the same batch dimension. x1: {x1.shape[0]} x2: {x2.shape[0]}")
 
     expected_out_shape = list(x1.shape[:-1]) + [x2.shape[-2]]
-    if out.shape != expected_out_shape:
-        raise RuntimeError(f"Output shape should be {expected_out_shape}. Got {out.shape}")
+    if list(out.shape) != expected_out_shape:
+        raise RuntimeError(f"Output shape should be {expected_out_shape}. Got {list(out.shape)}")
 
     # Expand first dim
     is_expanded = False
@@ -140,5 +140,5 @@ def manhattan_dist(x1: torch.Tensor, x2: torch.Tensor, out: torch.Tensor) -> tor
 
     c_ext.manhattan_dist(out, x1, x2)
     if is_expanded:
-        out.squeeze(0)
+        out = out.squeeze(0)
     return out
