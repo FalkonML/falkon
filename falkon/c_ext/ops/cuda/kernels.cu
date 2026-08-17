@@ -129,8 +129,8 @@ __global__ static void manhattan_kernel_cuda_impl_strided(
   const int64_t j = k % r2;
   const int stride = blockDim.x;
 
-  const scalar_t *a = x1 + l * s1_d + i * s1_r + threadIdx.x * s1_m;
-  const scalar_t *b = x2 + l * s2_d + j * s2_r + threadIdx.x * s2_m;
+  const scalar_t *a = x1 + l * s1_d + i * s1_r;
+  const scalar_t *b = x2 + l * s2_d + j * s2_r;
 
   scalar_t agg = 0.0;
   for (int64_t q = threadIdx.x; q < m; q += stride) {
@@ -171,7 +171,7 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
   AT_DISPATCH_FLOATING_TYPES(x1.scalar_type(), "cdist_cuda", [&] {
     at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
     if (is_fortran_contiguous(x1) && is_fortran_contiguous(x2) && is_fortran_contiguous(result)) {
-      manhattan_kernel_cuda_impl_C<scalar_t><<<grid, block, 0, stream.stream()>>>(
+      manhattan_kernel_cuda_impl_F<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
         x2.const_data_ptr<scalar_t>(),
@@ -195,6 +195,8 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
         l2_size
     );
     } else {
+    const dim3 grid(result.numel());
+    const dim3 block(kCUDANumThreads);
       manhattan_kernel_cuda_impl_strided<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
