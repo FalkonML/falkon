@@ -152,7 +152,7 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
     if (is_fortran_contiguous(x1)) {
       auto impl_fptr = manhattan_kernel_cuda_impl_F<scalar_t>;
     }
-    impl_fptr<<<grid, block, stream>>>(
+    impl_fptr<<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
         x2.const_data_ptr<scalar_t>(),
