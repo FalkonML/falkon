@@ -67,10 +67,7 @@ static void run_parallel_manhattan_C(at::Tensor& result, const at::Tensor& t1, c
 
 
 template <typename scalar_t>
-static void run_parallel_manhattan_F(
-    at::Tensor& result,
-    const at::Tensor& t1,
-    const at::Tensor& t2) {
+static void run_parallel_manhattan_F(at::Tensor& result, const at::Tensor& t1, const at::Tensor& t2) {
     // sizes:
     // x1: [d, r1, m] stride: [r1*m, 1, r1]
     // x2: [d, r2, m] stride: [r2*m, 1, r2]
@@ -151,10 +148,7 @@ static void run_parallel_manhattan_F(
 }
 
 template <typename scalar_t>
-static void run_parallel_manhattan_strided(
-    at::Tensor& result,
-    const at::Tensor& t1,
-    const at::Tensor& t2) {
+static void run_parallel_manhattan_strided(at::Tensor& result, const at::Tensor& t1, const at::Tensor& t2) {
     const scalar_t* const t1_start = t1.const_data_ptr<scalar_t>();
     const scalar_t* const t2_start = t2.const_data_ptr<scalar_t>();
     scalar_t* const res_start = result.data_ptr<scalar_t>();
@@ -231,14 +225,19 @@ bool is_fortran_contiguous(const at::Tensor& x) {
     return x.stride(-2) == 1 && x.stride(-1) == x.size(-2);
 }
 
+bool is_c_contiguous(const at::Tensor& x) {
+    return x.stride(-1) == 1 && x.stride(-2) == x.size(-1);
+}
+
 at::Tensor manhattan_dist_kernel(at::Tensor& result, const at::Tensor& x1, const at::Tensor& x2) {
     AT_DISPATCH_FLOATING_TYPES(x1.scalar_type(), "cpu_manhattan", [&] {
-        run_parallel_manhattan_strided<scalar_t>(result, x1, x2);
-        // if (is_fortran_contiguous(x1)) {
-        //     run_parallel_manhattan_F<scalar_t>(result, x1, x2);
-        // } else {
-        //     run_parallel_manhattan_C<scalar_t>(result, x1, x2);
-        // }
+        if (is_fortran_contiguous(x1) && is_fortran_contiguous(x2) && is_fortran_contiguous(result)) {
+            run_parallel_manhattan_F<scalar_t>(result, x1, x2);
+        } elif (is_c_contiguous(x1) && is_c_contiguous(x2) && is_c_contiguous(result)) {
+            run_parallel_manhattan_C<scalar_t>(result, x1, x2);
+        } else {
+            run_parallel_manhattan_strided<scalar_t>(result, x1, x2);
+        }
     });
     return result;
 }

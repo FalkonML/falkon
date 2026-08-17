@@ -69,74 +69,96 @@ __global__ static void manhattan_kernel_cuda_impl_C(
 
 template <typename scalar_t>
 __global__ static void manhattan_kernel_cuda_impl_F(
+    scalar_t* result,
+    const scalar_t* x1,
+    const scalar_t* x2,
+    const int64_t r2,
+    const int64_t m,
+    const int64_t r_size,
+    const int64_t l1_size,
+    const int64_t l2_size,
+    const int64_t d,
+    const int64_t r1) {
+  const int64_t l = blockIdx.x / r_size;
+  const int64_t k = blockIdx.x % r_size;
+  const int64_t i = k / r2;
+  const int64_t j = k % r2;
+
+  const scalar_t* a = x1 + l + i * d;
+  const scalar_t* b = x2 + l + j * d;
+
+  scalar_t agg = 0;
+
+  for (int64_t q = threadIdx.x; q < m * d; q += blockDim.x) {
+    const int64_t p = q % d;
+    const int64_t q_m = q / d;
+
+    agg += std::abs(a[q_m * d * r1 + p] - b[q_m * d * r2 + p]);
+  }
+
+  __shared__ scalar_t agg_smem[kCUDANumThreads];
+  scalar_t agg_init{0.0};
+
+  agg = at::native::cuda_utils::BlockReduce(agg, DistReduceOp<scalar_t>{}, agg_init, agg_smem);
+
+  if (threadIdx.x == 0) {
+    result[l + i * d + j * d * r1] = agg;
+  }
+}
+
+template <typename scalar_t>
+__global__ static void manhattan_kernel_cuda_impl_strided(
     scalar_t * result,
     const scalar_t * x1,
     const scalar_t * x2,
     const int64_t r2,
     const int64_t m,
     const int64_t r_size,
-    const int64_t l1_size,
-    const int64_t l2_size,
-    const int64_t r1) {
+    const int64_t s1_d,
+    const int64_t s1_r,
+    const int64_t s1_m,
+    const int64_t s2_d,
+    const int64_t s2_r,
+    const int64_t s2_m,
+    const int64_t sr_d,
+    const int64_t sr_r,
+    const int64_t sr_j) {
   const int64_t l = blockIdx.x / r_size;
   const int64_t k = blockIdx.x % r_size;
   const int64_t i = k / r2;
   const int64_t j = k % r2;
   const int stride = blockDim.x;
-  // sizes:
-  // x1: [l, r1, m] stride: [r1*m, 1, r1]
-  // x2: [l, r2, m] stride: [r2*m, 1, r2]
-  // result: [l, r1, r2] stride: [r1*r2, 1, r1]
-  // access pattern:
-  // x1[l, i, d] = x1[l * l1_size + d * r1 + i]
-  // x2[l, j, d] = x2[l * l2_size + d * r2 + j]
-  //
-  // For a fixed (i,j), consecutive feature dimensions are
-  // separated by r1/r2 in memory.
 
-  const scalar_t * a =
-      x1 + l * l1_size + i + threadIdx.x * r1;
-
-  const scalar_t * b =
-      x2 + l * l2_size + j + threadIdx.x * r2;
+  const scalar_t *a = x1 + l * s1_d + i * s1_r + threadIdx.x * s1_m;
+  const scalar_t *b = x2 + l * s2_d + j * s2_r + threadIdx.x * s2_m;
 
   scalar_t agg = 0.0;
-
-  for (int64_t d = threadIdx.x; d < m; d += stride) {
-    agg += std::abs(*a - *b);
-
-    a += stride * r1;
-    b += stride * r2;
+  for (int64_t q = threadIdx.x; q < m; q += stride) {
+    agg += std::abs(a[q * s1_m] - b[q * s2_m]);
   }
 
   __shared__ scalar_t agg_smem[kCUDANumThreads];
-
   scalar_t agg_init{0.0};
-
-  agg = at::native::cuda_utils::BlockReduce(
-      agg,
-      DistReduceOp<scalar_t>{},
-      agg_init,
-      agg_smem);
+  agg = at::native::cuda_utils::BlockReduce(agg, DistReduceOp<scalar_t>{}, agg_init, agg_smem);
 
   if (threadIdx.x == 0) {
-    // F-contiguous result:
-    //
-    // result[l, i, j] =
-    //     result[l * r1 * r2 + j * r1 + i]
-    result[l * r1 * r2 + j * r1 + i] = agg;
+    result[l * sr_d + i * sr_r + j * sr_j] = agg;
   }
 }
 
 bool is_fortran_contiguous(const at::Tensor& x) {
-    return x.stride(-2) == 1 &&
-           x.stride(-1) == x.size(-2);
+    return x.stride(-2) == 1 && x.stride(-1) == x.size(-2);
+}
+
+bool is_c_contiguous(const at::Tensor& x) {
+    return x.stride(-1) == 1 && x.stride(-2) == x.size(-1);
 }
 
 at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const at::Tensor& x2) {
   CHECK_CUDA(result);
   CHECK_CUDA(x1);
   CHECK_CUDA(x2);
+  const int64_t d = x1.size(0);
   const int64_t r1 = x1.size(-2);
   const int64_t r2 = x2.size(-2);
   const int64_t m = x1.size(-1);
@@ -148,11 +170,21 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
 
   AT_DISPATCH_FLOATING_TYPES(x1.scalar_type(), "cdist_cuda", [&] {
     at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
-    auto impl_fptr = manhattan_kernel_cuda_impl_C<scalar_t>;
-    if (is_fortran_contiguous(x1)) {
-      auto impl_fptr = manhattan_kernel_cuda_impl_F<scalar_t>;
-    }
-    impl_fptr<<<grid, block, 0, stream.stream()>>>(
+    if (is_fortran_contiguous(x1) && is_fortran_contiguous(x2) && is_fortran_contiguous(result)) {
+      manhattan_kernel_cuda_impl_C<scalar_t><<<grid, block, 0, stream.stream()>>>(
+        result.mutable_data_ptr<scalar_t>(), 
+        x1.const_data_ptr<scalar_t>(), 
+        x2.const_data_ptr<scalar_t>(),
+        r2, 
+        m, 
+        r_size, 
+        l1_size, 
+        l2_size,
+        d,
+        r1
+      );
+    } elif (is_c_contiguous(x1) && is_c_contiguous(x2) && is_c_contiguous(result)) {
+      manhattan_kernel_cuda_impl_C<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
         x2.const_data_ptr<scalar_t>(),
@@ -162,6 +194,25 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
         l1_size, 
         l2_size
     );
+    } else {
+      manhattan_kernel_cuda_impl_strided<scalar_t><<<grid, block, 0, stream.stream()>>>(
+        result.mutable_data_ptr<scalar_t>(), 
+        x1.const_data_ptr<scalar_t>(), 
+        x2.const_data_ptr<scalar_t>(),
+        r2,
+        m,
+        r_size,
+        x1.stride(0),
+        x1.stride(1),
+        x1.stride(2),
+        x2.stride(0),
+        x2.stride(1),
+        x2.stride(2),
+        result.stride(0),
+        result.stride(1),
+        result.stride(2)
+      );
+    }
     C10_CUDA_KERNEL_LAUNCH_CHECK();
   });
   return result;
