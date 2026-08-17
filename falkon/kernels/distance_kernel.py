@@ -10,6 +10,7 @@ from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
 from falkon.utils.helpers import sizeof_dtype
+from falkon.utils.tensor_helpers import create_same_stride
 
 SQRT3 = 1.7320508075688772
 SQRT5 = 2.23606797749979
@@ -189,8 +190,8 @@ def laplacian_core(mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | N
     out_is_none = out is None
     if out is None:
         # this works for batched matrices also
-        out = torch.zeros(
-            list(mat1.shape[:-1]) + [mat2.shape[-2]], dtype=mat1.dtype, device=mat1.device,
+        out = create_same_stride(
+            tuple(list(mat1.shape[:-1]) + [mat2.shape[-2]]), other=mat1, dtype=mat1.dtype, device=mat1.device,
         )
     out = manhattan_dist(mat1_div_sig, mat2_div_sig, out)
     if out_is_none:
