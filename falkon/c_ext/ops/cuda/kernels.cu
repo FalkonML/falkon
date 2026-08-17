@@ -76,7 +76,7 @@ __global__ static void manhattan_kernel_cuda_impl_C(
     agg += __shfl_down_sync(0xffffffff, agg, offset);
   }
   if (lane_id == 0) {
-    result[batch_id * result_stride_0 + pair_1 * result_stride_1] = agg;
+    result[batch_id * result_stride_0 + pair_1 * result_stride_1 + pair_2] = agg;
   }
 }
 
