@@ -86,8 +86,12 @@ class FalkonPreconditioner(Preconditioner):
                 C = create_same_stride((M, M), X, dtype=dtype, device=dev, pin_memory=self._use_cuda)
             else:  # If sparse tensor we need fortran for kernel calculation
                 C = create_fortran((M, M), dtype=dtype, device=dev, pin_memory=self._use_cuda)
+            if is_f_contig(C):
+                # Kernel is more efficient on C-contiguous matrices.
+                C = C.T
             self.kernel(X, X, out=C, opt=self.params)
         if not is_f_contig(C):
+            # Remaining operations (e.g. cholesky) are more efficient on F-contiguous matrices
             C = C.T
         return C
 
