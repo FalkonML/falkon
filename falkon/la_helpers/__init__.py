@@ -1,4 +1,13 @@
-from .wrapper import copy_triang, mul_triang, potrf, square_norm, trsm, vec_mul_triang, zero_triang
+from .wrapper import (
+    copy_triang, 
+    mul_triang, 
+    potrf, 
+    square_norm, 
+    trsm, 
+    vec_mul_triang, 
+    zero_triang,
+    manhattan_dist,
+)
 
 __all__ = (
     "zero_triang",
@@ -8,4 +17,5 @@ __all__ = (
     "potrf",
     "trsm",
     "square_norm",
+    "manhattan_dist",
 )

@@ -2,11 +2,10 @@ import numpy as np
 import torch
 
 import falkon
-from falkon import c_ext
 from falkon import sparse
 from falkon.kernels import KeopsKernelMixin
 from falkon.kernels.diff_kernel import DiffKernel
-from falkon.la_helpers import square_norm
+from falkon.la_helpers import square_norm, manhattan_dist
 from falkon.mmv_ops.utils import CUDA_EXTRA_MM_RAM
 from falkon.options import FalkonOptions
 from falkon.sparse import SparseTensor
@@ -193,7 +192,7 @@ def laplacian_core(mat1: torch.Tensor, mat2: torch.Tensor, out: torch.Tensor | N
         out = torch.zeros(
             list(mat1.shape[:-1]) + [mat2.shape[-2]], dtype=mat1.dtype, device=mat1.device,
         )
-    c_ext.cdist_l1_out(mat1_div_sig, mat2_div_sig, out)
+    out = manhattan_dist(mat1_div_sig, mat2_div_sig, out)
     if out_is_none:
         out = out.neg()
     else:

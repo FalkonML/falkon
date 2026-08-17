@@ -12,6 +12,7 @@ __all__ = (
     "potrf",
     "trsm",
     "square_norm",
+    "manhattan_dist",
 )
 
 
@@ -111,3 +112,33 @@ def trsm(v: torch.Tensor, A: torch.Tensor, alpha: float, lower: int = 0, transpo
 
 def square_norm(mat: torch.Tensor, dim: int, keepdim: bool | None = None) -> torch.Tensor:
     return c_ext.square_norm(mat, dim, keepdim)
+
+
+def manhattan_dist(x1: torch.Tensor, x2: torch.Tensor, out: torch.Tensor) -> torch.Tensor:
+    if x1.dim() < 2 or x1.dim() > 3:
+        raise RuntimeError(f"manhattan_dist only supports at 2D and 3D tensors, x1 got {x1.dim()}D")
+    if x2.dim() < 2 or x2.dim() > 3:
+        raise RuntimeError(f"manhattan_dist only supports at 2D and 3D tensors, x2 got {x2.dim()}D")
+    if x1.dim() != x2.dim():
+        raise RuntimeError(f"x1 and x2 must have the same number of dimensions. x1: {x1.dim()}D x2: {x2.dim()}D")
+    if x1.shape[-1] != x2.shape[-1]:
+        raise RuntimeError(f"x1 and x2 must have the same number of columns. x1: {x1.shape[-1]} x2: {x2.shape[-1]}")
+    if x1.dim() == 3 and x1.shape[0] != x2.shape[0]:
+        raise RuntimeError(f"x1 and x2 must have the same batch dimension. x1: {x1.shape[0]} x2: {x2.shape[0]}")
+
+    expected_out_shape = list(x1.shape[:-1]) + [x2.shape[-2]]
+    if out.shape != expected_out_shape:
+        raise RuntimeError(f"Output shape should be {expected_out_shape}. Got {out.shape}")
+
+    # Expand first dim
+    is_expanded = False
+    if x1.dim() == 2:
+        is_expanded = True
+        x1 = x1[None, ...]
+        x2 = x2[None, ...]
+        out = out[None, ...]
+
+    c_ext.manhattan_dist(out, x1, x2)
+    if is_expanded:
+        out.squeeze(0)
+    return out
