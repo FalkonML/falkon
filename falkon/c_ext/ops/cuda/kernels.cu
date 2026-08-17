@@ -8,6 +8,7 @@
 #include <ATen/cuda/Exceptions.h>
 
 #include <math.h>
+#include <iostream>
 
 #include <ATen/native/cuda/block_reduce.cuh>
 #include <c10/macros/Macros.h>
@@ -36,21 +37,28 @@ struct DistReduceOp {
 
 template <typename scalar_t>
 __global__ static void manhattan_kernel_cuda_impl_C(
-    scalar_t* __restrict__ result,
-    const scalar_t* __restrict__ x1,
-    const scalar_t* __restrict__ x2,
+    scalar_t* __restrict__ result,  // [d, r1, r2]
+    const scalar_t* __restrict__ x1,  // [d, r1, m]
+    const scalar_t* __restrict__ x2,  // [d, r2, m]
     const int64_t r2,
     const int64_t m,
     const int64_t r1,
-    const int64_t l1_size,
-    const int64_t l2_size) {
+    const int64_t l1_size,  // r1 * m
+    const int64_t l2_size,  // r2 * m
+    const int64_t result_stride_0,
+    const int64_t result_stride_1) {
+  // one warp per output entry
+  // each block has e.g 256 threads and 8 warps
+  // hence processes 8 output entries
+  const int lane_id = threadIdx.x & 31;
+  const int warp_id = threadIdx.x >> 5;
 
-  const int lane = threadIdx.x & 31;
-  const int warp = threadIdx.x >> 5;
-
-  const int64_t pair = static_cast<int64_t>(blockIdx.x) * kCUDANumWarpsPerBlock + warp;
-  const int64_t total_pairs = r1 * r2;
-  if (pair >= total_pairs) {
+  const int64_t pair = static_cast<int64_t>(blockIdx.x) * kCUDANumWarpsPerBlock + warp_id;
+  const int64_t batch_id = pair / (r1 * r2);
+  const int64_t batch_offset = pair % (r1 * r2);
+  const int64_t pair_1 = batch_offset / r1;
+  const int64_t pair_2 = pair % r1;
+  if (pair >= r1 * r2) {
     return;
   }
 
@@ -61,7 +69,7 @@ __global__ static void manhattan_kernel_cuda_impl_C(
   const scalar_t* b = x2 + j * m;
 
   scalar_t agg = scalar_t(0);
-  for (int64_t k = lane; k < m; k += 32) {
+  for (int64_t k = lane_id; k < m; k += 32) {
     agg += std::abs(a[k] - b[k]);
   }
 
@@ -69,8 +77,8 @@ __global__ static void manhattan_kernel_cuda_impl_C(
   for (int offset = 16; offset > 0; offset >>= 1) {
     agg += __shfl_down_sync(0xffffffff, agg, offset);
   }
-  if (lane == 0) {
-    result[pair] = agg;
+  if (lane_id == 0) {
+    result[batch_id * result_stride_0 + pair_1 * result_stride_1] = agg;
   }
 }
 
@@ -190,7 +198,7 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
         d,
         r1
       );
-    } else if (is_c_contiguous(x1) && is_c_contiguous(x2) && is_c_contiguous(result)) {
+    } else if (is_c_contiguous(x1) && is_c_contiguous(x2) && result.stride(-1) == 1) {
       const dim3 block(kCUDANumThreads);
       const dim3 grid((r_size + kCUDANumWarpsPerBlock - 1) / kCUDANumWarpsPerBlock);
       manhattan_kernel_cuda_impl_C<scalar_t><<<grid, block, 0, stream.stream()>>>(
@@ -206,6 +214,11 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
     } else {
       const dim3 grid(result.numel());
       const dim3 block(kCUDANumThreads);
+
+      std::cout << "Block dimensions: (" 
+                << block.x << ")" << std::endl;
+      std::cout << "Grid dimensions: (" 
+                << grid.x << ")" << std::endl;
       manhattan_kernel_cuda_impl_strided<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
