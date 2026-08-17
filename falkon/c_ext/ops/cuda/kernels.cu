@@ -183,7 +183,7 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
         d,
         r1
       );
-    } elif (is_c_contiguous(x1) && is_c_contiguous(x2) && is_c_contiguous(result)) {
+    } else if (is_c_contiguous(x1) && is_c_contiguous(x2) && is_c_contiguous(result)) {
       manhattan_kernel_cuda_impl_C<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 

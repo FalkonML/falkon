@@ -233,7 +233,7 @@ at::Tensor manhattan_dist_kernel(at::Tensor& result, const at::Tensor& x1, const
     AT_DISPATCH_FLOATING_TYPES(x1.scalar_type(), "cpu_manhattan", [&] {
         if (is_fortran_contiguous(x1) && is_fortran_contiguous(x2) && is_fortran_contiguous(result)) {
             run_parallel_manhattan_F<scalar_t>(result, x1, x2);
-        } elif (is_c_contiguous(x1) && is_c_contiguous(x2) && is_c_contiguous(result)) {
+        } else if (is_c_contiguous(x1) && is_c_contiguous(x2) && is_c_contiguous(result)) {
             run_parallel_manhattan_C<scalar_t>(result, x1, x2);
         } else {
             run_parallel_manhattan_strided<scalar_t>(result, x1, x2);
