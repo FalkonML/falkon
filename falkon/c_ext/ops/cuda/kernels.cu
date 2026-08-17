@@ -209,7 +209,9 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
         m, 
         r_size, 
         l1_size, 
-        l2_size
+        l2_size,
+        result.stride(0),
+        result.stride(1)
     );
     } else {
       const dim3 grid(result.numel());
