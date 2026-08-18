@@ -376,7 +376,11 @@ void parallel_potrf_runner(
     C10_CUDA_CHECK(cudaStreamSynchronize(s2_c));
     C10_CUDA_CHECK(cudaStreamSynchronize(s3_c));
     });  // end dispatch float
-    // cleanup. Release CUDA context from this thread
+    // cleanup. 
+    // Release CUBLAS handle
+    at::cuda::clearCublasWorkspacesForStream(s1_c);
+    at::cuda::destroyCublasHandle(cublas_handle);
+    // Release CUDA context from this thread
     check_cuda_driver(cuDevicePrimaryCtxRelease(device), "cuDevicePrimaryCtxRelease");
 }
 
