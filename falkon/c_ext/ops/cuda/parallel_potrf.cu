@@ -150,7 +150,7 @@ void parallel_potrf_runner(
     c10::cuda::CUDAStreamGuard g0(s1);
 
     // CUDA context
-    CUDevice device;
+    CUdevice device;
     check_cuda_driver(cuDeviceGet(&device, device_id), "cuDeviceGet");
     CUcontext pctx = nullptr;
     check_cuda_driver(cuCtxGetCurrent(&pctx), "cuCtxGetCurrent");
