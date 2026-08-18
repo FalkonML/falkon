@@ -114,7 +114,7 @@ def get_extensions():
             TORCH_LIB_PATH,
             "-Wl,-rpath,$ORIGIN/../../torch/lib",
         ]
-        libraries += ["cusolver", "cublas", "cusparse"]
+        libraries += ["cuda", "cusolver", "cublas", "cusparse"]
         if torch.__version__ >= (1, 12):
             libraries.append("torch_cuda_linalg")
 
