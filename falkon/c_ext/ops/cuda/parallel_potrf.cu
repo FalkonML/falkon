@@ -11,12 +11,12 @@
 #include <set>
 #include <stdio.h>
 
-#include <cuda.h>
-#include <cuda_runtime.h>
+// #include <cuda.h>
+// #include <cuda_runtime.h>
 
 #include <ATen/ATen.h>
 #include <torch/library.h>
-// #include <ATen/cuda/nvrtc_stub/ATenNVRTC.h>
+#include <ATen/cuda/nvrtc_stub/ATenNVRTC.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/Exceptions.h>
 #include <c10/cuda/CUDAGuard.h>
@@ -120,21 +120,21 @@ static inline void opt_load_block(
     }
 }
 
-static void check_cuda_driver(CUresult result, const char* call) {
-    if (result != CUDA_SUCCESS) {
-        const char* name = nullptr;
-        const char* msg = nullptr;
-        cuGetErrorName(result, &name);
-        cuGetErrorString(result, &msg);
+// static void check_cuda_driver(CUresult result, const char* call) {
+//     if (result != CUDA_SUCCESS) {
+//         const char* name = nullptr;
+//         const char* msg = nullptr;
+//         cuGetErrorName(result, &name);
+//         cuGetErrorString(result, &msg);
 
-        TORCH_CHECK(
-            false,
-            call, " failed: ",
-            name ? name : "unknown",
-            " (", msg ? msg : "unknown", ")"
-        );
-    }
-}
+//         TORCH_CHECK(
+//             false,
+//             call, " failed: ",
+//             name ? name : "unknown",
+//             " (", msg ? msg : "unknown", ")"
+//         );
+//     }
+// }
 
 /* Main parallel POTRF function */
 void parallel_potrf_runner(
@@ -147,16 +147,14 @@ void parallel_potrf_runner(
     at::cuda::CUDAStream s2 = at::cuda::getStreamFromPool(false, device_id);
     at::cuda::CUDAStream s3 = at::cuda::getStreamFromPool(false, device_id);
     c10::cuda::CUDAStreamGuard g0(s1);
-    CUdevice device;
-    check_cuda_driver(cuDeviceGet(&device, device_id), "cuDeviceGet");
 
     // CUDA context
-    CUcontext pctx = nullptr;
-    check_cuda_driver(cuCtxGetCurrent(&pctx), "cuCtxGetCurrent");
-    if (pctx == nullptr) {
-        check_cuda_driver(cuDevicePrimaryCtxRetain(&pctx, device), "cuDevicePrimaryCtxRetain");
-        check_cuda_driver(cuCtxSetCurrent(pctx), "cuCtxSetCurrent");
-    }
+    // CUcontext pctx = nullptr;
+    // check_cuda_driver(cuCtxGetCurrent(&pctx), "cuCtxGetCurrent");
+    // if (pctx == nullptr) {
+    //     check_cuda_driver(cuDevicePrimaryCtxRetain(&pctx, device), "cuDevicePrimaryCtxRetain");
+    //     check_cuda_driver(cuCtxSetCurrent(pctx), "cuCtxSetCurrent");
+    // }
 
     // Fetch cuBLAS handle and set cuBLAS, cuSOLVER streams to s1 (automatically done by the getCurrentHandle code)
     cublasHandle_t cublas_handle = at::cuda::getCurrentCUDABlasHandle();
@@ -375,8 +373,8 @@ void parallel_potrf_runner(
     C10_CUDA_CHECK(cudaStreamSynchronize(s2_c));
     C10_CUDA_CHECK(cudaStreamSynchronize(s3_c));
     });  // end dispatch float
-    // cleanup. Release CUDA context from this thread
-    check_cuda_driver(cuDevicePrimaryCtxRelease(device), "cuDevicePrimaryCtxRelease");
+    // // cleanup. Release CUDA context from this thread
+    // check_cuda_driver(cuDevicePrimaryCtxRelease(device), "cuDevicePrimaryCtxRelease");
 }
 
 at::Tensor parallel_potrf_kernel(
