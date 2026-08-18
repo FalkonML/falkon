@@ -55,8 +55,8 @@ __global__ static void manhattan_kernel_cuda_impl_C(
   const int64_t lane_id = static_cast<int64_t>(threadIdx.x) & 31;
   const int64_t warp_id = static_cast<int64_t>(threadIdx.x) >> 5;
   const int64_t r_size = r1 * r2;
-  const int64_t start_pair = static_cast<int64_t>(blockIdx.x) * kCUDANumWarpsPerBlock + warp_id;
-  const int64_t pair_stride = static_cast<int64_t>(gridDim.x) * kCUDANumWarpsPerBlock;
+  const int64_t start_pair = static_cast<int64_t>(blockIdx.x) * static_cast<int64_t>(kCUDANumWarpsPerBlock) + warp_id;
+  const int64_t pair_stride = static_cast<int64_t>(gridDim.x) * static_cast<int64_t>(kCUDANumWarpsPerBlock);
 
   for (int64_t pair = start_pair; pair < r_size; pair += pair_stride) {
     const int64_t batch_id = pair / r_size;
