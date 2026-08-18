@@ -52,8 +52,8 @@ __global__ static void manhattan_kernel_cuda_impl_C(
   // one warp per output entry
   // each block has e.g 256 threads and 8 warps
   // hence processes 8 output entries
-  const int lane_id = threadIdx.x & 31;
-  const int warp_id = threadIdx.x >> 5;
+  const int64_t lane_id = static_cast<int64_t>(threadIdx.x) & 31;
+  const int64_t warp_id = static_cast<int64_t>(threadIdx.x) >> 5;
   const int64_t r_size = r1 * r2;
   const int64_t start_pair = static_cast<int64_t>(blockIdx.x) * kCUDANumWarpsPerBlock + warp_id;
   const int64_t pair_stride = static_cast<int64_t>(gridDim.x) * kCUDANumWarpsPerBlock;
@@ -204,24 +204,20 @@ at::Tensor manhattan_kernel_impl(at::Tensor& result, const at::Tensor& x1, const
       const int blocks = sm_count * 32;
       const dim3 grid(blocks);
       const dim3 block(kCUDANumThreads);
-      std::cout << "Block dimensions: (" 
-                << block.x << ")" << std::endl;
-      std::cout << "Grid dimensions: (" 
-                << grid.x << ")" << std::endl;
       manhattan_kernel_cuda_impl_C<scalar_t><<<grid, block, 0, stream.stream()>>>(
         result.mutable_data_ptr<scalar_t>(), 
         x1.const_data_ptr<scalar_t>(), 
         x2.const_data_ptr<scalar_t>(),
-        r2, 
-        m, 
-        r1,
-        result.stride(0),
-        result.stride(1),
-        x1.stride(0),
-        x1.stride(1),
-        x2.stride(0),
-        x2.stride(1)
-    );
+        static_cast<int64_t>(r2),
+        static_cast<int64_t>(m),
+        static_cast<int64_t>(r1),
+        static_cast<int64_t>(result.stride(0)),
+        static_cast<int64_t>(result.stride(1)),
+        static_cast<int64_t>(x1.stride(0)),
+        static_cast<int64_t>(x1.stride(1)),
+        static_cast<int64_t>(x2.stride(0)),
+        static_cast<int64_t>(x2.stride(1))
+      );
     } else {
       const dim3 grid(result.numel());
       const dim3 block(kCUDANumThreads);
