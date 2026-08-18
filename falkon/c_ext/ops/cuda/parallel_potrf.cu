@@ -13,6 +13,7 @@
 
 #include <ATen/ATen.h>
 #include <torch/library.h>
+#include <ATen/cuda/nvrtc_stub/ATenNVRTC.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/Exceptions.h>
 #include <c10/cuda/CUDAGuard.h>
@@ -123,8 +124,17 @@ void parallel_potrf_runner(
         std::vector<std::vector<std::atomic<int>>> &work,
         at::Tensor &A,
         std::vector<blockAlloc> &allocs) {
-    // CUDA devices and stream
+    // 
     const at::cuda::CUDAGuard g(device_id);
+    // CUDA context
+    CUcontext pctx = nullptr;
+    // check if current thread has a CUDA context bound to it.
+    at::globalContext().getNVRTC().cuCtxGetCurrent(&pctx);
+    if (!pctx) {
+        at::globalContext().getNVRTC().cuDevicePrimaryCtxRetain(&pctx, device_id);
+        at::globalContext().getNVRTC().cuCtxSetCurrent(pctx);
+    }
+    // CUDA devices and stream
     at::cuda::CUDAStream s1 = at::cuda::getStreamFromPool(false, device_id);
     at::cuda::CUDAStream s2 = at::cuda::getStreamFromPool(false, device_id);
     at::cuda::CUDAStream s3 = at::cuda::getStreamFromPool(false, device_id);
@@ -190,8 +200,8 @@ void parallel_potrf_runner(
     const auto potrf_info_buf = at::zeros(1, at::dtype(at::kInt).device(at::kCUDA, device_id));
 
     // Data buffers
-    scalar_t *data_buf_ptr = data_buf.data_ptr<scalar_t>();
-    scalar_t *potrf_buf_ptr = potrf_buf.data_ptr<scalar_t>();
+    scalar_t *data_buf_ptr = data_buf.mutable_data_ptr<scalar_t>();
+    scalar_t *potrf_buf_ptr = potrf_buf.mutable_data_ptr<scalar_t>();
     int *potrf_info_buf_ptr = potrf_info_buf.data_ptr<int>();
     scalar_t *col0_h[k];
     for (int i = 0; i < k; i++) {
@@ -346,6 +356,8 @@ void parallel_potrf_runner(
     C10_CUDA_CHECK(cudaStreamSynchronize(s2_c));
     C10_CUDA_CHECK(cudaStreamSynchronize(s3_c));
     });  // end dispatch float
+    // cleanup. Release CUDA context from this thread
+    at::globalContext().getNVRTC().cuDevicePrimaryCtxRelease(device_id);
 }
 
 at::Tensor parallel_potrf_kernel(
