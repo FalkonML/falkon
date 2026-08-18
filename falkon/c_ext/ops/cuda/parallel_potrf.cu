@@ -22,7 +22,6 @@
 #include <c10/cuda/CUDAStream.h>
 
 
-
 namespace falkon {
 namespace ops {
 namespace {
@@ -141,7 +140,6 @@ void parallel_potrf_runner(
         std::vector<std::vector<std::atomic<int>>> &work,
         at::Tensor &A,
         std::vector<blockAlloc> &allocs) {
-    // 
     // // CUDA context
     // CUcontext pctx = nullptr;
     // // check if current thread has a CUDA context bound to it.
@@ -173,7 +171,7 @@ void parallel_potrf_runner(
 
     // CUDA context
     CUcontext pctx = nullptr;
-    check_cuda_driver(cuCtxGetCurrent(&pctx)), "cuCtxGetCurrent";
+    check_cuda_driver(cuCtxGetCurrent(&pctx), "cuCtxGetCurrent");
     if (pctx == nullptr) {
         check_cuda_driver(cuDevicePrimaryCtxRetain(&pctx, device), "cuDevicePrimaryCtxRetain");
         check_cuda_driver(cuCtxSetCurrent(pctx), "cuCtxSetCurrent");
