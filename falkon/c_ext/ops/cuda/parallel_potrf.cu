@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 #include <cuda.h>
+#include <cuda_runtime.h>
 
 #include <ATen/ATen.h>
 #include <torch/library.h>
