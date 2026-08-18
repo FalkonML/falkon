@@ -11,12 +11,13 @@
 #include <set>
 #include <stdio.h>
 
-// #include <cuda.h>
+#include <cuda.h>
 // #include <cuda_runtime.h>
+// #include <nvrtc.h>
 
 #include <ATen/ATen.h>
 #include <torch/library.h>
-#include <ATen/cuda/nvrtc_stub/ATenNVRTC.h>
+// #include <ATen/cuda/nvrtc_stub/ATenNVRTC.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/Exceptions.h>
 #include <c10/cuda/CUDAGuard.h>
@@ -147,6 +148,10 @@ void parallel_potrf_runner(
     at::cuda::CUDAStream s2 = at::cuda::getStreamFromPool(false, device_id);
     at::cuda::CUDAStream s3 = at::cuda::getStreamFromPool(false, device_id);
     c10::cuda::CUDAStreamGuard g0(s1);
+
+    CUcontext pctx = nullptr;
+    cuCtxGetCurrent(&pctx);
+    fprintf(stdout, "Loaded context\n");
 
     // CUDA context
     // CUcontext pctx = nullptr;
