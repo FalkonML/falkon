@@ -132,6 +132,7 @@ static void check_cuda_driver(CUresult result, const char* call) {
             name ? name : "unknown",
             " (", msg ? msg : "unknown", ")"
         );
+    }
 }
 
 /* Main parallel POTRF function */
@@ -140,27 +141,6 @@ void parallel_potrf_runner(
         std::vector<std::vector<std::atomic<int>>> &work,
         at::Tensor &A,
         std::vector<blockAlloc> &allocs) {
-    // // CUDA context
-    // CUcontext pctx = nullptr;
-    // // check if current thread has a CUDA context bound to it.
-    // CUresult err = cuCtxGetCurrent(&pctx);
-    // if (err != CUDA_SUCCESS) {
-    //     fprintf(stderr, "Failed to get current context %d\n", err);
-    // }
-    // if (pctx == nullptr) {
-    //     CUdevice dev;
-    //     cuDeviceGet(&dev, device_id);
-    //     err = cuDevicePrimaryCtxRetain(&ctx, dev);
-    //     if (err != CUDA_SUCCESS) {
-    //         // handle error
-    //     }
-    // }
-    // at::globalContext().getNVRTC().cuCtxGetCurrent(&pctx);
-    // if (!pctx) {
-    //     at::globalContext().getNVRTC().cuDevicePrimaryCtxRetain(&pctx, device_id);
-    //     at::globalContext().getNVRTC().cuCtxSetCurrent(pctx);
-    // }
-    // CUDA devices and stream
     const at::cuda::CUDAGuard device_guard(device_id);
     at::cuda::CUDAStream s1 = at::cuda::getStreamFromPool(false, device_id);
     at::cuda::CUDAStream s2 = at::cuda::getStreamFromPool(false, device_id);
