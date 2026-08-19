@@ -12,12 +12,8 @@
 #include <stdio.h>
 
 #include <cuda.h>
-// #include <cuda_runtime.h>
-// #include <nvrtc.h>
-
 #include <ATen/ATen.h>
 #include <torch/library.h>
-// #include <ATen/cuda/nvrtc_stub/ATenNVRTC.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/Exceptions.h>
 #include <c10/cuda/CUDAGuard.h>
@@ -407,8 +403,6 @@ at::Tensor parallel_potrf_kernel(
     for (auto& t : threads) {
         t.join();
     }
-    // cleanup: release CuBLAS data
-    at::cuda::clearCublasWorkspaces();
     return A;
 }
 
