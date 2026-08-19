@@ -6,11 +6,13 @@ import scipy.linalg.lapack as scll
 import torch
 
 from falkon.ooc_ops.ooc_utils import calc_block_sizes3
+from falkon.ooc_ops.ooc_lauum import _serial_lauum_runner
 from falkon.options import FalkonOptions
 from falkon.tests.conftest import fix_mat, memory_checker
 from falkon.utils import decide_cuda
 from falkon.utils.helpers import sizeof_dtype
 from falkon.utils.tensor_helpers import move_tensor
+from falkon.utils import devices
 
 if decide_cuda():
     from falkon.c_ext import lauum_cuda
@@ -98,6 +100,20 @@ class TestOOCLauum:
     rtol = {np.float64: 1e-12, np.float32: 1e-5}
     max_mem = 2 * 2**20
     basic_opt = FalkonOptions(compute_arch_speed=False, use_cpu=False, max_gpu_mem=max_mem)
+
+    @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
+    @pytest.mark.parametrize("order", ["F", "C"])
+    def test_serial_lauum(self, dtype, order, get_mat, expected_lower):
+        omat = get_mat(order=order, dtype=dtype)
+        mat = get_mat(order=order, dtype=dtype).pin_memory()
+
+        gpu_info = [v for k, v in devices.get_device_info(FalkonOptions()).items() if k >= 0]
+        for g in gpu_info:
+            g.usable_memory = g.free_memory * 0.8
+        _serial_lauum_runner(A=mat, gpu_info=gpu_info[0])
+        torch.cuda.synchronize()
+        np.testing.assert_allclose(np.tril(omat, k=-1), np.tril(mat.numpy(), k=-1), rtol=self.rtol[dtype])
+        np.testing.assert_allclose(np.triu(mat.numpy()), np.tril(expected_lower).T, rtol=self.rtol[dtype])
 
     @pytest.mark.parametrize("dtype", [np.float32, pytest.param(np.float64, marks=pytest.mark.full())])
     @pytest.mark.parametrize("order", ["F", "C"])
