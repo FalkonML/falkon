@@ -10,6 +10,7 @@ import torch
 from falkon.benchmarks.common.benchmark_utils import Dataset, DataType
 from falkon.benchmarks.common.datasets import get_cv_fn, get_load_fn
 from falkon.benchmarks.common.error_metrics import get_err_fns
+from falkon.benchmarks.models.flk_wrapper import FalkonWrapper
 
 RANDOM_SEED = 123
 EIGENPRO_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/EigenPro"
@@ -226,23 +227,12 @@ def run_balkon(
 
     seed_all(seed)
 
-    # Data types
     if dtype is None:
         dtype = DataType.float64
-    # Arguments
-    if kernel.lower() == "gaussian":
-        k = kernels.GaussianKernel(kernel_sigma)
-    elif kernel.lower() == "laplacian":
-        k = kernels.LaplacianKernel(kernel_sigma)
-    elif kernel.lower() == "linear":
-        k = kernels.LinearKernel(beta=1.0, gamma=kernel_sigma)
-    else:
-        raise ValueError(f"Kernel {kernel} not understood for algorithm Balkon")
-
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
-        no_single_kernel=True,
-        cg_tolerance=1e-4,
+        no_single_kernel=False,
+        cg_tolerance=5e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
         pc_epsilon_32=1e-6, # lowered this to 1e-7 for flights (was 1e-6)
@@ -253,16 +243,20 @@ def run_balkon(
         #max_cpu_mem=(160*2**30),
         debug=debug,
     )
-    flk = balkon.Balkon(
-        kernel=k,
-        penalty=penalty,
-        M=num_centers,
-        maxiter=num_iter,
-        seed=seed,
-        error_fn=None,
-        error_every=1,
-        options=opt,
-        block_size=block_size,
+    flk = FalkonWrapper(
+        balkon.Balkon(
+            kernel=kernels.GaussianKernel(1.0),  # placeholder
+            penalty=penalty,
+            M=num_centers,
+            maxiter=num_iter,
+            seed=seed,
+            error_fn=None,
+            error_every=1,
+            options=opt,
+            block_size=block_size,
+        ),
+        kernel_type=kernel,
+        kernel_sigma=kernel_sigma
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
@@ -356,7 +350,7 @@ def run_joker(
     seed : int = 124151
 ):
     sys.path.append(JOKER_BASE_PATH)
-    from criterion import make_criterion
+    from criterion import make_criterion # pyright: ignore[reportMissingImports]
 
     from falkon.benchmarks.models.joker_model import JokerWrapper
 
@@ -426,23 +420,12 @@ def run_falkon(
 
     seed_all(seed)
 
-    # Data types
     if dtype is None:
         dtype = DataType.float64
-    # Arguments
-    if kernel.lower() == "gaussian":
-        k = kernels.GaussianKernel(kernel_sigma)
-    elif kernel.lower() == "laplacian":
-        k = kernels.LaplacianKernel(kernel_sigma)
-    elif kernel.lower() == "linear":
-        k = kernels.LinearKernel(beta=1.0, gamma=kernel_sigma)
-    else:
-        raise ValueError(f"Kernel {kernel} not understood for algorithm Falkon")
-
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
-        no_single_kernel=True,
-        cg_tolerance=1e-4,
+        no_single_kernel=False,
+        cg_tolerance=5e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
         pc_epsilon_32=1e-6,
@@ -457,16 +440,20 @@ def run_falkon(
         neg_weight = 1.0
         weight_fn = lambda Y, X, indices: torch.where(Y < 0, neg_weight, pos_weight)
 
-    flk = falkon.Falkon(
-        kernel=k,
-        penalty=penalty,
-        M=num_centers,
-        maxiter=num_iter,
-        seed=seed,
-        error_fn=None,
-        error_every=1,
-        weight_fn=weight_fn,
-        options=opt,
+    flk = FalkonWrapper(
+        falkon.Falkon(
+            kernel=kernels.GaussianKernel(1.0),  # placeholder
+            penalty=penalty,
+            M=num_centers,
+            maxiter=num_iter,
+            seed=seed,
+            error_fn=None,
+            error_every=1,
+            weight_fn=weight_fn,
+            options=opt,
+        ),
+        kernel_type=kernel,
+        kernel_sigma=kernel_sigma,
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
