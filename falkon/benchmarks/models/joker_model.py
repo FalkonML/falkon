@@ -131,6 +131,8 @@ class JokerWrapper:
                 print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
             print()
             self.fit_times_.append(time.time())
+            # return arguments required by joker
+            return test_err, {}
         return inner_fn
 
     def fit(self, Xtr, Ytr, Xts, Yts):
