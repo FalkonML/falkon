@@ -19,12 +19,13 @@ class EigenProWrapper:
         self.fit_times_ = []
         self.model = None
         self.batch_size = 8192
+        self.error_fn = None
 
     def reset(self):
         self.fit_times_ = []
         self.model = None
 
-    def inter_epoch_cback(self, Xts, Yts, err_fns):
+    def inter_epoch_cback(self, Xts, Yts):
         def fn(model):
             start_time = self.fit_times_[-1]
             elapsed_time = time.time() - start_time
@@ -37,15 +38,15 @@ class EigenProWrapper:
             pred_elapsed = time.time() - pred_start_time
             print(f"EigenPro4 epoch {epoch}:")
             print(f"\telapsed: {sum(self.fit_times_):.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
-            for err_fn in err_fns:
-                test_err, test_err_name = err_fn(Yts, preds)
+            if self.error_fn is not None:
+                test_err, test_err_name = self.error_fn(Yts, preds)
                 print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
             print()
             self.fit_times_.append(time.time())
 
         return fn
 
-    def fit(self, Xtr, Ytr, Xts, Yts, err_fns):
+    def fit(self, Xtr, Ytr, Xts, Yts):
         centers_set_indices = np.random.choice(Xtr.shape[0], self.num_centers, replace=False)
         Z = Xtr[centers_set_indices, :]
         kernel_model = skm.create_sharded_kernel_machine(
@@ -67,7 +68,7 @@ class EigenProWrapper:
             n_model_pcd_eigenvals=self.num_eigenvalues,
             epochs=self.num_epochs,
             accumulated_gradients=True,
-            callback=self.inter_epoch_cback(Xts, Yts, err_fns),
+            callback=self.inter_epoch_cback(Xts, Yts),
         )
         start_time = self.fit_times_[-1]
         elapsed_time = time.time() - start_time
