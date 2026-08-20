@@ -70,9 +70,8 @@ class EigenProWrapper:
             accumulated_gradients=True,
             callback=self.inter_epoch_cback(Xts, Yts),
         )
-        start_time = self.fit_times_[-1]
-        elapsed_time = time.time() - start_time
-        self.fit_times_[-1] = elapsed_time
+        self.fit_times_[-1] = time.time() - self.fit_times_[-1]
+        self.fit_times_ = np.cumsum(self.fit_times_).tolist()
         return self
 
     def predict(self, data, batch_size=None):

@@ -33,6 +33,7 @@ class ASkotchWrapper:
         self.opt = None
         self.kern_fn = None
         self.fit_times_ = []
+        self.error_fn = None
 
     def get_median_sigma(self, data, num_samples=10000):
         sub_data = data[:num_samples]
@@ -52,11 +53,24 @@ class ASkotchWrapper:
         else:
             raise ValueError(f"Kernel {self.kernel_type} not valid for ASkotch")
 
+    def inter_epoch_cback(self, Xts, Yts):
+        print("Running test-set predictions...", flush=True)
+        pred_start_time = time.time()
+        preds = self.predict(Xts)
+        pred_elapsed = time.time() - pred_start_time
+        print(f"ASkotch epoch {len(self.fit_times_) - 1}:")
+        print(f"\telapsed: {self.fit_times_[-1]:.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
+        if self.error_fn is not None:
+            test_err, test_err_name = self.error_fn(Yts, preds)
+            print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
+        print()
+
     def fit(self, Xtr, Ytr, Xts, Yts):
-        self.fit_times_ = []
+        self.fit_times_ = [0.0]
         block_size = self.block_size
         if block_size <= 0:
             block_size = Xtr.shape[0] // 100
+        cback_every = Xtr.shape[0] // block_size
         t_start = time.time()
         w0 = torch.zeros((Xtr.shape[0], ), device=self.device)
         model = FullKRR(
@@ -66,9 +80,18 @@ class ASkotchWrapper:
         )
         self.opt = ASkotchV2(model=model, block_sz=block_size, precond_params=self.precond_params)
         self.kern_fn = self.opt.model._get_kernel_fn()
-        for _ in trange(1, self.num_iter + 1, desc="Optimization progress"):
+        for i in trange(1, self.num_iter + 1, desc="Optimization progress"):
             self.opt.step()
-        self.fit_times_.append(time.time() - t_start)
+            if i % cback_every:
+                t_elapsed = time.time() - t_start
+                self.fit_times_.append(self.fit_times_[-1] + t_elapsed)
+                # Callback excluded from timings
+                self.inter_epoch_cback(Xts, Yts)
+                # resume timings
+                t_start = time.time()
+        # Final time
+        t_elapsed = time.time() - t_start
+        self.fit_times_.append(self.fit_times_[-1] + t_elapsed)
 
     def predict(self, Xtst):
         if self.opt is None or self.kern_fn is None:

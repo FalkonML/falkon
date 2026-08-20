@@ -45,6 +45,7 @@ class JokerWrapper:
         self.region_shrink_freq = region_shrink_freq
         self.region_shrink_rate = region_shrink_rate
         self.fit_times_ = []
+        self.error_fn = None
         self.model = None
 
     def get_median_sigma_square(self, data, num_samples=10000):
@@ -112,23 +113,45 @@ class JokerWrapper:
             )
         return model
 
+    def inter_epoch_cback(self, Xts, Yts):
+        def inner_fn(val_blk, metric):
+            # Process fit_times
+            prev_fit_start_time = self.fit_times_[-1]
+            prev_fit_elapsed = time.time() - prev_fit_start_time
+            self.fit_times_[-1] = prev_fit_elapsed
+
+            print("Running test-set predictions...", flush=True)
+            pred_start_time = time.time()
+            preds = self.predict(Xts)
+            pred_elapsed = time.time() - pred_start_time
+            print(f"Joker epoch {len(self.fit_times_)}:")
+            print(f"\telapsed: {self.fit_times_[-1]:.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
+            if self.error_fn is not None:
+                test_err, test_err_name = self.error_fn(Yts, preds)
+                print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
+            print()
+            self.fit_times_.append(time.time())
+        return inner_fn
+
     def fit(self, Xtr, Ytr, Xts, Yts):
-        self.fit_times_ = []
-        t_start = time.time()
+        cback_every = Xtr.shape[0] // self.block_size
+        self.fit_times_ = [time.time()]
         self.model = self.init_model(Xtr, Ytr)
+        self.model.validation = self.inter_epoch_cback(Xts, Yts)
         self.model.fit(
             max_iter=self.num_iter,
             max_iter_subprob=self.num_iter_subprob, #cfg["max_iter_subprob"],
             max_region_size=self.max_region_size, #cfg["max_trust_region_size"],
             region_shrink_freq=self.region_shrink_freq,
-            verbose_freq=self.num_iter + 1,
+            verbose_freq=cback_every,
             region_shrink_rate=self.region_shrink_rate, #cfg["region_shrink_rate"],
             blk_strategy='random', #cfg["blk_strategy"],
             val_x=Xts,
             val_y=Yts,
             verbose_primal_dual=False
         )
-        self.fit_times_.append(time.time() - t_start)
+        self.fit_times_[-1] = time.time() - self.fit_times_[-1]
+        self.fit_times_ = np.cumsum(self.fit_times_).tolist()
 
     def predict(self, Xtst):
         if self.model is None:
