@@ -13,9 +13,9 @@ class FalkonWrapper:
         self.kernel_type = kernel_type
 
     def __getattr__(self, name):
-        try:
+        if name in {"error_fn", "fit_times_", "reset"}:
             return getattr(self.base_model, name)
-        except AttributeError:
+        else:
             return getattr(self, name)
 
     def __setattr__(self, name: str, value: Any) -> None:
