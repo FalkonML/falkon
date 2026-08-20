@@ -1,5 +1,7 @@
 
 
+from typing import Any
+
 import torch
 from falkon import kernels
 
@@ -9,6 +11,15 @@ class FalkonWrapper:
         self.base_model = base_model
         self.kernel_sigma = kernel_sigma
         self.kernel_type = kernel_type
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name in {"error_fn", "fit_times_"}:
+            setattr(self.base_model, name, value)
+        else:
+            super().__setattr__(name, value)
+
+    def reset(self):
+        self.base_model.reset()
 
     def get_median_sigma(self, data, num_samples=10000):
         sub_data = data[:num_samples]
