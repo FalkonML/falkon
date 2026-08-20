@@ -24,9 +24,6 @@ class FalkonWrapper:
         else:
             super().__setattr__(name, value)
 
-    def reset(self):
-        self.base_model.reset()
-
     def get_median_sigma(self, data, num_samples=10000):
         sub_data = data[:num_samples]
         return torch.median(torch.pdist(sub_data))
