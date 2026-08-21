@@ -82,7 +82,7 @@ class ASkotchWrapper:
         self.kern_fn = self.opt.model._get_kernel_fn()
         for i in trange(1, self.num_iter + 1, desc="Optimization progress"):
             self.opt.step()
-            if i % cback_every:
+            if (i % cback_every) == 0:
                 t_elapsed = time.time() - t_start
                 self.fit_times_.append(self.fit_times_[-1] + t_elapsed)
                 # Callback excluded from timings
