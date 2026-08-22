@@ -51,3 +51,9 @@ class FalkonWrapper:
 
     def predict(self, Xtst):
         return self.base_model.predict(Xtst)
+
+    def __repr__(self) -> str:
+        return repr(self.base_model)
+    
+    def __str__(self) -> str:
+        return str(self.base_model)
