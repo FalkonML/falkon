@@ -1,4 +1,4 @@
- import time
+import time
 
 import eigenpro.models.sharded_kernel_machine as skm  # pyright: ignore[reportMissingImports]
 import eigenpro.solver as solver  # pyright: ignore[reportMissingImports]
