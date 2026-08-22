@@ -66,7 +66,7 @@ class JokerWrapper:
             raise RuntimeError(self.kernel_type)
         return make_kernel(self.kernel_type, gamma=gamma)
 
-    def init_model(self, Xtr, Ytr):
+    def init_model(self, Xtr, Ytr, Xts, Yts):
         kernel_func = self.get_kernel(Xtr)
         if self.inexact_type == 'rff':
             model = InexactJoker(
@@ -111,7 +111,9 @@ class JokerWrapper:
                 data_blksz=self.data_block_size,
                 optim=self.opt_name,
             )
-        return model
+        model.validation = self.inter_epoch_cback(Xts, Yts)
+        self.model = model
+        return None
 
     def inter_epoch_cback(self, Xts, Yts):
         def inner_fn(val_blk, metric):
@@ -136,10 +138,11 @@ class JokerWrapper:
         return inner_fn
 
     def fit(self, Xtr, Ytr, Xts, Yts):
+        if self.model is None:
+            self.init_model(Xtr, Ytr, Xts, Yts)
+        assert self.model is not None
         cback_every = Xtr.shape[0] // self.block_size
         self.fit_times_ = [time.time()]
-        self.model = self.init_model(Xtr, Ytr)
-        self.model.validation = self.inter_epoch_cback(Xts, Yts)
         self.model.fit(
             max_iter=self.num_iter,
             max_iter_subprob=self.num_iter_subprob, #cfg["max_iter_subprob"],
@@ -160,4 +163,9 @@ class JokerWrapper:
             raise RuntimeError("predict called before fit")
         return self.model.predict(Xtst)
 
+    def __repr__(self) -> str:
+        return repr(self.model)
+    
+    def __str__(self) -> str:
+        return str(self.model)
 

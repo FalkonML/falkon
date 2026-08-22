@@ -44,9 +44,13 @@ class FalkonWrapper:
             raise ValueError(f"Kernel {kernel_type} not understood for algorithm Balkon")
         return k
 
-    def fit(self, Xtr, Ytr, Xts, Yts):
+    def init_model(self, Xtr, Ytr, Xts, Yts):
         kernel = self.get_kernel_params(Xtr)
         self.base_model.kernel = kernel
+
+    def fit(self, Xtr, Ytr, Xts, Yts):
+        # self.init_model(Xtr, Ytr, Xts, Yts)
+        # TODO: Try to check if init_model was called..
         return self.base_model.fit(Xtr, Ytr, Xts, Yts)
 
     def predict(self, Xtst):

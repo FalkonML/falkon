@@ -1,4 +1,4 @@
-import time
+ import time
 
 import eigenpro.models.sharded_kernel_machine as skm  # pyright: ignore[reportMissingImports]
 import eigenpro.solver as solver  # pyright: ignore[reportMissingImports]
@@ -18,12 +18,21 @@ class EigenProWrapper:
 
         self.fit_times_ = []
         self.model = None
+        self.kernel_model = None
         self.batch_size = 8192
         self.error_fn = None
 
     def reset(self):
         self.fit_times_ = []
         self.model = None
+        self.kernel_model = None
+
+    def init_model(self, Xtr, Ytr, Xts, Yts):
+        centers_set_indices = np.random.choice(Xtr.shape[0], self.num_centers, replace=False)
+        Z = Xtr[centers_set_indices, :]
+        self.kernel_model = skm.create_sharded_kernel_machine(
+            Z, Ytr.shape[-1], self.kernel_fn, self.device, dtype=self.dtype, tmp_centers_coeff=2
+        )
 
     def inter_epoch_cback(self, Xts, Yts):
         def fn(model):
@@ -47,14 +56,12 @@ class EigenProWrapper:
         return fn
 
     def fit(self, Xtr, Ytr, Xts, Yts):
-        centers_set_indices = np.random.choice(Xtr.shape[0], self.num_centers, replace=False)
-        Z = Xtr[centers_set_indices, :]
-        kernel_model = skm.create_sharded_kernel_machine(
-            Z, Ytr.shape[-1], self.kernel_fn, self.device, dtype=self.dtype, tmp_centers_coeff=2
-        )
+        if self.kernel_model is None:
+            self.init_model(Xtr, Ytr, Xts, Yts)
+        assert self.kernel_model is not None
         self.fit_times_.append(time.time())
         self.model = solver.fit(
-            kernel_model,
+            self.kernel_model,
             Xtr,
             Ytr,
             Xts,
@@ -85,3 +92,9 @@ class EigenProWrapper:
             batch = data[i : i + batch_size].to(device=device)
             outputs.append(self.model(batch).cpu())
         return torch.cat(outputs, 0)
+
+    def __repr__(self) -> str:
+        return repr(self.kernel_model)
+    
+    def __str__(self) -> str:
+        return str(self.kernel_model)

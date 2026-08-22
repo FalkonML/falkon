@@ -82,7 +82,6 @@ def generic_fit(
 ):
     err_fns_ = get_err_fns(dset)
     if kfold == 1:
-        print(f"Starting to train model {model} on data {dset}", flush=True)
         # Load data
         load_fn = get_load_fn(dset)
         Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
@@ -91,6 +90,9 @@ def generic_fit(
         else:
             Xtr = Xtr.pin_memory()
             Ytr = Ytr.pin_memory()
+
+        model.init_model(Xtr, Ytr, Xts, Yts)
+        print(f"Starting to train model {model} on data {dset}", flush=True)
 
         err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
         if hasattr(model, "error_fn"):
@@ -110,7 +112,6 @@ def generic_fit(
             1, [test_errs], [train_errs], err_names, train_times=[train_time], inference_times=[test_time]
         )
     else:
-        print(f"{kfold}-CV training model {model} on data {dset}", flush=True)
         load_fn = get_cv_fn(dset)
         err_names = None
         test_errs, train_errs = [], []
@@ -127,6 +128,10 @@ def generic_fit(
             else:
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
+
+            model.init_model(Xtr, Ytr, Xts, Yts)
+            if it == 0:
+                print(f"{kfold}-CV training model {model} on data {dset}", flush=True)
 
             t_start = time.time()
             model.fit(Xtr, Ytr, Xts, Yts)

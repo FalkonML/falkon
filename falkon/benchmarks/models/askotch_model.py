@@ -30,10 +30,9 @@ class ASkotchWrapper:
         self.num_iter = num_iter
         self.device = device
         self.log_every = log_every
-        self.opt = None
-        self.kern_fn = None
         self.fit_times_ = []
         self.error_fn = None
+        self.model = None
 
     def get_median_sigma(self, data, num_samples=10000):
         sub_data = data[:num_samples]
@@ -65,23 +64,33 @@ class ASkotchWrapper:
             print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
         print()
 
-    def fit(self, Xtr, Ytr, Xts, Yts):
-        self.fit_times_ = [0.0]
+    def get_block_size(self, Xtr):
         block_size = self.block_size
         if block_size <= 0:
             block_size = Xtr.shape[0] // 100
-        cback_every = Xtr.shape[0] // block_size
-        t_start = time.time()
+        return block_size
+
+    def init_model(self, Xtr, Ytr, Xts, Yts):
+        block_size = self.get_block_size(Xtr)
         w0 = torch.zeros((Xtr.shape[0], ), device=self.device)
-        model = FullKRR(
+        krr = FullKRR(
             Xtr, Ytr, Xts, Yts, kernel_params=self.get_kernel_params(Xtr),
             Ktr_needed=True, lambd=self.unsc_lam * Xtr.shape[0], task=self.task, w0=w0,
             device=self.device
         )
-        self.opt = ASkotchV2(model=model, block_sz=block_size, precond_params=self.precond_params)
-        self.kern_fn = self.opt.model._get_kernel_fn()
+        self.model = ASkotchV2(model=krr, block_sz=block_size, precond_params=self.precond_params)
+        return None
+
+    def fit(self, Xtr, Ytr, Xts, Yts):
+        if self.model is None:
+            self.init_model(Xtr, Ytr, Xts, Yts)
+        assert self.model is not None
+        self.fit_times_ = [0.0]
+        block_size = self.get_block_size(Xtr)
+        cback_every = Xtr.shape[0] // block_size
+        t_start = time.time()
         for i in trange(1, self.num_iter + 1, desc="Optimization progress"):
-            self.opt.step()
+            self.model.step()
             if (i % cback_every) == 0:
                 t_elapsed = time.time() - t_start
                 self.fit_times_.append(self.fit_times_[-1] + t_elapsed)
@@ -94,7 +103,15 @@ class ASkotchWrapper:
         self.fit_times_.append(self.fit_times_[-1] + t_elapsed)
 
     def predict(self, Xtst):
-        if self.opt is None or self.kern_fn is None:
+        if self.model is None:
             raise ValueError("predict called before fit")
-        K_pred = self.kern_fn(Xtst, self.opt.model.x, False)
-        return K_pred @ self.opt.model.w
+        kern_fn = self.model.model._get_kernel_fn()
+        K_pred = kern_fn(Xtst, self.model.model.x, False)
+        return K_pred @ self.model.model.w
+
+    def __repr__(self) -> str:
+        return repr(self.model)
+    
+    def __str__(self) -> str:
+        return str(self.model)
+    
