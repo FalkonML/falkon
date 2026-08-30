@@ -18,6 +18,7 @@ class ASkotchWrapper:
         task,
         num_iter,
         device,
+        target_class = None,
         log_every=1
     ):
         self.block_size = block_size
@@ -31,6 +32,8 @@ class ASkotchWrapper:
         self.device = device
         self.log_every = log_every
         self.fit_times_ = []
+        self.target_class = target_class
+
         self.error_fn = None
         self.model = None
 
@@ -107,7 +110,13 @@ class ASkotchWrapper:
             raise ValueError("predict called before fit")
         kern_fn = self.model.model._get_kernel_fn()
         K_pred = kern_fn(Xtst, self.model.model.x, False)
-        return K_pred @ self.model.model.w
+
+        pred = K_pred @ self.opt.model.w
+        
+        
+        if self.task == 'mc-classification':
+            pred = pred.sign()
+        return pred
 
     def __repr__(self) -> str:
         return repr(self.model)

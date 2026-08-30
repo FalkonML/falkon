@@ -799,6 +799,10 @@ class FashionMnistDataset(KnownSplitDataset, Hdf5Dataset):
     file_name = "/data/DATASETS/misc/fashion_mnist.hdf5"  # type: ignore
     dset_name = "FASHION_MNIST"  # type: ignore
     num_train_samples = 60000  # type: ignore
+    
+    def read_data(self, dtype, path):
+        path = self.file_name if path is None else path
+        return super().read_data(dtype, path)
 
     def preprocess_x(self, Xtr, Xts) -> tuple[np.ndarray, np.ndarray, dict]:
         Xtr /= 255.0
