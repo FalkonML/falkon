@@ -201,32 +201,26 @@ def _process_molecule(R: np.ndarray) -> np.ndarray:
     return X
 
 
+def kfold_split(X, Y, n_splits, shuffle: bool, random_state=None):
+    n_samples = len(X)
+    if n_splits < 2 or n_splits > n_samples:
+        raise ValueError(f"Invalid n_splits {n_splits}")
+    indices = np.arange(n_samples)
+    if shuffle:
+        rng = np.random.default_rng(random_state)
+        rng.shuffle(indices)
+    fold_sizes = np.full(n_splits, n_samples // n_splits, dtype=int)
+    fold_sizes[:n_samples % n_splits] += 1  # sklearn puts extras in early folds
 
+    current = 0
+    for fold_size in fold_sizes:
+        start, stop = current, current + fold_size
+        test_idx = indices[start:stop]
+        train_idx = np.concatenate((indices[:start], indices[stop:]))
 
-class MyKFold:
-    def __init__(self, n_splits, shuffle, seed=92):
-        self.n_splits = n_splits
-        self.shuffle = shuffle
-        self.random_state = np.random.RandomState(seed)
+        yield X[train_idx], X[test_idx], Y[train_idx], Y[test_idx]
 
-    def split(self, X, y=None):
-        N = X.shape[0]
-        indices = np.arange(N)
-        mask = np.full(N, False)
-        if self.shuffle:
-            self.random_state.shuffle(indices)
-
-        n_splits = self.n_splits
-        fold_sizes = np.full(n_splits, N // n_splits, dtype=int)
-        fold_sizes[: N % n_splits] += 1
-        current = 0
-
-        for fold_size in fold_sizes:
-            start, stop = current, current + fold_size
-            mask.fill(False)
-            mask[indices[start:stop]] = True
-            yield mask
-            current = stop
+        current = stop
 
 
 class BaseDataset:
@@ -257,13 +251,7 @@ class BaseDataset:
         X, Y = self.read_data(dtype, path)
         print(f"Loaded {self.dset_name} dataset in {dtype} precision.", flush=True)
         print(f"Data size: {X.shape[0]} points with {X.shape[1]} features", flush=True)
-
-        kfold = MyKFold(n_splits=k, shuffle=True)
-        for iteration, test_idx in enumerate(kfold.split(X)):
-            Xtr = X[~test_idx]
-            Ytr = Y[~test_idx]
-            Xts = X[test_idx]
-            Yts = Y[test_idx]
+        for iteration, (Xtr, Xts, Ytr, Yts) in enumerate(kfold_split(X, Y, n_splits=k, shuffle=True)):
             Xtr, Xts, other_X = self.preprocess_x(Xtr, Xts)
             Ytr, Yts, other_Y = self.preprocess_y(Ytr, Yts)
             print(
@@ -523,16 +511,16 @@ class YelpDataset(RandomSplitDataset):
 
 class MiniBooneDataset(RandomSplitDataset,Hdf5Dataset):
     file_name = "/data/DATASETS/miniboone/miniboone.h5" # type: ignore
-    
+
     dset_name = "miniboone" # type: ignore
     default_train_frac = 0.8 # type: ignore
-    
-    
+
+
     def read_data(self, dtype, path):
         path = self.file_name if path is None else path
         X, Y = super().read_data(dtype, path)
-        
-        Y = 2 * Y - 1
+
+        Y = 2 * Y - 1  # {0, 1} -> {-1, 1}
         return X, Y.reshape(-1, 1)
 
     def preprocess_x(self, Xtr, Xts):
@@ -540,7 +528,6 @@ class MiniBooneDataset(RandomSplitDataset,Hdf5Dataset):
 
 
 class BenzeneDataset(RandomSplitDataset):
-    
     folder = "/data/DATASETS/benzene/md17_benzene2017.npz"
     dset_name = "benzene"  # type: ignore
     default_train_frac = 0.8  # type: ignore
@@ -549,7 +536,7 @@ class BenzeneDataset(RandomSplitDataset):
         path = self.folder if path is None else path
 
         data = np.load(path)
-        
+
         x_data = _process_molecule(data['R']).astype(as_np_dtype(dtype))
         y_data = np.squeeze(data['E']).astype(as_np_dtype(dtype))
 
@@ -564,7 +551,7 @@ class BenzeneDataset(RandomSplitDataset):
 
 
 class NaphthalineDataset(RandomSplitDataset):
-    
+
     folder = "/data/DATASETS/naphthalene/md17_naphthalene.npz"
     dset_name = "naphthalene"  # type: ignore
     default_train_frac = 0.8  # type: ignore
@@ -573,7 +560,7 @@ class NaphthalineDataset(RandomSplitDataset):
         path = self.folder if path is None else path
 
         data = np.load(path)
-        
+
         x_data = _process_molecule(data['R']).astype(as_np_dtype(dtype))
         y_data = np.squeeze(data['E']).astype(as_np_dtype(dtype))
 
