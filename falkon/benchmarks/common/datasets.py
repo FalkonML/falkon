@@ -537,7 +537,7 @@ class BenzeneDataset(RandomSplitDataset):
 
         data = np.load(path)
 
-        x_data = _process_molecule(data['R'].astype(np.float64)).astype(as_np_dtype(dtype))
+        x_data = _process_molecule(data['R']).astype(as_np_dtype(dtype))
         y_data = np.squeeze(data['E']).astype(as_np_dtype(dtype))
 
         return x_data, y_data
