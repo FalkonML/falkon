@@ -107,7 +107,7 @@ def generic_fit(
 
 
         if data_on_dev:            
-            Ytr, Yts = Ytr.flatten(), Yts.flatte()
+            Ytr, Yts = Ytr.flatten(), Yts.flatten()
 
         model.init_model(Xtr, Ytr, Xts, Yts)
         print(f"Starting to train model {model} on data {dset}", flush=True)
@@ -143,8 +143,8 @@ def generic_fit(
                 model.error_fn = err_fns[0]
 
             if data_on_dev:
-                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
-#                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device), Xts.to(device), Yts.to(device)
+#                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device), Xts.to(device), Yts.to(device)
             else:
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
@@ -157,8 +157,9 @@ def generic_fit(
 
                 Yts[Yts != target_class] = -1.0
                 Yts[Yts == target_class] = 1.0
+                
             if data_on_dev:            
-                Ytr, Yts = Ytr.flatten(), Yts.flatte()
+                Ytr, Yts = Ytr.flatten(), Yts.flatten()
 
 
             model.init_model(Xtr, Ytr, Xts, Yts)
