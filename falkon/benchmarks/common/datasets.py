@@ -535,7 +535,7 @@ class BenzeneDataset(RandomSplitDataset):
     def read_data(self, dtype, path : str | pathlib.Path):
         path = self.folder if path is None else path
 
-        data = np.load(path)
+        data = np.load(path).astype(np.float64)
 
         x_data = _process_molecule(data['R']).astype(as_np_dtype(dtype))
         y_data = np.squeeze(data['E']).astype(as_np_dtype(dtype))
