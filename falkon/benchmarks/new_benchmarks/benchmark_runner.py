@@ -103,6 +103,10 @@ def generic_fit(
             Yts[Yts != target_class] = -1.0
             Yts[Yts == target_class] = 1.0
 
+
+        if data_on_dev:            
+            Ytr, Yts = Ytr.flatten(), Yts.flatte()
+
         model.init_model(Xtr, Ytr, Xts, Yts)
         print(f"Starting to train model {model} on data {dset}", flush=True)
 
@@ -137,8 +141,8 @@ def generic_fit(
                 model.error_fn = err_fns[0]
 
             if data_on_dev:
-#                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
-                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device), Xts.to(device), Yts.to(device)
+                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+#                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device), Xts.to(device), Yts.to(device)
             else:
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
@@ -151,6 +155,8 @@ def generic_fit(
 
                 Yts[Yts != target_class] = -1.0
                 Yts[Yts == target_class] = 1.0
+            if data_on_dev:            
+                Ytr, Yts = Ytr.flatten(), Yts.flatte()
 
 
             model.init_model(Xtr, Ytr, Xts, Yts)
@@ -260,7 +266,7 @@ def run_balkon(
         dtype = DataType.float64
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
-        no_single_kernel=False,
+        no_single_kernel=False,#True,
         cg_tolerance=5e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
@@ -287,7 +293,7 @@ def run_balkon(
         kernel_type=kernel,
         kernel_sigma=kernel_sigma
     )
-    pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    pt_device = torch.device('cuda') #torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
         flk,
         model_name="Balkon",
@@ -455,7 +461,7 @@ def run_falkon(
         dtype = DataType.float64
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
-        no_single_kernel=False,
+        no_single_kernel=True,#False,
         cg_tolerance=5e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
