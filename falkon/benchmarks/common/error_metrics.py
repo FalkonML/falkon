@@ -202,6 +202,7 @@ def mnist_calc_cerr(y_true, y_pred, **kwargs):
         y_true = np.argmax(y_true, axis=1)
     if y_pred.ndim > 1 and y_pred.shape[1] > 2:
         y_pred = np.argmax(y_pred, axis=1)
+        
 
     return np.mean(y_true.ravel() != y_pred.ravel()), "c-error"
 

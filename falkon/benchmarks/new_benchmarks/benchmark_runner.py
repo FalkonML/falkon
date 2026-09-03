@@ -79,6 +79,7 @@ def generic_fit(
     dtype: DataType,
     data_path: str,
     data_on_dev: bool,
+    target_class = None
 ):
     err_fns_ = get_err_fns(dset)
     if kfold == 1:
@@ -86,10 +87,21 @@ def generic_fit(
         load_fn = get_load_fn(dset)
         Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         if data_on_dev:
-            Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+#            Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+            Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device), Xts.to(device), Yts.to(device)
         else:
             Xtr = Xtr.pin_memory()
             Ytr = Ytr.pin_memory()
+
+
+        if target_class is not None:            
+            Ytr = Ytr.argmax(-1).to(Xtr.device, Xtr.dtype)
+            Yts = Yts.argmax(-1).to(Xtr.device, Xtr.dtype)
+            Ytr[Ytr != target_class] = -1.0
+            Ytr[Ytr == target_class] = 1.0
+
+            Yts[Yts != target_class] = -1.0
+            Yts[Yts == target_class] = 1.0
 
         model.init_model(Xtr, Ytr, Xts, Yts)
         print(f"Starting to train model {model} on data {dset}", flush=True)
@@ -123,11 +135,23 @@ def generic_fit(
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
             if hasattr(model, "error_fn"):
                 model.error_fn = err_fns[0]
+
             if data_on_dev:
-                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+#                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
+                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device), Xts.to(device), Yts.to(device)
             else:
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
+
+            if target_class is not None:            
+                Ytr = Ytr.argmax(-1).to(Xtr.device, Xtr.dtype)
+                Yts = Yts.argmax(-1).to(Xtr.device, Xtr.dtype)
+                Ytr[Ytr != target_class] = -1.0
+                Ytr[Ytr == target_class] = 1.0
+
+                Yts[Yts != target_class] = -1.0
+                Yts[Yts == target_class] = 1.0
+
 
             model.init_model(Xtr, Ytr, Xts, Yts)
             if it == 0:
@@ -288,6 +312,7 @@ def run_askotch(
     rank : int,
     num_iter : int,
     block_size : int,
+    target_class : int,
     kfold : int,
     seed : int = 124151
 ):
@@ -314,7 +339,7 @@ def run_askotch(
         kernel_sigma=sigma,
         kernel_nu=nu,
         unsc_lam=lam,
-        task=task, num_iter=num_iter,
+        task=task, num_iter=num_iter,  target_class=target_class,
         device=pt_device
     )
     generic_fit(
@@ -326,6 +351,7 @@ def run_askotch(
         dtype=dtype,
         data_path=data_path,
         data_on_dev=True,
+        target_class=target_class
     )
 
 
@@ -535,6 +561,8 @@ if __name__ == "__main__":
     ######### ASKOTCH PARAMS ##############
     p.add_argument('--askotch-task', default='classification', choices=['classification', 'regression'], help='Task tackled by ASkotch')
     p.add_argument('--askotch-bs', default=100, type=int, help='Block-size used in ASkotch')
+    p.add_argument('--askotch-target-class', default=None, type=int, help='Target class (for multiclass classification)')
+
     p.add_argument('--nu', default=5/2, type=float, help='nu of Matern kernel')
 
     ########## JOKER PARAMS
@@ -613,6 +641,7 @@ if __name__ == "__main__":
             rank=args.num_centers,
             num_iter=args.epochs,
             block_size=args.askotch_bs,
+            target_class=args.askotch_target_class,
             kfold=args.kfold,
             seed=args.seed
         )
