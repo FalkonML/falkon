@@ -105,7 +105,7 @@ def generic_fit(
 
 
         if data_on_dev:            
-            Ytr, Yts = Ytr.flatten(), Yts.flatte()
+            Ytr, Yts = Ytr.flatten(), Yts.flatten()
 
         model.init_model(Xtr, Ytr, Xts, Yts)
         print(f"Starting to train model {model} on data {dset}", flush=True)
