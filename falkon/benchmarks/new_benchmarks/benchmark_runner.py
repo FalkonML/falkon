@@ -3,6 +3,7 @@ import datetime
 import functools
 import sys
 import time
+import random
 
 import numpy as np
 import torch
@@ -66,6 +67,7 @@ def print_kfold_error_report(k, test_errs, train_errs, err_names, train_times=No
 
 
 def seed_all(seed):
+    random.seed(seed)
     torch.manual_seed(seed)
     np.random.seed(seed)
 
