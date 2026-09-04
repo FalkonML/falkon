@@ -1,8 +1,10 @@
+
 import argparse
 import datetime
 import functools
 import sys
 import time
+import random
 
 import numpy as np
 import torch
@@ -66,6 +68,7 @@ def print_kfold_error_report(k, test_errs, train_errs, err_names, train_times=No
 
 
 def seed_all(seed):
+    random.seed(seed)
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -87,25 +90,18 @@ def generic_fit(
         load_fn = get_load_fn(dset)
         Xtr, Ytr, Xts, Yts, kwargs = load_fn(dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
         if data_on_dev:
-#            Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
             Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device), Xts.to(device), Yts.to(device)
         else:
             Xtr = Xtr.pin_memory()
             Ytr = Ytr.pin_memory()
-
 
         if target_class is not None:            
             Ytr = Ytr.argmax(-1).to(Xtr.device, Xtr.dtype)
             Yts = Yts.argmax(-1).to(Xtr.device, Xtr.dtype)
             Ytr[Ytr != target_class] = -1.0
             Ytr[Ytr == target_class] = 1.0
-
             Yts[Yts != target_class] = -1.0
             Yts[Yts == target_class] = 1.0
-
-
-        if data_on_dev:            
-            Ytr, Yts = Ytr.flatten(), Yts.flatten()
 
         model.init_model(Xtr, Ytr, Xts, Yts)
         print(f"Starting to train model {model} on data {dset}", flush=True)
@@ -141,7 +137,6 @@ def generic_fit(
                 model.error_fn = err_fns[0]
 
             if data_on_dev:
-#                Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device).flatten(), Xts.to(device), Yts.to(device).flatten()
                 Xtr, Ytr, Xts, Yts = Xtr.to(device), Ytr.to(device), Xts.to(device), Yts.to(device)
             else:
                 Xtr = Xtr.pin_memory()
@@ -152,13 +147,8 @@ def generic_fit(
                 Yts = Yts.argmax(-1).to(Xtr.device, Xtr.dtype)
                 Ytr[Ytr != target_class] = -1.0
                 Ytr[Ytr == target_class] = 1.0
-
                 Yts[Yts != target_class] = -1.0
                 Yts[Yts == target_class] = 1.0
-                
-            if data_on_dev:            
-                Ytr, Yts = Ytr.flatten(), Yts.flatten()
-
 
             model.init_model(Xtr, Ytr, Xts, Yts)
             if it == 0:
@@ -249,7 +239,7 @@ def run_balkon(
     num_iter: int,
     num_centers: int,
     kernel_sigma: float,
-    kernel_nu : float,
+    kernel_nu: float,
     penalty: float,
     kernel: str,
     kfold: int,
@@ -294,7 +284,7 @@ def run_balkon(
         ),
         kernel_type=kernel,
         kernel_sigma=kernel_sigma,
-        kernel_nu = kernel_nu
+        kernel_nu=kernel_nu,
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
@@ -447,7 +437,7 @@ def run_falkon(
     num_iter: int,
     num_centers: int,
     kernel_sigma: float,
-    kernel_nu : float,
+    kernel_nu: float,
     penalty: float,
     kernel: str,
     kfold: int,
@@ -465,13 +455,14 @@ def run_falkon(
         dtype = DataType.float64
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
-        no_single_kernel=True,#False,
+        no_single_kernel=False,
         cg_tolerance=5e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
+        keops_sum_scheme="kahan_scheme",
         store_kernel_d_threshold=1500,
         #max_cpu_mem=(160*2**30),
         debug=debug,
@@ -495,7 +486,7 @@ def run_falkon(
         ),
         kernel_type=kernel,
         kernel_sigma=kernel_sigma,
-        kernel_nu = kernel_nu
+        kernel_nu=kernel_nu,
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
@@ -599,7 +590,7 @@ if __name__ == "__main__":
             num_iter=args.epochs,
             num_centers=args.num_centers,
             kernel_sigma=args.sigma,
-            kernel_nu = args.nu,
+            kernel_nu=args.nu,
             penalty=args.penalty,
             kernel=args.kernel,
             pos_weight=args.falkon_pos_weight,
@@ -617,7 +608,7 @@ if __name__ == "__main__":
             num_iter=args.epochs,
             num_centers=args.num_centers,
             kernel_sigma=args.sigma,
-            kernel_nu = args.nu,
+            kernel_nu=args.nu,
             penalty=args.penalty,
             kernel=args.kernel,
             kfold=args.kfold,
