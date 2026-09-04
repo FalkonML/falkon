@@ -1,5 +1,5 @@
 
-gitimport argparse
+import argparse
 import datetime
 import functools
 import sys
