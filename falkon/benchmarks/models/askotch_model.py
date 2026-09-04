@@ -63,7 +63,7 @@ class ASkotchWrapper:
         print(f"ASkotch epoch {len(self.fit_times_) - 1}:")
         print(f"\telapsed: {self.fit_times_[-1]:.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
         if self.error_fn is not None:
-            test_err, test_err_name = self.error_fn(Yts, preds)
+            test_err, test_err_name = self.error_fn(Yts.unsqueeze(1), preds)
             print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
         print()
 
@@ -74,6 +74,10 @@ class ASkotchWrapper:
         return block_size
 
     def init_model(self, Xtr, Ytr, Xts, Yts):
+        if Ytr.dim() > 1:  # assume Yts has same ndims
+            assert Ytr.shape[1] == 1, "Unsupported multiple targets with ASkotch"
+            Ytr = Ytr.squeeze(1)
+            Yts = Yts.squeeze(1)
         block_size = self.get_block_size(Xtr)
         w0 = torch.zeros((Xtr.shape[0], ), device=self.device)
         krr = FullKRR(
@@ -85,6 +89,10 @@ class ASkotchWrapper:
         return None
 
     def fit(self, Xtr, Ytr, Xts, Yts):
+        if Ytr.dim() > 1:  # assume Yts has same ndims
+            assert Ytr.shape[1] == 1, "Unsupported multiple targets with ASkotch"
+            Ytr = Ytr.squeeze(1)
+            Yts = Yts.squeeze(1)
         if self.model is None:
             self.init_model(Xtr, Ytr, Xts, Yts)
         assert self.model is not None
@@ -110,13 +118,11 @@ class ASkotchWrapper:
             raise ValueError("predict called before fit")
         kern_fn = self.model.model._get_kernel_fn()
         K_pred = kern_fn(Xtst, self.model.model.x, False)
-
-        pred = K_pred @ self.opt.model.w
-        
+        pred = K_pred @ self.model.model.w
         
         if self.task == 'mc-classification':
             pred = pred.sign()
-        return pred
+        return pred.unsqueeze(1)
 
     def __repr__(self) -> str:
         return repr(self.model)
