@@ -7,10 +7,11 @@ from falkon import kernels
 
 
 class FalkonWrapper:
-    def __init__(self, base_model, kernel_type: str, kernel_sigma: float):
+    def __init__(self, base_model, kernel_type: str, kernel_sigma: float, kernel_nu : float):
         self.base_model = base_model
         self.kernel_sigma = kernel_sigma
         self.kernel_type = kernel_type
+        self.kernel_nu = kernel_nu
 
     def __getattr__(self, name):
         if name in {"error_fn", "fit_times_", "reset"}:
@@ -40,6 +41,8 @@ class FalkonWrapper:
             k = kernels.LaplacianKernel(sigma)
         elif kernel_type.lower() == "linear":
             k = kernels.LinearKernel(beta=1.0, gamma=sigma)
+        elif kernel_type.lower() == "matern":
+            k = kernels.MaternKernel(sigma=sigma,nu=self.kernel_nu)
         else:
             raise ValueError(f"Kernel {kernel_type} not understood for algorithm Balkon")
         return k
