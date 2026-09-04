@@ -1,4 +1,5 @@
-import argparse
+
+gitimport argparse
 import datetime
 import functools
 import sys
@@ -238,6 +239,7 @@ def run_balkon(
     num_iter: int,
     num_centers: int,
     kernel_sigma: float,
+    kernel_nu: float,
     penalty: float,
     kernel: str,
     kfold: int,
@@ -281,7 +283,8 @@ def run_balkon(
             block_size=block_size,
         ),
         kernel_type=kernel,
-        kernel_sigma=kernel_sigma
+        kernel_sigma=kernel_sigma,
+        kernel_nu=kernel_nu,
     )
     pt_device = torch.device('cuda') #torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
@@ -434,6 +437,7 @@ def run_falkon(
     num_iter: int,
     num_centers: int,
     kernel_sigma: float,
+    kernel_nu: float,
     penalty: float,
     kernel: str,
     kfold: int,
@@ -451,13 +455,14 @@ def run_falkon(
         dtype = DataType.float64
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
-        no_single_kernel=True,#False,
+        no_single_kernel=False,
         cg_tolerance=5e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
         pc_epsilon_32=1e-6,
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
+        keops_sum_scheme="kahan_scheme",
         store_kernel_d_threshold=1500,
         #max_cpu_mem=(160*2**30),
         debug=debug,
@@ -481,6 +486,7 @@ def run_falkon(
         ),
         kernel_type=kernel,
         kernel_sigma=kernel_sigma,
+        kernel_nu=kernel_nu,
     )
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
@@ -584,6 +590,7 @@ if __name__ == "__main__":
             num_iter=args.epochs,
             num_centers=args.num_centers,
             kernel_sigma=args.sigma,
+            kernel_nu=args.nu,
             penalty=args.penalty,
             kernel=args.kernel,
             pos_weight=args.falkon_pos_weight,
@@ -601,6 +608,7 @@ if __name__ == "__main__":
             num_iter=args.epochs,
             num_centers=args.num_centers,
             kernel_sigma=args.sigma,
+            kernel_nu=args.nu,
             penalty=args.penalty,
             kernel=args.kernel,
             kfold=args.kfold,
