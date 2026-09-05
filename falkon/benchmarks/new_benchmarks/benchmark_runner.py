@@ -246,6 +246,7 @@ def run_balkon(
     seed: int,
     use_keops: bool,
     block_size: int,
+    recompute_blocks: bool,
     debug: bool,
 ):
     import falkon
@@ -281,6 +282,7 @@ def run_balkon(
             error_every=1,
             options=opt,
             block_size=block_size,
+            recompute_blocks=recompute_blocks,
         ),
         kernel_type=kernel,
         kernel_sigma=kernel_sigma,

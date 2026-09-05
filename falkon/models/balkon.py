@@ -37,6 +37,7 @@ class Balkon(FalkonBase):
         penalty: float,
         M: int,
         block_size: int,
+        recompute_blocks: bool = True,
         center_selection: str | falkon.center_selection.CenterSelector = "uniform",
         maxiter: int = 20,
         seed: int | None = None,
@@ -54,6 +55,7 @@ class Balkon(FalkonBase):
                 f"and block size {block_size}."
             )
         self.block_size = block_size
+        self.recompute_blocks = recompute_blocks
         self._init_cuda()
         self.precond: BalkonPreconditioner | None = None
 
@@ -71,7 +73,7 @@ class Balkon(FalkonBase):
         if pc_opt.debug:
             dev_str = "CPU" if pc_opt.use_cpu else f"{self.num_gpus} GPUs"
             print(f"Preconditioner will run on {dev_str}")
-        pc = BalkonPreconditioner(self.penalty, self.kernel, data_size=n, block_size=self.block_size, opt=pc_opt)
+        pc = BalkonPreconditioner(self.penalty, self.kernel, data_size=n, block_size=self.block_size, recompute_blocks=self.recompute_blocks, opt=pc_opt)
         pc.init(ny_points)
         return pc
 
