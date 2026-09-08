@@ -82,6 +82,7 @@ def generic_fit(
     dtype: DataType,
     data_path: str,
     data_on_dev: bool,
+    max_num_train: int | None,
 ):
     err_fns_ = get_err_fns(dset)
     if kfold == 1:
@@ -93,6 +94,9 @@ def generic_fit(
         else:
             Xtr = Xtr.pin_memory()
             Ytr = Ytr.pin_memory()
+        if max_num_train is not None:
+            Xtr = Xtr[:max_num_train]
+            Ytr = Ytr[:max_num_train]
 
         model.init_model(Xtr, Ytr, Xts, Yts)
         print(f"Starting to train model {model} on data {dset}", flush=True)
@@ -132,6 +136,9 @@ def generic_fit(
             else:
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
+            if max_num_train is not None:
+                Xtr = Xtr[:max_num_train]
+                Ytr = Ytr[:max_num_train]
 
             model.init_model(Xtr, Ytr, Xts, Yts)
             if it == 0:
@@ -298,7 +305,8 @@ def run_askotch(
     num_iter : int,
     block_size : int,
     kfold : int,
-    seed : int = 124151
+    seed : int = 124151,
+    max_num_train: int | None = None,
 ):
     sys.path.append(ASKOTCH_BASE_PATH)
     import pykeops
@@ -336,6 +344,7 @@ def run_askotch(
         dtype=dtype,
         data_path=data_path,
         data_on_dev=True,
+        max_num_train=max_num_train,
     )
 
 
@@ -512,6 +521,7 @@ if __name__ == "__main__":
     p.add_argument("--subsample", type=int, required=False, default=0, help="Data subsampling")
     p.add_argument("-k", "--kfold", type=int, default=1, help="Number of folds for k-fold CV.")
     p.add_argument("--seed", type=int, default=RANDOM_SEED, help="Random number generator seed")
+    p.add_argument("--max-num-train", type=int, default=None)
     # Algorithm-specific arguments
     p.add_argument(
         "-M",
@@ -640,7 +650,8 @@ if __name__ == "__main__":
             num_iter=args.epochs,
             block_size=args.askotch_bs,
             kfold=args.kfold,
-            seed=args.seed
+            seed=args.seed,
+            max_num_train=args.max_num_train,
         )
     elif args.algorithm == "joker":
         assert args.joker_criterion is not None
