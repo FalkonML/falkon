@@ -154,6 +154,7 @@ def generic_fit(
             if hasattr(model, "reset"):
                 model.reset()
             torch.cuda.empty_cache()
+            del Xtr, Xts, Ytr, Yts
         print_kfold_error_report(
             kfold, test_errs, train_errs, err_names, train_times=train_times, inference_times=test_times
         )
@@ -488,6 +489,11 @@ def run_falkon(
 if __name__ == "__main__":
     print("-------------------------------------------")
     print(print(datetime.datetime.now()))
+    if torch.cuda.is_available():
+        print(f"{torch.cuda.device_count()} available devices.")
+    else:
+        print(f"No CUDA device available.")
+
     p = argparse.ArgumentParser(description="FALKON Benchmark Runner")
 
     p.add_argument("-a", "--algorithm", type=str, choices=["falkon", "balkon", "eigenpro", "askotch", "joker"])
@@ -564,6 +570,8 @@ if __name__ == "__main__":
     p.add_argument("--joker-n-fastfood", type=int, default=100, help="Number of samples for Fastfood approximation")
 
     args = p.parse_args()
+    for name, value in vars(args).items():
+        print(f"{name}: {value}")
     print(f"STARTING {args.algorithm} WITH SEED {args.seed}. K-fold={args.kfold}")
 
     if args.algorithm == "falkon":
