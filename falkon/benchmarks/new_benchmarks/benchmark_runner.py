@@ -82,7 +82,6 @@ def generic_fit(
     dtype: DataType,
     data_path: str,
     data_on_dev: bool,
-    target_class = None
 ):
     err_fns_ = get_err_fns(dset)
     if kfold == 1:
@@ -94,14 +93,6 @@ def generic_fit(
         else:
             Xtr = Xtr.pin_memory()
             Ytr = Ytr.pin_memory()
-
-        if target_class is not None:            
-            Ytr = Ytr.argmax(-1).to(Xtr.device, Xtr.dtype)
-            Yts = Yts.argmax(-1).to(Xtr.device, Xtr.dtype)
-            Ytr[Ytr != target_class] = -1.0
-            Ytr[Ytr == target_class] = 1.0
-            Yts[Yts != target_class] = -1.0
-            Yts[Yts == target_class] = 1.0
 
         model.init_model(Xtr, Ytr, Xts, Yts)
         print(f"Starting to train model {model} on data {dset}", flush=True)
@@ -141,14 +132,6 @@ def generic_fit(
             else:
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
-
-            if target_class is not None:            
-                Ytr = Ytr.argmax(-1).to(Xtr.device, Xtr.dtype)
-                Yts = Yts.argmax(-1).to(Xtr.device, Xtr.dtype)
-                Ytr[Ytr != target_class] = -1.0
-                Ytr[Ytr == target_class] = 1.0
-                Yts[Yts != target_class] = -1.0
-                Yts[Yts == target_class] = 1.0
 
             model.init_model(Xtr, Ytr, Xts, Yts)
             if it == 0:
@@ -305,7 +288,7 @@ def run_askotch(
     dset: Dataset,
     data_path: str,
     dtype : DataType | None,
-    task : str, # 'regression' or 'classification'
+    task : str, # 'regression' or 'classification' or 'mc-classification'
     kernel_type : str, # 'rbf' or 'matern'
     sigma : float,  # used for both matern and rbf kernel
     lam : float, # regularization
@@ -313,7 +296,6 @@ def run_askotch(
     rank : int,
     num_iter : int,
     block_size : int,
-    target_class : int,
     kfold : int,
     seed : int = 124151
 ):
@@ -340,8 +322,9 @@ def run_askotch(
         kernel_sigma=sigma,
         kernel_nu=nu,
         unsc_lam=lam,
-        task=task, num_iter=num_iter,  target_class=target_class,
-        device=pt_device
+        task=task,
+        num_iter=num_iter,
+        device=pt_device,
     )
     generic_fit(
         askotch,
@@ -352,7 +335,6 @@ def run_askotch(
         dtype=dtype,
         data_path=data_path,
         data_on_dev=True,
-        target_class=target_class
     )
 
 
@@ -564,9 +546,9 @@ if __name__ == "__main__":
     )
 
     ######### ASKOTCH PARAMS ##############
-    p.add_argument('--askotch-task', default='classification', choices=['classification', 'regression'], help='Task tackled by ASkotch')
+    p.add_argument('--askotch-task', default='classification', 
+                   choices=['classification', 'regression', 'mc-classification'], help='Task tackled by ASkotch')
     p.add_argument('--askotch-bs', default=100, type=int, help='Block-size used in ASkotch')
-    p.add_argument('--askotch-target-class', default=None, type=int, help='Target class (for multiclass classification)')
 
     p.add_argument('--nu', default=5/2, type=float, help='nu of Matern kernel')
 
@@ -638,18 +620,17 @@ if __name__ == "__main__":
         )
     elif args.algorithm == "askotch":
         run_askotch(
-            dset = args.dataset,
+            dset=args.dataset,
             data_path=args.data_path,
             dtype=args.dtype,
             task=args.askotch_task,
             sigma=args.sigma,
             nu=args.nu,
             lam=args.penalty,
-            kernel_type = args.kernel,
+            kernel_type=args.kernel,
             rank=args.num_centers,
             num_iter=args.epochs,
             block_size=args.askotch_bs,
-            target_class=args.askotch_target_class,
             kfold=args.kfold,
             seed=args.seed
         )

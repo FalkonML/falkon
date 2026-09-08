@@ -18,7 +18,6 @@ class ASkotchWrapper:
         task,
         num_iter,
         device,
-        target_class = None,
         log_every=1
     ):
         self.block_size = block_size
@@ -32,10 +31,10 @@ class ASkotchWrapper:
         self.device = device
         self.log_every = log_every
         self.fit_times_ = []
-        self.target_class = target_class
 
         self.error_fn = None
         self.model = None
+        self.mc_weights = None
 
     def get_median_sigma(self, data, num_samples=10000):
         sub_data = data[:num_samples]
@@ -56,16 +55,21 @@ class ASkotchWrapper:
             raise ValueError(f"Kernel {self.kernel_type} not valid for ASkotch")
 
     def inter_epoch_cback(self, Xts, Yts):
-        print("Running test-set predictions...", flush=True)
-        pred_start_time = time.time()
-        preds = self.predict(Xts)
-        pred_elapsed = time.time() - pred_start_time
-        print(f"ASkotch epoch {len(self.fit_times_) - 1}:")
-        print(f"\telapsed: {self.fit_times_[-1]:.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
-        if self.error_fn is not None:
-            test_err, test_err_name = self.error_fn(Yts.unsqueeze(1), preds)
-            print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
-        print()
+        if self.task != "mc-classification":
+            print("Running test-set predictions...", flush=True)
+            pred_start_time = time.time()
+            preds = self.predict(Xts)
+            pred_elapsed = time.time() - pred_start_time
+            print(f"ASkotch epoch {len(self.fit_times_) - 1}:")
+            print(f"\telapsed: {self.fit_times_[-1]:.2f}s - predictions in {pred_elapsed:.2f}s", flush=True)
+            if self.error_fn is not None:
+                test_err, test_err_name = self.error_fn(Yts.unsqueeze(1), preds)
+                print(f"\ttest {test_err_name}: {test_err:9.6f}", flush=True)
+            print()
+        else:
+            print(f"ASkotch epoch {len(self.fit_times_) - 1}:")
+            print(f"\telapsed: {self.fit_times_[-1]:.2f}s", flush=True)
+            print()
 
     def get_block_size(self, Xtr):
         block_size = self.block_size
@@ -88,7 +92,7 @@ class ASkotchWrapper:
         self.model = ASkotchV2(model=krr, block_sz=block_size, precond_params=self.precond_params)
         return None
 
-    def fit(self, Xtr, Ytr, Xts, Yts):
+    def _fit_internal(self, Xtr, Ytr, Xts, Yts, initial_time=0.0):
         if Ytr.dim() > 1:  # assume Yts has same ndims
             assert Ytr.shape[1] == 1, "Unsupported multiple targets with ASkotch"
             Ytr = Ytr.squeeze(1)
@@ -96,7 +100,7 @@ class ASkotchWrapper:
         if self.model is None:
             self.init_model(Xtr, Ytr, Xts, Yts)
         assert self.model is not None
-        self.fit_times_ = [0.0]
+        self.fit_times_ = [initial_time]
         block_size = self.get_block_size(Xtr)
         cback_every = Xtr.shape[0] // block_size
         t_start = time.time()
@@ -113,16 +117,45 @@ class ASkotchWrapper:
         t_elapsed = time.time() - t_start
         self.fit_times_.append(self.fit_times_[-1] + t_elapsed)
 
+    def fit(self, Xtr, Ytr, Xts, Yts):
+        if self.task == "mc-classification":
+            self.mc_weights = []
+            tot_time = 0.0
+            num_classes = Ytr.shape[1]
+            assert num_classes > 1
+            for target_class in range(num_classes):
+                print(f"Training model for target class {target_class} (out of {num_classes})")
+                bin_ytr = Ytr.argmax(-1).to(Xtr.device, Xtr.dtype)
+                bin_yts = Yts.argmax(-1).to(Xtr.device, Xtr.dtype)
+                bin_ytr[bin_ytr != target_class] = -1.0
+                bin_ytr[bin_ytr == target_class] = 1.0
+                bin_yts[bin_yts != target_class] = -1.0
+                bin_yts[bin_yts == target_class] = 1.0
+                self.model = None
+                self.init_model(Xtr, bin_ytr, Xts, bin_yts)
+                assert self.model is not None
+                self._fit_internal(Xtr, bin_ytr, Xts, bin_yts, initial_time=tot_time)
+                self.mc_weights.append(self.model.model.w.detach().cpu())
+                tot_time = self.fit_times_[-1]
+        else:
+            self._fit_internal(Xtr, Ytr, Xts, Yts)
+
     def predict(self, Xtst):
         if self.model is None:
             raise ValueError("predict called before fit")
         kern_fn = self.model.model._get_kernel_fn()
         K_pred = kern_fn(Xtst, self.model.model.x, False)
-        pred = K_pred @ self.model.model.w
-        
-        if self.task == 'mc-classification':
-            pred = pred.sign()
-        return pred.unsqueeze(1)
+        if self.task == "mc-classification":
+            assert self.mc_weights is not None
+            mc_preds = []
+            for target_class, w in enumerate(self.mc_weights):
+                pred = K_pred @ w.to(K_pred.device())
+                mc_preds.append(pred)
+            pred = torch.stack(mc_preds, dim=-1)
+        else:
+            pred = K_pred @ self.model.model.w
+            pred = pred.unsqueeze(1)
+        return pred
 
     def __repr__(self) -> str:
         return repr(self.model)
