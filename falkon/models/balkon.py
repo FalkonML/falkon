@@ -73,7 +73,14 @@ class Balkon(FalkonBase):
         if pc_opt.debug:
             dev_str = "CPU" if pc_opt.use_cpu else f"{self.num_gpus} GPUs"
             print(f"Preconditioner will run on {dev_str}")
-        pc = BalkonPreconditioner(self.penalty, self.kernel, data_size=n, block_size=self.block_size, recompute_blocks=self.recompute_blocks, opt=pc_opt)
+        pc = BalkonPreconditioner(
+            self.penalty, 
+            self.kernel, 
+            data_size=n, 
+            block_size=self.block_size, 
+            recompute_blocks=self.recompute_blocks, 
+            opt=pc_opt
+        )
         pc.init(ny_points)
         return pc
 

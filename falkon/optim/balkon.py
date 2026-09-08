@@ -28,7 +28,7 @@ class BalkonConjugateGradient(Optimizer):
             KMMv.mul_(penalty / self.preconditioner.num_blocks)
 
             dKMMv = self.kernel.dmmv(X, M, sol, None, opt=self.params)
-            dKMMv = dKMMv.div_(n * self.preconditioner.num_blocks)
+            dKMMv.div_(n * self.preconditioner.num_blocks)
 
             dKMMv.add_(KMMv)
             return dKMMv

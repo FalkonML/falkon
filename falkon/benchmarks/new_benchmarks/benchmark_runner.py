@@ -553,6 +553,7 @@ if __name__ == "__main__":
 
     # Balkon-specific
     p.add_argument("--balkon-block-size", type=int, required=False, help="Required for Balkon")
+    p.add_argument("--balkon-in-mem-pc", action="store_true", default=False, help="Keep Balkon preconditioner in memory.")
 
     # EigenPro-specific
     p.add_argument(
@@ -617,6 +618,7 @@ if __name__ == "__main__":
             seed=args.seed,
             block_size=args.balkon_block_size,
             debug=args.debug,
+            recompute_blocks=not args.balkon_in_mem_pc,
         )
     elif args.algorithm == "eigenpro":
         assert args.epro_pc_centers is not None
