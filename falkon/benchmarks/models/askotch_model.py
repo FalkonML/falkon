@@ -78,6 +78,9 @@ class ASkotchWrapper:
         return block_size
 
     def init_model(self, Xtr, Ytr, Xts, Yts):
+        if self.task == "mc-classification" and (Ytr.dim() > 1 and Ytr.shape[1] > 1):
+            # stupid hack to get around benchmark_runner
+            return None
         if Ytr.dim() > 1:  # assume Yts has same ndims
             assert Ytr.shape[1] == 1, "Unsupported multiple targets with ASkotch"
             Ytr = Ytr.squeeze(1)
@@ -149,7 +152,7 @@ class ASkotchWrapper:
             assert self.mc_weights is not None
             mc_preds = []
             for target_class, w in enumerate(self.mc_weights):
-                pred = K_pred @ w.to(K_pred.device())
+                pred = K_pred @ w.to(Xtst.device)
                 mc_preds.append(pred)
             pred = torch.stack(mc_preds, dim=-1)
         else:
@@ -159,7 +162,7 @@ class ASkotchWrapper:
 
     def __repr__(self) -> str:
         return repr(self.model)
-    
+
     def __str__(self) -> str:
         return str(self.model)
-    
+
