@@ -82,7 +82,7 @@ def generic_fit(
     dtype: DataType,
     data_path: str,
     data_on_dev: bool,
-    max_num_train: int | None,
+    max_num_train: int | None = None,
 ):
     err_fns_ = get_err_fns(dset)
     if kfold == 1:
@@ -95,6 +95,7 @@ def generic_fit(
             Xtr = Xtr.pin_memory()
             Ytr = Ytr.pin_memory()
         if max_num_train is not None:
+            print(f"Taking first {max_num_train} points from the training set.")
             Xtr = Xtr[:max_num_train]
             Ytr = Ytr[:max_num_train]
 
@@ -137,6 +138,7 @@ def generic_fit(
                 Xtr = Xtr.pin_memory()
                 Ytr = Ytr.pin_memory()
             if max_num_train is not None:
+                print(f"Taking first {max_num_train} points from the training set.")
                 Xtr = Xtr[:max_num_train]
                 Ytr = Ytr[:max_num_train]
 
