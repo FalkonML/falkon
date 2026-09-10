@@ -82,6 +82,7 @@ def generic_fit(
     dtype: DataType,
     data_path: str,
     data_on_dev: bool,
+    seed: int,
     max_num_train: int | None = None,
 ):
     err_fns_ = get_err_fns(dset)
@@ -126,7 +127,7 @@ def generic_fit(
         train_times, test_times = [], []
 
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
-            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path)
+            load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path, seed=seed)
         ):
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
             if hasattr(model, "error_fn"):
@@ -220,6 +221,7 @@ def run_eigenpro(
         dtype=dtype,
         data_path=data_path,
         data_on_dev=False,
+        seed=seed,
     )
 
 
@@ -252,14 +254,15 @@ def run_balkon(
         dtype = DataType.float64
     opt = falkon.FalkonOptions(
         compute_arch_speed=False,
-        no_single_kernel=False,#True,
-        cg_tolerance=5e-4,
+        no_single_kernel=False,
+        cg_tolerance=5e-5,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
         pc_epsilon_32=1e-6, # lowered this to 1e-7 for flights (was 1e-6)
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
         keops_sum_scheme="kahan_scheme",
+        #keops_sum_scheme="block_sum",
         store_kernel_d_threshold=1500,
         #max_cpu_mem=(160*2**30),
         debug=debug,
@@ -291,6 +294,7 @@ def run_balkon(
         dtype=dtype,
         data_path=data_path,
         data_on_dev=False,
+        seed=seed,
     )
 
 
@@ -347,6 +351,7 @@ def run_askotch(
         data_path=data_path,
         data_on_dev=True,
         max_num_train=max_num_train,
+        seed=seed,
     )
 
 
@@ -423,6 +428,7 @@ def run_joker(
         dtype=dtype,
         data_path=data_path,
         data_on_dev=False,
+        seed=seed,
     )
 
 
@@ -455,10 +461,11 @@ def run_falkon(
         cg_tolerance=5e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
-        pc_epsilon_32=1e-6,
+        pc_epsilon_32=1e-6, # lowered this to 1e-7 for flights (was 1e-6)
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
         keops_sum_scheme="kahan_scheme",
+        #keops_sum_scheme="block_sum",
         store_kernel_d_threshold=1500,
         #max_cpu_mem=(160*2**30),
         debug=debug,
@@ -494,6 +501,7 @@ def run_falkon(
         dtype=dtype,
         data_path=data_path,
         data_on_dev=False,
+        seed=seed,
     )
 
 
@@ -504,7 +512,6 @@ if __name__ == "__main__":
         print(f"{torch.cuda.device_count()} available devices.")
     else:
         print(f"No CUDA device available.")
-
     p = argparse.ArgumentParser(description="FALKON Benchmark Runner")
 
     p.add_argument("-a", "--algorithm", type=str, choices=["falkon", "balkon", "eigenpro", "askotch", "joker"])
