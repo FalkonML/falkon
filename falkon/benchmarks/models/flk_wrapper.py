@@ -14,7 +14,7 @@ class FalkonWrapper:
         self.kernel_nu = kernel_nu
 
     def __getattr__(self, name):
-        if name in {"error_fn", "fit_times_", "reset"}:
+        if name in {"error_fn", "fit_times_", "reset", "_reset_state"}:
             return getattr(self.base_model, name)
         else:
             return getattr(self, name)

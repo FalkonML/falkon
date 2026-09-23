@@ -5,6 +5,7 @@ import functools
 import sys
 import time
 import random
+import gc
 
 import numpy as np
 import torch
@@ -16,7 +17,7 @@ from falkon.benchmarks.models.flk_wrapper import FalkonWrapper
 
 RANDOM_SEED = 123
 EIGENPRO_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/EigenPro"
-JOKER_BASE_PATH = "./joker/src" #"/leonardo/home/userexternal/gmeanti0/Joker-paper/src"
+JOKER_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/Joker-paper/src"
 ASKOTCH_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/fast_krr"
 
 
@@ -84,7 +85,13 @@ def generic_fit(
     data_on_dev: bool,
     seed: int,
     max_num_train: int | None = None,
+    from_fold: int = 0,
 ):
+    if from_fold >= kfold:
+        raise ValueError(
+            f"From-fold must be smaller than the maximum number of folds. "
+            f"Found from-fold={from_fold} and num-folds={kfold}"
+        )
     err_fns_ = get_err_fns(dset)
     if kfold == 1:
         # Load data
@@ -129,6 +136,9 @@ def generic_fit(
         for it, (Xtr, Ytr, Xts, Yts, kwargs) in enumerate(
             load_fn(k=kfold, dtype=dtype.to_numpy_dtype(), as_torch=True, path=data_path, seed=seed)
         ):
+            if from_fold > it:
+                print(f"Skipping fold {it}. Will start from fold {from_fold}")
+                continue
             err_fns = [functools.partial(fn, **kwargs) for fn in err_fns_]
             if hasattr(model, "error_fn"):
                 model.error_fn = err_fns[0]
@@ -163,8 +173,12 @@ def generic_fit(
                 train_times.append(t_elapsed)
             if hasattr(model, "reset"):
                 model.reset()
+            if hasattr(model, "_reset_state"):
+                model._reset_state()
             torch.cuda.empty_cache()
             del Xtr, Xts, Ytr, Yts
+            gc.collect()
+            gc.collect()
         print_kfold_error_report(
             kfold, test_errs, train_errs, err_names, train_times=train_times, inference_times=test_times
         )
@@ -184,6 +198,7 @@ def run_eigenpro(
     kernel: str,
     kfold: int,
     seed: int,
+    from_fold: int,
 ):
     sys.path.append(EIGENPRO_BASE_PATH)
     import eigenpro.kernels as kernels  # pyright: ignore[reportMissingImports]
@@ -222,6 +237,7 @@ def run_eigenpro(
         data_path=data_path,
         data_on_dev=False,
         seed=seed,
+        from_fold=from_fold,
     )
 
 
@@ -243,6 +259,7 @@ def run_balkon(
     block_size: int,
     recompute_blocks: bool,
     debug: bool,
+    from_fold: int,
 ):
     import falkon
     from falkon import kernels
@@ -295,6 +312,7 @@ def run_balkon(
         data_path=data_path,
         data_on_dev=False,
         seed=seed,
+        from_fold=from_fold,
     )
 
 
@@ -311,8 +329,9 @@ def run_askotch(
     num_iter : int,
     block_size : int,
     kfold : int,
-    seed : int = 124151,
-    max_num_train: int | None = None,
+    seed : int,
+    max_num_train: int | None,
+    from_fold: int,
 ):
     sys.path.append(ASKOTCH_BASE_PATH)
     import pykeops
@@ -352,6 +371,7 @@ def run_askotch(
         data_on_dev=True,
         max_num_train=max_num_train,
         seed=seed,
+        from_fold=from_fold,
     )
 
 
@@ -361,24 +381,25 @@ def run_joker(
     dtype : DataType | None,
     num_iter_subprob : int,
     criterion : str,
-    c : float, # penalty parameter of error term
-    kernel_type : str, # 'rbf' or 'matern'
-    sigma : float,  # used for both matern and rbf kernel
-    num_iter : int,
-    block_size : int,
-    data_block_size : int,
-    max_region_size : float,
-    opt_name : str, #trust_region or tncg
-    kfold : int,
-    incore : bool,
-    nrff : int,
-    n_fastfood : int,
-    inexact_type : str,
-    region_shrink_freq : int = 1000,
-    region_shrink_rate : float = 0.5,
-    delta_huber : float = -1.0,
-    eps : float = -1.0,
-    seed : int = 124151
+    c: float, # penalty parameter of error term
+    kernel_type: str,
+    sigma: float,  # used for both matern and rbf kernel
+    num_iter: int,
+    block_size: int,
+    data_block_size: int,
+    max_region_size: float,
+    opt_name: str, #trust_region or tncg
+    kfold: int,
+    incore: bool,
+    nrff: int,
+    n_fastfood: int,
+    inexact_type: str,
+    seed: int,
+    region_shrink_freq: int,
+    region_shrink_rate: float,
+    delta_huber: float,
+    eps: float,
+    from_fold: int,
 ):
     sys.path.append(JOKER_BASE_PATH)
     from criterion import make_criterion # pyright: ignore[reportMissingImports]
@@ -429,6 +450,7 @@ def run_joker(
         data_path=data_path,
         data_on_dev=False,
         seed=seed,
+        from_fold=from_fold,
     )
 
 
@@ -447,6 +469,7 @@ def run_falkon(
     use_keops: bool,
     pos_weight: float | None,
     debug: bool,
+    from_fold: int,
 ):
     from falkon import kernels
     from falkon.models import falkon
@@ -461,7 +484,7 @@ def run_falkon(
         cg_tolerance=5e-4,
         cg_stagnation_iterations=3,
         cg_stagnation_threshold=0.98,
-        pc_epsilon_32=1e-6, # lowered this to 1e-7 for flights (was 1e-6)
+        pc_epsilon_32=1e-7, # lowered this to 1e-7 for flights (was 1e-6)
         pc_epsilon_64=1e-13,
         keops_active="force" if use_keops else "no",
         keops_sum_scheme="kahan_scheme",
@@ -502,6 +525,7 @@ def run_falkon(
         data_path=data_path,
         data_on_dev=False,
         seed=seed,
+        from_fold=from_fold,
     )
 
 
@@ -529,6 +553,7 @@ if __name__ == "__main__":
     p.add_argument("-e", "--epochs", type=int, required=True, help="Number of epochs to run the algorithm for.")
     p.add_argument("--subsample", type=int, required=False, default=0, help="Data subsampling")
     p.add_argument("-k", "--kfold", type=int, default=1, help="Number of folds for k-fold CV.")
+    p.add_argument("--from-fold", type=int, default=0, help="Skip initial folds")
     p.add_argument("--seed", type=int, default=RANDOM_SEED, help="Random number generator seed")
     p.add_argument("--max-num-train", type=int, default=None)
     # Algorithm-specific arguments
@@ -609,6 +634,7 @@ if __name__ == "__main__":
             kfold=args.kfold,
             seed=args.seed,
             debug=args.debug,
+            from_fold=args.from_fold,
         )
     elif args.algorithm == "balkon":
         assert args.balkon_block_size is not None
@@ -628,6 +654,7 @@ if __name__ == "__main__":
             block_size=args.balkon_block_size,
             debug=args.debug,
             recompute_blocks=not args.balkon_in_mem_pc,
+            from_fold=args.from_fold,
         )
     elif args.algorithm == "eigenpro":
         assert args.epro_pc_centers is not None
@@ -644,6 +671,7 @@ if __name__ == "__main__":
             kernel=args.kernel,
             kfold=args.kfold,
             seed=args.seed,
+            from_fold=args.from_fold,
         )
     elif args.algorithm == "askotch":
         run_askotch(
@@ -661,6 +689,7 @@ if __name__ == "__main__":
             kfold=args.kfold,
             seed=args.seed,
             max_num_train=args.max_num_train,
+            from_fold=args.from_fold,
         )
     elif args.algorithm == "joker":
         assert args.joker_criterion is not None
@@ -687,7 +716,8 @@ if __name__ == "__main__":
             nrff=args.joker_nrff,
             incore = args.joker_incore,
             kfold=args.kfold,
-            seed=args.seed
+            seed=args.seed,
+            from_fold=args.from_fold,
         )
     else:
         raise ValueError(args.algorithm)
