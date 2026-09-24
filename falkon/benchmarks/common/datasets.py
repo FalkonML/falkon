@@ -510,7 +510,7 @@ class YelpDataset(RandomSplitDataset):
 
 
 class MiniBooneDataset(RandomSplitDataset,Hdf5Dataset):
-    file_name = "/data/DATASETS/miniboone/miniboone.h5" # type: ignore
+    file_name = "/data/DATASETS/miniboone/MiniBooNE_v2.h5" # type: ignore
 
     dset_name = "miniboone" # type: ignore
     default_train_frac = 0.8 # type: ignore

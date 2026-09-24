@@ -152,6 +152,7 @@ class ASkotchWrapper:
             assert self.mc_weights is not None
             mc_preds = []
             for target_class, w in enumerate(self.mc_weights):
+                # single class prediction will be 1, -1
                 pred = K_pred @ w.to(Xtst.device)
                 mc_preds.append(pred)
             pred = torch.stack(mc_preds, dim=-1)
