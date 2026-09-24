@@ -141,7 +141,7 @@ class JokerWrapper:
         if self.model is None:
             self.init_model(Xtr, Ytr, Xts, Yts)
         assert self.model is not None
-        cback_every = Xtr.shape[0] // self.block_size
+        cback_every = min(Xtr.shape[0] // self.block_size, 100_000)
         self.fit_times_ = [time.time()]
         self.model.fit(
             max_iter=self.num_iter,

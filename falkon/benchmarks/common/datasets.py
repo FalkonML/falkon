@@ -1,4 +1,5 @@
 import os
+import gc
 import pathlib
 import typing
 from abc import ABC, abstractmethod
@@ -247,11 +248,11 @@ class BaseDataset:
             return self.to_tensorflow(Xtr, Ytr, Xts, Yts, **kwargs)
         return Xtr, Ytr, Xts, Yts, kwargs
 
-    def load_data_cv(self, dtype, k, path, as_torch=False):
+    def load_data_cv(self, dtype, k, path, as_torch=False, seed=None):
         X, Y = self.read_data(dtype, path)
         print(f"Loaded {self.dset_name} dataset in {dtype} precision.", flush=True)
         print(f"Data size: {X.shape[0]} points with {X.shape[1]} features", flush=True)
-        for iteration, (Xtr, Xts, Ytr, Yts) in enumerate(kfold_split(X, Y, n_splits=k, shuffle=True)):
+        for iteration, (Xtr, Xts, Ytr, Yts) in enumerate(kfold_split(X, Y, n_splits=k, shuffle=True, random_state=seed)):
             Xtr, Xts, other_X = self.preprocess_x(Xtr, Xts)
             Ytr, Yts, other_Y = self.preprocess_y(Ytr, Yts)
             print(
@@ -264,6 +265,8 @@ class BaseDataset:
                 yield self.to_torch(Xtr, Ytr, Xts, Yts, **kwargs)
             else:
                 yield Xtr, Ytr, Xts, Yts, kwargs
+            del Xtr, Xts, Ytr, Yts, other_X, other_Y, kwargs
+            gc.collect()
 
     @abstractmethod
     def read_data(self, dtype, path: str | pathlib.Path) -> tuple[np.ndarray | scipy.sparse.spmatrix, np.ndarray]:
