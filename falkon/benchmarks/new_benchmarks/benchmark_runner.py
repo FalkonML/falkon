@@ -17,7 +17,7 @@ from falkon.benchmarks.models.flk_wrapper import FalkonWrapper
 RANDOM_SEED = 123
 EIGENPRO_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/EigenPro"
 JOKER_BASE_PATH = "./joker/src" #"/leonardo/home/userexternal/gmeanti0/Joker-paper/src"
-ASKOTCH_BASE_PATH = "/leonardo/home/userexternal/gmeanti0/fast_krr"
+ASKOTCH_BASE_PATH = "../../../../balkon_experiments/fast_krr" #"/leonardo/home/userexternal/gmeanti0/fast_krr"
 
 
 def test_model(model, model_name, Xts, Yts, Xtr, Ytr, err_fns):
