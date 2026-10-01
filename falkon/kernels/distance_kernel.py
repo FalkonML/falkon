@@ -459,7 +459,8 @@ class LaplacianKernel(DiffKernel, KeopsKernelMixin):
         super().__init__(self.kernel_name, opt, core_fn=laplacian_core, sigma=sigma)
 
     def keops_mmv_impl(self, X1, X2, v, kernel, out, opt, kwargs_m1, kwargs_m2):
-        formula = "Exp(-Sum(Abs((x1 / g) - (x2 / g)))) * v"
+        #formula = "Exp(-Sum(Abs((x1 / g) - (x2 / g)))) * v"
+        formula = "Exp(-Sum(Abs(x1 - x2))/g) * v"
         aliases = [
             f"x1 = Vi({X1.shape[1]})",
             f"x2 = Vj({X2.shape[1]})",
