@@ -9,7 +9,7 @@ from falkon.utils import decide_cuda
 from .preconditioner import Preconditioner
 
 
-class BalkonPreconditioner(Preconditioner):
+class BloksPreconditioner(Preconditioner):
     def __init__(self, penalty: float, kernel, data_size: int, block_size: int, recompute_blocks: bool, opt: FalkonOptions):
         super().__init__()
         self.params = opt
@@ -76,10 +76,10 @@ class BalkonPreconditioner(Preconditioner):
         return out
 
     def apply_t(self, v: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("Balkon preconditioner does not support transpose application")
+        raise NotImplementedError("Bloks preconditioner does not support transpose application")
 
     def __str__(self):
         return (
-            f"BalkonPreconditioner(block_size={self.block_size}, "
+            f"BloksPreconditioner(block_size={self.block_size}, "
             f"_lambda={self.base_prec._lambda}, kernel={self.base_prec.kernel})"
         )

@@ -1,11 +1,11 @@
-from .balkon import Balkon
+from .bloks import Bloks
 from .falkon import Falkon
 from .incore_falkon import InCoreFalkon
 from .logistic_falkon import LogisticFalkon
 
 __all__ = (
     "Falkon",
-    "Balkon",
+    "Bloks",
     "LogisticFalkon",
     "InCoreFalkon",
 )

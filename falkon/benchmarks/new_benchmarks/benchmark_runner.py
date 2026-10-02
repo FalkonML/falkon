@@ -242,8 +242,8 @@ def run_eigenpro(
 
 
 ##############
-### BALKON ###
-def run_balkon(
+### BLOKS ###
+def run_bloks(
     dset: Dataset,
     data_path: str,
     dtype: DataType | None,
@@ -263,7 +263,7 @@ def run_balkon(
 ):
     import falkon
     from falkon import kernels
-    from falkon.models import balkon
+    from falkon.models import bloks
 
     seed_all(seed)
 
@@ -285,7 +285,7 @@ def run_balkon(
         debug=debug,
     )
     flk = FalkonWrapper(
-        balkon.Balkon(
+        bloks.Bloks(
             kernel=kernels.GaussianKernel(1.0),  # placeholder
             penalty=penalty,
             M=num_centers,
@@ -304,7 +304,7 @@ def run_balkon(
     pt_device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     generic_fit(
         flk,
-        model_name="Balkon",
+        model_name="Bloks",
         dset=dset,
         device=pt_device,
         kfold=kfold,
@@ -538,7 +538,7 @@ if __name__ == "__main__":
         print(f"No CUDA device available.")
     p = argparse.ArgumentParser(description="FALKON Benchmark Runner")
 
-    p.add_argument("-a", "--algorithm", type=str, choices=["falkon", "balkon", "eigenpro", "askotch", "joker"])
+    p.add_argument("-a", "--algorithm", type=str, choices=["falkon", "bloks", "eigenpro", "askotch", "joker"])
     p.add_argument("-d", "--dataset", type=Dataset, choices=list(Dataset), required=True, help="Dataset")
     p.add_argument("--data-path", type=str, help="Path to dataset")
     p.add_argument(
@@ -583,9 +583,9 @@ if __name__ == "__main__":
     # Falkon-specific
     p.add_argument("--falkon-pos-weight", type=float, required=False, help="Positive-class weight for falkon classification problem")
 
-    # Balkon-specific
-    p.add_argument("--balkon-block-size", type=int, required=False, help="Required for Balkon")
-    p.add_argument("--balkon-in-mem-pc", action="store_true", default=False, help="Keep Balkon preconditioner in memory.")
+    # Bloks-specific
+    p.add_argument("--bloks-block-size", type=int, required=False, help="Required for Bloks")
+    p.add_argument("--bloks-in-mem-pc", action="store_true", default=False, help="Keep Bloks preconditioner in memory.")
 
     # EigenPro-specific
     p.add_argument(
@@ -636,9 +636,9 @@ if __name__ == "__main__":
             debug=args.debug,
             from_fold=args.from_fold,
         )
-    elif args.algorithm == "balkon":
-        assert args.balkon_block_size is not None
-        run_balkon(
+    elif args.algorithm == "bloks":
+        assert args.bloks_block_size is not None
+        run_bloks(
             dset=args.dataset,
             data_path=args.data_path,
             use_keops=args.use_keops,
@@ -651,9 +651,9 @@ if __name__ == "__main__":
             kernel=args.kernel,
             kfold=args.kfold,
             seed=args.seed,
-            block_size=args.balkon_block_size,
+            block_size=args.bloks_block_size,
             debug=args.debug,
-            recompute_blocks=not args.balkon_in_mem_pc,
+            recompute_blocks=not args.bloks_in_mem_pc,
             from_fold=args.from_fold,
         )
     elif args.algorithm == "eigenpro":

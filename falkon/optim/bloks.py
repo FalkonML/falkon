@@ -9,11 +9,11 @@ from falkon.options import FalkonOptions
 from falkon.utils import TicToc
 
 
-class BalkonConjugateGradient(Optimizer):
+class BloksConjugateGradient(Optimizer):
     def __init__(
         self,
         kernel: falkon.kernels.Kernel,
-        preconditioner: falkon.preconditioner.BalkonPreconditioner,
+        preconditioner: falkon.preconditioner.BloksPreconditioner,
         opt: FalkonOptions,
     ):
         super().__init__()
@@ -22,7 +22,7 @@ class BalkonConjugateGradient(Optimizer):
         self.params = opt
         self.optimizer = PreconditionedConjugateGradient(preconditioner, opt.get_conjgrad_options())
 
-    def balkon_mmv(self, sol, penalty, X, M, n: int):
+    def bloks_mmv(self, sol, penalty, X, M, n: int):
         with TicToc("MMV", False):
             KMMv = self.kernel.mmv(M, M, sol, opt=self.params)
             KMMv.mul_(penalty / self.preconditioner.num_blocks)
@@ -48,7 +48,7 @@ class BalkonConjugateGradient(Optimizer):
             y_over_n = Y / (n * self.preconditioner.num_blocks)  # cannot modify Y inplace.
             B = self.kernel.mmv(M, X, y_over_n, opt=self.params)
 
-            mmv = functools.partial(self.balkon_mmv, penalty=_lambda, X=X, M=M, n=n)
+            mmv = functools.partial(self.bloks_mmv, penalty=_lambda, X=X, M=M, n=n)
             alpha = self.optimizer.solve(initial_solution, B, mmv, max_iter, callback)
 
         return alpha

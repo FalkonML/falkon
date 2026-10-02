@@ -45,7 +45,7 @@ class FalkonWrapper:
             assert self.kernel_nu is not None
             k = kernels.MaternKernel(sigma=sigma, nu=self.kernel_nu)
         else:
-            raise ValueError(f"Kernel {kernel_type} not understood for algorithm Balkon")
+            raise ValueError(f"Kernel {kernel_type} not understood for algorithm Bloks")
         return k
 
     def init_model(self, Xtr, Ytr, Xts, Yts):

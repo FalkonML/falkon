@@ -9,11 +9,11 @@ from torch import Tensor
 import falkon
 from falkon.models.model_utils import FalkonBase
 from falkon.options import FalkonOptions
-from falkon.preconditioner.blk_pc import BalkonPreconditioner
+from falkon.preconditioner.blk_pc import BloksPreconditioner
 from falkon.utils import TicToc
 from falkon.utils.devices import get_device_info
 
-__all__ = ("Balkon",)
+__all__ = ("Bloks",)
 
 
 def get_min_cuda_preconditioner_size(dt, opt: FalkonOptions) -> int:
@@ -30,7 +30,7 @@ def get_min_cuda_mmv_size(dt, opt: FalkonOptions) -> int:
         return opt.min_cuda_iter_size_64
 
 
-class Balkon(FalkonBase):
+class Bloks(FalkonBase):
     def __init__(
         self,
         kernel: falkon.kernels.Kernel,
@@ -57,7 +57,7 @@ class Balkon(FalkonBase):
         self.block_size = block_size
         self.recompute_blocks = recompute_blocks
         self._init_cuda()
-        self.precond: BalkonPreconditioner | None = None
+        self.precond: BloksPreconditioner | None = None
 
     def _reset_state(self):
         super()._reset_state()
@@ -68,12 +68,12 @@ class Balkon(FalkonBase):
         ny_points: Tensor,
         n: int,
         use_cuda_pc: bool,
-    ) -> BalkonPreconditioner:
+    ) -> BloksPreconditioner:
         pc_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not use_cuda_pc)
         if pc_opt.debug:
             dev_str = "CPU" if pc_opt.use_cpu else f"{self.num_gpus} GPUs"
             print(f"Preconditioner will run on {dev_str}")
-        pc = BalkonPreconditioner(
+        pc = BloksPreconditioner(
             self.penalty, 
             self.kernel, 
             data_size=n, 
@@ -110,12 +110,12 @@ class Balkon(FalkonBase):
         cb: Callable,
     ) -> Tensor:
         assert self.precond is not None
-        with TicToc("Computing Balkon iterations", debug=self.options.debug):
+        with TicToc("Computing Bloks iterations", debug=self.options.debug):
             o_opt: FalkonOptions = dataclasses.replace(self.options, use_cpu=not use_cuda)
             if o_opt.debug:
                 optim_dev_str = "CPU" if o_opt.use_cpu else f"{self.num_gpus} GPUs"
                 print(f"Optimizer will run on {optim_dev_str}", flush=True)
-            optim = falkon.optim.BalkonConjugateGradient(kernel, self.precond, o_opt)
+            optim = falkon.optim.BloksConjugateGradient(kernel, self.precond, o_opt)
             alpha = optim.solve(
                 X, ny_pts, Y, self.penalty, initial_solution=warm_start, max_iter=self.maxiter, callback=cb
             )

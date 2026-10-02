@@ -1,4 +1,4 @@
-from .balkon import BalkonConjugateGradient
+from .bloks import BloksConjugateGradient
 from .conjgrad import ConjugateGradient, Optimizer, PreconditionedConjugateGradient
 from .falkon import FalkonConjugateGradient
 
@@ -7,5 +7,5 @@ __all__ = (
     "ConjugateGradient",
     "PreconditionedConjugateGradient",
     "FalkonConjugateGradient",
-    "BalkonConjugateGradient",
+    "BloksConjugateGradient",
 )
