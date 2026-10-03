@@ -75,6 +75,24 @@ def lib_from_oserror(exc: OSError) -> Optional[str]:
     lib_wext = e_str[: so_idx + 3]
     return lib_wext
 
+def _preload_torch_cuda_linalg() -> None:
+    """Load torch's lazily-loaded linalg library before the extension.
+
+    _C.so links against libtorch_cuda_linalg, but torch only loads that library
+    on first use and _C.so has no rpath to torch/lib. Loading it first lets the
+    dynamic loader reuse the already-loaded copy. No-op on CPU-only torch,
+    where the file doesn't exist.
+    """
+    import ctypes
+
+    from torch.utils.cpp_extension import TORCH_LIB_PATH
+
+    for path in glob.glob(os.path.join(TORCH_LIB_PATH, "*torch_cuda_linalg*")):
+        try:
+            ctypes.CDLL(path, mode=ctypes.RTLD_GLOBAL)
+        except OSError:
+            pass  # load_library below will raise the real, informative error
+        return
 
 _HAS_EXT = False
 
@@ -82,21 +100,8 @@ try:
     if not _HAS_EXT:
         # try to import the compiled module (via setup.py)
         lib_path = _get_extension_path("_C")
-        try:
-            torch.ops.load_library(lib_path)
-        except OSError as e:
-            # Hack: usually ld can't find torch_cuda_linalg.so which is in TORCH_LIB_PATH
-            # if we load it first, then load_library will work.
-            # TODO: This will only work on linux.
-            if (missing_lib := lib_from_oserror(e)).startswith("libtorch_cuda_linalg"):
-                import ctypes
-
-                from torch.utils.cpp_extension import TORCH_LIB_PATH
-
-                ctypes.CDLL(os.path.join(TORCH_LIB_PATH, missing_lib))
-                torch.ops.load_library(lib_path)
-            else:
-                raise
+        _preload_torch_cuda_linalg()
+        torch.ops.load_library(lib_path)
 
         _HAS_EXT = True
 
@@ -143,25 +148,33 @@ except ImportError:
         extra_cuda_cflags += ["--expt-relaxed-constexpr", "--extended-lambda"]
         from torch.utils.cpp_extension import CUDA_HOME, TORCH_LIB_PATH
 
+        # Candidate CUDA library dirs, in order of preference; keep those that exist.
+        cuda_lib_dirs = []
+        if CUDA_HOME is not None:
+            cuda_lib_dirs = [
+                d
+                for d in (
+                    os.path.join(CUDA_HOME, "lib64"),
+                    os.path.join(CUDA_HOME, "targets", "x86_64-linux", "lib"),
+                    os.path.join(CUDA_HOME, "lib"),
+                )
+                if os.path.isdir(d)
+            ]
+
+        for d in cuda_lib_dirs:
+            extra_ldflags += [f"-L{d}", f"-Wl,-rpath,{d}"]
         extra_ldflags += [
-            "-L",
-            os.path.join(CUDA_HOME, "lib"),
-            "-L",
-            TORCH_LIB_PATH,
-            "-Wl,-rpath",
-            TORCH_LIB_PATH,
-            "-l",
-            "cusparse",
-            "-l",
-            "cublas",
-            "-l",
-            "cusolver",
+            f"-L{TORCH_LIB_PATH}",
+            f"-Wl,-rpath,{TORCH_LIB_PATH}",
+            "-lcusparse",
+            "-lcublas",
+            "-lcusolver",
         ]
-        if torch.__version__ >= (1, 12):
-            extra_ldflags.extend(["-l", "torch_cuda_linalg"])
+        # Only link the linalg lib if this torch build ships it (it is absent in older/CPU builds).
+        if glob.glob(osp.join(TORCH_LIB_PATH, "*torch_cuda_linalg*")):
+            extra_ldflags.append("-ltorch_cuda_linalg")
     else:
         warnings.warn("No CUDA toolkit found. Falkon will only run on the CPU.")
-
     name = "falkon.c_ext._C"
     build_dir = _get_build_directory(name, verbose=False)
     sources = sorted(sources)
