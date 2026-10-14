@@ -133,6 +133,7 @@ class BloksSystemModel(ExternalSystemModel):
     warmup_torch_device: ClassVar[bool] = True
     # BLOKS reports its OOF (bagged) validation error.
     can_get_error_val = True
+    uses_ray = False
 
     def __init__(
         self,
@@ -183,10 +184,6 @@ class BloksSystemModel(ExternalSystemModel):
         self._fit_resources: dict = {}
         self._validation_resolution = None
         self._num_cpus: int | None = None
-
-    @classmethod
-    def uses_ray(cls, method_kwargs: dict, *, problem_type: str | None = None) -> bool:
-        return False  # no code path of this system starts Ray
 
     def _fit_system(
         self,
@@ -298,7 +295,7 @@ class BloksSystemModel(ExternalSystemModel):
     def cleanup(self):
         self._pipeline = None
         try:
-            
+
 
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
