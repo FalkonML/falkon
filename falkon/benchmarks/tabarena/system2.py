@@ -289,7 +289,7 @@ class BloksSystemModel(ExternalSystemModel):
             return {}
         record = self._validation_resolution.to_record()
         if self._pipeline is not None:
-            record["num_bag_folds_fitted"] = self._pipeline.summary()["inner_splits"]
+            record["num_bag_folds_fitted"] = self._pipeline.summary()["n_inner_splits"]
         return record
 
     def get_metadata(self) -> dict:

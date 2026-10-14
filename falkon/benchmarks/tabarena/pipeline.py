@@ -413,6 +413,8 @@ class BloksPipeline:
         self.preprocessed_cache = {}
         self.preprocessor_cache = {}
 
+        self._n_splits = None
+
     def inner_splits(self, y: np.ndarray) -> list:
         k = max(2, min(self.inner_folds, len(y)))
         if self.problem_type == "regression":
@@ -583,6 +585,7 @@ class BloksPipeline:
             splits = self.inner_splits(y)
 
         self.preprocessed_cache, self.preprocessor_cache, self.centers_cache = {}, {}, {}
+        self._n_splits = len(splits)
 
         self._default_budget = (
             None if self.time_limit is None else self.time_limit * self.time_safety * self.default_budget_fraction
@@ -725,6 +728,7 @@ class BloksPipeline:
             "fit_time_s": float(self.fit_time_s_),
             "n_trials": len(self.history_),
             "n_trials_complete": sum(h["state"] == "complete" for h in self.history_),
+            "n_inner_splits": self._n_splits,
             "num_centers": int(self.members_[0].models[0][0].M),
             "ensemble": [
                 {"trial": m.number, "weight": float(w), "val_error": float(m.val_error), "params": m.params}

@@ -7,6 +7,8 @@ notebooks/data/
 notebooks/logs/
 .ruff_cache/
 
+*.DS_Store
+sync_traces.sh
 *.xml
 
 *.csv
